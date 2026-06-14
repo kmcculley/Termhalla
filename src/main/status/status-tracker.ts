@@ -1,5 +1,5 @@
 import type { TerminalStatus, TermState } from '@shared/types'
-import { computeNeedsInput, looksLikePrompt, type NeedsInputConfig } from './needs-input'
+import { computeNeedsInput, isPureControl, looksLikePrompt, type NeedsInputConfig } from './needs-input'
 
 export class StatusTracker {
   private state: TermState = 'idle'
@@ -27,9 +27,14 @@ export class StatusTracker {
   }
 
   onOutput(text: string, now: number): TerminalStatus {
-    this.lastOutputAt = now
-    this.tail = (this.tail + text).slice(-400)
-    if (this.state === 'needs-input') this.set('busy', now)
+    const pure = isPureControl(text)
+    if (!pure) {
+      // Only real printable output (not ANSI-only or screen-redraw) updates
+      // the quiet timer and the tail, and resets a needs-input state back to busy.
+      this.lastOutputAt = now
+      this.tail = (this.tail + text).slice(-400)
+      if (this.state === 'needs-input') this.set('busy', now)
+    }
     if (!this.hasMarkers && this.state !== 'busy') this.set('busy', now)
     return this.status()
   }
