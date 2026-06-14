@@ -4,7 +4,8 @@ const OSC = '\x1b]'
 function fileUrlToWindows(data: string): string | null {
   const m = /^file:\/\/[^/]*(\/.*)$/.exec(data)
   if (!m) return null
-  const p = decodeURIComponent(m[1])
+  let p: string
+  try { p = decodeURIComponent(m[1]) } catch { p = m[1] }
   const dos = /^\/([a-zA-Z]):(.*)$/.exec(p)        // /C:/dev
   if (dos) return `${dos[1].toUpperCase()}:${dos[2]}`.replace(/\//g, '\\')
   const wsl = /^\/mnt\/([a-zA-Z])(\/.*)?$/.exec(p)  // /mnt/c/work

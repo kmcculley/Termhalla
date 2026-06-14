@@ -41,4 +41,9 @@ describe('CwdParser', () => {
     const p = new CwdParser()
     expect(p.push('just regular output\r\n')).toBeNull()
   })
+  it('does not throw on a literal % in an OSC 7 path (invalid percent-escape)', () => {
+    const p = new CwdParser()
+    expect(() => p.push(`${ESC}]7;file://host/c/50%done${BEL}`)).not.toThrow()
+    expect(new CwdParser().push(`${ESC}]7;file://host/c/50%done${BEL}`)).toBe('C:\\50%done')
+  })
 })
