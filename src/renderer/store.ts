@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import { v4 as uuid } from 'uuid'
-import type { Workspace, ShellInfo, MosaicNode, MosaicDirection, TerminalConfig, TerminalStatus, PaneConfig } from '@shared/types'
+import type { Workspace, ShellInfo, MosaicNode, MosaicDirection, TerminalConfig, TerminalStatus, PaneConfig, EditorConfig, ExplorerConfig } from '@shared/types'
 import {
   createWorkspace, addFirstPane, splitPane, removePane
 } from '@shared/workspace-model'
@@ -13,6 +13,7 @@ interface State {
   order: string[]
   activeId: string | null
   newTerminalShellId: string | null
+  lastEditorPaneId: string | null
   init: () => Promise<void>
   newWorkspace: (name: string) => string
   setActive: (id: string) => void
@@ -23,7 +24,11 @@ interface State {
   saveAll: () => Promise<void>
   statuses: Record<string, TerminalStatus>
   setStatus: (id: string, status: TerminalStatus) => void
-  updatePaneConfig: (wsId: string, paneId: string, patch: Partial<TerminalConfig>) => void
+  updatePaneConfig: (wsId: string, paneId: string, patch: Partial<Omit<EditorConfig, 'kind'> & Omit<ExplorerConfig, 'kind'> & Omit<TerminalConfig, 'kind'>>) => void
+  registerEditorPane: (paneId: string) => void
+  addEditor: (wsId: string, targetPaneId: string | null, dir: MosaicDirection) => string
+  addExplorer: (wsId: string, targetPaneId: string | null, dir: MosaicDirection, root: string) => string
+  openFileInEditor: (wsId: string, path: string) => void
 }
 
 const defaultTerminal = (shellId: string): TerminalConfig =>
@@ -51,6 +56,7 @@ export const useStore = create<State>((set, get) => {
     order: [],
     activeId: null,
     newTerminalShellId: null,
+    lastEditorPaneId: null,
     statuses: {},
 
     init: async () => {
@@ -128,11 +134,57 @@ export const useStore = create<State>((set, get) => {
     updatePaneConfig: (wsId, paneId, patch) => {
       const ws = get().workspaces[wsId]
       const pane = ws?.panes[paneId]
-      if (!pane || pane.config.kind !== 'terminal') return
-      const config: TerminalConfig = { ...pane.config, ...patch }
+      if (!pane) return
+      const config = { ...(pane.config as object), ...patch } as PaneConfig
       const updated: Workspace = { ...ws, panes: { ...ws.panes, [paneId]: { ...pane, config } } }
       set(s => ({ workspaces: { ...s.workspaces, [wsId]: updated } }))
       void get().saveAll()
+    },
+
+    registerEditorPane: (paneId) => set({ lastEditorPaneId: paneId }),
+
+    addEditor: (wsId, targetPaneId, dir) => {
+      const ws = get().workspaces[wsId]
+      const cfg: EditorConfig = { kind: 'editor', files: [] }
+      const r = ws.layout === null || targetPaneId === null
+        ? addFirstPane(ws, cfg, uuid)
+        : splitPane(ws, targetPaneId, dir, cfg, uuid)
+      set(s => ({ workspaces: { ...s.workspaces, [wsId]: r.workspace }, lastEditorPaneId: r.paneId }))
+      void get().saveAll()
+      return r.paneId
+    },
+
+    addExplorer: (wsId, targetPaneId, dir, root) => {
+      const ws = get().workspaces[wsId]
+      const cfg: ExplorerConfig = { kind: 'explorer', root }
+      const r = ws.layout === null || targetPaneId === null
+        ? addFirstPane(ws, cfg, uuid)
+        : splitPane(ws, targetPaneId, dir, cfg, uuid)
+      set(s => ({ workspaces: { ...s.workspaces, [wsId]: r.workspace } }))
+      void get().saveAll()
+      return r.paneId
+    },
+
+    openFileInEditor: (wsId, path) => {
+      const ws = get().workspaces[wsId]
+      const last = get().lastEditorPaneId
+      const editorId = (last && ws.panes[last]?.config.kind === 'editor')
+        ? last
+        : Object.keys(ws.panes).find(id => ws.panes[id].config.kind === 'editor') ?? null
+      if (editorId) {
+        const cfg = ws.panes[editorId].config as EditorConfig
+        const files = cfg.files.includes(path) ? cfg.files : [...cfg.files, path]
+        get().updatePaneConfig(wsId, editorId, { files, activePath: path })
+        set({ lastEditorPaneId: editorId })
+      } else {
+        const target = Object.keys(ws.panes)[0] ?? null
+        const cfg: EditorConfig = { kind: 'editor', files: [path], activePath: path }
+        const r = target === null
+          ? addFirstPane(ws, cfg, uuid)
+          : splitPane(ws, target, 'row', cfg, uuid)
+        set(s => ({ workspaces: { ...s.workspaces, [wsId]: r.workspace }, lastEditorPaneId: r.paneId }))
+        void get().saveAll()
+      }
     },
 
     saveAll: async () => {
