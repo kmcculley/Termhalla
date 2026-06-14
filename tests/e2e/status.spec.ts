@@ -60,6 +60,6 @@ test('per-terminal settings: rename + mute the status border', async ({ app }) =
   await win.getByTestId('setting-name').fill('build')
   await win.getByTestId('setting-border').uncheck()
   await win.getByTestId('settings-close').click()
-  await expect(win.locator('.term-tile.term-border')).toHaveCount(0)
+  await expect(win.locator('.mosaic-window.term-status')).toHaveCount(0)
   await expect(win.locator('.mosaic-window-title').first()).toContainText('build')
 })

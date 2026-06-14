@@ -42,7 +42,7 @@ export function WorkspaceView({ ws }: { ws: Workspace }) {
         const status = statuses[paneId]
         const alerts = resolveAlerts(termCfg?.alerts)
         const state = status?.state ?? 'idle'
-        const borderClass = alerts.border ? ` term-border term-${state}` +
+        const statusClass = alerts.border ? `term-status term-${state}` +
           (state === 'idle' && status?.lastExit ? ` term-exit-${status.lastExit}` : '') : ''
         const needsInput = state === 'needs-input'
         const title = (needsInput ? '🔔 ' : '') + (termCfg?.name ?? pane?.config.kind ?? 'Pane')
@@ -50,6 +50,7 @@ export function WorkspaceView({ ws }: { ws: Workspace }) {
           <MosaicWindow<string>
             path={path}
             title={title}
+            className={statusClass}
             toolbarControls={[
               <button key="gear" data-testid={`gear-${paneId}`} title="Terminal settings"
                 onClick={() => setSettingsFor(settingsFor === paneId ? null : paneId)}>⚙</button>,
@@ -61,7 +62,7 @@ export function WorkspaceView({ ws }: { ws: Workspace }) {
                 onClick={() => closePane(ws.id, paneId)}>✕</button>
             ]}
           >
-            <div className={`term-tile${borderClass}`} data-status={state}
+            <div className="term-tile" data-status={state}
               data-testid={`tile-${paneId}`} style={{ position: 'relative', height: '100%' }}>
               {settingsFor === paneId && pane && termCfg && (
                 <TerminalSettings config={termCfg}
