@@ -55,3 +55,18 @@ test('Ctrl+S saves the active tab after switching tabs', async () => {
   expect(readFileSync(a, 'utf8')).toBe('AAA\n')
   const pid = app.process().pid; await app.close().catch(() => {}); if (pid) killTree(pid)
 })
+
+test('reloads a clean open file when it changes on disk', async () => {
+  test.setTimeout(40_000)
+  const userData = mkdtempSync(join(tmpdir(), 'termh-ed2-'))
+  const proj = mkdtempSync(join(tmpdir(), 'termh-proj2-'))
+  const file = join(proj, 'note.txt')
+  writeFileSync(file, 'original', 'utf8')
+  seedWorkspace(userData, [{ paneId: 'p1', config: { kind: 'editor', files: [file], activePath: file } }], 'p1')
+  const app = await electron.launch({ args: ['out/main/index.js', '--no-sandbox', '--disable-gpu', `--user-data-dir=${userData}`] })
+  const win = await app.firstWindow()
+  await expect(win.locator('.view-lines')).toContainText('original', { timeout: 20_000 })
+  writeFileSync(file, 'changed externally', 'utf8')
+  await expect(win.locator('.view-lines')).toContainText('changed externally', { timeout: 10_000 })
+  const pid = app.process().pid; await app.close().catch(() => {}); if (pid) killTree(pid)
+})

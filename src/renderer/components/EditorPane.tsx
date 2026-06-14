@@ -12,6 +12,7 @@ interface Tab {
   disp: monaco.IDisposable
   tooLarge: boolean
   missing: boolean
+  externalChanged?: boolean
 }
 
 function base(p: string): string { return p.split(/[\\/]/).pop() ?? p }
@@ -54,6 +55,7 @@ export function EditorPane({ paneId, wsId, config }: { paneId: string; wsId: str
       const model = monaco.editor.createModel(tooLarge || missing ? '' : saved, languageForPath(path))
       const disp = model.onDidChangeContent(() => rerender())
       tabs.current.set(path, { path, model, saved, disp, tooLarge, missing })
+      api.fsWatch(`${paneId}::${path}`, path)
       setOrder(o => (o.includes(path) ? o : [...o, path]))
       setActiveModel(path)
       rerender()
@@ -82,6 +84,7 @@ export function EditorPane({ paneId, wsId, config }: { paneId: string; wsId: str
       if (!window.confirm(`${base(path)} has unsaved changes. Close anyway?`)) return
     }
     t.disp.dispose(); t.model.dispose(); tabs.current.delete(path)
+    api.fsUnwatch(`${paneId}::${path}`)
     setOrder(o => {
       const next = o.filter(p => p !== path)
       const nextActive = active === path ? next[next.length - 1] : active
@@ -103,7 +106,7 @@ export function EditorPane({ paneId, wsId, config }: { paneId: string; wsId: str
     ed.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS, () => { void saveActiveRef.current() })
     return () => {
       focusDisp.dispose(); ed.dispose()
-      for (const t of tabs.current.values()) { t.disp.dispose(); t.model.dispose() }
+      for (const t of tabs.current.values()) { api.fsUnwatch(`${paneId}::${t.path}`); t.disp.dispose(); t.model.dispose() }
       tabs.current.clear()
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -114,6 +117,26 @@ export function EditorPane({ paneId, wsId, config }: { paneId: string; wsId: str
     if (config.activePath && tabs.current.has(config.activePath)) setActiveModel(config.activePath)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [config.files, config.activePath])
+
+  useEffect(() => {
+    const off = api.onFsChange((id, change) => {
+      const prefix = `${paneId}::`
+      if (!id.startsWith(prefix)) return
+      const path = id.slice(prefix.length)
+      const t = tabs.current.get(path)
+      if (!t) return
+      if (change.event === 'unlink') { t.missing = true; rerender(); return }
+      if (change.event !== 'change') return
+      const dirty = !t.tooLarge && !t.missing && t.model.getValue() !== t.saved
+      if (dirty) { t.externalChanged = true; rerender(); return }
+      void api.fsRead(path).then(r => {
+        if (r.tooLarge) return
+        t.saved = r.content; t.model.setValue(r.content); t.missing = false; t.externalChanged = false; rerender()
+      }).catch(() => {})
+    })
+    return off
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [paneId])
 
   const activeTab = active ? tabs.current.get(active) : undefined
   const isDirty = (t: Tab | undefined) => !!t && !t.tooLarge && !t.missing && t.model.getValue() !== t.saved
@@ -139,6 +162,16 @@ export function EditorPane({ paneId, wsId, config }: { paneId: string; wsId: str
         })}
       </div>
       {activeTab?.tooLarge && <div data-testid="editor-toolarge" style={{ color: '#bbb', padding: 8 }}>File too large to open.</div>}
+      {activeTab?.externalChanged && (
+        <div data-testid="editor-reloadbar" style={{ background: '#5a4a00', color: '#fff', padding: '2px 8px', display: 'flex', gap: 8 }}>
+          <span>Changed on disk.</span>
+          <button data-testid="editor-reload" onClick={async () => {
+            const t = activeTab; const r = await api.fsRead(t.path).catch(() => null)
+            if (r && !r.tooLarge) { t.saved = r.content; t.model.setValue(r.content); t.externalChanged = false; rerender() }
+          }}>Reload</button>
+          <button data-testid="editor-keepmine" onClick={() => { activeTab.externalChanged = false; rerender() }}>Keep mine</button>
+        </div>
+      )}
       <div ref={hostRef} style={{ flex: 1, display: activeTab?.tooLarge ? 'none' : 'block' }} />
     </div>
   )
