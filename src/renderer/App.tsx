@@ -3,6 +3,7 @@ import { useStore } from './store'
 import { WorkspaceTabs } from './components/WorkspaceTabs'
 import { WorkspaceView } from './components/WorkspaceView'
 import { CommandPalette } from './components/CommandPalette'
+import { SshConnectionForm } from './components/SshConnectionForm'
 import { api } from './api'
 
 export default function App() {
@@ -43,6 +44,7 @@ export default function App() {
         {active ? <WorkspaceView ws={active} /> : <div data-testid="app-title">Termhalla</div>}
       </div>
       <CommandPalette />
+      <SshConnectionForm />
     </div>
   )
 }
