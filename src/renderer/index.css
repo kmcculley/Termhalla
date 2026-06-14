@@ -1,0 +1,3 @@
+html, body, #root { margin: 0; height: 100%; }
+.mosaic, .mosaic-root { height: 100%; }
+.mosaic-blueprint-theme { height: 100%; }

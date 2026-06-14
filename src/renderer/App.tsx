@@ -1,3 +1,20 @@
+import { useEffect } from 'react'
+import { useStore } from './store'
+import { WorkspaceTabs } from './components/WorkspaceTabs'
+import { WorkspaceView } from './components/WorkspaceView'
+
 export default function App() {
-  return <h1 data-testid="app-title">Termhalla</h1>
+  const init = useStore(s => s.init)
+  const { activeId, workspaces } = useStore()
+  useEffect(() => { init() }, [init])
+
+  const active = activeId ? workspaces[activeId] : null
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100vh' }}>
+      <WorkspaceTabs />
+      <div style={{ flex: 1, position: 'relative' }} className="mosaic-blueprint-theme">
+        {active ? <WorkspaceView ws={active} /> : <div data-testid="app-title">Termhalla</div>}
+      </div>
+    </div>
+  )
 }
