@@ -23,7 +23,9 @@ export const CH = {
   fsUnwatch: 'fs:unwatch',
   fsChange: 'fs:change',          // main -> renderer event
   dialogOpenFolder: 'dialog:openFolder',
-  dialogOpenFile: 'dialog:openFile'
+  dialogOpenFile: 'dialog:openFile',
+  ptyCwd: 'pty:cwd',          // main -> renderer event
+  revealPath: 'shell:reveal'
 } as const
 
 export interface NotifyArgs { title: string; body: string }
@@ -55,4 +57,6 @@ export interface TermhallaApi {
   onFsChange(cb: (id: string, change: FsChange) => void): () => void
   openFolder(): Promise<string | null>
   openFile(): Promise<string | null>
+  onPtyCwd(cb: (id: string, cwd: string) => void): () => void
+  revealPath(path: string): Promise<void>
 }
