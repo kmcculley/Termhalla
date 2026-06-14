@@ -9,6 +9,7 @@ import { api } from './api'
 export default function App() {
   const init = useStore(s => s.init)
   const { activeId, workspaces } = useStore()
+  const connectionFormFor = useStore(s => s.connectionFormFor)
   useEffect(() => { init() }, [init])
   useEffect(() => {
     const flush = () => { void useStore.getState().saveAll() }
@@ -44,7 +45,7 @@ export default function App() {
         {active ? <WorkspaceView ws={active} /> : <div data-testid="app-title">Termhalla</div>}
       </div>
       <CommandPalette />
-      <SshConnectionForm />
+      <SshConnectionForm key={connectionFormFor === null ? 'none' : connectionFormFor === 'new' ? 'new' : connectionFormFor.id} />
     </div>
   )
 }

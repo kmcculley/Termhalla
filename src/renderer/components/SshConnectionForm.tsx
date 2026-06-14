@@ -19,7 +19,9 @@ export function SshConnectionForm() {
 
   if (!target) return null
 
-  const valid = host.trim().length > 0 && user.trim().length > 0
+  const portNum = Number(port)
+  const portOk = !port.trim() || (Number.isInteger(portNum) && portNum >= 1 && portNum <= 65535)
+  const valid = host.trim().length > 0 && user.trim().length > 0 && portOk
   const close = () => setForm(null)
 
   const build = (): SshConnection => ({
@@ -56,12 +58,12 @@ export function SshConnectionForm() {
     <div data-testid="connection-form-backdrop" onClick={close}
       style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', zIndex: 1100,
         display: 'flex', justifyContent: 'center', alignItems: 'flex-start', paddingTop: '12vh' }}>
-      <div data-testid="connection-form" role="dialog" aria-modal aria-label="SSH connection"
-        onClick={e => e.stopPropagation()}
+      <div data-testid="connection-form" role="dialog" aria-modal={true} aria-label="SSH connection"
+        onClick={e => e.stopPropagation()} onKeyDown={e => { if (e.key === 'Escape') close() }}
         style={{ width: 420, background: '#252526', color: '#eee', border: '1px solid #444',
           borderRadius: 6, padding: 16, display: 'flex', flexDirection: 'column', gap: 10 }}>
         <h3 style={{ margin: 0, fontSize: 15 }}>{editing ? 'Edit SSH connection' : 'New SSH connection'}</h3>
-        {field('Name', <input data-testid="conn-name" value={name}
+        {field('Name', <input data-testid="conn-name" autoFocus value={name}
           onChange={e => setName(e.target.value)} style={inputStyle} />)}
         {field('Host *', <input data-testid="conn-host" value={host}
           onChange={e => setHost(e.target.value)} style={inputStyle} />)}
@@ -79,7 +81,7 @@ export function SshConnectionForm() {
         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 6, marginTop: 4 }}>
           <button data-testid="conn-cancel" onClick={close}>Cancel</button>
           <button data-testid="conn-save" disabled={!valid} onClick={() => onSave(false)}>Save</button>
-          <button data-testid="conn-save-connect" disabled={!valid} onClick={() => onSave(true)}>Save &amp; Connect</button>
+          <button data-testid="conn-save-connect" disabled={!valid} onClick={() => onSave(true)}>Save & Connect</button>
         </div>
       </div>
     </div>
