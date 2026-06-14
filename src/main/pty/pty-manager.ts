@@ -45,6 +45,7 @@ export class PtyManager {
     this.sessions.set(id, { id, proc })
   }
 
+  pidOf(id: string): number | undefined { return this.sessions.get(id)?.proc.pid }
   write(id: string, data: string): void { this.sessions.get(id)?.proc.write(data) }
   resize(id: string, cols: number, rows: number): void {
     this.sessions.get(id)?.proc.resize(Math.max(cols, 1), Math.max(rows, 1))

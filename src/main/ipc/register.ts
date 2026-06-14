@@ -11,6 +11,7 @@ import { QuickStore } from '../persistence/quick-store'
 import { userDataDir } from '../persistence/paths'
 import { readTextFile, writeTextFile, readDirectory, statPath } from '../fs/files'
 import { WatchManager } from '../fs/watch-manager'
+import { ProcessTracker } from '../proc/process-tracker'
 
 export function registerHandlers(win: BrowserWindow): PtyManager {
   const store = new WorkspaceStore(userDataDir())
@@ -28,14 +29,19 @@ export function registerHandlers(win: BrowserWindow): PtyManager {
     try { win.webContents.send(channel, ...args) } catch { /* torn down mid-send */ }
   }
 
+  let tracker: ProcessTracker | undefined
   const engine = new StatusEngine(
-    (id, status) => safeSend(CH.ptyStatus, id, status),
+    (id, status) => { safeSend(CH.ptyStatus, id, status); tracker?.setBusy(id, status.state === 'busy') },
     (id, cwd) => safeSend(CH.ptyCwd, id, cwd)
   )
   const pty = new PtyManager(
     (id, data) => safeSend(CH.ptyData, id, data),
-    (id, code) => safeSend(CH.ptyExit, id, code),
+    (id, code) => { safeSend(CH.ptyExit, id, code); tracker?.unregister(id) },
     engine, scriptDir
+  )
+  tracker = new ProcessTracker(
+    (id) => pty.pidOf(id),
+    (id, info) => safeSend(CH.ptyProcs, id, info)
   )
 
   ipcMain.handle(CH.listShells, () => shells)
@@ -48,10 +54,11 @@ export function registerHandlers(win: BrowserWindow): PtyManager {
   ipcMain.handle(CH.ptySpawn, (_e, a: PtySpawnArgs) => {
     const shell = shells.find(s => s.id === a.shellId) ?? shells[0]
     pty.spawn(a.id, shell, a.cwd, a.cols, a.rows, a.launch)
+    tracker!.register(a.id)
   })
   ipcMain.on(CH.ptyWrite, (_e, a: PtyWriteArgs) => pty.write(a.id, a.data))
   ipcMain.on(CH.ptyResize, (_e, a: PtyResizeArgs) => pty.resize(a.id, a.cols, a.rows))
-  ipcMain.on(CH.ptyKill, (_e, id: string) => pty.kill(id))
+  ipcMain.on(CH.ptyKill, (_e, id: string) => { pty.kill(id); tracker!.unregister(id) })
 
   ipcMain.on(CH.notify, (_e, a: NotifyArgs) => {
     if (!Notification.isSupported()) return
