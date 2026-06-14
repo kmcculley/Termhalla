@@ -75,6 +75,9 @@ export function deserializeWorkspace(json: string): Workspace {
 }
 
 // Future versions add cases here; v1 is identity.
-function migrate(ws: Workspace, _version: number): Workspace {
+function migrate(ws: Workspace, version: number): Workspace {
+  if (version > SCHEMA_VERSION) {
+    throw new Error(`Workspace schemaVersion ${version} is newer than supported (${SCHEMA_VERSION})`)
+  }
   return ws
 }

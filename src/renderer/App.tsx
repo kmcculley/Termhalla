@@ -7,6 +7,11 @@ export default function App() {
   const init = useStore(s => s.init)
   const { activeId, workspaces } = useStore()
   useEffect(() => { init() }, [init])
+  useEffect(() => {
+    const flush = () => { void useStore.getState().saveAll() }
+    window.addEventListener('beforeunload', flush)
+    return () => window.removeEventListener('beforeunload', flush)
+  }, [])
 
   const active = activeId ? workspaces[activeId] : null
   return (

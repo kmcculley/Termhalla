@@ -76,4 +76,12 @@ describe('workspace-model', () => {
     expect(after.panes['p2']).toBeUndefined()
     expect(Object.keys(after.panes).sort()).toEqual(['p1', 'p3'])
   })
+
+  it('rejects a workspace from a newer schema version', () => {
+    const json = JSON.stringify({
+      schemaVersion: 999,
+      workspace: { id: 'x', name: 'n', layout: null, panes: {} }
+    })
+    expect(() => deserializeWorkspace(json)).toThrow()
+  })
 })

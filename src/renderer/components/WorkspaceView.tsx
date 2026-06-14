@@ -30,8 +30,10 @@ export function WorkspaceView({ ws }: { ws: Workspace }) {
             path={path}
             title={pane?.config.name ?? 'Terminal'}
             toolbarControls={[
-              <button key="split" data-testid={`split-${paneId}`}
-                onClick={() => addTerminal(ws.id, paneId, 'row')}>Split</button>,
+              <button key="split-row" data-testid={`split-${paneId}`} title="Split right"
+                onClick={() => addTerminal(ws.id, paneId, 'row')}>⬌</button>,
+              <button key="split-col" data-testid={`split-col-${paneId}`} title="Split down"
+                onClick={() => addTerminal(ws.id, paneId, 'column')}>⬍</button>,
               <button key="close" data-testid={`close-${paneId}`}
                 onClick={() => closePane(ws.id, paneId)}>✕</button>
             ]}
