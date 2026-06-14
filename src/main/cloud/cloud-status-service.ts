@@ -1,0 +1,65 @@
+import type { CloudStatus } from '@shared/types'
+import type { CloudProvider } from './providers'
+import { DEFAULT_PROVIDERS } from './providers'
+import { classifyProbe, type ProbeResult } from './classify'
+import { runCliProbe } from './probe'
+
+type RunProbe = (provider: CloudProvider) => Promise<ProbeResult>
+
+/** Periodically probes each provider's CLI for login status and emits the full array.
+ *  Stale-while-revalidate: keeps the last good result on a transient error; shows
+ *  'checking' only on first load; never overlaps refresh cycles. */
+export class CloudStatusService {
+  private last = new Map<string, CloudStatus>()
+  private timer: ReturnType<typeof setInterval> | null = null
+  private refreshing = false
+
+  constructor(
+    private readonly onStatus: (statuses: CloudStatus[]) => void,
+    private readonly providers: CloudProvider[] = DEFAULT_PROVIDERS,
+    private readonly runProbe: RunProbe = runCliProbe,
+    private readonly now: () => number = () => Date.now(),
+    private readonly intervalMs = 60000
+  ) {}
+
+  start(): void {
+    if (this.timer) return
+    void this.refresh()
+    this.timer = setInterval(() => { void this.refresh() }, this.intervalMs)
+    ;(this.timer as { unref?: () => void }).unref?.()
+  }
+
+  stop(): void {
+    if (this.timer) { clearInterval(this.timer); this.timer = null }
+  }
+
+  async refresh(): Promise<void> {
+    if (this.refreshing) return
+    this.refreshing = true
+    try {
+      let showedChecking = false
+      for (const p of this.providers) {
+        if (!this.last.has(p.id)) {
+          this.last.set(p.id, { id: p.id, label: p.label, state: 'checking', checkedAt: this.now(), login: p.login })
+          showedChecking = true
+        }
+      }
+      if (showedChecking) this.emit()
+
+      await Promise.all(this.providers.map(async p => {
+        const result = await this.runProbe(p)
+        const fresh = classifyProbe(p, result, this.now())
+        const prior = this.last.get(p.id)
+        const keepStale = fresh.state === 'error' && prior && prior.state !== 'error' && prior.state !== 'checking'
+        this.last.set(p.id, keepStale ? prior! : fresh)
+      }))
+      this.emit()
+    } finally {
+      this.refreshing = false
+    }
+  }
+
+  private emit(): void {
+    this.onStatus(this.providers.map(p => this.last.get(p.id)).filter((s): s is CloudStatus => Boolean(s)))
+  }
+}
