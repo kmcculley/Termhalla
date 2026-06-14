@@ -41,6 +41,12 @@ const api: TermhallaApi = {
   },
   openFolder: () => ipcRenderer.invoke(CH.dialogOpenFolder),
   openFile: () => ipcRenderer.invoke(CH.dialogOpenFile),
+  revealPath: (path) => ipcRenderer.invoke(CH.revealPath, path),
+  onPtyCwd: (cb) => {
+    const h = (_e: unknown, id: string, cwd: string) => cb(id, cwd)
+    ipcRenderer.on(CH.ptyCwd, h as never)
+    return () => ipcRenderer.removeListener(CH.ptyCwd, h as never)
+  },
 }
 
 contextBridge.exposeInMainWorld('termhalla', api)

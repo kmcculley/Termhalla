@@ -24,15 +24,15 @@ interface State {
   saveAll: () => Promise<void>
   statuses: Record<string, TerminalStatus>
   setStatus: (id: string, status: TerminalStatus) => void
+  cwds: Record<string, string>
+  setCwd: (id: string, cwd: string) => void
   updatePaneConfig: (wsId: string, paneId: string, patch: Partial<Omit<EditorConfig, 'kind'> & Omit<ExplorerConfig, 'kind'> & Omit<TerminalConfig, 'kind'>>) => void
   registerEditorPane: (paneId: string) => void
   addEditor: (wsId: string, targetPaneId: string | null, dir: MosaicDirection) => string
   addExplorer: (wsId: string, targetPaneId: string | null, dir: MosaicDirection, root: string) => string
   openFileInEditor: (wsId: string, path: string) => void
+  openExplorerHere: (wsId: string, paneId: string) => void
 }
-
-const defaultTerminal = (shellId: string): TerminalConfig =>
-  ({ kind: 'terminal', shellId, cwd: '' })
 
 let autosaveTimer: ReturnType<typeof setTimeout> | null = null
 
@@ -42,6 +42,31 @@ function findPaneConfig(s: { workspaces: Record<string, Workspace> }, paneId: st
     if (pane) return pane.config
   }
   return undefined
+}
+
+function applyCwds(ws: import('@shared/types').Workspace, cwds: Record<string, string>): import('@shared/types').Workspace {
+  let changed = false
+  const panes = { ...ws.panes }
+  for (const id of Object.keys(panes)) {
+    const pane = panes[id]
+    if (pane.config.kind === 'terminal' && cwds[id] && cwds[id] !== pane.config.cwd) {
+      panes[id] = { ...pane, config: { ...pane.config, cwd: cwds[id] } }
+      changed = true
+    }
+  }
+  return changed ? { ...ws, panes } : ws
+}
+
+export function paneCwd(
+  s: { cwds: Record<string, string>; workspaces: Record<string, import('@shared/types').Workspace> },
+  paneId: string
+): string {
+  if (s.cwds[paneId]) return s.cwds[paneId]
+  for (const ws of Object.values(s.workspaces)) {
+    const pane = ws.panes[paneId]
+    if (pane?.config.kind === 'terminal') return pane.config.cwd
+  }
+  return ''
 }
 
 export const useStore = create<State>((set, get) => {
@@ -58,6 +83,7 @@ export const useStore = create<State>((set, get) => {
     newTerminalShellId: null,
     lastEditorPaneId: null,
     statuses: {},
+    cwds: {},
 
     init: async () => {
       const shells = await api.listShells()
@@ -99,7 +125,8 @@ export const useStore = create<State>((set, get) => {
     addTerminal: (wsId, targetPaneId, dir) => {
       const ws = get().workspaces[wsId]
       const shellId = get().newTerminalShellId ?? get().shells[0]?.id ?? 'cmd'
-      const cfg = defaultTerminal(shellId)
+      const cwd = targetPaneId ? paneCwd(get(), targetPaneId) : ''
+      const cfg: TerminalConfig = { kind: 'terminal', shellId, cwd }
       const r = ws.layout === null || targetPaneId === null
         ? addFirstPane(ws, cfg, uuid)
         : splitPane(ws, targetPaneId, dir, cfg, uuid)
@@ -129,6 +156,12 @@ export const useStore = create<State>((set, get) => {
           && typeof document !== 'undefined' && !document.hasFocus()) {
         api.notify({ title: 'Terminal needs input', body: termCfg?.name ?? 'A terminal is waiting for input' })
       }
+    },
+
+    setCwd: (id, cwd) => {
+      if (get().cwds[id] === cwd) return
+      set(s => ({ cwds: { ...s.cwds, [id]: cwd } }))
+      scheduleAutosave()   // persist into config.cwd (debounced) so restore uses it
     },
 
     updatePaneConfig: (wsId, paneId, patch) => {
@@ -165,6 +198,12 @@ export const useStore = create<State>((set, get) => {
       return r.paneId
     },
 
+    openExplorerHere: (wsId, paneId) => {
+      const root = paneCwd(get(), paneId)
+      if (!root) return
+      get().addExplorer(wsId, paneId, 'row', root)
+    },
+
     openFileInEditor: (wsId, path) => {
       const ws = get().workspaces[wsId]
       const last = get().lastEditorPaneId
@@ -188,8 +227,8 @@ export const useStore = create<State>((set, get) => {
     },
 
     saveAll: async () => {
-      const { order, workspaces, activeId } = get()
-      await Promise.all(order.map(id => api.saveWorkspace(workspaces[id])))
+      const { order, workspaces, activeId, cwds } = get()
+      await Promise.all(order.map(id => api.saveWorkspace(applyCwds(workspaces[id], cwds))))
       await api.saveAppState({
         schemaVersion: 1, openWorkspaceIds: order, activeWorkspaceId: activeId
       })

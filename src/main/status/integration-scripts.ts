@@ -13,6 +13,7 @@ function global:prompt {
   $e = [char]27; $b = [char]7
   [Console]::Write("$e]133;D;$code$b")
   [Console]::Write("$e]133;A$b")
+  [Console]::Write("$e]9;9;$($pwd.ProviderPath)$b")
   if ($global:__thOrigPrompt) { & $global:__thOrigPrompt } else { "PS " + (Get-Location) + "> " }
 }
 try {
@@ -28,7 +29,7 @@ try {
 // Note: \x24 is $ — avoids JS template-literal parsing of ${...} by esbuild.
 export const BASH_INTEGRATION = (
   '[ -f ~/.bashrc ] && source ~/.bashrc\n' +
-  '__th_prompt() { local c=$?; printf \'\\033]133;D;%s\\007\\033]133;A\\007\' "$c"; }\n' +
+  '__th_prompt() { local c=$?; printf \'\\033]133;D;%s\\007\\033]133;A\\007\\033]7;file://%s%s\\007\' "$c" "$HOSTNAME" "$PWD"; }\n' +
   'case "$PROMPT_COMMAND" in\n' +
   '  *__th_prompt*) ;;\n' +
   '  *) PROMPT_COMMAND="__th_prompt\x24{PROMPT_COMMAND:+; \x24PROMPT_COMMAND}" ;;\n' +

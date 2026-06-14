@@ -2,8 +2,9 @@ import type { TerminalStatus } from '@shared/types'
 import { Osc133Parser } from './osc133-parser'
 import { StatusTracker } from './status-tracker'
 import { DEFAULT_NEEDS_INPUT_PATTERNS, type NeedsInputConfig } from './needs-input'
+import { CwdParser } from './cwd-parser'
 
-interface Session { parser: Osc133Parser; tracker: StatusTracker; last: string }
+interface Session { parser: Osc133Parser; tracker: StatusTracker; last: string; cwdParser: CwdParser; lastCwd: string }
 
 function defaultConfig(): NeedsInputConfig {
   const envQuiet = Number(process.env.TERMHALLA_NEEDS_INPUT_QUIET_MS)
@@ -22,6 +23,7 @@ export class StatusEngine {
 
   constructor(
     private readonly onStatus: (id: string, status: TerminalStatus) => void,
+    private readonly onCwd: (id: string, cwd: string) => void,
     private readonly now: () => number = () => Date.now()
   ) {}
 
@@ -29,7 +31,9 @@ export class StatusEngine {
     this.sessions.set(id, {
       parser: new Osc133Parser(),
       tracker: new StatusTracker(this.now(), defaultConfig()),
-      last: ''
+      last: '',
+      cwdParser: new CwdParser(),
+      lastCwd: ''
     })
     this.emit(id)
     this.ensureTimer()
@@ -40,6 +44,8 @@ export class StatusEngine {
     const t = this.now()
     for (const m of s.parser.push(data)) s.tracker.onMarker(m.kind, m.exit, t)
     s.tracker.onOutput(data, t)
+    const cwd = s.cwdParser.push(data)
+    if (cwd && cwd !== s.lastCwd) { s.lastCwd = cwd; this.onCwd(id, cwd) }
     this.emit(id)
   }
 
