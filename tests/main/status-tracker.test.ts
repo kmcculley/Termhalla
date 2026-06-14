@@ -3,7 +3,8 @@ import { StatusTracker } from '../../src/main/status/status-tracker'
 import { DEFAULT_NEEDS_INPUT_PATTERNS, type NeedsInputConfig } from '../../src/main/status/needs-input'
 
 const cfg = (over: Partial<NeedsInputConfig> = {}): NeedsInputConfig => ({
-  enabled: true, quietMs: 10000, patterns: DEFAULT_NEEDS_INPUT_PATTERNS, heuristicIdleMs: 1500, ...over
+  enabled: true, quietMs: 10000, patterns: DEFAULT_NEEDS_INPUT_PATTERNS,
+  heuristicIdleMs: 1500, heuristicIdleHardMs: 5000, ...over
 })
 
 describe('StatusTracker (with integration markers)', () => {
@@ -51,5 +52,37 @@ describe('StatusTracker (heuristic, no markers)', () => {
     expect(t.tick(1000).state).toBe('busy')
     t.onOutput('\r\nPS C:\\> ', 1100)
     expect(t.tick(3000).state).toBe('idle')
+  })
+
+  it('goes idle after sustained silence even when the prompt is never recognized', () => {
+    // Reproduces the cmd "stuck busy after Ctrl+C" bug: the return-to-prompt was
+    // never captured into the tail, so looksLikePrompt stays false forever.
+    const t = new StatusTracker(0, cfg())
+    expect(t.onOutput('dir output, interrupted, no prompt char', 0).state).toBe('busy')
+    expect(t.tick(2000).state).toBe('busy')   // quiet > heuristicIdleMs but no prompt, < hard threshold
+    expect(t.tick(6000).state).toBe('idle')   // sustained silence past hard threshold -> idle (the fix)
+  })
+
+  it('does NOT hard-idle while a no-integration shell waits at an input prompt', () => {
+    const t = new StatusTracker(0, cfg())
+    expect(t.onOutput('Overwrite? [y/N] ', 0).state).toBe('busy')
+    expect(t.tick(6000).state).toBe('busy')          // past hard threshold but tail is an input prompt -> stays busy
+    expect(t.tick(11000).state).toBe('needs-input')  // then needs-input fires at quietMs >= quietMs
+  })
+
+  it('idles when integration markers stop and it sits silent at a prompt (nested shell)', () => {
+    // pwsh (integrated) launched `cmd`: markers latched true, but cmd emits none.
+    const t = new StatusTracker(0, cfg())
+    t.onMarker('C', undefined, 0)                       // pwsh said busy (running `cmd`)
+    t.onOutput('Microsoft Windows ...\r\nC:\\>', 100)   // nested cmd prompt; hasMarkers stays true
+    expect(t.tick(2000).state).toBe('busy')             // < hard threshold -> still busy
+    expect(t.tick(6000).state).toBe('idle')             // long silence at a prompt -> idle (the fix)
+  })
+
+  it('keeps a genuine integration command busy when its output is not a prompt', () => {
+    const t = new StatusTracker(0, cfg())
+    t.onMarker('C', undefined, 0)                  // busy via marker
+    t.onOutput('still compiling...', 100)          // output, not a prompt
+    expect(t.tick(8000).state).toBe('busy')        // silent but not a prompt -> stays busy (marker A will idle it)
   })
 })

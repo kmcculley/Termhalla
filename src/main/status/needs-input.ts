@@ -1,8 +1,9 @@
 export interface NeedsInputConfig {
   enabled: boolean
-  quietMs: number         // how long output must be silent before we suspect a wait
-  patterns: RegExp[]      // tail patterns that indicate an input prompt
-  heuristicIdleMs: number // (used by the tracker's no-integration idle heuristic)
+  quietMs: number             // how long output must be silent before we suspect a wait
+  patterns: RegExp[]          // tail patterns that indicate an input prompt
+  heuristicIdleMs: number     // no-integration: quiet + recognized prompt -> idle (fast path)
+  heuristicIdleHardMs: number // no-integration: sustained silence -> idle even w/o a recognized prompt
 }
 
 export const DEFAULT_NEEDS_INPUT_PATTERNS: RegExp[] = [
@@ -43,11 +44,16 @@ function lastLine(tail: string): string {
   return lines[lines.length - 1] ?? ''
 }
 
+/** True if the tail's last line matches one of the input-prompt patterns (timing-agnostic). */
+export function tailMatchesInputPrompt(tail: string, patterns: RegExp[]): boolean {
+  const line = lastLine(tail)
+  return patterns.some(p => p.test(line))
+}
+
 export function computeNeedsInput(quietMs: number, tail: string, cfg: NeedsInputConfig): boolean {
   if (!cfg.enabled) return false
   if (quietMs < cfg.quietMs) return false
-  const line = lastLine(tail)
-  return cfg.patterns.some(p => p.test(line))
+  return tailMatchesInputPrompt(tail, cfg.patterns)
 }
 
 export function looksLikePrompt(tail: string): boolean {

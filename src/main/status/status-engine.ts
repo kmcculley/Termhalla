@@ -11,7 +11,8 @@ function defaultConfig(): NeedsInputConfig {
     enabled: true,
     quietMs: Number.isFinite(envQuiet) && envQuiet > 0 ? envQuiet : 10000,
     patterns: DEFAULT_NEEDS_INPUT_PATTERNS,
-    heuristicIdleMs: 1500
+    heuristicIdleMs: 1500,
+    heuristicIdleHardMs: 5000
   }
 }
 

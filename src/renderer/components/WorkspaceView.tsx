@@ -42,8 +42,7 @@ export function WorkspaceView({ ws }: { ws: Workspace }) {
         const status = statuses[paneId]
         const alerts = resolveAlerts(termCfg?.alerts)
         const state = status?.state ?? 'idle'
-        const statusClass = alerts.border ? `term-status term-${state}` +
-          (state === 'idle' && status?.lastExit ? ` term-exit-${status.lastExit}` : '') : ''
+        const statusClass = alerts.border ? `term-status term-${state}` : ''
         const needsInput = state === 'needs-input'
         const title = (needsInput ? '🔔 ' : '') + (termCfg?.name ?? pane?.config.kind ?? 'Pane')
         return (

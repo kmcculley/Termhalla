@@ -18,10 +18,18 @@ export function registerHandlers(win: BrowserWindow): PtyManager {
   const scriptDir = join(userDataDir(), 'shell-integration')
   writeIntegrationScripts(scriptDir)
 
-  const engine = new StatusEngine((id, status) => win.webContents.send(CH.ptyStatus, id, status))
+  // Main->renderer events can still fire during teardown (e.g. pty exit events
+  // after the window/webContents is destroyed on app close). Guard every send so
+  // it never throws "Object has been destroyed".
+  const safeSend = (channel: string, ...args: unknown[]): void => {
+    if (win.isDestroyed() || win.webContents.isDestroyed()) return
+    try { win.webContents.send(channel, ...args) } catch { /* torn down mid-send */ }
+  }
+
+  const engine = new StatusEngine((id, status) => safeSend(CH.ptyStatus, id, status))
   const pty = new PtyManager(
-    (id, data) => win.webContents.send(CH.ptyData, id, data),
-    (id, code) => win.webContents.send(CH.ptyExit, id, code),
+    (id, data) => safeSend(CH.ptyData, id, data),
+    (id, code) => safeSend(CH.ptyExit, id, code),
     engine, scriptDir
   )
 
@@ -47,7 +55,7 @@ export function registerHandlers(win: BrowserWindow): PtyManager {
     n.show()
   })
 
-  const watcher = new WatchManager((id, change) => win.webContents.send(CH.fsChange, id, change))
+  const watcher = new WatchManager((id, change) => safeSend(CH.fsChange, id, change))
   win.on('closed', () => watcher.closeAll())
 
   ipcMain.handle(CH.fsRead, (_e, path: string) => readTextFile(path))
