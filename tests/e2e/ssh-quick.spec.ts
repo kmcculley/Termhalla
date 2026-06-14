@@ -32,6 +32,7 @@ test('command palette: create a connection, launch it, and jump to a recent dir'
   await win.keyboard.press('Control+K')
   await expect(win.getByTestId('command-palette')).toBeVisible()
   await win.getByTestId('palette-input').fill('new ssh')
+  await expect(win.getByTestId('palette-item-0')).toContainText('New SSH connection')
   await win.getByTestId('palette-item-0').click()             // "New SSH connection…"
   await expect(win.getByTestId('connection-form')).toBeVisible()
   await win.getByTestId('conn-name').fill('my-box')
