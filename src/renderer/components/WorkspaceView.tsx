@@ -5,6 +5,7 @@ import type { MosaicNode as ModelNode, Workspace } from '@shared/types'
 import { resolveAlerts } from '@shared/alerts'
 import { useStore } from '../store'
 import { TerminalPane } from './TerminalPane'
+import { EditorPane } from './EditorPane'
 import { TerminalSettings } from './TerminalSettings'
 
 export function WorkspaceView({ ws }: { ws: Workspace }) {
@@ -61,7 +62,9 @@ export function WorkspaceView({ ws }: { ws: Workspace }) {
                   onChange={patch => updatePaneConfig(ws.id, paneId, patch)}
                   onClose={() => setSettingsFor(null)} />
               )}
-              {pane && termCfg ? <TerminalPane paneId={paneId} config={termCfg} /> : <div>{pane ? pane.config.kind : 'missing pane'}</div>}
+              {pane?.config.kind === 'terminal' && termCfg && <TerminalPane paneId={paneId} config={termCfg} />}
+              {pane?.config.kind === 'editor' && <EditorPane paneId={paneId} wsId={ws.id} config={pane.config} />}
+              {!pane && <div>missing pane</div>}
             </div>
           </MosaicWindow>
         )
