@@ -1,6 +1,7 @@
 import type { Workspace } from '@shared/types'
 import { resolveAlerts } from '@shared/alerts'
 import { useStore } from '../store'
+import { api } from '../api'
 
 function tabBadge(ws: Workspace, statuses: Record<string, { state: string }>): string {
   let needs = 0, busy = false
@@ -19,7 +20,8 @@ function tabBadge(ws: Workspace, statuses: Record<string, { state: string }>): s
 export function WorkspaceTabs() {
   const {
     order, workspaces, activeId, setActive, newWorkspace,
-    saveAll, shells, newTerminalShellId, setNewTerminalShell, statuses
+    saveAll, shells, newTerminalShellId, setNewTerminalShell, statuses,
+    addTerminal, addEditor, addExplorer
   } = useStore()
   return (
     <div data-testid="workspace-tabs"
@@ -37,6 +39,20 @@ export function WorkspaceTabs() {
       <select data-testid="shell-picker" value={newTerminalShellId ?? ''}
         onChange={e => setNewTerminalShell(e.target.value)}>
         {shells.map(s => <option key={s.id} value={s.id}>{s.label}</option>)}
+      </select>
+      <select data-testid="add-pane" value="" onChange={async e => {
+        const kind = e.target.value; e.currentTarget.value = ''
+        if (!activeId) return
+        const ws = workspaces[activeId]
+        const target = ws.layout ? Object.keys(ws.panes)[0] : null
+        if (kind === 'terminal') addTerminal(activeId, target, 'row')
+        else if (kind === 'editor') addEditor(activeId, target, 'row')
+        else if (kind === 'explorer') { const r = await api.openFolder(); if (r) addExplorer(activeId, target, 'row', r) }
+      }}>
+        <option value="" disabled>＋ pane…</option>
+        <option value="terminal">Terminal</option>
+        <option value="editor">Editor</option>
+        <option value="explorer">Explorer</option>
       </select>
       <button data-testid="save-workspace" onClick={() => saveAll()}>Save</button>
     </div>

@@ -4,13 +4,17 @@ import 'react-mosaic-component/react-mosaic-component.css'
 import type { MosaicNode as ModelNode, Workspace } from '@shared/types'
 import { resolveAlerts } from '@shared/alerts'
 import { useStore } from '../store'
+import { api } from '../api'
 import { TerminalPane } from './TerminalPane'
 import { EditorPane } from './EditorPane'
+import { ExplorerPane } from './ExplorerPane'
 import { TerminalSettings } from './TerminalSettings'
 
 export function WorkspaceView({ ws }: { ws: Workspace }) {
   const setLayout = useStore(s => s.setLayout)
   const addTerminal = useStore(s => s.addTerminal)
+  const addEditor = useStore(s => s.addEditor)
+  const addExplorer = useStore(s => s.addExplorer)
   const closePane = useStore(s => s.closePane)
   const statuses = useStore(s => s.statuses)
   const updatePaneConfig = useStore(s => s.updatePaneConfig)
@@ -18,10 +22,12 @@ export function WorkspaceView({ ws }: { ws: Workspace }) {
 
   if (ws.layout === null) {
     return (
-      <div data-testid="empty-workspace" style={{ display: 'grid', placeItems: 'center', height: '100%' }}>
-        <button data-testid="add-first-terminal" onClick={() => addTerminal(ws.id, null, 'row')}>
-          + New Terminal
-        </button>
+      <div data-testid="empty-workspace" style={{ display: 'grid', placeItems: 'center', height: '100%', gap: 8 }}>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button data-testid="add-first-terminal" onClick={() => addTerminal(ws.id, null, 'row')}>+ Terminal</button>
+          <button data-testid="add-first-editor" onClick={() => addEditor(ws.id, null, 'row')}>+ Editor</button>
+          <button data-testid="add-first-explorer" onClick={async () => { const r = await api.openFolder(); if (r) addExplorer(ws.id, null, 'row', r) }}>+ Explorer</button>
+        </div>
       </div>
     )
   }
@@ -64,6 +70,7 @@ export function WorkspaceView({ ws }: { ws: Workspace }) {
               )}
               {pane?.config.kind === 'terminal' && termCfg && <TerminalPane paneId={paneId} config={termCfg} />}
               {pane?.config.kind === 'editor' && <EditorPane paneId={paneId} wsId={ws.id} config={pane.config} />}
+              {pane?.config.kind === 'explorer' && <ExplorerPane paneId={paneId} wsId={ws.id} config={pane.config} />}
               {!pane && <div>missing pane</div>}
             </div>
           </MosaicWindow>
