@@ -18,7 +18,10 @@ export function WorkspaceView({ ws }: { ws: Workspace }) {
   const closePane = useStore(s => s.closePane)
   const statuses = useStore(s => s.statuses)
   const updatePaneConfig = useStore(s => s.updatePaneConfig)
+  const cwds = useStore(s => s.cwds)
+  const openExplorerHere = useStore(s => s.openExplorerHere)
   const [settingsFor, setSettingsFor] = useState<string | null>(null)
+  const [cwdMenuFor, setCwdMenuFor] = useState<string | null>(null)
 
   if (ws.layout === null) {
     return (
@@ -38,6 +41,7 @@ export function WorkspaceView({ ws }: { ws: Workspace }) {
       onChange={(node) => setLayout(ws.id, (node as ModelNode) ?? null)}
       renderTile={(paneId, path) => {
         const pane = ws.panes[paneId]
+        const cwd = cwds[paneId] ?? (pane?.config.kind === 'terminal' ? pane.config.cwd : '')
         const termCfg = pane?.config.kind === 'terminal' ? pane.config : undefined
         const status = statuses[paneId]
         const alerts = resolveAlerts(termCfg?.alerts)
@@ -51,6 +55,8 @@ export function WorkspaceView({ ws }: { ws: Workspace }) {
             title={title}
             className={statusClass}
             toolbarControls={[
+              <button key="cwd" data-testid={`cwd-${paneId}`} title="Folder actions"
+                onClick={() => setCwdMenuFor(cwdMenuFor === paneId ? null : paneId)}>📁</button>,
               <button key="gear" data-testid={`gear-${paneId}`} title="Terminal settings"
                 onClick={() => setSettingsFor(settingsFor === paneId ? null : paneId)}>⚙</button>,
               <button key="split-row" data-testid={`split-${paneId}`} title="Split right"
@@ -62,11 +68,22 @@ export function WorkspaceView({ ws }: { ws: Workspace }) {
             ]}
           >
             <div className="term-tile" data-status={state}
-              data-testid={`tile-${paneId}`} style={{ position: 'relative', height: '100%' }}>
+              data-testid={`tile-${paneId}`} data-cwd={cwd} style={{ position: 'relative', height: '100%' }}>
               {settingsFor === paneId && pane && termCfg && (
                 <TerminalSettings config={termCfg}
                   onChange={patch => updatePaneConfig(ws.id, paneId, patch)}
                   onClose={() => setSettingsFor(null)} />
+              )}
+              {cwdMenuFor === paneId && (
+                <div data-testid="cwd-menu" onClick={e => e.stopPropagation()}
+                  style={{ position: 'absolute', right: 4, top: 28, zIndex: 10, background: '#252526',
+                    color: '#eee', border: '1px solid #444', borderRadius: 4, padding: 4,
+                    display: 'flex', flexDirection: 'column', gap: 2 }}>
+                  <button data-testid={`open-explorer-here-${paneId}`} disabled={!cwd}
+                    onClick={() => { openExplorerHere(ws.id, paneId); setCwdMenuFor(null) }}>Open Explorer here</button>
+                  <button data-testid={`reveal-here-${paneId}`} disabled={!cwd}
+                    onClick={() => { void api.revealPath(cwd); setCwdMenuFor(null) }}>Reveal in File Explorer</button>
+                </div>
               )}
               {pane?.config.kind === 'terminal' && termCfg && <TerminalPane paneId={paneId} config={termCfg} />}
               {pane?.config.kind === 'editor' && <EditorPane paneId={paneId} wsId={ws.id} config={pane.config} />}
