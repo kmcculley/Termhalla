@@ -1,6 +1,6 @@
 import type { TerminalStatus, TermState } from '@shared/types'
 import {
-  computeNeedsInput, isPureControl, looksLikePrompt, tailMatchesInputPrompt, type NeedsInputConfig
+  computeNeedsInput, isPureControl, looksLikePrompt, stripAnsi, tailMatchesInputPrompt, type NeedsInputConfig
 } from './needs-input'
 
 export class StatusTracker {
@@ -34,7 +34,10 @@ export class StatusTracker {
       // Only real printable output (not ANSI-only or screen-redraw) updates
       // the quiet timer and the tail, and resets a needs-input state back to busy.
       this.lastOutputAt = now
-      this.tail = (this.tail + text).slice(-400)
+      // Store the tail as printable text (ANSI stripped). A full-screen ConPTY repaint
+      // arrives as one big chunk whose trailing bytes are erase-line/cursor sequences; if
+      // those were kept, slice(-400) would evict the real prompt and break needs-input.
+      this.tail = (this.tail + stripAnsi(text)).slice(-400)
       if (this.state === 'needs-input') this.set('busy', now)
     }
     if (!this.hasMarkers && this.state !== 'busy') this.set('busy', now)

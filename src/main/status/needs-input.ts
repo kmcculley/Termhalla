@@ -41,7 +41,11 @@ export function isPureControl(s: string): boolean {
 
 function lastLine(tail: string): string {
   const lines = stripAnsi(tail).split(/\r?\n/)
-  return lines[lines.length - 1] ?? ''
+  // Skip trailing blank lines: a screen repaint can leave erase-line/newline trailers
+  // after the prompt, so the meaningful prompt is the last NON-blank line.
+  let i = lines.length - 1
+  while (i > 0 && lines[i].trim() === '') i--
+  return lines[i] ?? ''
 }
 
 /** True if the tail's last line matches one of the input-prompt patterns (timing-agnostic). */

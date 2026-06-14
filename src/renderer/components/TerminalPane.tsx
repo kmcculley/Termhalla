@@ -25,9 +25,15 @@ export function TerminalPane({ paneId, config }: { paneId: string; config: Termi
     const offExit = api.onPtyExit((id) => { if (id === paneId && !disposed) term.write('\r\n[process exited]\r\n') })
     const inputDisp = term.onData(d => api.ptyWrite({ id: paneId, data: d }))
 
+    let lastCols = term.cols, lastRows = term.rows
     const ro = new ResizeObserver(() => {
       fit.fit()
-      api.ptyResize({ id: paneId, cols: term.cols, rows: term.rows })
+      // Only resize the PTY when the grid actually changed. A redundant resize makes
+      // ConPTY repaint, which can corrupt the status tail and break needs-input detection.
+      if (term.cols !== lastCols || term.rows !== lastRows) {
+        lastCols = term.cols; lastRows = term.rows
+        api.ptyResize({ id: paneId, cols: term.cols, rows: term.rows })
+      }
     })
     ro.observe(hostRef.current!)
 
