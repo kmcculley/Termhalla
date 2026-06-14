@@ -26,7 +26,10 @@ export function registerHandlers(win: BrowserWindow): PtyManager {
     try { win.webContents.send(channel, ...args) } catch { /* torn down mid-send */ }
   }
 
-  const engine = new StatusEngine((id, status) => safeSend(CH.ptyStatus, id, status))
+  const engine = new StatusEngine(
+    (id, status) => safeSend(CH.ptyStatus, id, status),
+    () => {} // TODO CWD-4: wire onCwd → IPC
+  )
   const pty = new PtyManager(
     (id, data) => safeSend(CH.ptyData, id, data),
     (id, code) => safeSend(CH.ptyExit, id, code),
