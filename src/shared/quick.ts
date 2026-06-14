@@ -1,4 +1,4 @@
-import type { SshConnection } from './types'
+import type { SshConnection, QuickStore } from './types'
 
 /** Build the argv after the `ssh` program: `[-p PORT] [-i IDENTITY] user@host`. */
 export function buildSshArgs(c: SshConnection): string[] {
@@ -28,4 +28,48 @@ export function nextRecentDirs(
   if (home && normDir(dir) === normDir(home)) return recent
   const filtered = recent.filter(d => normDir(d) !== normDir(dir))
   return [dir, ...filtered].slice(0, cap)
+}
+
+export type PaletteItem =
+  | { kind: 'connection'; id: string; label: string; detail: string; search: string }
+  | { kind: 'dir'; path: string; favorite: boolean; search: string }
+  | { kind: 'action'; action: 'new-connection' | 'pin-cwd'; label: string; search: string }
+
+/** Build the merged, ordered palette list: connections (recent-first), favorite dirs,
+ *  recent dirs (minus favorites), then the New-connection and (cwd-gated) Pin actions. */
+export function buildPaletteItems(q: QuickStore, currentCwd: string): PaletteItem[] {
+  const items: PaletteItem[] = []
+
+  const order: string[] = q.recentConnections.filter(id => q.connections.some(c => c.id === id))
+  for (const c of q.connections) if (!order.includes(c.id)) order.push(c.id)
+  for (const id of order) {
+    const c = q.connections.find(x => x.id === id)
+    if (!c) continue
+    const detail = `${c.user}@${c.host}${c.port && c.port !== 22 ? ':' + c.port : ''}`
+    items.push({ kind: 'connection', id: c.id, label: c.name, detail,
+      search: `${c.name} ${detail}`.toLowerCase() })
+  }
+
+  for (const d of q.favoriteDirs) {
+    items.push({ kind: 'dir', path: d, favorite: true, search: d.toLowerCase() })
+  }
+  for (const d of q.recentDirs) {
+    if (q.favoriteDirs.includes(d)) continue
+    items.push({ kind: 'dir', path: d, favorite: false, search: d.toLowerCase() })
+  }
+
+  items.push({ kind: 'action', action: 'new-connection', label: 'New SSH connection…',
+    search: 'new ssh connection' })
+  if (currentCwd) {
+    items.push({ kind: 'action', action: 'pin-cwd', label: `Pin current directory (${currentCwd})`,
+      search: `pin current directory ${currentCwd.toLowerCase()}` })
+  }
+  return items
+}
+
+/** Case-insensitive substring filter; an empty/whitespace query returns the list unchanged. */
+export function filterPaletteItems(items: PaletteItem[], query: string): PaletteItem[] {
+  const q = query.trim().toLowerCase()
+  if (!q) return items
+  return items.filter(i => i.search.includes(q))
 }
