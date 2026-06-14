@@ -21,6 +21,34 @@ export interface AlertConfig {
   needsInput?: boolean
 }
 
+export interface TerminalLaunch {
+  command: string
+  args: string[]
+  title: string
+}
+
+/** A saved SSH connection. No secrets stored — only host/user/port and an identity-file path. */
+export interface SshConnection {
+  id: string
+  name: string
+  host: string
+  user: string
+  port?: number          // default 22
+  identityFile?: string  // path to a private key; optional
+}
+
+/** App-global favorites/recents (persisted to quick.json, not per-workspace). */
+export interface QuickStore {
+  connections: SshConnection[]
+  recentConnections: string[]   // connection ids, most-recently-used
+  favoriteDirs: string[]        // user-pinned (★)
+  recentDirs: string[]          // MRU, deduped, capped, home excluded
+}
+
+export const EMPTY_QUICK: QuickStore = {
+  connections: [], recentConnections: [], favoriteDirs: [], recentDirs: []
+}
+
 /** Per-terminal pane configuration (what gets serialized). */
 export interface TerminalConfig {
   kind: 'terminal'
@@ -28,6 +56,8 @@ export interface TerminalConfig {
   cwd: string
   name?: string
   alerts?: AlertConfig
+  launch?: TerminalLaunch   // when set, run this instead of a discovered shell (SSH)
+  connectionId?: string     // links back to the saved SshConnection, for display
 }
 
 export interface EditorConfig {
