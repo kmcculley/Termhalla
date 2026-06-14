@@ -67,7 +67,9 @@ export class CloudStatusService {
 
   private emit(): void {
     const statuses = this.providers.map(p => this.last.get(p.id)).filter((s): s is CloudStatus => Boolean(s))
-    const sig = statuses.map(s => `${s.id}:${s.state}:${s.account ?? ''}`).join('|')
+    const sig = statuses.map(s =>
+      `${s.id}:${s.state}:${s.account ?? ''}:${s.detail ? Object.entries(s.detail).map(([k, v]) => `${k}=${v}`).join(',') : ''}`
+    ).join('|')
     if (sig === this.lastSig) return
     this.lastSig = sig
     this.onStatus(statuses)
