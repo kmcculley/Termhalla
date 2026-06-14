@@ -130,4 +130,17 @@ export interface ProcInfo {
   tree: ProcNode[]     // DFS pre-order; render indented by `depth`
 }
 
+export type CloudState = 'checking' | 'logged-in' | 'logged-out' | 'not-installed' | 'error'
+
+/** Global login status for one cloud provider (AWS/Azure). Runtime-only, never persisted. */
+export interface CloudStatus {
+  id: string
+  label: string
+  state: CloudState
+  account?: string                    // short identity (account id / subscription name)
+  detail?: Record<string, string>     // popover rows
+  checkedAt: number
+  login?: TerminalLaunch              // command for the "Log in" button (reuses the launch shape)
+}
+
 export const SCHEMA_VERSION = 3
