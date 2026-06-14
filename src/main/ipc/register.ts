@@ -1,4 +1,4 @@
-import { ipcMain, Notification, dialog, type BrowserWindow } from 'electron'
+import { ipcMain, Notification, dialog, shell, type BrowserWindow } from 'electron'
 import { join } from 'node:path'
 import { CH, type PtySpawnArgs, type PtyWriteArgs, type PtyResizeArgs, type NotifyArgs } from '@shared/ipc-contract'
 import type { Workspace, AppState } from '@shared/types'
@@ -28,7 +28,7 @@ export function registerHandlers(win: BrowserWindow): PtyManager {
 
   const engine = new StatusEngine(
     (id, status) => safeSend(CH.ptyStatus, id, status),
-    () => {} // TODO CWD-4: wire onCwd → IPC
+    (id, cwd) => safeSend(CH.ptyCwd, id, cwd)
   )
   const pty = new PtyManager(
     (id, data) => safeSend(CH.ptyData, id, data),
@@ -76,6 +76,7 @@ export function registerHandlers(win: BrowserWindow): PtyManager {
     const r = await dialog.showOpenDialog(win, { properties: ['openFile'] })
     return r.canceled || r.filePaths.length === 0 ? null : r.filePaths[0]
   })
+  ipcMain.handle(CH.revealPath, async (_e, path: string) => { await shell.openPath(path) })
 
   return pty
 }
