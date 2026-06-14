@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest'
-import { mkdtempSync, rmSync } from 'node:fs'
+import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { QuickStore } from '../../src/main/persistence/quick-store'
@@ -28,10 +28,9 @@ describe('QuickStore', () => {
     rmSync(dir, { recursive: true, force: true })
   })
 
-  it('falls back to empty on a corrupt file', async () => {
+  it('falls back to empty on a corrupt (malformed JSON) file', async () => {
+    writeFileSync(join(dir, 'quick.json'), '{ "connections": [INVALID', 'utf8')
     const store = new QuickStore(dir)
-    await store.save({ ...EMPTY_QUICK })
-    rmSync(join(dir, 'quick.json'))
     expect(await store.load()).toEqual(EMPTY_QUICK)
     rmSync(dir, { recursive: true, force: true })
   })

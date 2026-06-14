@@ -2,6 +2,18 @@ import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { EMPTY_QUICK, type QuickStore as QuickData } from '@shared/types'
 
+/** Coerce an untrusted/partial value into a well-formed QuickStore (each field a valid array).
+ *  Used on both read (corrupt/partial file) and write (untrusted renderer payload). */
+function normalizeQuick(value: unknown): QuickData {
+  const v = (value ?? {}) as Partial<QuickData>
+  return {
+    connections: Array.isArray(v.connections) ? v.connections : [],
+    recentConnections: Array.isArray(v.recentConnections) ? v.recentConnections : [],
+    favoriteDirs: Array.isArray(v.favoriteDirs) ? v.favoriteDirs : [],
+    recentDirs: Array.isArray(v.recentDirs) ? v.recentDirs : []
+  }
+}
+
 export class QuickStore {
   constructor(private readonly baseDir: string) {}
 
@@ -9,13 +21,7 @@ export class QuickStore {
 
   async load(): Promise<QuickData> {
     try {
-      const parsed = JSON.parse(await readFile(this.file(), 'utf8')) as Partial<QuickData>
-      return {
-        connections: Array.isArray(parsed.connections) ? parsed.connections : [],
-        recentConnections: Array.isArray(parsed.recentConnections) ? parsed.recentConnections : [],
-        favoriteDirs: Array.isArray(parsed.favoriteDirs) ? parsed.favoriteDirs : [],
-        recentDirs: Array.isArray(parsed.recentDirs) ? parsed.recentDirs : []
-      }
+      return normalizeQuick(JSON.parse(await readFile(this.file(), 'utf8')))
     } catch {
       return { ...EMPTY_QUICK }
     }
@@ -23,6 +29,6 @@ export class QuickStore {
 
   async save(data: QuickData): Promise<void> {
     await mkdir(this.baseDir, { recursive: true })
-    await writeFile(this.file(), JSON.stringify(data, null, 2), 'utf8')
+    await writeFile(this.file(), JSON.stringify(normalizeQuick(data), null, 2), 'utf8')
   }
 }
