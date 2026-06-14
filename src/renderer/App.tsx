@@ -4,6 +4,7 @@ import { WorkspaceTabs } from './components/WorkspaceTabs'
 import { WorkspaceView } from './components/WorkspaceView'
 import { CommandPalette } from './components/CommandPalette'
 import { SshConnectionForm } from './components/SshConnectionForm'
+import { StatusBar } from './components/StatusBar'
 import { api } from './api'
 
 export default function App() {
@@ -28,6 +29,10 @@ export default function App() {
     const off = api.onPtyProcs((id, info) => useStore.getState().setProcs(id, info))
     return off
   }, [])
+  useEffect(() => {
+    const off = api.onCloudStatus((statuses) => useStore.getState().setCloud(statuses))
+    return off
+  }, [])
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -48,6 +53,7 @@ export default function App() {
       <div style={{ flex: 1, position: 'relative' }} className="mosaic-blueprint-theme">
         {active ? <WorkspaceView ws={active} /> : <div data-testid="app-title">Termhalla</div>}
       </div>
+      <StatusBar />
       <CommandPalette />
       <SshConnectionForm key={connectionFormFor === null ? 'none' : connectionFormFor === 'new' ? 'new' : connectionFormFor.id} />
     </div>

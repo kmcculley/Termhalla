@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import { v4 as uuid } from 'uuid'
-import type { Workspace, ShellInfo, MosaicNode, MosaicDirection, TerminalConfig, TerminalStatus, PaneConfig, EditorConfig, ExplorerConfig, QuickStore, SshConnection, ProcInfo } from '@shared/types'
+import type { Workspace, ShellInfo, MosaicNode, MosaicDirection, TerminalConfig, TerminalStatus, PaneConfig, EditorConfig, ExplorerConfig, QuickStore, SshConnection, ProcInfo, CloudStatus, TerminalLaunch } from '@shared/types'
 import { EMPTY_QUICK } from '@shared/types'
 import { buildSshArgs, nextRecentDirs, pushRecent, RECENT_CONN_CAP } from '@shared/quick'
 import {
@@ -31,6 +31,10 @@ interface State {
   setCwd: (id: string, cwd: string) => void
   procs: Record<string, ProcInfo>
   setProcs: (id: string, info: ProcInfo | null) => void
+  cloud: CloudStatus[]
+  setCloud: (statuses: CloudStatus[]) => void
+  refreshCloud: () => void
+  launchCommand: (launch: TerminalLaunch) => void
   updatePaneConfig: (wsId: string, paneId: string, patch: Partial<Omit<EditorConfig, 'kind'> & Omit<ExplorerConfig, 'kind'> & Omit<TerminalConfig, 'kind'>>) => void
   registerEditorPane: (paneId: string) => void
   addEditor: (wsId: string, targetPaneId: string | null, dir: MosaicDirection) => string
@@ -109,6 +113,7 @@ export const useStore = create<State>((set, get) => {
     statuses: {},
     cwds: {},
     procs: {},
+    cloud: [],
     quick: EMPTY_QUICK,
     home: '',
     paletteOpen: false,
@@ -212,6 +217,24 @@ export const useStore = create<State>((set, get) => {
       else delete procs[id]
       return { procs }
     }),
+
+    setCloud: (statuses) => set({ cloud: statuses }),
+
+    refreshCloud: () => { void api.cloudRefresh() },
+
+    launchCommand: (launch) => {
+      const wsId = get().activeId
+      if (!wsId) return
+      const ws = get().workspaces[wsId]
+      const target = ws.layout ? Object.keys(ws.panes)[0] : null
+      const shellId = get().newTerminalShellId ?? get().shells[0]?.id ?? 'cmd'
+      const cfg: TerminalConfig = { kind: 'terminal', shellId, cwd: '', name: launch.title, launch }
+      const r = ws.layout === null || target === null
+        ? addFirstPane(ws, cfg, uuid)
+        : splitPane(ws, target, 'row', cfg, uuid)
+      set(s => ({ workspaces: { ...s.workspaces, [wsId]: r.workspace } }))
+      scheduleAutosave()
+    },
 
     updatePaneConfig: (wsId, paneId, patch) => {
       const ws = get().workspaces[wsId]
