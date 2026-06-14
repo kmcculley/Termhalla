@@ -47,7 +47,7 @@ describe('workspace-model', () => {
     let ws = addFirstPane(createWorkspace('W', () => 'ws-1'), term(), () => 'p1').workspace
     ws = splitPane(ws, 'p1', 'column', term('E:\\'), () => 'p2').workspace
     const json = serializeWorkspace(ws)
-    expect(JSON.parse(json).schemaVersion).toBe(1)
+    expect(JSON.parse(json).schemaVersion).toBe(2)
     expect(deserializeWorkspace(json)).toEqual(ws)
   })
 

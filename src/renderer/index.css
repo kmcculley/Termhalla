@@ -1,3 +1,11 @@
 html, body, #root { margin: 0; height: 100%; }
 .mosaic, .mosaic-root { height: 100%; }
 .mosaic-blueprint-theme { height: 100%; }
+.term-tile { box-sizing: border-box; border: 2px solid transparent; }
+.term-border.term-busy { border-color: #1e88e5; animation: term-pulse 1.2s ease-in-out infinite; }
+.term-border.term-needs-input { border-color: #ffb300; animation: term-flash 0.7s steps(1) infinite; }
+.term-border.term-idle.term-exit-success { border-color: #2e7d32; animation: term-fade 4s forwards; }
+.term-border.term-idle.term-exit-failure { border-color: #c62828; animation: term-fade 4s forwards; }
+@keyframes term-pulse { 0%, 100% { opacity: 1 } 50% { opacity: 0.35 } }
+@keyframes term-flash { 0%, 50% { border-color: #ffb300 } 51%, 100% { border-color: transparent } }
+@keyframes term-fade { 0% { opacity: 1 } 100% { opacity: 0.15 } }

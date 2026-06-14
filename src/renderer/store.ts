@@ -1,9 +1,10 @@
 import { create } from 'zustand'
 import { v4 as uuid } from 'uuid'
-import type { Workspace, ShellInfo, MosaicNode, MosaicDirection, TerminalConfig } from '@shared/types'
+import type { Workspace, ShellInfo, MosaicNode, MosaicDirection, TerminalConfig, TerminalStatus } from '@shared/types'
 import {
   createWorkspace, addFirstPane, splitPane, removePane
 } from '@shared/workspace-model'
+import { resolveAlerts, effectiveStatus } from '@shared/alerts'
 import { api } from './api'
 
 interface State {
@@ -20,12 +21,23 @@ interface State {
   closePane: (wsId: string, paneId: string) => void
   setNewTerminalShell: (id: string) => void
   saveAll: () => Promise<void>
+  statuses: Record<string, TerminalStatus>
+  setStatus: (id: string, status: TerminalStatus) => void
+  updatePaneConfig: (wsId: string, paneId: string, patch: Partial<TerminalConfig>) => void
 }
 
 const defaultTerminal = (shellId: string): TerminalConfig =>
   ({ kind: 'terminal', shellId, cwd: '' })
 
 let autosaveTimer: ReturnType<typeof setTimeout> | null = null
+
+function findPaneConfig(s: { workspaces: Record<string, import('@shared/types').Workspace> }, paneId: string): TerminalConfig | undefined {
+  for (const ws of Object.values(s.workspaces)) {
+    const pane = ws.panes[paneId]
+    if (pane) return pane.config
+  }
+  return undefined
+}
 
 export const useStore = create<State>((set, get) => {
   const scheduleAutosave = () => {
@@ -39,6 +51,7 @@ export const useStore = create<State>((set, get) => {
     order: [],
     activeId: null,
     newTerminalShellId: null,
+    statuses: {},
 
     init: async () => {
       const shells = await api.listShells()
@@ -97,6 +110,28 @@ export const useStore = create<State>((set, get) => {
     },
 
     setNewTerminalShell: (id) => set({ newTerminalShellId: id }),
+
+    setStatus: (id, status) => {
+      const prev = get().statuses[id]
+      const cfg = findPaneConfig(get(), id)
+      const alerts = resolveAlerts(cfg?.alerts)
+      const eff = effectiveStatus(status, cfg?.alerts)
+      set(s => ({ statuses: { ...s.statuses, [id]: eff } }))
+      if (status.state === 'needs-input' && prev?.state !== 'needs-input'
+          && alerts.needsInput && alerts.osNotification
+          && typeof document !== 'undefined' && !document.hasFocus()) {
+        api.notify({ title: 'Terminal needs input', body: cfg?.name ?? 'A terminal is waiting for input' })
+      }
+    },
+
+    updatePaneConfig: (wsId, paneId, patch) => {
+      const ws = get().workspaces[wsId]
+      const pane = ws?.panes[paneId]
+      if (!pane) return
+      const updated = { ...ws, panes: { ...ws.panes, [paneId]: { ...pane, config: { ...pane.config, ...patch } } } }
+      set(s => ({ workspaces: { ...s.workspaces, [wsId]: updated } }))
+      void get().saveAll()
+    },
 
     saveAll: async () => {
       const { order, workspaces, activeId } = get()
