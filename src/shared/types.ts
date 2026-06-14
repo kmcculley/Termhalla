@@ -115,4 +115,19 @@ export interface StatResult { size: number; mtimeMs: number; isDir: boolean }
 export type FsEvent = 'add' | 'unlink' | 'change' | 'addDir' | 'unlinkDir'
 export interface FsChange { event: FsEvent; path: string }
 
+/** One process in a terminal's descendant tree. `depth` = 0 for direct children of the shell. */
+export interface ProcNode {
+  pid: number
+  ppid: number
+  name: string      // image name without ".exe", e.g. "node"
+  command: string   // full CommandLine, or the name when CommandLine is empty
+  depth: number
+}
+
+/** Foreground process + descendant tree for one terminal. */
+export interface ProcInfo {
+  foreground: string   // leaf process name shown on the chip when busy
+  tree: ProcNode[]     // DFS pre-order; render indented by `depth`
+}
+
 export const SCHEMA_VERSION = 3
