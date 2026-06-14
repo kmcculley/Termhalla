@@ -20,8 +20,11 @@ export function WorkspaceView({ ws }: { ws: Workspace }) {
   const updatePaneConfig = useStore(s => s.updatePaneConfig)
   const cwds = useStore(s => s.cwds)
   const openExplorerHere = useStore(s => s.openExplorerHere)
+  const procs = useStore(s => s.procs)
+  const shells = useStore(s => s.shells)
   const [settingsFor, setSettingsFor] = useState<string | null>(null)
   const [cwdMenuFor, setCwdMenuFor] = useState<string | null>(null)
+  const [procsMenuFor, setProcsMenuFor] = useState<string | null>(null)
 
   if (ws.layout === null) {
     return (
@@ -43,6 +46,9 @@ export function WorkspaceView({ ws }: { ws: Workspace }) {
         const pane = ws.panes[paneId]
         const cwd = cwds[paneId] ?? (pane?.config.kind === 'terminal' ? pane.config.cwd : '')
         const termCfg = pane?.config.kind === 'terminal' ? pane.config : undefined
+        const procInfo = procs[paneId]
+        const shellLabel = termCfg ? (shells.find(sh => sh.id === termCfg.shellId)?.label ?? termCfg.shellId) : ''
+        const chipText = procInfo && procInfo.foreground ? `▶ ${procInfo.foreground}` : shellLabel
         const status = statuses[paneId]
         const alerts = resolveAlerts(termCfg?.alerts)
         const state = status?.state ?? 'idle'
@@ -55,6 +61,11 @@ export function WorkspaceView({ ws }: { ws: Workspace }) {
             title={title}
             className={statusClass}
             toolbarControls={[
+              ...(termCfg ? [
+                <button key="proc" data-testid={`proc-chip-${paneId}`} title="Running process"
+                  style={{ maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+                  onClick={() => setProcsMenuFor(procsMenuFor === paneId ? null : paneId)}>{chipText}</button>
+              ] : []),
               <button key="cwd" data-testid={`cwd-${paneId}`} title="Folder actions"
                 onClick={() => setCwdMenuFor(cwdMenuFor === paneId ? null : paneId)}>📁</button>,
               <button key="gear" data-testid={`gear-${paneId}`} title="Terminal settings"
@@ -73,6 +84,21 @@ export function WorkspaceView({ ws }: { ws: Workspace }) {
                 <TerminalSettings config={termCfg}
                   onChange={patch => updatePaneConfig(ws.id, paneId, patch)}
                   onClose={() => setSettingsFor(null)} />
+              )}
+              {procsMenuFor === paneId && (
+                <div data-testid="proc-menu" onClick={e => e.stopPropagation()}
+                  style={{ position: 'absolute', left: 4, top: 28, zIndex: 10, background: '#252526',
+                    color: '#eee', border: '1px solid #444', borderRadius: 4, padding: 6, maxWidth: 460,
+                    maxHeight: 240, overflow: 'auto', fontSize: 12, fontFamily: 'Consolas, monospace' }}>
+                  {(!procInfo || procInfo.tree.length === 0) && <div style={{ opacity: 0.6 }}>No child processes.</div>}
+                  {procInfo && procInfo.tree.map(n => (
+                    <div key={n.pid} data-testid={`proc-row-${n.pid}`}
+                      style={{ paddingLeft: n.depth * 14, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                      <span style={{ opacity: 0.7 }}>{n.name}</span>
+                      <span style={{ opacity: 0.45 }}>  {n.command}</span>
+                    </div>
+                  ))}
+                </div>
               )}
               {cwdMenuFor === paneId && (
                 <div data-testid="cwd-menu" onClick={e => e.stopPropagation()}
