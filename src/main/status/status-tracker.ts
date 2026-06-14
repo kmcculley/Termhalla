@@ -1,5 +1,7 @@
 import type { TerminalStatus, TermState } from '@shared/types'
-import { computeNeedsInput, isPureControl, looksLikePrompt, type NeedsInputConfig } from './needs-input'
+import {
+  computeNeedsInput, isPureControl, looksLikePrompt, tailMatchesInputPrompt, type NeedsInputConfig
+} from './needs-input'
 
 export class StatusTracker {
   private state: TermState = 'idle'
@@ -41,9 +43,16 @@ export class StatusTracker {
 
   tick(now: number): TerminalStatus {
     const quietMs = now - this.lastOutputAt
-    if (!this.hasMarkers && this.state === 'busy'
-        && quietMs >= this.cfg.heuristicIdleMs && looksLikePrompt(this.tail)) {
-      this.set('idle', now)
+    if (!this.hasMarkers && this.state === 'busy' && quietMs >= this.cfg.heuristicIdleMs) {
+      if (looksLikePrompt(this.tail)) {
+        this.set('idle', now)                       // fast path: recognized prompt
+      } else if (quietMs >= this.cfg.heuristicIdleHardMs
+                 && !tailMatchesInputPrompt(this.tail, this.cfg.patterns)) {
+        // Fallback: sustained silence with no recognizable prompt and not an input
+        // prompt. A no-integration shell can't still be busy this long, so the
+        // prompt simply wasn't captured (e.g. arrived in a skipped redraw chunk). Idle.
+        this.set('idle', now)
+      }
     }
     if (this.state === 'busy' && computeNeedsInput(quietMs, this.tail, this.cfg)) {
       this.set('needs-input', now)

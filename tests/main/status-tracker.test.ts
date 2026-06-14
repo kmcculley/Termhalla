@@ -3,7 +3,8 @@ import { StatusTracker } from '../../src/main/status/status-tracker'
 import { DEFAULT_NEEDS_INPUT_PATTERNS, type NeedsInputConfig } from '../../src/main/status/needs-input'
 
 const cfg = (over: Partial<NeedsInputConfig> = {}): NeedsInputConfig => ({
-  enabled: true, quietMs: 10000, patterns: DEFAULT_NEEDS_INPUT_PATTERNS, heuristicIdleMs: 1500, ...over
+  enabled: true, quietMs: 10000, patterns: DEFAULT_NEEDS_INPUT_PATTERNS,
+  heuristicIdleMs: 1500, heuristicIdleHardMs: 5000, ...over
 })
 
 describe('StatusTracker (with integration markers)', () => {
@@ -51,5 +52,21 @@ describe('StatusTracker (heuristic, no markers)', () => {
     expect(t.tick(1000).state).toBe('busy')
     t.onOutput('\r\nPS C:\\> ', 1100)
     expect(t.tick(3000).state).toBe('idle')
+  })
+
+  it('goes idle after sustained silence even when the prompt is never recognized', () => {
+    // Reproduces the cmd "stuck busy after Ctrl+C" bug: the return-to-prompt was
+    // never captured into the tail, so looksLikePrompt stays false forever.
+    const t = new StatusTracker(0, cfg())
+    expect(t.onOutput('dir output, interrupted, no prompt char', 0).state).toBe('busy')
+    expect(t.tick(2000).state).toBe('busy')   // quiet > heuristicIdleMs but no prompt, < hard threshold
+    expect(t.tick(6000).state).toBe('idle')   // sustained silence past hard threshold -> idle (the fix)
+  })
+
+  it('does NOT hard-idle while a no-integration shell waits at an input prompt', () => {
+    const t = new StatusTracker(0, cfg())
+    expect(t.onOutput('Overwrite? [y/N] ', 0).state).toBe('busy')
+    expect(t.tick(6000).state).toBe('busy')          // past hard threshold but tail is an input prompt -> stays busy
+    expect(t.tick(11000).state).toBe('needs-input')  // then needs-input fires at quietMs >= quietMs
   })
 })

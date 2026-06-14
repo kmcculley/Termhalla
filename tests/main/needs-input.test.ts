@@ -5,7 +5,8 @@ import {
 } from '../../src/main/status/needs-input'
 
 const cfg = (over: Partial<NeedsInputConfig> = {}): NeedsInputConfig => ({
-  enabled: true, quietMs: 10000, patterns: DEFAULT_NEEDS_INPUT_PATTERNS, heuristicIdleMs: 1500, ...over
+  enabled: true, quietMs: 10000, patterns: DEFAULT_NEEDS_INPUT_PATTERNS,
+  heuristicIdleMs: 1500, heuristicIdleHardMs: 5000, ...over
 })
 
 describe('computeNeedsInput', () => {
