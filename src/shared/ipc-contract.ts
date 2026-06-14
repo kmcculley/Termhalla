@@ -1,4 +1,4 @@
-import type { ShellInfo, Workspace, AppState } from './types'
+import type { ShellInfo, Workspace, AppState, TerminalStatus } from './types'
 
 export const CH = {
   listShells: 'shells:list',
@@ -12,9 +12,12 @@ export const CH = {
   ptyResize: 'pty:resize',
   ptyKill: 'pty:kill',
   ptyData: 'pty:data',     // main -> renderer event
-  ptyExit: 'pty:exit'      // main -> renderer event
+  ptyExit: 'pty:exit',     // main -> renderer event
+  ptyStatus: 'pty:status',  // main -> renderer event
+  notify: 'app:notify'
 } as const
 
+export interface NotifyArgs { title: string; body: string }
 export interface PtySpawnArgs { id: string; shellId: string; cwd: string; cols: number; rows: number }
 export interface PtyWriteArgs { id: string; data: string }
 export interface PtyResizeArgs { id: string; cols: number; rows: number }
@@ -32,4 +35,6 @@ export interface TermhallaApi {
   ptyKill(id: string): void
   onPtyData(cb: (id: string, data: string) => void): () => void
   onPtyExit(cb: (id: string, code: number) => void): () => void
+  onPtyStatus(cb: (id: string, status: TerminalStatus) => void): () => void
+  notify(args: NotifyArgs): void
 }

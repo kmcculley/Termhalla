@@ -21,6 +21,12 @@ const api: TermhallaApi = {
     const h = (_e: unknown, id: string, code: number) => cb(id, code)
     ipcRenderer.on(CH.ptyExit, h as never)
     return () => ipcRenderer.removeListener(CH.ptyExit, h as never)
+  },
+  notify: (a) => ipcRenderer.send(CH.notify, a),
+  onPtyStatus: (cb) => {
+    const h = (_e: unknown, id: string, status: import('@shared/types').TerminalStatus) => cb(id, status)
+    ipcRenderer.on(CH.ptyStatus, h as never)
+    return () => ipcRenderer.removeListener(CH.ptyStatus, h as never)
   }
 }
 
