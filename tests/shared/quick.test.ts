@@ -26,6 +26,7 @@ describe('pushRecent', () => {
   it('prepends, de-dupes to front, and caps', () => {
     expect(pushRecent(['a', 'b', 'c'], 'b', 5)).toEqual(['b', 'a', 'c'])
     expect(pushRecent(['a', 'b', 'c'], 'd', 3)).toEqual(['d', 'a', 'b'])
+    expect(pushRecent(['a', 'b', 'c'], 'c', 3)).toEqual(['c', 'a', 'b'])
   })
 })
 

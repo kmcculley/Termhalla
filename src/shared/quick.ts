@@ -3,6 +3,7 @@ import type { SshConnection } from './types'
 /** Build the argv after the `ssh` program: `[-p PORT] [-i IDENTITY] user@host`. */
 export function buildSshArgs(c: SshConnection): string[] {
   const args: string[] = []
+  // Omit -p when the port is unset, the default (22), or an out-of-range 0.
   if (c.port && c.port !== 22) args.push('-p', String(c.port))
   if (c.identityFile && c.identityFile.length > 0) args.push('-i', c.identityFile)
   args.push(`${c.user}@${c.host}`)
@@ -18,7 +19,8 @@ export const RECENT_DIR_CAP = 20
 
 const normDir = (p: string): string => p.replace(/[\\/]+$/, '').toLowerCase()
 
-/** MRU for directories: skip empty + the home dir, de-dupe case/trailing-slash-insensitively. */
+/** MRU for directories: skip empty + the home dir, de-dupe case/trailing-slash-insensitively.
+ *  The most recent visited form wins — `dir` is stored verbatim, replacing any prior casing. */
 export function nextRecentDirs(
   recent: string[], dir: string, home: string, cap: number = RECENT_DIR_CAP
 ): string[] {
