@@ -33,6 +33,15 @@ describe('StatusTracker (with integration markers)', () => {
     expect(t.tick(11000).state).toBe('needs-input')
     expect(t.onOutput('y\r\n', 11500).state).toBe('busy')
   })
+  it('ignores screen-redraw chunks: they do not reset the quiet timer or clear needs-input', () => {
+    const t = new StatusTracker(0, cfg())
+    t.onMarker('C', undefined, 0)
+    t.onOutput('Overwrite? [y/N] ', 100)
+    expect(t.tick(11000).state).toBe('needs-input')
+    // a PSReadLine-style repaint arrives — must NOT revert to busy nor reset quiet
+    t.onOutput('\x1b[?25l\x1b[HOverwrite? [y/N] ', 11500)
+    expect(t.tick(12000).state).toBe('needs-input')
+  })
 })
 
 describe('StatusTracker (heuristic, no markers)', () => {

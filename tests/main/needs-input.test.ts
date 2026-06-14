@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import {
-  computeNeedsInput, looksLikePrompt,
+  computeNeedsInput, looksLikePrompt, stripAnsi, isPureControl,
   DEFAULT_NEEDS_INPUT_PATTERNS, type NeedsInputConfig
 } from '../../src/main/status/needs-input'
 
@@ -37,5 +37,31 @@ describe('looksLikePrompt', () => {
   })
   it('rejects ordinary output', () => {
     expect(looksLikePrompt('still working on it')).toBe(false)
+  })
+})
+
+describe('stripAnsi', () => {
+  it('removes CSI color codes leaving printable text', () => {
+    expect(stripAnsi('\x1b[32mhello\x1b[0m')).toBe('hello')
+  })
+  it('removes cursor-home and erase sequences', () => {
+    expect(stripAnsi('\x1b[H\x1b[2Kdone')).toBe('done')
+  })
+})
+
+describe('isPureControl', () => {
+  it('is true for an ANSI-only / whitespace chunk', () => {
+    expect(isPureControl('\x1b[2K\r\n')).toBe(true)
+    expect(isPureControl('   \r\n')).toBe(true)
+  })
+  it('is true for a chunk that BEGINS with a screen-redraw (cursor-home)', () => {
+    expect(isPureControl('\x1b[?25l\x1b[HPS C:\\> ')).toBe(true)
+    expect(isPureControl('\x1b[Hrepainted prompt')).toBe(true)
+  })
+  it('is FALSE for ordinary output that merely CONTAINS a cursor-home mid-stream', () => {
+    expect(isPureControl('Building...\x1b[Hmore')).toBe(false)
+  })
+  it('is false for normal printable output', () => {
+    expect(isPureControl('compiling project')).toBe(false)
   })
 })

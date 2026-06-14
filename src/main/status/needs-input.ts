@@ -18,9 +18,10 @@ export const DEFAULT_NEEDS_INPUT_PATTERNS: RegExp[] = [
 // Matches any ANSI/VT escape sequence (CSI, OSC, SS3, etc.)
 const ANSI_RE = /\x1b(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~]|\][^\x07]*\x07|\][^\x1b]*\x1b\\)/g
 
-// Matches cursor-absolute-position sequences like ESC[H or ESC[1;1H (row 1 = top of screen).
-// PSReadLine uses these to repaint the input area from the top; program output never does this.
-const CURSOR_HOME_RE = /^\x1b\[?25[lh]\x1b\[H|\x1b\[H|\x1b\[1;1H/
+// A chunk that BEGINS with a cursor-home sequence is a terminal screen redraw
+// (e.g. PSReadLine repainting the input area), not real program output.
+// Anchored at start so that output merely *containing* a home sequence (clear, vim, less) is NOT misclassified.
+const CURSOR_HOME_RE = /^(?:\x1b\[\?25[lh])*\x1b\[(?:H|1;1H)/
 
 /** Strip ANSI/VT escape codes from a string, leaving only printable text. */
 export function stripAnsi(s: string): string {
