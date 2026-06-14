@@ -11,6 +11,7 @@ export interface ProbeResult {
 export function classifyProbe(provider: CloudProvider, r: ProbeResult, now: number): CloudStatus {
   const base = { id: provider.id, label: provider.label, checkedAt: now, login: provider.login }
   if (r.errorCode === 'ENOENT') return { ...base, state: 'not-installed' }
+  if (r.errorCode) return { ...base, state: 'error' }   // other spawn failure / timeout
   if (r.code !== 0) return { ...base, state: 'logged-out' }
   try {
     const { account, detail } = provider.parse(r.stdout)

@@ -10,10 +10,11 @@ export function resolveBin(
   env: Env = process.env,
   exists: (p: string) => boolean = existsSync
 ): string | null {
-  const dirs = (env.PATH ?? env.Path ?? '').split(delimiter).filter(Boolean)
+  const dirs = (env.PATH ?? env.Path ?? '').split(delimiter).filter(Boolean)   // Path: some Windows setups surface it lowercase
   const exts = (env.PATHEXT ?? '.COM;.EXE;.BAT;.CMD').split(';').filter(Boolean)
   for (const dir of dirs) {
-    if (exists(join(dir, bin))) return join(dir, bin)
+    const bare = join(dir, bin)
+    if (exists(bare)) return bare
     for (const ext of exts) {
       const cand = join(dir, bin + ext)
       if (exists(cand)) return cand

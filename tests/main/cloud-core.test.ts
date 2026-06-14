@@ -18,6 +18,9 @@ describe('parseAwsIdentity', () => {
   it('throws when there is no Account', () => {
     expect(() => parseAwsIdentity('{}', {})).toThrow()
   })
+  it('throws on malformed JSON', () => {
+    expect(() => parseAwsIdentity('not json', {})).toThrow()
+  })
 })
 
 describe('parseAzureIdentity', () => {
@@ -29,6 +32,9 @@ describe('parseAzureIdentity', () => {
   })
   it('throws when there is no subscription name', () => {
     expect(() => parseAzureIdentity('{}')).toThrow()
+  })
+  it('throws on malformed JSON', () => {
+    expect(() => parseAzureIdentity('not json')).toThrow()
   })
 })
 
@@ -65,5 +71,8 @@ describe('classifyProbe', () => {
   })
   it('maps a parse failure to error', () => {
     expect(classifyProbe(azureProvider, { code: 0, stdout: 'not json' }, now).state).toBe('error')
+  })
+  it('maps a non-ENOENT spawn error / timeout to error', () => {
+    expect(classifyProbe(awsProvider, { errorCode: 'ETIMEDOUT', code: null, stdout: '' }, now).state).toBe('error')
   })
 })
