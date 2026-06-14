@@ -11,6 +11,7 @@ type RunProbe = (provider: CloudProvider) => Promise<ProbeResult>
  *  'checking' only on first load; never overlaps refresh cycles. */
 export class CloudStatusService {
   private last = new Map<string, CloudStatus>()
+  private lastSig = ''
   private timer: ReturnType<typeof setInterval> | null = null
   private refreshing = false
 
@@ -60,6 +61,10 @@ export class CloudStatusService {
   }
 
   private emit(): void {
-    this.onStatus(this.providers.map(p => this.last.get(p.id)).filter((s): s is CloudStatus => Boolean(s)))
+    const statuses = this.providers.map(p => this.last.get(p.id)).filter((s): s is CloudStatus => Boolean(s))
+    const sig = statuses.map(s => `${s.id}:${s.state}:${s.account ?? ''}`).join('|')
+    if (sig === this.lastSig) return
+    this.lastSig = sig
+    this.onStatus(statuses)
   }
 }

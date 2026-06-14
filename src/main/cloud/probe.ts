@@ -14,6 +14,8 @@ export function runCliProbe(provider: CloudProvider, timeoutMs = 8000): Promise<
       resolve({ errorCode: 'ENOENT', code: null, stdout: '' })
       return
     }
+    // shell:true runs via cmd.exe; on a timeout SIGKILL terminates cmd.exe and the CLI
+    // grandchild may linger briefly, but its output is discarded since we've already resolved.
     execFile(
       provider.bin, provider.probeArgs,
       { timeout: timeoutMs, windowsHide: true, maxBuffer: 4 * 1024 * 1024, shell: true, killSignal: 'SIGKILL' },
