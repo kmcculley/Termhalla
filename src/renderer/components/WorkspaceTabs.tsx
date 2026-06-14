@@ -1,9 +1,24 @@
+import type { Workspace } from '@shared/types'
+import { resolveAlerts } from '@shared/alerts'
 import { useStore } from '../store'
+
+function tabBadge(ws: Workspace, statuses: Record<string, { state: string }>): string {
+  let needs = 0, busy = false
+  for (const paneId of Object.keys(ws.panes)) {
+    if (!resolveAlerts(ws.panes[paneId].config.alerts).tabBadge) continue
+    const st = statuses[paneId]?.state
+    if (st === 'needs-input') needs++
+    else if (st === 'busy') busy = true
+  }
+  if (needs > 0) return ` 🔔${needs}`
+  if (busy) return ' •'
+  return ''
+}
 
 export function WorkspaceTabs() {
   const {
     order, workspaces, activeId, setActive, newWorkspace,
-    saveAll, shells, newTerminalShellId, setNewTerminalShell
+    saveAll, shells, newTerminalShellId, setNewTerminalShell, statuses
   } = useStore()
   return (
     <div data-testid="workspace-tabs"
@@ -12,7 +27,7 @@ export function WorkspaceTabs() {
         <button key={id} data-testid={`tab-${id}`}
           onClick={() => setActive(id)}
           style={{ fontWeight: id === activeId ? 700 : 400 }}>
-          {workspaces[id].name}
+          {workspaces[id].name}{tabBadge(workspaces[id], statuses)}
         </button>
       ))}
       <button data-testid="new-workspace"
