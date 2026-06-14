@@ -69,4 +69,20 @@ describe('StatusTracker (heuristic, no markers)', () => {
     expect(t.tick(6000).state).toBe('busy')          // past hard threshold but tail is an input prompt -> stays busy
     expect(t.tick(11000).state).toBe('needs-input')  // then needs-input fires at quietMs >= quietMs
   })
+
+  it('idles when integration markers stop and it sits silent at a prompt (nested shell)', () => {
+    // pwsh (integrated) launched `cmd`: markers latched true, but cmd emits none.
+    const t = new StatusTracker(0, cfg())
+    t.onMarker('C', undefined, 0)                       // pwsh said busy (running `cmd`)
+    t.onOutput('Microsoft Windows ...\r\nC:\\>', 100)   // nested cmd prompt; hasMarkers stays true
+    expect(t.tick(2000).state).toBe('busy')             // < hard threshold -> still busy
+    expect(t.tick(6000).state).toBe('idle')             // long silence at a prompt -> idle (the fix)
+  })
+
+  it('keeps a genuine integration command busy when its output is not a prompt', () => {
+    const t = new StatusTracker(0, cfg())
+    t.onMarker('C', undefined, 0)                  // busy via marker
+    t.onOutput('still compiling...', 100)          // output, not a prompt
+    expect(t.tick(8000).state).toBe('busy')        // silent but not a prompt -> stays busy (marker A will idle it)
+  })
 })
