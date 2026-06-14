@@ -30,8 +30,18 @@ export interface TerminalConfig {
   alerts?: AlertConfig
 }
 
-/** Phase 1 has only terminals; editor/explorer added in Phase 3. */
-export type PaneConfig = TerminalConfig
+export interface EditorConfig {
+  kind: 'editor'
+  files: string[]
+  activePath?: string
+}
+
+export interface ExplorerConfig {
+  kind: 'explorer'
+  root: string
+}
+
+export type PaneConfig = TerminalConfig | EditorConfig | ExplorerConfig
 
 export interface PaneNode {
   paneId: string
@@ -69,4 +79,10 @@ export interface WindowState {
   maximized: boolean
 }
 
-export const SCHEMA_VERSION = 2
+export interface DirEntry { name: string; path: string; isDir: boolean }
+export interface ReadResult { content: string; tooLarge: boolean }
+export interface StatResult { size: number; mtimeMs: number; isDir: boolean }
+export type FsEvent = 'add' | 'unlink' | 'change' | 'addDir' | 'unlinkDir'
+export interface FsChange { event: FsEvent; path: string }
+
+export const SCHEMA_VERSION = 3

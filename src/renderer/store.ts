@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import { v4 as uuid } from 'uuid'
-import type { Workspace, ShellInfo, MosaicNode, MosaicDirection, TerminalConfig, TerminalStatus } from '@shared/types'
+import type { Workspace, ShellInfo, MosaicNode, MosaicDirection, TerminalConfig, TerminalStatus, PaneConfig } from '@shared/types'
 import {
   createWorkspace, addFirstPane, splitPane, removePane
 } from '@shared/workspace-model'
@@ -31,7 +31,7 @@ const defaultTerminal = (shellId: string): TerminalConfig =>
 
 let autosaveTimer: ReturnType<typeof setTimeout> | null = null
 
-function findPaneConfig(s: { workspaces: Record<string, import('@shared/types').Workspace> }, paneId: string): TerminalConfig | undefined {
+function findPaneConfig(s: { workspaces: Record<string, Workspace> }, paneId: string): PaneConfig | undefined {
   for (const ws of Object.values(s.workspaces)) {
     const pane = ws.panes[paneId]
     if (pane) return pane.config
@@ -114,21 +114,23 @@ export const useStore = create<State>((set, get) => {
     setStatus: (id, status) => {
       const prev = get().statuses[id]
       const cfg = findPaneConfig(get(), id)
-      const alerts = resolveAlerts(cfg?.alerts)
-      const eff = effectiveStatus(status, cfg?.alerts)
+      const termCfg = cfg?.kind === 'terminal' ? cfg : undefined
+      const alerts = resolveAlerts(termCfg?.alerts)
+      const eff = effectiveStatus(status, termCfg?.alerts)
       set(s => ({ statuses: { ...s.statuses, [id]: eff } }))
       if (status.state === 'needs-input' && prev?.state !== 'needs-input'
           && alerts.needsInput && alerts.osNotification
           && typeof document !== 'undefined' && !document.hasFocus()) {
-        api.notify({ title: 'Terminal needs input', body: cfg?.name ?? 'A terminal is waiting for input' })
+        api.notify({ title: 'Terminal needs input', body: termCfg?.name ?? 'A terminal is waiting for input' })
       }
     },
 
     updatePaneConfig: (wsId, paneId, patch) => {
       const ws = get().workspaces[wsId]
       const pane = ws?.panes[paneId]
-      if (!pane) return
-      const updated = { ...ws, panes: { ...ws.panes, [paneId]: { ...pane, config: { ...pane.config, ...patch } } } }
+      if (!pane || pane.config.kind !== 'terminal') return
+      const config: TerminalConfig = { ...pane.config, ...patch }
+      const updated: Workspace = { ...ws, panes: { ...ws.panes, [paneId]: { ...pane, config } } }
       set(s => ({ workspaces: { ...s.workspaces, [wsId]: updated } }))
       void get().saveAll()
     },

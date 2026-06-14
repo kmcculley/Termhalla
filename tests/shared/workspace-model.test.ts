@@ -18,7 +18,8 @@ describe('workspace-model', () => {
     const r = addFirstPane(ws, term(), () => 'p1')
     expect(r.paneId).toBe('p1')
     expect(r.workspace.layout).toBe('p1')
-    expect(r.workspace.panes['p1'].config.cwd).toBe('C:\\')
+    const cfg = r.workspace.panes['p1'].config
+    expect(cfg.kind === 'terminal' ? cfg.cwd : undefined).toBe('C:\\')
   })
 
   it('splits a pane, replacing the leaf with a parent of both panes', () => {
@@ -47,7 +48,7 @@ describe('workspace-model', () => {
     let ws = addFirstPane(createWorkspace('W', () => 'ws-1'), term(), () => 'p1').workspace
     ws = splitPane(ws, 'p1', 'column', term('E:\\'), () => 'p2').workspace
     const json = serializeWorkspace(ws)
-    expect(JSON.parse(json).schemaVersion).toBe(2)
+    expect(JSON.parse(json).schemaVersion).toBe(3)
     expect(deserializeWorkspace(json)).toEqual(ws)
   })
 

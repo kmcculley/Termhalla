@@ -31,16 +31,18 @@ export function WorkspaceView({ ws }: { ws: Workspace }) {
       onChange={(node) => setLayout(ws.id, (node as ModelNode) ?? null)}
       renderTile={(paneId, path) => {
         const pane = ws.panes[paneId]
+        const termCfg = pane?.config.kind === 'terminal' ? pane.config : undefined
         const status = statuses[paneId]
-        const alerts = resolveAlerts(pane?.config.alerts)
+        const alerts = resolveAlerts(termCfg?.alerts)
         const state = status?.state ?? 'idle'
         const borderClass = alerts.border ? ` term-border term-${state}` +
           (state === 'idle' && status?.lastExit ? ` term-exit-${status.lastExit}` : '') : ''
         const needsInput = state === 'needs-input'
+        const title = (needsInput ? '🔔 ' : '') + (termCfg?.name ?? pane?.config.kind ?? 'Pane')
         return (
           <MosaicWindow<string>
             path={path}
-            title={(needsInput ? '🔔 ' : '') + (pane?.config.name ?? 'Terminal')}
+            title={title}
             toolbarControls={[
               <button key="gear" data-testid={`gear-${paneId}`} title="Terminal settings"
                 onClick={() => setSettingsFor(settingsFor === paneId ? null : paneId)}>⚙</button>,
@@ -54,12 +56,12 @@ export function WorkspaceView({ ws }: { ws: Workspace }) {
           >
             <div className={`term-tile${borderClass}`} data-status={state}
               data-testid={`tile-${paneId}`} style={{ position: 'relative', height: '100%' }}>
-              {settingsFor === paneId && pane && (
-                <TerminalSettings config={pane.config}
+              {settingsFor === paneId && pane && termCfg && (
+                <TerminalSettings config={termCfg}
                   onChange={patch => updatePaneConfig(ws.id, paneId, patch)}
                   onClose={() => setSettingsFor(null)} />
               )}
-              {pane ? <TerminalPane paneId={paneId} config={pane.config} /> : <div>missing pane</div>}
+              {pane && termCfg ? <TerminalPane paneId={paneId} config={termCfg} /> : <div>{pane ? pane.config.kind : 'missing pane'}</div>}
             </div>
           </MosaicWindow>
         )

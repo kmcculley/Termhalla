@@ -5,7 +5,8 @@ import { useStore } from '../store'
 function tabBadge(ws: Workspace, statuses: Record<string, { state: string }>): string {
   let needs = 0, busy = false
   for (const paneId of Object.keys(ws.panes)) {
-    if (!resolveAlerts(ws.panes[paneId].config.alerts).tabBadge) continue
+    const cfg = ws.panes[paneId].config
+    if (cfg.kind !== 'terminal' || !resolveAlerts(cfg.alerts).tabBadge) continue
     const st = statuses[paneId]?.state
     if (st === 'needs-input') needs++
     else if (st === 'busy') busy = true
