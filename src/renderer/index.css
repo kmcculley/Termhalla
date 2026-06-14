@@ -3,13 +3,14 @@ html, body, #root { margin: 0; height: 100%; }
 .mosaic-blueprint-theme { height: 100%; }
 .term-tile { box-sizing: border-box; }
 
-/* Status shows as an accent line along the pane title bar (not the body). */
-.mosaic-window .mosaic-window-toolbar { border-bottom: 3px solid transparent; }
-.mosaic-window.term-busy .mosaic-window-toolbar { animation: term-line-pulse 1.2s ease-in-out infinite; }
-.mosaic-window.term-needs-input .mosaic-window-toolbar { animation: term-line-flash 0.7s steps(1) infinite; }
-.mosaic-window.term-idle.term-exit-success .mosaic-window-toolbar { animation: term-line-fade-success 4s forwards; }
-.mosaic-window.term-idle.term-exit-failure .mosaic-window-toolbar { animation: term-line-fade-failure 4s forwards; }
-@keyframes term-line-pulse { 0%, 100% { border-bottom-color: #1e88e5 } 50% { border-bottom-color: rgba(30, 136, 229, 0.25) } }
-@keyframes term-line-flash { 0%, 50% { border-bottom-color: #ffb300 } 51%, 100% { border-bottom-color: transparent } }
-@keyframes term-line-fade-success { from { border-bottom-color: #2e7d32 } to { border-bottom-color: transparent } }
-@keyframes term-line-fade-failure { from { border-bottom-color: #c62828 } to { border-bottom-color: transparent } }
+/* Status shows as a thick accent line across the TOP of the pane title,
+   spanning from the left edge up to (but not under) the toolbar buttons. */
+.mosaic-window .mosaic-window-title { border-top: 6px solid transparent; }
+.mosaic-window.term-busy .mosaic-window-title { animation: term-line-pulse 1.2s ease-in-out infinite; }
+.mosaic-window.term-needs-input .mosaic-window-title { animation: term-line-flash 0.7s steps(1) infinite; }
+.mosaic-window.term-idle.term-exit-success .mosaic-window-title { animation: term-line-fade-success 4s forwards; }
+.mosaic-window.term-idle.term-exit-failure .mosaic-window-title { animation: term-line-fade-failure 4s forwards; }
+@keyframes term-line-pulse { 0%, 100% { border-top-color: #1e88e5 } 50% { border-top-color: rgba(30, 136, 229, 0.25) } }
+@keyframes term-line-flash { 0%, 50% { border-top-color: #ffb300 } 51%, 100% { border-top-color: transparent } }
+@keyframes term-line-fade-success { from { border-top-color: #2e7d32 } to { border-top-color: transparent } }
+@keyframes term-line-fade-failure { from { border-top-color: #c62828 } to { border-top-color: transparent } }
