@@ -1,4 +1,4 @@
-import type { ShellInfo, Workspace, AppState, TerminalStatus } from './types'
+import type { ShellInfo, Workspace, AppState, TerminalStatus, DirEntry, ReadResult, StatResult, FsChange } from './types'
 
 export const CH = {
   listShells: 'shells:list',
@@ -14,7 +14,16 @@ export const CH = {
   ptyData: 'pty:data',     // main -> renderer event
   ptyExit: 'pty:exit',     // main -> renderer event
   ptyStatus: 'pty:status',  // main -> renderer event
-  notify: 'app:notify'
+  notify: 'app:notify',
+  fsRead: 'fs:read',
+  fsWrite: 'fs:write',
+  fsReadDir: 'fs:readDir',
+  fsStat: 'fs:stat',
+  fsWatch: 'fs:watch',
+  fsUnwatch: 'fs:unwatch',
+  fsChange: 'fs:change',          // main -> renderer event
+  dialogOpenFolder: 'dialog:openFolder',
+  dialogOpenFile: 'dialog:openFile'
 } as const
 
 export interface NotifyArgs { title: string; body: string }
@@ -37,4 +46,13 @@ export interface TermhallaApi {
   onPtyExit(cb: (id: string, code: number) => void): () => void
   onPtyStatus(cb: (id: string, status: TerminalStatus) => void): () => void
   notify(args: NotifyArgs): void
+  fsRead(path: string): Promise<ReadResult>
+  fsWrite(path: string, content: string): Promise<number>
+  fsReadDir(path: string): Promise<DirEntry[]>
+  fsStat(path: string): Promise<StatResult>
+  fsWatch(id: string, path: string): void
+  fsUnwatch(id: string): void
+  onFsChange(cb: (id: string, change: FsChange) => void): () => void
+  openFolder(): Promise<string | null>
+  openFile(): Promise<string | null>
 }
