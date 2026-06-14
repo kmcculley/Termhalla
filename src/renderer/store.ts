@@ -1,6 +1,8 @@
 import { create } from 'zustand'
 import { v4 as uuid } from 'uuid'
-import type { Workspace, ShellInfo, MosaicNode, MosaicDirection, TerminalConfig, TerminalStatus, PaneConfig, EditorConfig, ExplorerConfig } from '@shared/types'
+import type { Workspace, ShellInfo, MosaicNode, MosaicDirection, TerminalConfig, TerminalStatus, PaneConfig, EditorConfig, ExplorerConfig, QuickStore, SshConnection } from '@shared/types'
+import { EMPTY_QUICK } from '@shared/types'
+import { buildSshArgs, nextRecentDirs, pushRecent } from '@shared/quick'
 import {
   createWorkspace, addFirstPane, splitPane, removePane
 } from '@shared/workspace-model'
@@ -32,6 +34,19 @@ interface State {
   addExplorer: (wsId: string, targetPaneId: string | null, dir: MosaicDirection, root: string) => string
   openFileInEditor: (wsId: string, path: string) => void
   openExplorerHere: (wsId: string, paneId: string) => void
+  quick: QuickStore
+  home: string
+  paletteOpen: boolean
+  connectionFormFor: SshConnection | 'new' | null
+  loadQuick: () => Promise<void>
+  setPaletteOpen: (open: boolean) => void
+  setConnectionForm: (target: SshConnection | 'new' | null) => void
+  saveConnection: (conn: SshConnection) => void
+  deleteConnection: (id: string) => void
+  pinDir: (dir: string) => void
+  unpinDir: (dir: string) => void
+  launchConnection: (connId: string) => void
+  launchDir: (dir: string) => void
 }
 
 let autosaveTimer: ReturnType<typeof setTimeout> | null = null
@@ -75,6 +90,12 @@ export const useStore = create<State>((set, get) => {
     autosaveTimer = setTimeout(() => { void get().saveAll() }, 500)
   }
 
+  let quickTimer: ReturnType<typeof setTimeout> | null = null
+  const scheduleQuickSave = () => {
+    if (quickTimer) clearTimeout(quickTimer)
+    quickTimer = setTimeout(() => { void api.saveQuick(get().quick) }, 500)
+  }
+
   return {
     shells: [],
     workspaces: {},
@@ -84,10 +105,16 @@ export const useStore = create<State>((set, get) => {
     lastEditorPaneId: null,
     statuses: {},
     cwds: {},
+    quick: EMPTY_QUICK,
+    home: '',
+    paletteOpen: false,
+    connectionFormFor: null,
 
     init: async () => {
       const shells = await api.listShells()
       set({ shells, newTerminalShellId: shells[0]?.id ?? null })
+      const [quick, home] = await Promise.all([api.loadQuick(), api.homeDir()])
+      set({ quick, home })
       const state = await api.loadAppState()
       if (state && Array.isArray(state.openWorkspaceIds) && state.openWorkspaceIds.length > 0) {
         const loaded = await Promise.all(state.openWorkspaceIds.map(id => api.loadWorkspace(id)))
@@ -161,6 +188,12 @@ export const useStore = create<State>((set, get) => {
     setCwd: (id, cwd) => {
       if (get().cwds[id] === cwd) return
       set(s => ({ cwds: { ...s.cwds, [id]: cwd } }))
+      const q = get().quick
+      const recentDirs = nextRecentDirs(q.recentDirs, cwd, get().home)
+      if (recentDirs !== q.recentDirs) {
+        set({ quick: { ...q, recentDirs } })
+        scheduleQuickSave()
+      }
       scheduleAutosave()   // persist into config.cwd (debounced) so restore uses it
     },
 
@@ -202,6 +235,83 @@ export const useStore = create<State>((set, get) => {
       const root = paneCwd(get(), paneId)
       if (!root) return
       get().addExplorer(wsId, paneId, 'row', root)
+    },
+
+    loadQuick: async () => {
+      const [quick, home] = await Promise.all([api.loadQuick(), api.homeDir()])
+      set({ quick, home })
+    },
+
+    setPaletteOpen: (open) => set({ paletteOpen: open }),
+    setConnectionForm: (target) => set({ connectionFormFor: target }),
+
+    saveConnection: (conn) => {
+      const q = get().quick
+      const exists = q.connections.some(c => c.id === conn.id)
+      const connections = exists
+        ? q.connections.map(c => (c.id === conn.id ? conn : c))
+        : [...q.connections, conn]
+      set({ quick: { ...q, connections } })
+      scheduleQuickSave()
+    },
+
+    deleteConnection: (id) => {
+      const q = get().quick
+      set({ quick: { ...q,
+        connections: q.connections.filter(c => c.id !== id),
+        recentConnections: q.recentConnections.filter(rid => rid !== id) } })
+      scheduleQuickSave()
+    },
+
+    pinDir: (dir) => {
+      const q = get().quick
+      if (!dir || q.favoriteDirs.includes(dir)) return
+      set({ quick: { ...q, favoriteDirs: [...q.favoriteDirs, dir] } })
+      scheduleQuickSave()
+    },
+
+    unpinDir: (dir) => {
+      const q = get().quick
+      set({ quick: { ...q, favoriteDirs: q.favoriteDirs.filter(d => d !== dir) } })
+      scheduleQuickSave()
+    },
+
+    launchConnection: (connId) => {
+      const wsId = get().activeId
+      if (!wsId) return
+      const conn = get().quick.connections.find(c => c.id === connId)
+      if (!conn) return
+      const ws = get().workspaces[wsId]
+      const target = ws.layout ? Object.keys(ws.panes)[0] : null
+      const shellId = get().newTerminalShellId ?? get().shells[0]?.id ?? 'cmd'
+      const cfg: TerminalConfig = {
+        kind: 'terminal', shellId, cwd: '', name: conn.name, connectionId: conn.id,
+        launch: { command: 'ssh', args: buildSshArgs(conn), title: conn.name }
+      }
+      const r = ws.layout === null || target === null
+        ? addFirstPane(ws, cfg, uuid)
+        : splitPane(ws, target, 'row', cfg, uuid)
+      const q = get().quick
+      set(s => ({
+        workspaces: { ...s.workspaces, [wsId]: r.workspace },
+        quick: { ...q, recentConnections: pushRecent(q.recentConnections, conn.id, 20) }
+      }))
+      scheduleAutosave()
+      scheduleQuickSave()
+    },
+
+    launchDir: (dir) => {
+      const wsId = get().activeId
+      if (!wsId || !dir) return
+      const ws = get().workspaces[wsId]
+      const target = ws.layout ? Object.keys(ws.panes)[0] : null
+      const shellId = get().newTerminalShellId ?? get().shells[0]?.id ?? 'cmd'
+      const cfg: TerminalConfig = { kind: 'terminal', shellId, cwd: dir }
+      const r = ws.layout === null || target === null
+        ? addFirstPane(ws, cfg, uuid)
+        : splitPane(ws, target, 'row', cfg, uuid)
+      set(s => ({ workspaces: { ...s.workspaces, [wsId]: r.workspace } }))
+      scheduleAutosave()
     },
 
     openFileInEditor: (wsId, path) => {
