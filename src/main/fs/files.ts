@@ -1,0 +1,39 @@
+import { readFile, writeFile, readdir, stat } from 'node:fs/promises'
+import { join } from 'node:path'
+import type { DirEntry, ReadResult, StatResult } from '@shared/types'
+
+const MAX_BYTES = 50 * 1024 * 1024
+
+export function isBinary(buf: Buffer): boolean {
+  const n = Math.min(buf.length, 8000)
+  for (let i = 0; i < n; i++) if (buf[i] === 0) return true
+  return false
+}
+
+export function sortEntries(list: DirEntry[]): DirEntry[] {
+  return [...list].sort((a, b) =>
+    a.isDir !== b.isDir ? (a.isDir ? -1 : 1) : a.name.localeCompare(b.name))
+}
+
+export async function readTextFile(path: string, maxBytes = MAX_BYTES): Promise<ReadResult> {
+  const s = await stat(path)
+  if (s.size > maxBytes) return { content: '', tooLarge: true }
+  const buf = await readFile(path)
+  if (isBinary(buf)) throw new Error('Cannot open binary file')
+  return { content: buf.toString('utf8'), tooLarge: false }
+}
+
+export async function writeTextFile(path: string, content: string): Promise<number> {
+  await writeFile(path, content, 'utf8')
+  return (await stat(path)).mtimeMs
+}
+
+export async function readDirectory(path: string): Promise<DirEntry[]> {
+  const ents = await readdir(path, { withFileTypes: true })
+  return sortEntries(ents.map(e => ({ name: e.name, path: join(path, e.name), isDir: e.isDirectory() })))
+}
+
+export async function statPath(path: string): Promise<StatResult> {
+  const s = await stat(path)
+  return { size: s.size, mtimeMs: s.mtimeMs, isDir: s.isDirectory() }
+}

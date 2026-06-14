@@ -27,7 +27,20 @@ const api: TermhallaApi = {
     const h = (_e: unknown, id: string, status: import('@shared/types').TerminalStatus) => cb(id, status)
     ipcRenderer.on(CH.ptyStatus, h as never)
     return () => ipcRenderer.removeListener(CH.ptyStatus, h as never)
-  }
+  },
+  fsRead: (path) => ipcRenderer.invoke(CH.fsRead, path),
+  fsWrite: (path, content) => ipcRenderer.invoke(CH.fsWrite, path, content),
+  fsReadDir: (path) => ipcRenderer.invoke(CH.fsReadDir, path),
+  fsStat: (path) => ipcRenderer.invoke(CH.fsStat, path),
+  fsWatch: (id, path) => ipcRenderer.send(CH.fsWatch, id, path),
+  fsUnwatch: (id) => ipcRenderer.send(CH.fsUnwatch, id),
+  onFsChange: (cb) => {
+    const h = (_e: unknown, id: string, change: import('@shared/types').FsChange) => cb(id, change)
+    ipcRenderer.on(CH.fsChange, h as never)
+    return () => ipcRenderer.removeListener(CH.fsChange, h as never)
+  },
+  openFolder: () => ipcRenderer.invoke(CH.dialogOpenFolder),
+  openFile: () => ipcRenderer.invoke(CH.dialogOpenFile),
 }
 
 contextBridge.exposeInMainWorld('termhalla', api)

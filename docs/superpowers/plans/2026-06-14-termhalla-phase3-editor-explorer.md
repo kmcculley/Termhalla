@@ -663,7 +663,27 @@ Add these actions (after `addTerminal`). They reuse the same `addFirstPane`/`spl
       }
     },
 ```
-NOTE: `updatePaneConfig`'s patch type is `Partial<TerminalConfig>` from Phase 2. Widen it: change the `State` signature of `updatePaneConfig` to `(wsId: string, paneId: string, patch: Partial<PaneConfig>) => void` and import `PaneConfig`. Since `PaneConfig` is a union, `Partial<PaneConfig>` is awkward; instead type the patch as `Record<string, unknown>` is too loose. Use `patch: Partial<EditorConfig & ExplorerConfig & TerminalConfig>` — simplest correct widening that accepts `{files, activePath}`, `{name, alerts}`, `{root}`. Update the `updatePaneConfig` implementation's spread (`{ ...pane.config, ...patch }`) — it already works structurally; only the type annotation changes. Apply that type change.
+IMPORTANT: a prior task narrowed `updatePaneConfig` to **terminal panes only** (it currently has a runtime guard `if (!pane || pane.config.kind !== 'terminal') return` and types the merge as `TerminalConfig`). That guard would silently break editor updates. You MUST replace `updatePaneConfig` so it works for ANY pane kind.
+
+1. Change its `State` signature to:
+```ts
+  updatePaneConfig: (wsId: string, paneId: string, patch: Partial<EditorConfig & ExplorerConfig & TerminalConfig>) => void
+```
+(Add `EditorConfig`, `ExplorerConfig` — and `PaneConfig` — to the `@shared/types` import.)
+
+2. Replace the whole `updatePaneConfig` action body with this kind-agnostic version:
+```ts
+    updatePaneConfig: (wsId, paneId, patch) => {
+      const ws = get().workspaces[wsId]
+      const pane = ws?.panes[paneId]
+      if (!pane) return
+      const config = { ...pane.config, ...patch } as PaneConfig
+      const updated: Workspace = { ...ws, panes: { ...ws.panes, [paneId]: { ...pane, config } } }
+      set(s => ({ workspaces: { ...s.workspaces, [wsId]: updated } }))
+      void get().saveAll()
+    },
+```
+This keeps Phase 2's terminal-alert updates working AND enables editor `{files, activePath}` updates. Verify the Phase 2 e2e ("settings: rename + mute") still passes after this change (Task 12 runs the full e2e).
 
 - [ ] **Step 2: Typecheck + commit**
 Run: `npm run typecheck` → clean. `npm test` → green.
