@@ -55,6 +55,12 @@ const api: TermhallaApi = {
     ipcRenderer.on(CH.ptyProcs, h as never)
     return () => ipcRenderer.removeListener(CH.ptyProcs, h as never)
   },
+  onCloudStatus: (cb) => {
+    const h = (_e: unknown, statuses: import('@shared/types').CloudStatus[]) => cb(statuses)
+    ipcRenderer.on(CH.cloudStatus, h as never)
+    return () => ipcRenderer.removeListener(CH.cloudStatus, h as never)
+  },
+  cloudRefresh: () => ipcRenderer.invoke(CH.cloudRefresh),
 }
 
 contextBridge.exposeInMainWorld('termhalla', api)

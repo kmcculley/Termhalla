@@ -1,4 +1,4 @@
-import type { ShellInfo, Workspace, AppState, TerminalStatus, DirEntry, ReadResult, StatResult, FsChange, TerminalLaunch, QuickStore, ProcInfo } from './types'
+import type { ShellInfo, Workspace, AppState, TerminalStatus, DirEntry, ReadResult, StatResult, FsChange, TerminalLaunch, QuickStore, ProcInfo, CloudStatus } from './types'
 
 export const CH = {
   listShells: 'shells:list',
@@ -29,7 +29,9 @@ export const CH = {
   quickLoad: 'quick:load',
   quickSave: 'quick:save',
   homeDir: 'app:homeDir',
-  ptyProcs: 'pty:procs'       // main -> renderer event
+  ptyProcs: 'pty:procs',           // main -> renderer event
+  cloudStatus: 'cloud:status',     // main -> renderer event
+  cloudRefresh: 'cloud:refresh'
 } as const
 
 export interface NotifyArgs { title: string; body: string }
@@ -63,6 +65,8 @@ export interface TermhallaApi {
   openFile(): Promise<string | null>
   onPtyCwd(cb: (id: string, cwd: string) => void): () => void
   onPtyProcs(cb: (id: string, info: ProcInfo | null) => void): () => void
+  onCloudStatus(cb: (statuses: CloudStatus[]) => void): () => void
+  cloudRefresh(): Promise<void>
   revealPath(path: string): Promise<void>
   loadQuick(): Promise<QuickStore>
   saveQuick(data: QuickStore): Promise<void>

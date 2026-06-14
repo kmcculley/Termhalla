@@ -12,6 +12,7 @@ import { userDataDir } from '../persistence/paths'
 import { readTextFile, writeTextFile, readDirectory, statPath } from '../fs/files'
 import { WatchManager } from '../fs/watch-manager'
 import { ProcessTracker } from '../proc/process-tracker'
+import { CloudStatusService } from '../cloud/cloud-status-service'
 
 export function registerHandlers(win: BrowserWindow): PtyManager {
   const store = new WorkspaceStore(userDataDir())
@@ -43,6 +44,17 @@ export function registerHandlers(win: BrowserWindow): PtyManager {
     (id) => pty.pidOf(id),
     (id, info) => safeSend(CH.ptyProcs, id, info)
   )
+
+  const cloud = new CloudStatusService((statuses) => safeSend(CH.cloudStatus, statuses))
+  cloud.start()
+  ipcMain.handle(CH.cloudRefresh, () => cloud.refresh())
+
+  let lastFocusRefresh = 0
+  win.on('focus', () => {
+    const t = Date.now()
+    if (t - lastFocusRefresh > 5000) { lastFocusRefresh = t; void cloud.refresh() }
+  })
+  win.on('closed', () => cloud.stop())
 
   ipcMain.handle(CH.listShells, () => shells)
   ipcMain.handle(CH.listWorkspaceIds, () => store.listWorkspaceIds())
