@@ -42,4 +42,21 @@ describe('Osc133Parser', () => {
     expect(p.push('just regular output with a \x1b[32mcolor\x1b[0m code')).toEqual([])
     expect(p.push(mark('A'))).toEqual([{ kind: 'A' }])
   })
+  it('parses a B (command start) marker', () => {
+    const p = new Osc133Parser()
+    expect(p.push(mark('B'))).toEqual([{ kind: 'B' }])
+  })
+  it('ignores an unknown marker code', () => {
+    const p = new Osc133Parser()
+    expect(p.push(mark('Z'))).toEqual([])
+  })
+  it('treats D with an empty exit field as no exit code', () => {
+    const p = new Osc133Parser()
+    expect(p.push(mark('D;'))).toEqual([{ kind: 'D', exit: undefined }])
+  })
+  it('handles the ESC-backslash terminator split across chunks', () => {
+    const p = new Osc133Parser()
+    expect(p.push(`${ESC}]133;A${ESC}`)).toEqual([])   // ESC retained, awaiting backslash
+    expect(p.push('\\')).toEqual([{ kind: 'A' }])
+  })
 })
