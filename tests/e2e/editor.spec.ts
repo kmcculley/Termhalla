@@ -1,6 +1,6 @@
 import { test, expect, _electron as electron, ElectronApplication } from '@playwright/test'
 import { execSync } from 'child_process'
-import { mkdtempSync, writeFileSync, readFileSync } from 'node:fs'
+import { mkdtempSync, writeFileSync, readFileSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { seedWorkspace } from './seed'
@@ -68,5 +68,20 @@ test('reloads a clean open file when it changes on disk', async () => {
   await expect(win.locator('.view-lines')).toContainText('original', { timeout: 20_000 })
   writeFileSync(file, 'changed externally', 'utf8')
   await expect(win.locator('.view-lines')).toContainText('changed externally', { timeout: 10_000 })
+  const pid = app.process().pid; await app.close().catch(() => {}); if (pid) killTree(pid)
+})
+
+test('marks a tab deleted when its file is removed on disk', async () => {
+  test.setTimeout(40_000)
+  const userData = mkdtempSync(join(tmpdir(), 'termh-ed4-'))
+  const proj = mkdtempSync(join(tmpdir(), 'termh-proj4-'))
+  const file = join(proj, 'gone.txt')
+  writeFileSync(file, 'temporary', 'utf8')
+  seedWorkspace(userData, [{ paneId: 'p1', config: { kind: 'editor', files: [file], activePath: file } }], 'p1')
+  const app = await electron.launch({ args: ['out/main/index.js', '--no-sandbox', '--disable-gpu', `--user-data-dir=${userData}`] })
+  const win = await app.firstWindow()
+  await expect(win.locator('.view-lines')).toContainText('temporary', { timeout: 20_000 })
+  rmSync(file)
+  await expect(win.getByTestId('tab-gone.txt')).toContainText('(deleted)', { timeout: 10_000 })
   const pid = app.process().pid; await app.close().catch(() => {}); if (pid) killTree(pid)
 })

@@ -19,9 +19,16 @@ export function ExplorerPane({ paneId, wsId, config }: { paneId: string; wsId: s
   }, [paneId])
 
   const collapse = useCallback((dir: string) => {
-    api.fsUnwatch(`${paneId}::${dir}`); watchedRef.current.delete(dir)
-    setExpanded(s => { const n = new Set(s); n.delete(dir); return n })
-    setChildren(c => { const n = { ...c }; delete n[dir]; return n })
+    const isUnder = (p: string) => p === dir || p.startsWith(dir + '\\') || p.startsWith(dir + '/')
+    for (const d of [...watchedRef.current]) {
+      if (isUnder(d)) { api.fsUnwatch(`${paneId}::${d}`); watchedRef.current.delete(d) }
+    }
+    setExpanded(s => { const n = new Set([...s].filter(d => !isUnder(d))); return n })
+    setChildren(c => {
+      const n = { ...c }
+      for (const d of Object.keys(n)) if (isUnder(d)) delete n[d]
+      return n
+    })
   }, [paneId])
 
   const toggle = useCallback((dir: string) => {

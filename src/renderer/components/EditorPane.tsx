@@ -4,6 +4,11 @@ import { languageForPath } from '@shared/language'
 import { api } from '../api'
 import { useStore } from '../store'
 import type { EditorConfig } from '@shared/types'
+import type { editor as monacoEditor } from 'monaco-editor'
+
+function applyContent(model: monacoEditor.ITextModel, content: string): void {
+  model.pushEditOperations([], [{ range: model.getFullModelRange(), text: content }], () => null)
+}
 
 interface Tab {
   path: string
@@ -131,7 +136,7 @@ export function EditorPane({ paneId, wsId, config }: { paneId: string; wsId: str
       if (dirty) { t.externalChanged = true; rerender(); return }
       void api.fsRead(path).then(r => {
         if (r.tooLarge) return
-        t.saved = r.content; t.model.setValue(r.content); t.missing = false; t.externalChanged = false; rerender()
+        t.saved = r.content; applyContent(t.model, r.content); t.missing = false; t.externalChanged = false; rerender()
       }).catch(() => {})
     })
     return off
@@ -155,7 +160,9 @@ export function EditorPane({ paneId, wsId, config }: { paneId: string; wsId: str
             <div key={p} data-testid={`tab-${base(p)}`} onClick={() => setActiveModel(p)}
               style={{ display: 'flex', gap: 4, alignItems: 'center', padding: '2px 8px', cursor: 'pointer',
                 background: p === active ? '#333' : 'transparent', color: '#ddd', whiteSpace: 'nowrap' }}>
-              <span>{base(p)}{isDirty(t) ? ' •' : ''}</span>
+              <span style={{ textDecoration: t?.missing ? 'line-through' : 'none' }}>
+                {base(p)}{isDirty(t) ? ' •' : ''}{t?.missing ? ' (deleted)' : ''}
+              </span>
               <button data-testid={`tab-close-${base(p)}`} onClick={e => { e.stopPropagation(); closeTab(p) }}>×</button>
             </div>
           )
@@ -167,7 +174,7 @@ export function EditorPane({ paneId, wsId, config }: { paneId: string; wsId: str
           <span>Changed on disk.</span>
           <button data-testid="editor-reload" onClick={async () => {
             const t = activeTab; const r = await api.fsRead(t.path).catch(() => null)
-            if (r && !r.tooLarge) { t.saved = r.content; t.model.setValue(r.content); t.externalChanged = false; rerender() }
+            if (r && !r.tooLarge) { t.saved = r.content; applyContent(t.model, r.content); t.externalChanged = false; rerender() }
           }}>Reload</button>
           <button data-testid="editor-keepmine" onClick={() => { activeTab.externalChanged = false; rerender() }}>Keep mine</button>
         </div>
