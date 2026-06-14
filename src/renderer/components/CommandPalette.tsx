@@ -33,6 +33,8 @@ export function CommandPalette() {
     [quick, currentCwd, query]
   )
 
+  const clampedSel = items.length ? Math.min(sel, items.length - 1) : 0
+
   useEffect(() => { if (open) { setQuery(''); setSel(0) } }, [open])
   useEffect(() => { setSel(0) }, [query])
 
@@ -51,14 +53,15 @@ export function CommandPalette() {
     if (e.key === 'Escape') { e.preventDefault(); close() }
     else if (e.key === 'ArrowDown') { e.preventDefault(); setSel(s => Math.min(s + 1, items.length - 1)) }
     else if (e.key === 'ArrowUp') { e.preventDefault(); setSel(s => Math.max(s - 1, 0)) }
-    else if (e.key === 'Enter') { e.preventDefault(); if (items[sel]) activate(items[sel]) }
+    else if (e.key === 'Enter') { e.preventDefault(); if (items[clampedSel]) activate(items[clampedSel]) }
   }
 
   return (
     <div data-testid="command-palette-backdrop" onClick={close}
       style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', zIndex: 1000,
         display: 'flex', justifyContent: 'center', alignItems: 'flex-start', paddingTop: '12vh' }}>
-      <div data-testid="command-palette" onClick={e => e.stopPropagation()}
+      <div data-testid="command-palette" role="dialog" aria-modal={true} aria-label="Command palette"
+        onClick={e => e.stopPropagation()}
         style={{ width: 560, maxHeight: '60vh', background: '#252526', color: '#eee',
           border: '1px solid #444', borderRadius: 6, display: 'flex', flexDirection: 'column',
           boxShadow: '0 8px 32px rgba(0,0,0,0.5)' }}>
@@ -80,7 +83,7 @@ export function CommandPalette() {
               <div key={key} data-testid={`palette-item-${i}`}
                 onMouseEnter={() => setSel(i)} onClick={() => activate(item)}
                 style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px',
-                  cursor: 'pointer', background: i === sel ? '#094771' : 'transparent' }}>
+                  cursor: 'pointer', background: i === clampedSel ? '#094771' : 'transparent' }}>
                 <span style={{ flex: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{label}</span>
                 {detail && <span style={{ opacity: 0.6, fontSize: 12 }}>{detail}</span>}
                 {item.kind === 'connection' && (
@@ -94,7 +97,7 @@ export function CommandPalette() {
                   </>
                 )}
                 {item.kind === 'dir' && item.favorite && (
-                  <button data-testid="palette-unpin" title="Unpin"
+                  <button data-testid={`palette-unpin-${item.path}`} title="Unpin"
                     onClick={e => { e.stopPropagation(); unpinDir(item.path) }}>✕</button>
                 )}
               </div>
