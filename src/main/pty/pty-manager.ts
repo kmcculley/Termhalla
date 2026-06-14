@@ -2,6 +2,7 @@ import * as pty from 'node-pty'
 import type { ShellInfo } from '@shared/types'
 import { StatusEngine } from '../status/status-engine'
 import { shellInjection } from '../status/shell-integration'
+import { sanitizeShellEnv } from './env'
 
 export interface PtySession { id: string; proc: pty.IPty }
 
@@ -22,7 +23,7 @@ export class PtyManager {
     const args = inj ? inj.args : shell.args
     const proc = pty.spawn(shell.path, args, {
       name: 'xterm-256color', cols, rows, cwd: dir,
-      env: { ...process.env, ...(inj?.env ?? {}) } as Record<string, string>
+      env: sanitizeShellEnv({ ...process.env, ...(inj?.env ?? {}) })
     })
     this.engine.register(id)
     proc.onData(d => { this.engine.feed(id, d); this.onData(id, d) })

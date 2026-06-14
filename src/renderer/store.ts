@@ -4,7 +4,7 @@ import type { Workspace, ShellInfo, MosaicNode, MosaicDirection, TerminalConfig,
 import {
   createWorkspace, addFirstPane, splitPane, removePane
 } from '@shared/workspace-model'
-import { resolveAlerts } from '@shared/alerts'
+import { resolveAlerts, effectiveStatus } from '@shared/alerts'
 import { api } from './api'
 
 interface State {
@@ -115,9 +115,7 @@ export const useStore = create<State>((set, get) => {
       const prev = get().statuses[id]
       const cfg = findPaneConfig(get(), id)
       const alerts = resolveAlerts(cfg?.alerts)
-      const eff: TerminalStatus = (status.state === 'needs-input' && !alerts.needsInput)
-        ? { ...status, state: 'busy' }
-        : status
+      const eff = effectiveStatus(status, cfg?.alerts)
       set(s => ({ statuses: { ...s.statuses, [id]: eff } }))
       if (status.state === 'needs-input' && prev?.state !== 'needs-input'
           && alerts.needsInput && alerts.osNotification
