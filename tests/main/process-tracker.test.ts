@@ -14,7 +14,7 @@ describe('ProcessTracker.pollOnce', () => {
     const emit = vi.fn()
     const t = new ProcessTracker(pidOf, emit, runQuery)
     t.register('a'); t.setBusy('a', true)
-    emit.mockClear()                 // ignore the register/setBusy housekeeping emits
+    emit.mockClear()                 // defensive: no emits expected yet, but keep the assertion exact
     await t.pollOnce()
     expect(emit).toHaveBeenCalledTimes(1)
     expect(emit).toHaveBeenCalledWith('a', expect.objectContaining({ foreground: 'node' }))

@@ -22,6 +22,7 @@ export class ProcessTracker {
   ) {}
 
   register(id: string): void {
+    if (this.sessions.has(id)) return
     this.sessions.set(id, { busy: false })
     this.ensureTimer()
   }
