@@ -18,7 +18,7 @@ export function TerminalPane({ paneId, config }: { paneId: string; config: Termi
     let disposed = false
     api.ptySpawn({
       id: paneId, shellId: config.shellId, cwd: config.cwd,
-      cols: term.cols, rows: term.rows
+      cols: term.cols, rows: term.rows, launch: config.launch
     })
 
     const offData = api.onPtyData((id, data) => { if (id === paneId) term.write(data) })
@@ -35,7 +35,7 @@ export function TerminalPane({ paneId, config }: { paneId: string; config: Termi
       disposed = true
       ro.disconnect(); inputDisp.dispose(); offData(); offExit(); term.dispose()
     }
-  }, [paneId, config.shellId, config.cwd])
+  }, [paneId, config.shellId, config.cwd, config.launch?.command, JSON.stringify(config.launch?.args)])
 
   return <div data-testid={`terminal-${paneId}`} ref={hostRef} style={{ width: '100%', height: '100%' }} />
 }

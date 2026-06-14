@@ -1,7 +1,7 @@
 import * as pty from 'node-pty'
-import type { ShellInfo } from '@shared/types'
+import type { ShellInfo, TerminalLaunch } from '@shared/types'
 import { StatusEngine } from '../status/status-engine'
-import { shellInjection } from '../status/shell-integration'
+import { resolveSpawnSpec } from './spawn-spec'
 import { sanitizeShellEnv } from './env'
 
 export interface PtySession { id: string; proc: pty.IPty }
@@ -16,16 +16,27 @@ export class PtyManager {
     private readonly scriptDir: string
   ) {}
 
-  spawn(id: string, shell: ShellInfo, cwd: string, cols = 80, rows = 24): void {
+  spawn(id: string, shell: ShellInfo, cwd: string, cols = 80, rows = 24, launch?: TerminalLaunch): void {
     if (this.sessions.has(id)) return
     const dir = cwd && cwd.length ? cwd : (process.env.USERPROFILE ?? process.env.HOME ?? process.cwd())
-    const inj = shellInjection(shell, this.scriptDir)
-    const args = inj ? inj.args : shell.args
-    const proc = pty.spawn(shell.path, args, {
-      name: 'xterm-256color', cols, rows, cwd: dir,
-      env: sanitizeShellEnv({ ...process.env, ...(inj?.env ?? {}) })
-    })
+    const spec = resolveSpawnSpec(shell, this.scriptDir, launch)
     this.engine.register(id)
+
+    let proc: pty.IPty
+    try {
+      proc = pty.spawn(spec.file, spec.args, {
+        name: 'xterm-256color', cols, rows, cwd: dir,
+        env: sanitizeShellEnv({ ...process.env, ...(spec.env ?? {}) })
+      })
+    } catch (e) {
+      // A bad launch command (e.g. ssh not on PATH) must not crash main. Surface it
+      // to the pane like a process that exited, and unwind the engine registration.
+      this.onData(id, `\r\n[failed to launch ${spec.file}: ${(e as Error).message}]\r\n`)
+      this.engine.markExit(id, 1); this.engine.unregister(id)
+      this.onExit(id, 1)
+      return
+    }
+
     proc.onData(d => { this.engine.feed(id, d); this.onData(id, d) })
     proc.onExit(({ exitCode }) => {
       this.engine.markExit(id, exitCode); this.engine.unregister(id)

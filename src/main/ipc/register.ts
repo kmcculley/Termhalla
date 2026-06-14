@@ -45,7 +45,7 @@ export function registerHandlers(win: BrowserWindow): PtyManager {
 
   ipcMain.handle(CH.ptySpawn, (_e, a: PtySpawnArgs) => {
     const shell = shells.find(s => s.id === a.shellId) ?? shells[0]
-    pty.spawn(a.id, shell, a.cwd, a.cols, a.rows)
+    pty.spawn(a.id, shell, a.cwd, a.cols, a.rows, a.launch)
   })
   ipcMain.on(CH.ptyWrite, (_e, a: PtyWriteArgs) => pty.write(a.id, a.data))
   ipcMain.on(CH.ptyResize, (_e, a: PtyResizeArgs) => pty.resize(a.id, a.cols, a.rows))

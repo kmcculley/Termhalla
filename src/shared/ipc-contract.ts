@@ -1,4 +1,4 @@
-import type { ShellInfo, Workspace, AppState, TerminalStatus, DirEntry, ReadResult, StatResult, FsChange } from './types'
+import type { ShellInfo, Workspace, AppState, TerminalStatus, DirEntry, ReadResult, StatResult, FsChange, TerminalLaunch } from './types'
 
 export const CH = {
   listShells: 'shells:list',
@@ -29,7 +29,7 @@ export const CH = {
 } as const
 
 export interface NotifyArgs { title: string; body: string }
-export interface PtySpawnArgs { id: string; shellId: string; cwd: string; cols: number; rows: number }
+export interface PtySpawnArgs { id: string; shellId: string; cwd: string; cols: number; rows: number; launch?: TerminalLaunch }
 export interface PtyWriteArgs { id: string; data: string }
 export interface PtyResizeArgs { id: string; cols: number; rows: number }
 
