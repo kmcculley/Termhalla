@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Mosaic, MosaicWindow } from 'react-mosaic-component'
 import 'react-mosaic-component/react-mosaic-component.css'
 import type { MosaicNode as ModelNode, Workspace } from '@shared/types'
@@ -9,6 +9,12 @@ import { TerminalPane } from './TerminalPane'
 import { EditorPane } from './EditorPane'
 import { ExplorerPane } from './ExplorerPane'
 import { TerminalSettings } from './TerminalSettings'
+
+/** Short, compact names for the idle process chip. */
+const SHELL_CHIP_LABEL: Record<string, string> = {
+  'Windows PowerShell': 'pwsh',
+  'Command Prompt': 'cmd'
+}
 
 export function WorkspaceView({ ws }: { ws: Workspace }) {
   const setLayout = useStore(s => s.setLayout)
@@ -25,6 +31,17 @@ export function WorkspaceView({ ws }: { ws: Workspace }) {
   const [settingsFor, setSettingsFor] = useState<string | null>(null)
   const [cwdMenuFor, setCwdMenuFor] = useState<string | null>(null)
   const [procsMenuFor, setProcsMenuFor] = useState<string | null>(null)
+
+  // Auto-dismiss the process popover 2s after it opens on a terminal with no child
+  // processes. If a process appears within that window, procs changes, the effect
+  // re-runs, sees a non-empty tree, and cancels the close.
+  useEffect(() => {
+    if (procsMenuFor === null) return
+    const info = procs[procsMenuFor]
+    if (info && info.tree.length > 0) return
+    const t = setTimeout(() => setProcsMenuFor(null), 2000)
+    return () => clearTimeout(t)
+  }, [procsMenuFor, procs])
 
   if (ws.layout === null) {
     return (
@@ -47,7 +64,8 @@ export function WorkspaceView({ ws }: { ws: Workspace }) {
         const cwd = cwds[paneId] ?? (pane?.config.kind === 'terminal' ? pane.config.cwd : '')
         const termCfg = pane?.config.kind === 'terminal' ? pane.config : undefined
         const procInfo = procs[paneId]
-        const shellLabel = termCfg ? (shells.find(sh => sh.id === termCfg.shellId)?.label ?? termCfg.shellId) : ''
+        const rawShellLabel = termCfg ? (shells.find(sh => sh.id === termCfg.shellId)?.label ?? termCfg.shellId) : ''
+        const shellLabel = SHELL_CHIP_LABEL[rawShellLabel] ?? rawShellLabel
         const chipText = procInfo && procInfo.foreground ? `▶ ${procInfo.foreground}` : shellLabel
         const status = statuses[paneId]
         const alerts = resolveAlerts(termCfg?.alerts)
