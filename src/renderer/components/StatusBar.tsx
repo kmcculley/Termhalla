@@ -22,7 +22,7 @@ export function StatusBar() {
       {cloud.length === 0 && <span style={{ opacity: 0.5 }}>cloud status…</span>}
       {cloud.map(c => (
         <div key={c.id} style={{ position: 'relative' }}>
-          <button data-testid={`cloud-${c.id}`} type="button"
+          <button data-testid={`cloud-${c.id}`} type="button" title={`${c.label}: ${c.state}`}
             onClick={() => setOpenFor(openFor === c.id ? null : c.id)}
             style={{ background: 'transparent', border: 'none', cursor: 'pointer', font: 'inherit',
               color: COLOR[c.state], padding: 0, whiteSpace: 'nowrap' }}>
