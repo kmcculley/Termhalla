@@ -4,7 +4,7 @@ import { DEFAULT_PROVIDERS } from './providers'
 import { classifyProbe, type ProbeResult } from './classify'
 import { runCliProbe } from './probe'
 
-type RunProbe = (provider: CloudProvider) => Promise<ProbeResult>
+type RunProbe = (provider: CloudProvider, signal?: AbortSignal) => Promise<ProbeResult>
 
 /** Periodically probes each provider's CLI for login status and emits the full array.
  *  Stale-while-revalidate: keeps the last good result on a transient error; shows
@@ -14,6 +14,7 @@ export class CloudStatusService {
   private lastSig = ''
   private timer: ReturnType<typeof setInterval> | null = null
   private refreshing = false
+  private abort = new AbortController()
 
   constructor(
     private readonly onStatus: (statuses: CloudStatus[]) => void,
@@ -32,6 +33,10 @@ export class CloudStatusService {
 
   stop(): void {
     if (this.timer) { clearInterval(this.timer); this.timer = null }
+    // Kill any in-flight probe child so a slow CLI can't keep the main process alive
+    // and stall app shutdown; arm a fresh controller for any later restart.
+    this.abort.abort()
+    this.abort = new AbortController()
   }
 
   async refresh(): Promise<void> {
@@ -48,7 +53,7 @@ export class CloudStatusService {
       if (showedChecking) this.emit()
 
       await Promise.all(this.providers.map(async p => {
-        const result = await this.runProbe(p)
+        const result = await this.runProbe(p, this.abort.signal)
         const fresh = classifyProbe(p, result, this.now())
         const prior = this.last.get(p.id)
         const keepStale = fresh.state === 'error' && prior && prior.state !== 'error' && prior.state !== 'checking'

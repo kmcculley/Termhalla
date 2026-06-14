@@ -41,4 +41,15 @@ describe('CloudStatusService.refresh', () => {
     expect(probe).toHaveBeenCalledTimes(1)
     svc.stop()
   })
+
+  it('passes an abort signal to the probe and aborts it on stop', async () => {
+    let captured: AbortSignal | undefined
+    const svc = new CloudStatusService(vi.fn(), provs,
+      (_p, signal) => { captured = signal; return Promise.resolve(okAws) }, () => 1)
+    await svc.refresh()
+    expect(captured).toBeInstanceOf(AbortSignal)
+    expect(captured!.aborted).toBe(false)
+    svc.stop()
+    expect(captured!.aborted).toBe(true)
+  })
 })
