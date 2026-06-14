@@ -24,6 +24,10 @@ export default function App() {
     const off = api.onPtyCwd((id, cwd) => useStore.getState().setCwd(id, cwd))
     return off
   }, [])
+  useEffect(() => {
+    const off = api.onPtyProcs((id, info) => useStore.getState().setProcs(id, info))
+    return off
+  }, [])
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {

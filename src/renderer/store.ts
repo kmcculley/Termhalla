@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import { v4 as uuid } from 'uuid'
-import type { Workspace, ShellInfo, MosaicNode, MosaicDirection, TerminalConfig, TerminalStatus, PaneConfig, EditorConfig, ExplorerConfig, QuickStore, SshConnection } from '@shared/types'
+import type { Workspace, ShellInfo, MosaicNode, MosaicDirection, TerminalConfig, TerminalStatus, PaneConfig, EditorConfig, ExplorerConfig, QuickStore, SshConnection, ProcInfo } from '@shared/types'
 import { EMPTY_QUICK } from '@shared/types'
 import { buildSshArgs, nextRecentDirs, pushRecent, RECENT_CONN_CAP } from '@shared/quick'
 import {
@@ -29,6 +29,8 @@ interface State {
   setStatus: (id: string, status: TerminalStatus) => void
   cwds: Record<string, string>
   setCwd: (id: string, cwd: string) => void
+  procs: Record<string, ProcInfo>
+  setProcs: (id: string, info: ProcInfo | null) => void
   updatePaneConfig: (wsId: string, paneId: string, patch: Partial<Omit<EditorConfig, 'kind'> & Omit<ExplorerConfig, 'kind'> & Omit<TerminalConfig, 'kind'>>) => void
   registerEditorPane: (paneId: string) => void
   addEditor: (wsId: string, targetPaneId: string | null, dir: MosaicDirection) => string
@@ -106,6 +108,7 @@ export const useStore = create<State>((set, get) => {
     lastEditorPaneId: null,
     statuses: {},
     cwds: {},
+    procs: {},
     quick: EMPTY_QUICK,
     home: '',
     paletteOpen: false,
@@ -165,7 +168,12 @@ export const useStore = create<State>((set, get) => {
 
     closePane: (wsId, paneId) => {
       const ws = removePane(get().workspaces[wsId], paneId)
-      set(s => ({ workspaces: { ...s.workspaces, [wsId]: ws } }))
+      set(s => {
+        const statuses = { ...s.statuses }; delete statuses[paneId]
+        const cwds = { ...s.cwds }; delete cwds[paneId]
+        const procs = { ...s.procs }; delete procs[paneId]
+        return { workspaces: { ...s.workspaces, [wsId]: ws }, statuses, cwds, procs }
+      })
       api.ptyKill(paneId)
       scheduleAutosave()
     },
@@ -197,6 +205,13 @@ export const useStore = create<State>((set, get) => {
       }
       scheduleAutosave()   // persist into config.cwd (debounced) so restore uses it
     },
+
+    setProcs: (id, info) => set(s => {
+      const procs = { ...s.procs }
+      if (info) procs[id] = info
+      else delete procs[id]
+      return { procs }
+    }),
 
     updatePaneConfig: (wsId, paneId, patch) => {
       const ws = get().workspaces[wsId]
