@@ -191,7 +191,7 @@ export const useStore = create<State>((set, get) => {
       const q = get().quick
       const recentDirs = nextRecentDirs(q.recentDirs, cwd, get().home)
       if (recentDirs !== q.recentDirs) {
-        set({ quick: { ...q, recentDirs } })
+        set(s => ({ quick: { ...s.quick, recentDirs } }))
         scheduleQuickSave()
       }
       scheduleAutosave()   // persist into config.cwd (debounced) so restore uses it
@@ -251,28 +251,26 @@ export const useStore = create<State>((set, get) => {
       const connections = exists
         ? q.connections.map(c => (c.id === conn.id ? conn : c))
         : [...q.connections, conn]
-      set({ quick: { ...q, connections } })
+      set(s => ({ quick: { ...s.quick, connections } }))
       scheduleQuickSave()
     },
 
     deleteConnection: (id) => {
-      const q = get().quick
-      set({ quick: { ...q,
-        connections: q.connections.filter(c => c.id !== id),
-        recentConnections: q.recentConnections.filter(rid => rid !== id) } })
+      set(s => ({ quick: { ...s.quick,
+        connections: s.quick.connections.filter(c => c.id !== id),
+        recentConnections: s.quick.recentConnections.filter(rid => rid !== id) } }))
       scheduleQuickSave()
     },
 
     pinDir: (dir) => {
       const q = get().quick
       if (!dir || q.favoriteDirs.includes(dir)) return
-      set({ quick: { ...q, favoriteDirs: [...q.favoriteDirs, dir] } })
+      set(s => ({ quick: { ...s.quick, favoriteDirs: [...s.quick.favoriteDirs, dir] } }))
       scheduleQuickSave()
     },
 
     unpinDir: (dir) => {
-      const q = get().quick
-      set({ quick: { ...q, favoriteDirs: q.favoriteDirs.filter(d => d !== dir) } })
+      set(s => ({ quick: { ...s.quick, favoriteDirs: s.quick.favoriteDirs.filter(d => d !== dir) } }))
       scheduleQuickSave()
     },
 
@@ -291,10 +289,9 @@ export const useStore = create<State>((set, get) => {
       const r = ws.layout === null || target === null
         ? addFirstPane(ws, cfg, uuid)
         : splitPane(ws, target, 'row', cfg, uuid)
-      const q = get().quick
       set(s => ({
         workspaces: { ...s.workspaces, [wsId]: r.workspace },
-        quick: { ...q, recentConnections: pushRecent(q.recentConnections, conn.id, 20) }
+        quick: { ...s.quick, recentConnections: pushRecent(s.quick.recentConnections, conn.id, 20) }
       }))
       scheduleAutosave()
       scheduleQuickSave()
