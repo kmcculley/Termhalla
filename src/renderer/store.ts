@@ -2,7 +2,7 @@ import { create } from 'zustand'
 import { v4 as uuid } from 'uuid'
 import type { Workspace, ShellInfo, MosaicNode, MosaicDirection, TerminalConfig, TerminalStatus, PaneConfig, EditorConfig, ExplorerConfig, QuickStore, SshConnection } from '@shared/types'
 import { EMPTY_QUICK } from '@shared/types'
-import { buildSshArgs, nextRecentDirs, pushRecent } from '@shared/quick'
+import { buildSshArgs, nextRecentDirs, pushRecent, RECENT_CONN_CAP } from '@shared/quick'
 import {
   createWorkspace, addFirstPane, splitPane, removePane
 } from '@shared/workspace-model'
@@ -24,6 +24,7 @@ interface State {
   closePane: (wsId: string, paneId: string) => void
   setNewTerminalShell: (id: string) => void
   saveAll: () => Promise<void>
+  flushQuick: () => void
   statuses: Record<string, TerminalStatus>
   setStatus: (id: string, status: TerminalStatus) => void
   cwds: Record<string, string>
@@ -291,7 +292,7 @@ export const useStore = create<State>((set, get) => {
         : splitPane(ws, target, 'row', cfg, uuid)
       set(s => ({
         workspaces: { ...s.workspaces, [wsId]: r.workspace },
-        quick: { ...s.quick, recentConnections: pushRecent(s.quick.recentConnections, conn.id, 20) }
+        quick: { ...s.quick, recentConnections: pushRecent(s.quick.recentConnections, conn.id, RECENT_CONN_CAP) }
       }))
       scheduleAutosave()
       scheduleQuickSave()
@@ -339,6 +340,11 @@ export const useStore = create<State>((set, get) => {
       await api.saveAppState({
         schemaVersion: 1, openWorkspaceIds: order, activeWorkspaceId: activeId
       })
+    },
+
+    flushQuick: () => {
+      if (quickTimer) { clearTimeout(quickTimer); quickTimer = null }
+      void api.saveQuick(get().quick)
     }
   }
 })

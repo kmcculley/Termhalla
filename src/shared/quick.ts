@@ -17,6 +17,8 @@ export function pushRecent<T>(list: T[], value: T, cap: number): T[] {
 
 export const RECENT_DIR_CAP = 20
 
+export const RECENT_CONN_CAP = 20
+
 const normDir = (p: string): string => p.replace(/[\\/]+$/, '').toLowerCase()
 
 /** MRU for directories: skip empty + the home dir, de-dupe case/trailing-slash-insensitively.

@@ -12,7 +12,7 @@ export default function App() {
   const connectionFormFor = useStore(s => s.connectionFormFor)
   useEffect(() => { init() }, [init])
   useEffect(() => {
-    const flush = () => { void useStore.getState().saveAll() }
+    const flush = () => { const s = useStore.getState(); void s.saveAll(); s.flushQuick() }
     window.addEventListener('beforeunload', flush)
     return () => window.removeEventListener('beforeunload', flush)
   }, [])
