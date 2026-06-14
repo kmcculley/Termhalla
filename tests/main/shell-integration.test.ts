@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { shellInjection, PS_SCRIPT, SH_SCRIPT } from '../../src/main/status/shell-integration'
+import { POWERSHELL_INTEGRATION, BASH_INTEGRATION } from '../../src/main/status/integration-scripts'
 import type { ShellInfo } from '@shared/types'
 
 const shell = (id: string, args: string[] = []): ShellInfo =>
@@ -24,5 +25,15 @@ describe('shellInjection', () => {
   })
   it('returns null for cmd (heuristics only)', () => {
     expect(shellInjection(shell('cmd'), 'C:\\scripts')).toBeNull()
+  })
+})
+
+describe('integration scripts emit a cwd report', () => {
+  it('PowerShell emits OSC 9;9 with the provider path', () => {
+    expect(POWERSHELL_INTEGRATION).toContain(']9;9;')
+    expect(POWERSHELL_INTEGRATION).toContain('ProviderPath')
+  })
+  it('bash emits OSC 7 file URL', () => {
+    expect(BASH_INTEGRATION).toContain(']7;file://')
   })
 })
