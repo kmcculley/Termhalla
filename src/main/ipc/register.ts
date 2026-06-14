@@ -7,12 +7,14 @@ import { PtyManager } from '../pty/pty-manager'
 import { StatusEngine } from '../status/status-engine'
 import { writeIntegrationScripts } from '../status/integration-scripts'
 import { WorkspaceStore } from '../persistence/store'
+import { QuickStore } from '../persistence/quick-store'
 import { userDataDir } from '../persistence/paths'
 import { readTextFile, writeTextFile, readDirectory, statPath } from '../fs/files'
 import { WatchManager } from '../fs/watch-manager'
 
 export function registerHandlers(win: BrowserWindow): PtyManager {
   const store = new WorkspaceStore(userDataDir())
+  const quick = new QuickStore(userDataDir())
   const shells = detectShells()
 
   const scriptDir = join(userDataDir(), 'shell-integration')
@@ -77,6 +79,10 @@ export function registerHandlers(win: BrowserWindow): PtyManager {
     return r.canceled || r.filePaths.length === 0 ? null : r.filePaths[0]
   })
   ipcMain.handle(CH.revealPath, async (_e, path: string) => { await shell.openPath(path) })
+
+  ipcMain.handle(CH.quickLoad, () => quick.load())
+  ipcMain.handle(CH.quickSave, (_e, data: import('@shared/types').QuickStore) => quick.save(data))
+  ipcMain.handle(CH.homeDir, () => process.env.USERPROFILE ?? process.env.HOME ?? '')
 
   return pty
 }
