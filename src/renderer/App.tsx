@@ -17,6 +17,10 @@ export default function App() {
     const off = api.onPtyStatus((id, status) => useStore.getState().setStatus(id, status))
     return off
   }, [])
+  useEffect(() => {
+    const off = api.onPtyCwd((id, cwd) => useStore.getState().setCwd(id, cwd))
+    return off
+  }, [])
 
   const active = activeId ? workspaces[activeId] : null
   return (
