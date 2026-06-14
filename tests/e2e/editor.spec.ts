@@ -31,3 +31,27 @@ test('opens a seeded file in Monaco, edits, and saves to disk', async () => {
 
   const pid = app.process().pid; await app.close().catch(() => {}); if (pid) killTree(pid)
 })
+
+test('Ctrl+S saves the active tab after switching tabs', async () => {
+  test.setTimeout(40_000)
+  const userData = mkdtempSync(join(tmpdir(), 'termh-ed3-'))
+  const proj = mkdtempSync(join(tmpdir(), 'termh-proj3-'))
+  const a = join(proj, 'a.ts'); const b = join(proj, 'b.ts')
+  writeFileSync(a, 'AAA\n', 'utf8'); writeFileSync(b, 'BBB\n', 'utf8')
+  seedWorkspace(userData, [{ paneId: 'p1', config: { kind: 'editor', files: [a, b], activePath: a } }], 'p1')
+  const app = await electron.launch({ args: ['out/main/index.js', '--no-sandbox', '--disable-gpu', `--user-data-dir=${userData}`] })
+  const win = await app.firstWindow()
+  await expect(win.locator('.monaco-editor')).toBeVisible({ timeout: 20_000 })
+  // switch to tab b
+  await win.getByTestId('tab-b.ts').click()
+  await expect(win.locator('.view-lines')).toContainText('BBB', { timeout: 10_000 })
+  // edit + save
+  await win.locator('.view-lines').click()
+  await win.keyboard.press('Control+Home')
+  await win.keyboard.type('// in-b\n')
+  await win.keyboard.press('Control+S')
+  // b changed, a unchanged
+  await expect.poll(() => readFileSync(b, 'utf8'), { timeout: 10_000 }).toContain('// in-b')
+  expect(readFileSync(a, 'utf8')).toBe('AAA\n')
+  const pid = app.process().pid; await app.close().catch(() => {}); if (pid) killTree(pid)
+})

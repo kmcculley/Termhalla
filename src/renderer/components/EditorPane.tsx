@@ -27,28 +27,39 @@ export function EditorPane({ paneId, wsId, config }: { paneId: string; wsId: str
   const updatePaneConfig = useStore(s => s.updatePaneConfig)
   const registerEditorPane = useStore(s => s.registerEditorPane)
 
+  const orderRef = useRef(order); orderRef.current = order
   const persist = useCallback((nextOrder: string[], nextActive: string | undefined) => {
     if (nextOrder.join(' ') === config.files.join(' ') && nextActive === config.activePath) return
     updatePaneConfig(wsId, paneId, { files: nextOrder, activePath: nextActive })
   }, [wsId, paneId, config.files, config.activePath, updatePaneConfig])
+  const persistRef = useRef(persist); useEffect(() => { persistRef.current = persist }, [persist])
 
   const setActiveModel = useCallback((path: string) => {
     const t = tabs.current.get(path)
     if (t && edRef.current) edRef.current.setModel(t.model)
     setActive(path)
+    persistRef.current(orderRef.current, path)
   }, [])
+
+  const loading = useRef<Set<string>>(new Set())
 
   const openTab = useCallback(async (path: string) => {
     if (tabs.current.has(path)) { setActiveModel(path); return }
-    let saved = '', tooLarge = false, missing = false
-    try { const r = await api.fsRead(path); saved = r.content; tooLarge = r.tooLarge }
-    catch { missing = true }
-    const model = monaco.editor.createModel(tooLarge || missing ? '' : saved, languageForPath(path))
-    const disp = model.onDidChangeContent(() => rerender())
-    tabs.current.set(path, { path, model, saved, disp, tooLarge, missing })
-    setOrder(o => (o.includes(path) ? o : [...o, path]))
-    setActiveModel(path)
-    rerender()
+    if (loading.current.has(path)) return
+    loading.current.add(path)
+    try {
+      let saved = '', tooLarge = false, missing = false
+      try { const r = await api.fsRead(path); saved = r.content; tooLarge = r.tooLarge }
+      catch { missing = true }
+      const model = monaco.editor.createModel(tooLarge || missing ? '' : saved, languageForPath(path))
+      const disp = model.onDidChangeContent(() => rerender())
+      tabs.current.set(path, { path, model, saved, disp, tooLarge, missing })
+      setOrder(o => (o.includes(path) ? o : [...o, path]))
+      setActiveModel(path)
+      rerender()
+    } finally {
+      loading.current.delete(path)
+    }
   }, [rerender, setActiveModel])
 
   const saveActive = useCallback(async () => {
@@ -60,6 +71,9 @@ export function EditorPane({ paneId, wsId, config }: { paneId: string; wsId: str
     t.saved = value
     rerender()
   }, [active, rerender])
+
+  const saveActiveRef = useRef(saveActive)
+  useEffect(() => { saveActiveRef.current = saveActive }, [saveActive])
 
   const closeTab = useCallback((path: string) => {
     const t = tabs.current.get(path)
@@ -86,7 +100,7 @@ export function EditorPane({ paneId, wsId, config }: { paneId: string; wsId: str
     edRef.current = ed
     registerEditorPane(paneId)
     const focusDisp = ed.onDidFocusEditorText(() => registerEditorPane(paneId))
-    ed.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS, () => { void saveActive() })
+    ed.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS, () => { void saveActiveRef.current() })
     return () => {
       focusDisp.dispose(); ed.dispose()
       for (const t of tabs.current.values()) { t.disp.dispose(); t.model.dispose() }
