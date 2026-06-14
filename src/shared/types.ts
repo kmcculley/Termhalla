@@ -6,12 +6,28 @@ export interface ShellInfo {
   args: string[]      // launch args
 }
 
+export type TermState = 'idle' | 'busy' | 'needs-input'
+
+export interface TerminalStatus {
+  state: TermState
+  lastExit?: 'success' | 'failure'
+  since: number
+}
+
+export interface AlertConfig {
+  border?: boolean
+  tabBadge?: boolean
+  osNotification?: boolean
+  needsInput?: boolean
+}
+
 /** Per-terminal pane configuration (what gets serialized). */
 export interface TerminalConfig {
   kind: 'terminal'
   shellId: string
   cwd: string
   name?: string
+  alerts?: AlertConfig
 }
 
 /** Phase 1 has only terminals; editor/explorer added in Phase 3. */
@@ -53,4 +69,4 @@ export interface WindowState {
   maximized: boolean
 }
 
-export const SCHEMA_VERSION = 1
+export const SCHEMA_VERSION = 2
