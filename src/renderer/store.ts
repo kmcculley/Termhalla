@@ -31,10 +31,8 @@ interface State {
   addEditor: (wsId: string, targetPaneId: string | null, dir: MosaicDirection) => string
   addExplorer: (wsId: string, targetPaneId: string | null, dir: MosaicDirection, root: string) => string
   openFileInEditor: (wsId: string, path: string) => void
+  openExplorerHere: (wsId: string, paneId: string) => void
 }
-
-const defaultTerminal = (shellId: string): TerminalConfig =>
-  ({ kind: 'terminal', shellId, cwd: '' })
 
 let autosaveTimer: ReturnType<typeof setTimeout> | null = null
 
@@ -127,7 +125,8 @@ export const useStore = create<State>((set, get) => {
     addTerminal: (wsId, targetPaneId, dir) => {
       const ws = get().workspaces[wsId]
       const shellId = get().newTerminalShellId ?? get().shells[0]?.id ?? 'cmd'
-      const cfg = defaultTerminal(shellId)
+      const cwd = targetPaneId ? paneCwd(get(), targetPaneId) : ''
+      const cfg: TerminalConfig = { kind: 'terminal', shellId, cwd }
       const r = ws.layout === null || targetPaneId === null
         ? addFirstPane(ws, cfg, uuid)
         : splitPane(ws, targetPaneId, dir, cfg, uuid)
@@ -197,6 +196,12 @@ export const useStore = create<State>((set, get) => {
       set(s => ({ workspaces: { ...s.workspaces, [wsId]: r.workspace } }))
       void get().saveAll()
       return r.paneId
+    },
+
+    openExplorerHere: (wsId, paneId) => {
+      const root = paneCwd(get(), paneId)
+      if (!root) return
+      get().addExplorer(wsId, paneId, 'row', root)
     },
 
     openFileInEditor: (wsId, path) => {
