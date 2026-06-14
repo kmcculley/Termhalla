@@ -1,6 +1,8 @@
 node_modules/
-dist/
 out/
-*.log
+dist/
 .vite/
 release/
+*.log
+test-results/
+playwright-report/

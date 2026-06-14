@@ -1,0 +1,41 @@
+import { useEffect, useRef } from 'react'
+import { Terminal } from '@xterm/xterm'
+import { FitAddon } from '@xterm/addon-fit'
+import '@xterm/xterm/css/xterm.css'
+import { api } from '../api'
+import type { TerminalConfig } from '@shared/types'
+
+export function TerminalPane({ paneId, config }: { paneId: string; config: TerminalConfig }) {
+  const hostRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    const term = new Terminal({ fontFamily: 'Consolas, monospace', fontSize: 13, cursorBlink: true })
+    const fit = new FitAddon()
+    term.loadAddon(fit)
+    term.open(hostRef.current!)
+    fit.fit()
+
+    let disposed = false
+    api.ptySpawn({
+      id: paneId, shellId: config.shellId, cwd: config.cwd,
+      cols: term.cols, rows: term.rows
+    })
+
+    const offData = api.onPtyData((id, data) => { if (id === paneId) term.write(data) })
+    const offExit = api.onPtyExit((id) => { if (id === paneId && !disposed) term.write('\r\n[process exited]\r\n') })
+    const inputDisp = term.onData(d => api.ptyWrite({ id: paneId, data: d }))
+
+    const ro = new ResizeObserver(() => {
+      fit.fit()
+      api.ptyResize({ id: paneId, cols: term.cols, rows: term.rows })
+    })
+    ro.observe(hostRef.current!)
+
+    return () => {
+      disposed = true
+      ro.disconnect(); inputDisp.dispose(); offData(); offExit(); term.dispose()
+    }
+  }, [paneId, config.shellId, config.cwd])
+
+  return <div data-testid={`terminal-${paneId}`} ref={hostRef} style={{ width: '100%', height: '100%' }} />
+}

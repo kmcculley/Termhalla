@@ -1,0 +1,37 @@
+# Phase 1 — Review Follow-ups (deferred to later phases)
+
+These items surfaced in the final holistic review of Phase 1 (2026-06-13). The
+three spec-critical gaps (shell picker, vertical split, auto-save) were **fixed**
+in commit `0cd92ad`. The items below were judged genuine but non-blocking and are
+deferred. Tracked here so they aren't lost.
+
+## Robustness (Phase 2 hardening)
+
+- **Live cwd capture.** A terminal's `cwd` is serialized but always created as `''`
+  (so restore opens in the home dir, not where the shell actually was). Capturing
+  live cwd needs shell integration (OSC 7 / OSC 133), which lands in Phase 2's
+  status engine — wire cwd capture in at the same time.
+- **Dead-pane affordance (M-3).** When a shell exits on its own (`exit`), the pane
+  prints `[process exited]` but stays in the layout with no restart affordance. Add
+  an auto-close or a "restart" action in a later phase.
+- **app-state validation (M-4).** `loadAppState` casts parsed JSON straight to
+  `AppState` with no shape/version check (workspace files are guarded by
+  `deserializeWorkspace`; app-state is not). Add a `schemaVersion` gate + array
+  validation when app-state grows more fields.
+- **PTY env sanitization (M-6).** `PtyManager.spawn` passes the full
+  `process.env` to every shell (includes Electron/Node injected vars). Sanitize
+  before Phase 2 shell-integration injection, which needs a controlled env.
+- **Debounce window-state writes (M-7).** `saveWindowState` fires on every resize
+  tick (unthrottled fs I/O on the main thread). Debounce when convenient.
+
+## Phase 2/3 readiness notes (from review)
+
+- **Status engine seam:** PTY bytes already flow through a single `onData`
+  callback (`pty-manager.ts` → `register.ts`). Inserting a per-session marker
+  parser + state machine there is additive; `PtyManager` will need per-session
+  state (tail buffer, last-exit) and a new `pty:status` channel in `CH`.
+- **Editor/Explorer panes:** `PaneConfig` is currently a type alias for
+  `TerminalConfig`. Phase 3 turns it into a discriminated union on `kind`, and
+  `WorkspaceView.renderTile` switches on `pane.config.kind`. The `kind: 'terminal'`
+  discriminant is already present, so this is low-friction. The hardened
+  `migrate()` guard becomes load-bearing once Phase 3 bumps the schema.

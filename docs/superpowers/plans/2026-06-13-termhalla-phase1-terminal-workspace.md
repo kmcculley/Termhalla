@@ -238,7 +238,7 @@ function createWindow(): BrowserWindow {
     height: 800,
     show: false,
     webPreferences: {
-      preload: resolve(import.meta.dirname, '../preload/index.js'),
+      preload: resolve(import.meta.dirname, '../preload/index.mjs'),
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: false
@@ -1080,7 +1080,7 @@ async function createWindow(): Promise<void> {
   const win = new BrowserWindow({
     width: s.width, height: s.height, x: s.x, y: s.y, show: false,
     webPreferences: {
-      preload: resolve(import.meta.dirname, '../preload/index.js'),
+      preload: resolve(import.meta.dirname, '../preload/index.mjs'),
       contextIsolation: true, nodeIntegration: false, sandbox: false
     }
   })
