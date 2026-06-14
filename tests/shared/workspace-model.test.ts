@@ -54,4 +54,26 @@ describe('workspace-model', () => {
   it('rejects malformed workspace json', () => {
     expect(() => deserializeWorkspace('{"nope":true}')).toThrow()
   })
+
+  it('splits a non-root leaf deep in a nested tree', () => {
+    let ws = addFirstPane(createWorkspace('W', () => 'ws-1'), term(), () => 'p1').workspace
+    ws = splitPane(ws, 'p1', 'row', term(), () => 'p2').workspace      // layout: {row, p1, p2}
+    const r = splitPane(ws, 'p2', 'column', term('F:\\'), () => 'p3')  // split the deeper 'second' leaf
+    expect(r.workspace.layout).toEqual({
+      direction: 'row',
+      first: 'p1',
+      second: { direction: 'column', first: 'p2', second: 'p3' }
+    })
+    expect(Object.keys(r.workspace.panes).sort()).toEqual(['p1', 'p2', 'p3'])
+  })
+
+  it('removes a middle pane from a 3-pane tree and collapses correctly', () => {
+    let ws = addFirstPane(createWorkspace('W', () => 'ws-1'), term(), () => 'p1').workspace
+    ws = splitPane(ws, 'p1', 'row', term(), () => 'p2').workspace
+    ws = splitPane(ws, 'p2', 'column', term(), () => 'p3').workspace   // {row, p1, {column, p2, p3}}
+    const after = removePane(ws, 'p2')
+    expect(after.layout).toEqual({ direction: 'row', first: 'p1', second: 'p3' })
+    expect(after.panes['p2']).toBeUndefined()
+    expect(Object.keys(after.panes).sort()).toEqual(['p1', 'p3'])
+  })
 })
