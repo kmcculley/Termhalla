@@ -29,7 +29,7 @@ export const CH = {
   quickLoad: 'quick:load',
   quickSave: 'quick:save',
   homeDir: 'app:homeDir',
-  ptyProcs: 'pty:procs'   // main -> renderer event
+  ptyProcs: 'pty:procs'       // main -> renderer event
 } as const
 
 export interface NotifyArgs { title: string; body: string }

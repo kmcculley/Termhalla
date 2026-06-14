@@ -10,7 +10,7 @@ export function queryProcesses(timeoutMs = 2000): Promise<CimRow[]> {
     execFile(
       'powershell.exe',
       ['-NoProfile', '-NonInteractive', '-Command', PS_CMD],
-      { timeout: timeoutMs, maxBuffer: 16 * 1024 * 1024, windowsHide: true },
+      { timeout: timeoutMs, maxBuffer: 16 * 1024 * 1024, windowsHide: true, killSignal: 'SIGKILL' },
       (err, stdout) => resolve(err ? [] : parseCimRows(stdout))
     )
   })
