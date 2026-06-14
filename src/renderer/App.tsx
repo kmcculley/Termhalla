@@ -2,6 +2,7 @@ import { useEffect } from 'react'
 import { useStore } from './store'
 import { WorkspaceTabs } from './components/WorkspaceTabs'
 import { WorkspaceView } from './components/WorkspaceView'
+import { api } from './api'
 
 export default function App() {
   const init = useStore(s => s.init)
@@ -11,6 +12,10 @@ export default function App() {
     const flush = () => { void useStore.getState().saveAll() }
     window.addEventListener('beforeunload', flush)
     return () => window.removeEventListener('beforeunload', flush)
+  }, [])
+  useEffect(() => {
+    const off = api.onPtyStatus((id, status) => useStore.getState().setStatus(id, status))
+    return off
   }, [])
 
   const active = activeId ? workspaces[activeId] : null
