@@ -62,7 +62,7 @@ export function WorkspaceView({ ws }: { ws: Workspace }) {
             className={statusClass}
             toolbarControls={[
               ...(termCfg ? [
-                <button key="proc" data-testid={`proc-chip-${paneId}`} title="Running process"
+                <button key="proc" type="button" data-testid={`proc-chip-${paneId}`} title="Running process"
                   style={{ maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
                   onClick={() => setProcsMenuFor(procsMenuFor === paneId ? null : paneId)}>{chipText}</button>
               ] : []),
