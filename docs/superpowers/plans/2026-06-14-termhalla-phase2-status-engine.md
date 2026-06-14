@@ -965,13 +965,19 @@ Add these actions inside the returned store object (after `setNewTerminalShell`)
 ```ts
     setStatus: (id, status) => {
       const prev = get().statuses[id]
-      set(s => ({ statuses: { ...s.statuses, [id]: status } }))
-      if (status.state === 'needs-input' && prev?.state !== 'needs-input') {
-        const cfg = findPaneConfig(get(), id)
-        const alerts = resolveAlerts(cfg?.alerts)
-        if (alerts.osNotification && typeof document !== 'undefined' && !document.hasFocus()) {
-          api.notify({ title: 'Terminal needs input', body: cfg?.name ?? 'A terminal is waiting for input' })
-        }
+      const cfg = findPaneConfig(get(), id)
+      const alerts = resolveAlerts(cfg?.alerts)
+      // Honor the per-terminal needs-input toggle in ONE place: if detection is off
+      // for this terminal, downgrade needs-input -> busy before storing. All
+      // consumers (border, tab badge, notification) then see the effective state.
+      const eff: TerminalStatus = (status.state === 'needs-input' && !alerts.needsInput)
+        ? { ...status, state: 'busy' }
+        : status
+      set(s => ({ statuses: { ...s.statuses, [id]: eff } }))
+      if (status.state === 'needs-input' && prev?.state !== 'needs-input'
+          && alerts.needsInput && alerts.osNotification
+          && typeof document !== 'undefined' && !document.hasFocus()) {
+        api.notify({ title: 'Terminal needs input', body: cfg?.name ?? 'A terminal is waiting for input' })
       }
     },
 
