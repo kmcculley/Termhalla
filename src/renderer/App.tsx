@@ -2,6 +2,7 @@ import { useEffect } from 'react'
 import { useStore } from './store'
 import { WorkspaceTabs } from './components/WorkspaceTabs'
 import { WorkspaceView } from './components/WorkspaceView'
+import { CommandPalette } from './components/CommandPalette'
 import { api } from './api'
 
 export default function App() {
@@ -22,6 +23,18 @@ export default function App() {
     return off
   }, [])
 
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && (e.key === 'k' || e.key === 'K')) {
+        e.preventDefault()
+        const s = useStore.getState()
+        s.setPaletteOpen(!s.paletteOpen)
+      }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [])
+
   const active = activeId ? workspaces[activeId] : null
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100vh' }}>
@@ -29,6 +42,7 @@ export default function App() {
       <div style={{ flex: 1, position: 'relative' }} className="mosaic-blueprint-theme">
         {active ? <WorkspaceView ws={active} /> : <div data-testid="app-title">Termhalla</div>}
       </div>
+      <CommandPalette />
     </div>
   )
 }
