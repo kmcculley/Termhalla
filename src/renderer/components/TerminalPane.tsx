@@ -35,6 +35,8 @@ export function TerminalPane({ paneId, config }: { paneId: string; config: Termi
       disposed = true
       ro.disconnect(); inputDisp.dispose(); offData(); offExit(); term.dispose()
     }
+  // launch.args is an array; key the effect on a stable string of it (+ command) so an
+  // SSH terminal re-spawns if its target changes, without re-running on unrelated renders.
   }, [paneId, config.shellId, config.cwd, config.launch?.command, JSON.stringify(config.launch?.args)])
 
   return <div data-testid={`terminal-${paneId}`} ref={hostRef} style={{ width: '100%', height: '100%' }} />

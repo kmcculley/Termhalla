@@ -1,4 +1,4 @@
-import type { ShellInfo } from '@shared/types'
+import type { ShellInfo, TerminalLaunch } from '@shared/types'
 import { shellInjection } from '../status/shell-integration'
 
 export interface SpawnSpec {
@@ -11,7 +11,7 @@ export interface SpawnSpec {
  *  shell-integration injection; otherwise the shell's integrated args/env (or its own args). */
 export function resolveSpawnSpec(
   shell: ShellInfo, scriptDir: string,
-  launch?: { command: string; args: string[] }
+  launch?: TerminalLaunch
 ): SpawnSpec {
   if (launch) return { file: launch.command, args: launch.args }
   const inj = shellInjection(shell, scriptDir)
