@@ -50,6 +50,11 @@ const api: TermhallaApi = {
     ipcRenderer.on(CH.ptyCwd, h as never)
     return () => ipcRenderer.removeListener(CH.ptyCwd, h as never)
   },
+  onPtyProcs: (cb) => {
+    const h = (_e: unknown, id: string, info: import('@shared/types').ProcInfo | null) => cb(id, info)
+    ipcRenderer.on(CH.ptyProcs, h as never)
+    return () => ipcRenderer.removeListener(CH.ptyProcs, h as never)
+  },
 }
 
 contextBridge.exposeInMainWorld('termhalla', api)
