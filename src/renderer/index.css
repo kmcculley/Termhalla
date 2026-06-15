@@ -1,5 +1,8 @@
 html, body, #root { margin: 0; height: 100%; }
-body { background: var(--bg, #1e1e1e); color: var(--fg, #eee); font-family: var(--font, 'Segoe UI', sans-serif); font-size: var(--font-size, 13px); }
+/* Theme the window background, text color, and UI font on body. NOTE: `font-size` is applied
+   per-chrome-surface (workspace tab bar, status bar, dialogs) and deliberately NOT set on body —
+   a global font-size corrupts Monaco's char-width measurement and breaks model-switch rendering. */
+body { background: var(--bg, #1e1e1e); color: var(--fg, #eee); font-family: var(--font, 'Segoe UI', sans-serif); }
 .mosaic, .mosaic-root { height: 100%; }
 .mosaic-blueprint-theme { height: 100%; }
 .term-tile { box-sizing: border-box; }
