@@ -2,6 +2,7 @@ import { useEffect } from 'react'
 import { useStore } from './store'
 import { WorkspaceTabs } from './components/WorkspaceTabs'
 import { WorkspaceView } from './components/WorkspaceView'
+import { BroadcastDialog } from './components/BroadcastDialog'
 import { CommandPalette } from './components/CommandPalette'
 import { SshConnectionForm } from './components/SshConnectionForm'
 import { StatusBar } from './components/StatusBar'
@@ -50,6 +51,11 @@ export default function App() {
         const s = useStore.getState()
         s.setPaletteOpen(!s.paletteOpen)
       }
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'Enter') {
+        e.preventDefault()
+        const s = useStore.getState()
+        s.setBroadcastOpen(!s.broadcastOpen)
+      }
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
@@ -81,6 +87,7 @@ export default function App() {
       </div>
       <StatusBar />
       <UsageWatcher />
+      <BroadcastDialog />
       <CommandPalette />
       <SshConnectionForm key={connectionFormFor === null ? 'none' : connectionFormFor === 'new' ? 'new' : connectionFormFor.id} />
     </div>
