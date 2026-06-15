@@ -114,6 +114,7 @@ export function EditorPane({ paneId, wsId, config }: { paneId: string; wsId: str
     const t = tabs.current.get(UNTITLED)
     if (!t) return
     const content = t.model.getValue()
+    if (!content) return  // nothing to save (Ctrl+S on an empty scratch buffer)
     const path = await api.saveFileDialog()
     if (!path) return
     await api.fsWrite(path, content)
