@@ -28,6 +28,7 @@ export function WorkspaceView({ ws }: { ws: Workspace }) {
   const openExplorerHere = useStore(s => s.openExplorerHere)
   const procs = useStore(s => s.procs)
   const shells = useStore(s => s.shells)
+  const aiSessions = useStore(s => s.aiSessions)
   const [settingsFor, setSettingsFor] = useState<string | null>(null)
   const [cwdMenuFor, setCwdMenuFor] = useState<string | null>(null)
   const [procsMenuFor, setProcsMenuFor] = useState<string | null>(null)
@@ -66,7 +67,9 @@ export function WorkspaceView({ ws }: { ws: Workspace }) {
         const procInfo = procs[paneId]
         const rawShellLabel = termCfg ? (shells.find(sh => sh.id === termCfg.shellId)?.label ?? termCfg.shellId) : ''
         const shellLabel = SHELL_CHIP_LABEL[rawShellLabel] ?? rawShellLabel
-        const chipText = procInfo && procInfo.foreground ? `▶ ${procInfo.foreground}` : shellLabel
+        const aiSession = aiSessions[paneId]
+        const chipText = aiSession ? `✨ ${aiSession.label}`
+          : procInfo && procInfo.foreground ? `▶ ${procInfo.foreground}` : shellLabel
         const status = statuses[paneId]
         const alerts = resolveAlerts(termCfg?.alerts)
         const state = status?.state ?? 'idle'

@@ -3,25 +3,35 @@ import { resolveAlerts } from '@shared/alerts'
 import { useStore } from '../store'
 import { api } from '../api'
 
-function tabBadge(ws: Workspace, statuses: Record<string, { state: string }>): string {
-  let needs = 0, busy = false
+function tabBadge(
+  ws: Workspace,
+  statuses: Record<string, { state: string }>,
+  aiSessions: Record<string, unknown>
+): string {
+  let needs = 0, busy = false, ai = false, aiAwaiting = false
   for (const paneId of Object.keys(ws.panes)) {
     const cfg = ws.panes[paneId].config
-    if (cfg.kind !== 'terminal' || !resolveAlerts(cfg.alerts).tabBadge) continue
+    if (cfg.kind !== 'terminal') continue
+    if (aiSessions[paneId]) {
+      ai = true
+      if (statuses[paneId]?.state !== 'busy') aiAwaiting = true
+    }
+    if (!resolveAlerts(cfg.alerts).tabBadge) continue
     const st = statuses[paneId]?.state
     if (st === 'needs-input') needs++
     else if (st === 'busy') busy = true
   }
-  if (needs > 0) return ` 🔔${needs}`
-  if (busy) return ' •'
-  return ''
+  const aiPart = ai ? (aiAwaiting ? ' ✨⏳' : ' ✨') : ''
+  if (needs > 0) return `${aiPart} 🔔${needs}`
+  if (busy) return `${aiPart} •`
+  return aiPart
 }
 
 export function WorkspaceTabs() {
   const {
     order, workspaces, activeId, setActive, newWorkspace,
     saveAll, shells, newTerminalShellId, setNewTerminalShell, statuses,
-    addTerminal, addEditor, addExplorer
+    addTerminal, addEditor, addExplorer, aiSessions
   } = useStore()
   return (
     <div data-testid="workspace-tabs"
@@ -30,7 +40,7 @@ export function WorkspaceTabs() {
         <button key={id} data-testid={`tab-${id}`}
           onClick={() => setActive(id)}
           style={{ fontWeight: id === activeId ? 700 : 400 }}>
-          {workspaces[id].name}{tabBadge(workspaces[id], statuses)}
+          {workspaces[id].name}{tabBadge(workspaces[id], statuses, aiSessions)}
         </button>
       ))}
       <button data-testid="new-workspace"
