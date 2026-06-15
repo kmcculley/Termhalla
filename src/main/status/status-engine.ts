@@ -24,7 +24,8 @@ export class StatusEngine {
   constructor(
     private readonly onStatus: (id: string, status: TerminalStatus) => void,
     private readonly onCwd: (id: string, cwd: string) => void,
-    private readonly now: () => number = () => Date.now()
+    private readonly now: () => number = () => Date.now(),
+    private readonly onCommandDone: (id: string) => void = () => {}
   ) {}
 
   register(id: string): void {
@@ -42,11 +43,16 @@ export class StatusEngine {
   feed(id: string, data: string): void {
     const s = this.sessions.get(id); if (!s) return
     const t = this.now()
-    for (const m of s.parser.push(data)) s.tracker.onMarker(m.kind, m.exit, t)
+    let done = false
+    for (const m of s.parser.push(data)) {
+      s.tracker.onMarker(m.kind, m.exit, t)
+      if (m.kind === 'D') done = true
+    }
     s.tracker.onOutput(data, t)
     const cwd = s.cwdParser.push(data)
     if (cwd && cwd !== s.lastCwd) { s.lastCwd = cwd; this.onCwd(id, cwd) }
     this.emit(id)
+    if (done) this.onCommandDone(id)
   }
 
   markExit(id: string, code: number): void {
@@ -55,6 +61,7 @@ export class StatusEngine {
     s.tracker.onMarker('D', code, t)
     s.tracker.onMarker('A', undefined, t)
     this.emit(id)
+    this.onCommandDone(id)
   }
 
   unregister(id: string): void {

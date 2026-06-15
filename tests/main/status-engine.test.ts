@@ -1,4 +1,4 @@
-import { describe, it, expect, afterEach } from 'vitest'
+import { describe, it, expect, afterEach, vi } from 'vitest'
 import { StatusEngine } from '../../src/main/status/status-engine'
 import type { TerminalStatus } from '@shared/types'
 
@@ -43,5 +43,21 @@ describe('StatusEngine', () => {
     engine.feed('t1', `${ESC}]9;9;C:\\a${BEL}`)  // same cwd -> no emit
     engine.feed('t1', `${ESC}]9;9;C:\\b${BEL}`)  // changed -> emit
     expect(cwds).toEqual([['t1', 'C:\\a'], ['t1', 'C:\\b']])
+  })
+})
+
+describe('StatusEngine.onCommandDone', () => {
+  it('fires on an OSC 133 D marker and on markExit', () => {
+    const done = vi.fn()
+    const engine = new StatusEngine(() => {}, () => {}, () => 1000, done)
+    engine.register('a')
+    engine.feed('a', 'some output')
+    expect(done).not.toHaveBeenCalled()
+    engine.feed('a', '\x1b]133;D;0\x07')   // command finished
+    expect(done).toHaveBeenCalledWith('a')
+    done.mockClear()
+    engine.markExit('a', 0)
+    expect(done).toHaveBeenCalledWith('a')
+    engine.dispose()
   })
 })
