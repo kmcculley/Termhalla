@@ -9,6 +9,7 @@ import { TerminalPane } from './TerminalPane'
 import { EditorPane } from './EditorPane'
 import { ExplorerPane } from './ExplorerPane'
 import { TerminalSettings } from './TerminalSettings'
+import { ScheduleDialog } from './ScheduleDialog'
 
 /** Compact token count: 999 -> "999", 1234 -> "1.2k", 156000 -> "156k". */
 function fmtTokens(n: number): string {
@@ -40,6 +41,7 @@ export function WorkspaceView({ ws }: { ws: Workspace }) {
   const [settingsFor, setSettingsFor] = useState<string | null>(null)
   const [cwdMenuFor, setCwdMenuFor] = useState<string | null>(null)
   const [procsMenuFor, setProcsMenuFor] = useState<string | null>(null)
+  const [scheduleFor, setScheduleFor] = useState<string | null>(null)
 
   // Auto-dismiss the process popover 2s after it opens on a terminal with no child
   // processes. If a process appears within that window, procs changes, the effect
@@ -94,7 +96,9 @@ export function WorkspaceView({ ws }: { ws: Workspace }) {
               ...(termCfg ? [
                 <button key="proc" type="button" data-testid={`proc-chip-${paneId}`} title="Running process"
                   style={{ maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
-                  onClick={() => setProcsMenuFor(procsMenuFor === paneId ? null : paneId)}>{chipText}</button>
+                  onClick={() => setProcsMenuFor(procsMenuFor === paneId ? null : paneId)}>{chipText}</button>,
+                <button key="sched" type="button" data-testid={`schedule-chip-${paneId}`} title="Schedule a command"
+                  onClick={() => setScheduleFor(scheduleFor === paneId ? null : paneId)}>⏱</button>
               ] : []),
               <button key="cwd" data-testid={`cwd-${paneId}`} title="Folder actions"
                 onClick={() => setCwdMenuFor(cwdMenuFor === paneId ? null : paneId)}>📁</button>,
@@ -139,6 +143,7 @@ export function WorkspaceView({ ws }: { ws: Workspace }) {
                   ))}
                 </div>
               )}
+              {scheduleFor === paneId && <ScheduleDialog paneId={paneId} onClose={() => setScheduleFor(null)} />}
               {cwdMenuFor === paneId && (
                 <div data-testid="cwd-menu" onClick={e => e.stopPropagation()}
                   style={{ position: 'absolute', right: 4, top: 28, zIndex: 10, background: '#252526',
