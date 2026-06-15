@@ -1,4 +1,4 @@
-import type { Workspace } from '@shared/types'
+import type { Workspace, AiSession } from '@shared/types'
 import { resolveAlerts } from '@shared/alerts'
 import { useStore } from '../store'
 import { api } from '../api'
@@ -6,7 +6,7 @@ import { api } from '../api'
 function tabBadge(
   ws: Workspace,
   statuses: Record<string, { state: string }>,
-  aiSessions: Record<string, unknown>
+  aiSessions: Record<string, AiSession>
 ): string {
   let needs = 0, busy = false, ai = false, aiAwaiting = false
   for (const paneId of Object.keys(ws.panes)) {
@@ -14,7 +14,7 @@ function tabBadge(
     if (cfg.kind !== 'terminal') continue
     if (aiSessions[paneId]) {
       ai = true
-      if (statuses[paneId]?.state !== 'busy') aiAwaiting = true
+      if (statuses[paneId] && statuses[paneId].state !== 'busy') aiAwaiting = true
     }
     if (!resolveAlerts(cfg.alerts).tabBadge) continue
     const st = statuses[paneId]?.state
