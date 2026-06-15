@@ -64,7 +64,7 @@ export default function App() {
   }, [])
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100vh' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', background: 'var(--bg, #1e1e1e)' }}>
       <ThemeProvider />
       <WorkspaceTabs />
       <div style={{ flex: 1, position: 'relative' }} className="mosaic-blueprint-theme">
