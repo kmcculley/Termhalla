@@ -46,4 +46,11 @@ describe('templateFromWorkspace / workspaceFromTemplate', () => {
     expect((tpl.panes.a.config as { cwd: string }).cwd).toBe('C:\\x')
     ;(ws.panes.a.config as { cwd: string }).cwd = 'C:\\x'
   })
+  it('captures and restores the workspace-level theme override', () => {
+    const themed = { ...ws, theme: { windowBg: '#abcdef' } } as unknown as Workspace
+    const tpl = templateFromWorkspace(themed, 't1', 'T')
+    expect(tpl.theme).toEqual({ windowBg: '#abcdef' })
+    const out = workspaceFromTemplate(tpl, 'w2', 'Copy', uuid)
+    expect(out.theme).toEqual({ windowBg: '#abcdef' })
+  })
 })

@@ -42,6 +42,7 @@ export interface WorkspaceTemplate {
   name: string
   layout: MosaicNode | null
   panes: Record<string, PaneNode>
+  theme?: Partial<Theme>
 }
 
 export interface Theme {
