@@ -37,16 +37,24 @@ export interface SshConnection {
   identityFile?: string  // path to a private key; optional
 }
 
+export interface WorkspaceTemplate {
+  id: string
+  name: string
+  layout: MosaicNode | null
+  panes: Record<string, PaneNode>
+}
+
 /** App-global favorites/recents (persisted to quick.json, not per-workspace). */
 export interface QuickStore {
   connections: SshConnection[]
   recentConnections: string[]   // connection ids, most-recently-used
   favoriteDirs: string[]        // user-pinned (★)
   recentDirs: string[]          // MRU, deduped, capped, home excluded
+  templates: WorkspaceTemplate[]
 }
 
 export const EMPTY_QUICK: QuickStore = {
-  connections: [], recentConnections: [], favoriteDirs: [], recentDirs: []
+  connections: [], recentConnections: [], favoriteDirs: [], recentDirs: [], templates: []
 }
 
 /** Per-terminal pane configuration (what gets serialized). */

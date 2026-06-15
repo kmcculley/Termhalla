@@ -21,7 +21,8 @@ describe('QuickStore', () => {
       connections: [{ id: 'c1', name: 'box', host: 'h', user: 'u', port: 2222 }],
       recentConnections: ['c1'],
       favoriteDirs: ['C:\\proj'],
-      recentDirs: ['C:\\proj', 'C:\\work']
+      recentDirs: ['C:\\proj', 'C:\\work'],
+      templates: []
     }
     await store.save(data)
     expect(await store.load()).toEqual(data)
