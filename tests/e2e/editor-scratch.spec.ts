@@ -11,7 +11,7 @@ function killTree(pid: number | undefined): void {
 function launch(userData: string, env?: Record<string, string>): Promise<ElectronApplication> {
   return electron.launch({
     args: ['out/main/index.js', '--no-sandbox', '--disable-gpu', `--user-data-dir=${userData}`],
-    env: { ...process.env, ...(env ?? {}) }
+    env: { ...process.env, ...(env ?? {}) } as { [key: string]: string }
   })
 }
 
