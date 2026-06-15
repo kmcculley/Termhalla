@@ -12,7 +12,7 @@ export function UsageWatcher() {
   useEffect(() => {
     const desired: Record<string, string> = {}
     for (const id of Object.keys(aiSessions)) {
-      if (aiSessions[id]?.tool === 'claude' && cwds[id]) desired[id] = cwds[id]
+      if (aiSessions[id].tool === 'claude' && cwds[id]) desired[id] = cwds[id]
     }
     for (const id of Object.keys(desired)) {
       if (watched.current[id] !== desired[id]) {
@@ -27,6 +27,12 @@ export function UsageWatcher() {
       }
     }
   }, [aiSessions, cwds])
+
+  // Release any active watches if this reconciler ever unmounts.
+  useEffect(() => () => {
+    for (const id of Object.keys(watched.current)) api.usageUnwatch(id)
+    watched.current = {}
+  }, [])
 
   return null
 }
