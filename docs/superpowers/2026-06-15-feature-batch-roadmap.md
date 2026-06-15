@@ -19,9 +19,9 @@ the recommended option at every decision point (no user gating).
 ## Status
 
 - [x] **A — Broadcast input to all terminals** — DONE, merged (`feat/broadcast-input`)
-- [ ] **B — Workspace tab management** (context menu, name-on-create, drag-reorder) — spec / plan / implement / merge
-- [ ] **C — Workspace layout templates** — spec / plan / implement / merge
-- [ ] **D — Scheduled / automated terminal commands** — spec / plan / implement / merge
+- [x] **B — Workspace tab management** (context menu, name-on-create, drag-reorder) — DONE, merged
+- [x] **C — Workspace layout templates** — DONE, merged
+- [ ] **D — Scheduled / automated terminal commands** — spec+plan done; implementing
 
 Each sub-project: `docs/superpowers/specs/2026-06-15-termhalla-<name>-design.md` +
 `docs/superpowers/plans/2026-06-15-termhalla-<name>.md`, implemented on its own
