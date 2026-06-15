@@ -26,6 +26,10 @@ All notable changes to Termhalla are recorded here. The format follows
   preserving all pane state across switches.
 
 ### Added
+- **Customizable UI theming** — a `🎨` editor to customize colors (window, toolbars, menus,
+  borders, text, accent, busy/needs-input alerts, terminal), fonts, and sizes throughout the
+  app, applied live via CSS variables and themed xterm/Monaco. Save named **presets**; the
+  active theme and presets persist in `quick.json`.
 - **Scheduled terminal commands** — schedule command(s) to a terminal after a delay,
   once it becomes idle, or recurring with a jitter window (the `⏱` tile button), sent as
   a command or raw keystrokes.
