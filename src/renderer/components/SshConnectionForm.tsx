@@ -61,7 +61,7 @@ export function SshConnectionForm() {
       <div data-testid="connection-form" role="dialog" aria-modal={true} aria-label="SSH connection"
         onClick={e => e.stopPropagation()} onKeyDown={e => { if (e.key === 'Escape') close() }}
         style={{ width: 420, background: 'var(--elevated, #252526)', color: 'var(--fg, #eee)', border: '1px solid var(--border, #444)',
-          borderRadius: 6, padding: 16, display: 'flex', flexDirection: 'column', gap: 10 }}>
+          borderRadius: 6, padding: 16, display: 'flex', flexDirection: 'column', gap: 10, fontSize: 'var(--font-size, 13px)' }}>
         <h3 style={{ margin: 0, fontSize: 15 }}>{editing ? 'Edit SSH connection' : 'New SSH connection'}</h3>
         {field('Name', <input data-testid="conn-name" autoFocus value={name}
           onChange={e => setName(e.target.value)} style={inputStyle} />)}

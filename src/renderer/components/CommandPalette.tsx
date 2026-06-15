@@ -64,7 +64,7 @@ export function CommandPalette() {
         onClick={e => e.stopPropagation()}
         style={{ width: 560, maxHeight: '60vh', background: 'var(--elevated, #252526)', color: 'var(--fg, #eee)',
           border: '1px solid var(--border, #444)', borderRadius: 6, display: 'flex', flexDirection: 'column',
-          boxShadow: '0 8px 32px rgba(0,0,0,0.5)' }}>
+          boxShadow: '0 8px 32px rgba(0,0,0,0.5)', fontSize: 'var(--font-size, 13px)' }}>
         <input data-testid="palette-input" autoFocus value={query}
           onChange={e => setQuery(e.target.value)} onKeyDown={onKeyDown}
           placeholder="Connect to… or jump to a directory"

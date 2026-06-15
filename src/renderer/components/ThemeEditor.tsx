@@ -36,7 +36,7 @@ export function ThemeEditor({ onClose }: { onClose: () => void }) {
       style={{ position: 'fixed', inset: 0, background: '#0008', display: 'grid', placeItems: 'center', zIndex: 60 }}>
       <div onClick={e => e.stopPropagation()}
         style={{ background: 'var(--elevated, #252526)', color: 'var(--fg, #eee)', border: '1px solid var(--border, #444)',
-          borderRadius: 6, padding: 14, width: 420, maxHeight: '86vh', overflow: 'auto', display: 'flex', flexDirection: 'column', gap: 8 }}>
+          borderRadius: 6, padding: 14, width: 420, maxHeight: '86vh', overflow: 'auto', display: 'flex', flexDirection: 'column', gap: 8, fontSize: 'var(--font-size, 13px)' }}>
         <div style={{ fontWeight: 600 }}>Theme</div>
         {COLORS.map(c => (
           <label key={c.key} style={row}>

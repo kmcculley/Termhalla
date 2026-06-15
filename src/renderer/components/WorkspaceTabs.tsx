@@ -48,7 +48,7 @@ export function WorkspaceTabs() {
 
   return (
     <div data-testid="workspace-tabs"
-      style={{ display: 'flex', gap: 4, padding: 4, background: 'var(--panel, #1e1e1e)', alignItems: 'center' }}>
+      style={{ display: 'flex', gap: 4, padding: 4, background: 'var(--panel, #1e1e1e)', alignItems: 'center', fontSize: 'var(--font-size, 13px)' }}>
       {order.map(id => (
         renamingId === id ? (
           <input key={id} data-testid={`ws-rename-${id}`} autoFocus value={renameText}
@@ -105,7 +105,7 @@ export function WorkspaceTabs() {
             style={{ position: 'fixed', inset: 0, zIndex: 40 }} />
           <div data-testid="ws-menu"
             style={{ position: 'fixed', left: menuFor.x, top: menuFor.y, zIndex: 41, background: 'var(--elevated, #252526)',
-              color: 'var(--fg, #eee)', border: '1px solid var(--border, #444)', borderRadius: 4, padding: 4, display: 'flex', flexDirection: 'column', gap: 2 }}>
+              color: 'var(--fg, #eee)', border: '1px solid var(--border, #444)', borderRadius: 4, padding: 4, display: 'flex', flexDirection: 'column', gap: 2, fontSize: 'var(--font-size, 13px)' }}>
             <button data-testid="ws-menu-rename" onClick={() => startRename(menuFor.id)}>Rename</button>
             <button data-testid="ws-menu-save" onClick={() => { void saveAll(); setMenuFor(null) }}>Save</button>
             <button data-testid="ws-menu-close" onClick={() => {

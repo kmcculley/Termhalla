@@ -42,7 +42,7 @@ export function ScheduleDialog({ paneId, onClose }: { paneId: string; onClose: (
     <div data-testid="schedule-dialog" onClick={onClose}
       style={{ position: 'fixed', inset: 0, background: '#0008', display: 'grid', placeItems: 'center', zIndex: 50 }}>
       <div onClick={e => e.stopPropagation()}
-        style={{ background: 'var(--elevated, #252526)', color: 'var(--fg, #eee)', border: '1px solid var(--border, #444)', borderRadius: 6, padding: 12, width: 480, display: 'flex', flexDirection: 'column', gap: 8 }}>
+        style={{ background: 'var(--elevated, #252526)', color: 'var(--fg, #eee)', border: '1px solid var(--border, #444)', borderRadius: 6, padding: 12, width: 480, display: 'flex', flexDirection: 'column', gap: 8, fontSize: 'var(--font-size, 13px)' }}>
         <div style={{ fontWeight: 600 }}>Schedule command for this terminal</div>
         <textarea data-testid="schedule-text" value={text} onChange={e => setText(e.target.value)} rows={3} autoFocus
           style={{ fontFamily: 'Consolas, monospace', fontSize: 13 }} />
