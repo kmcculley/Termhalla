@@ -51,4 +51,25 @@ describe('parseClaudeUsage', () => {
   it('returns all-zero for an empty/assistant-less transcript', () => {
     expect(parseClaudeUsage('')).toEqual({ input: 0, output: 0, cacheRead: 0, cacheCreation: 0, contextTokens: 0, contextWindow: 200000, contextPct: 0 })
   })
+
+  it('handles CRLF line endings (real Windows transcripts)', () => {
+    const crlf = [
+      JSON.stringify({ type: 'assistant', message: { model: 'claude-opus-4', usage: { input_tokens: 10, output_tokens: 5, cache_read_input_tokens: 0, cache_creation_input_tokens: 0 } } }),
+      JSON.stringify({ type: 'assistant', message: { model: 'claude-opus-4', usage: { input_tokens: 20, output_tokens: 7, cache_read_input_tokens: 100, cache_creation_input_tokens: 0 } } })
+    ].join('\r\n')
+    const m = parseClaudeUsage(crlf)
+    expect(m.input).toBe(30)
+    expect(m.output).toBe(12)
+    expect(m.contextTokens).toBe(120)   // last turn: 20 + 100 + 0
+  })
+
+  it('treats missing/null token fields as 0', () => {
+    const line = JSON.stringify({ type: 'assistant', message: { model: 'claude-opus-4', usage: { input_tokens: null, cache_read_input_tokens: 50 } } })
+    const m = parseClaudeUsage(line)
+    expect(m.input).toBe(0)
+    expect(m.output).toBe(0)
+    expect(m.cacheRead).toBe(50)
+    expect(m.cacheCreation).toBe(0)
+    expect(m.contextTokens).toBe(50)
+  })
 })
