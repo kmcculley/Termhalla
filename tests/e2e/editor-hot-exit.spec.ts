@@ -28,7 +28,7 @@ test('restores an unsaved editor draft after relaunch', async () => {
   await win.keyboard.press('Control+Home')
   await win.keyboard.type('// UNSAVED-DRAFT\n')
   await expect(win.locator('.view-lines')).toContainText('UNSAVED-DRAFT', { timeout: 10_000 })
-  await win.waitForTimeout(900) // let the debounced draftSet flush to disk
+  await win.waitForTimeout(1800) // let the debounced draftSet flush to disk
   let pid = app.process().pid; await app.close().catch(() => {}); killTree(pid)
 
   // Session 2: relaunch -> the unsaved draft is restored and the tab is dirty.
@@ -53,7 +53,7 @@ test('shows the changed-on-disk bar when a drafted file changed while closed', a
   await win.locator('.view-lines').first().click()
   await win.keyboard.press('Control+Home')
   await win.keyboard.type('DRAFTED ')
-  await win.waitForTimeout(900)
+  await win.waitForTimeout(1800)
   let pid = app.process().pid; await app.close().catch(() => {}); killTree(pid)
 
   // Change the file on disk while the app is closed.
