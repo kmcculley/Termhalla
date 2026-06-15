@@ -131,6 +131,26 @@ would zero each host's size and thrash xterm's FitAddon + the PTY grid.
 **Consequences:** All workspaces' terminals spawn at launch (eager, not lazy). See
 [superpowers/workspace-lifecycle-review-followups.md](superpowers/workspace-lifecycle-review-followups.md).
 
+### [2026-06-15] Editor hot-exit via a separate drafts store + lifecycle invariant
+
+**Context:** Unsaved editor buffers were lost on restart — `EditorConfig` persists
+only file paths and `EditorPane` reloads from disk.
+**Decision:** Persist each dirty buffer's `{ content, baseline }` in a separate
+`editor-drafts.json` (main-process `DraftStore`) keyed by `paneId::path`, not inline
+in the workspace JSON. Restore on open via the pure `resolveDraftOnOpen`, reusing the
+existing "Changed on disk" reload bar for the conflict case. Delete a draft on save /
+tab-close / **pane-close** (the editor-create effect's cleanup); session drafts
+**survive app close** because Electron destroys the renderer without running React
+cleanups.
+**Rationale:** Inline storage would bloat the 500 ms-autosaved workspace files with
+buffer content. The pane-close-deletes / app-close-survives split is the crux: the
+same cleanup must prune orphans yet not wipe drafts we want restored — which works
+only because React cleanups don't run on hard window destroy. Keeping workspaces
+mounted (above) means tab switches never trigger that cleanup either.
+**Consequences:** Whole-map writes (fine for few small buffers); no cursor/scroll or
+untitled-buffer persistence; orphan drafts for deleted workspaces are not pruned. See
+[superpowers/specs/2026-06-15-termhalla-editor-hot-exit-design.md](superpowers/specs/2026-06-15-termhalla-editor-hot-exit-design.md).
+
 ### [2026-06-15] Session-identity race pattern for watchers
 
 **Context:** Watchers that `await` between claiming a map slot and using it can leak
