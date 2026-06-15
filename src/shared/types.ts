@@ -175,3 +175,18 @@ export interface UsageMetrics {
 }
 
 export const SCHEMA_VERSION = 3
+
+export type ScheduleTrigger =
+  | { kind: 'delay'; ms: number }
+  | { kind: 'idle' }
+  | { kind: 'recurring'; everyMs: number; jitterMs: number }
+
+export interface ScheduledTask {
+  id: string
+  paneId: string
+  text: string
+  mode: 'paste' | 'keys'
+  enter: boolean
+  trigger: ScheduleTrigger
+  label: string
+}

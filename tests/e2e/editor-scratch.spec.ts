@@ -28,7 +28,7 @@ test('restores an untitled scratch buffer after relaunch', async () => {
   await win.locator('.view-lines').first().click()
   await win.keyboard.type('scratch-note-9911\n')
   await expect(win.locator('.view-lines')).toContainText('scratch-note-9911', { timeout: 10_000 })
-  await win.waitForTimeout(900) // debounce flush
+  await win.waitForTimeout(1800) // debounce (500ms) + main write, with margin under serial-suite load
   let pid = app.process().pid; await app.close().catch(() => {}); killTree(pid)
 
   // Session 2: relaunch (same userData, NOT re-seeded) -> scratch restored, tab dirty.

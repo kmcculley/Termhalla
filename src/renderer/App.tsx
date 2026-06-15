@@ -7,6 +7,7 @@ import { CommandPalette } from './components/CommandPalette'
 import { SshConnectionForm } from './components/SshConnectionForm'
 import { StatusBar } from './components/StatusBar'
 import { UsageWatcher } from './components/UsageWatcher'
+import { Scheduler } from './components/Scheduler'
 import { api } from './api'
 
 export default function App() {
@@ -87,6 +88,7 @@ export default function App() {
       </div>
       <StatusBar />
       <UsageWatcher />
+      <Scheduler />
       <BroadcastDialog />
       <CommandPalette />
       <SshConnectionForm key={connectionFormFor === null ? 'none' : connectionFormFor === 'new' ? 'new' : connectionFormFor.id} />

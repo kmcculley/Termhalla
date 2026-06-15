@@ -19,6 +19,9 @@ All notable changes to Termhalla are recorded here. The format follows
   preserving all pane state across switches.
 
 ### Added
+- **Scheduled terminal commands** — schedule command(s) to a terminal after a delay,
+  once it becomes idle, or recurring with a jitter window (the `⏱` tile button), sent as
+  a command or raw keystrokes.
 - **Workspace layout templates** — save a workspace's pane layout as a named template
   (the `▾` button) and create new workspaces from it; templates persist in `quick.json`.
 - **Workspace tab management** — right-click a workspace tab for Rename / Save / Close,
