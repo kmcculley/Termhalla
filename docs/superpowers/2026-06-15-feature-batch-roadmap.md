@@ -18,7 +18,7 @@ the recommended option at every decision point (no user gating).
 
 ## Status
 
-- [ ] **A — Broadcast input to all terminals** — spec / plan / implement / merge
+- [x] **A — Broadcast input to all terminals** — DONE, merged (`feat/broadcast-input`)
 - [ ] **B — Workspace tab management** (context menu, name-on-create, drag-reorder) — spec / plan / implement / merge
 - [ ] **C — Workspace layout templates** — spec / plan / implement / merge
 - [ ] **D — Scheduled / automated terminal commands** — spec / plan / implement / merge
