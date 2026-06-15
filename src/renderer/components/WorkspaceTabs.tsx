@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import type { Workspace, AiSession, TerminalStatus } from '@shared/types'
 import { resolveAlerts } from '@shared/alerts'
 import { useStore, aiState } from '../store'
@@ -13,10 +14,7 @@ function tabBadge(
     const cfg = ws.panes[paneId].config
     if (cfg.kind !== 'terminal') continue
     const as = aiState({ aiSessions, statuses }, paneId)
-    if (as) {
-      ai = true
-      if (as === 'awaiting') aiAwaiting = true
-    }
+    if (as) { ai = true; if (as === 'awaiting') aiAwaiting = true }
     if (!resolveAlerts(cfg.alerts).tabBadge) continue
     const st = statuses[paneId]?.state
     if (st === 'needs-input') needs++
@@ -33,20 +31,43 @@ export function WorkspaceTabs() {
     order, workspaces, activeId, setActive, newWorkspace,
     saveAll, shells, newTerminalShellId, setNewTerminalShell, statuses,
     addTerminal, addEditor, addExplorer, aiSessions,
-    setBroadcastOpen, broadcastOpen
+    renameWorkspace, closeWorkspace, moveWorkspace, setBroadcastOpen, broadcastOpen
   } = useStore()
+
+  const [renamingId, setRenamingId] = useState<string | null>(null)
+  const [renameText, setRenameText] = useState('')
+  const [menuFor, setMenuFor] = useState<{ id: string; x: number; y: number } | null>(null)
+  const [draggedId, setDraggedId] = useState<string | null>(null)
+
+  const startRename = (id: string) => { setRenameText(workspaces[id]?.name ?? ''); setRenamingId(id); setMenuFor(null) }
+  const commitRename = (id: string) => { renameWorkspace(id, renameText); setRenamingId(null) }
+
   return (
     <div data-testid="workspace-tabs"
       style={{ display: 'flex', gap: 4, padding: 4, background: '#1e1e1e', alignItems: 'center' }}>
       {order.map(id => (
-        <button key={id} data-testid={`tab-${id}`}
-          onClick={() => setActive(id)}
-          style={{ fontWeight: id === activeId ? 700 : 400 }}>
-          {workspaces[id].name}{tabBadge(workspaces[id], statuses, aiSessions)}
-        </button>
+        renamingId === id ? (
+          <input key={id} data-testid={`ws-rename-${id}`} autoFocus value={renameText}
+            onChange={e => setRenameText(e.target.value)}
+            onKeyDown={e => { if (e.key === 'Enter') commitRename(id); else if (e.key === 'Escape') setRenamingId(null) }}
+            onBlur={() => commitRename(id)}
+            style={{ width: 120 }} />
+        ) : (
+          <button key={id} data-testid={`tab-${id}`}
+            draggable
+            onDragStart={() => setDraggedId(id)}
+            onDragOver={e => e.preventDefault()}
+            onDrop={() => { if (draggedId && draggedId !== id) moveWorkspace(draggedId, id); setDraggedId(null) }}
+            onClick={() => setActive(id)}
+            onDoubleClick={() => startRename(id)}
+            onContextMenu={e => { e.preventDefault(); setMenuFor({ id, x: e.clientX, y: e.clientY }) }}
+            style={{ fontWeight: id === activeId ? 700 : 400 }}>
+            {workspaces[id].name}{tabBadge(workspaces[id], statuses, aiSessions)}
+          </button>
+        )
       ))}
       <button data-testid="new-workspace"
-        onClick={() => newWorkspace(`Workspace ${order.length + 1}`)}>+</button>
+        onClick={() => { const id = newWorkspace(`Workspace ${order.length + 1}`); startRename(id) }}>+</button>
       <span style={{ flex: 1 }} />
       <select data-testid="shell-picker" value={newTerminalShellId ?? ''}
         onChange={e => setNewTerminalShell(e.target.value)}>
@@ -69,6 +90,26 @@ export function WorkspaceTabs() {
       <button data-testid="broadcast-button" title="Broadcast to all terminals (Ctrl+Shift+Enter)"
         onClick={() => setBroadcastOpen(!broadcastOpen)}>⇉</button>
       <button data-testid="save-workspace" onClick={() => saveAll()}>Save</button>
+
+      {menuFor && (
+        <>
+          <div onClick={() => setMenuFor(null)} onContextMenu={e => { e.preventDefault(); setMenuFor(null) }}
+            style={{ position: 'fixed', inset: 0, zIndex: 40 }} />
+          <div data-testid="ws-menu"
+            style={{ position: 'fixed', left: menuFor.x, top: menuFor.y, zIndex: 41, background: '#252526',
+              color: '#eee', border: '1px solid #444', borderRadius: 4, padding: 4, display: 'flex', flexDirection: 'column', gap: 2 }}>
+            <button data-testid="ws-menu-rename" onClick={() => startRename(menuFor.id)}>Rename</button>
+            <button data-testid="ws-menu-save" onClick={() => { void saveAll(); setMenuFor(null) }}>Save</button>
+            <button data-testid="ws-menu-close" onClick={() => {
+              const ws = workspaces[menuFor.id]
+              const ok = !ws || Object.keys(ws.panes).length === 0 ||
+                window.confirm(`Close workspace "${ws.name}"? Its terminals will be closed.`)
+              if (ok) closeWorkspace(menuFor.id)
+              setMenuFor(null)
+            }}>Close</button>
+          </div>
+        </>
+      )}
     </div>
   )
 }

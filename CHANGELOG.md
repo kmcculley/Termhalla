@@ -19,6 +19,8 @@ All notable changes to Termhalla are recorded here. The format follows
   preserving all pane state across switches.
 
 ### Added
+- **Workspace tab management** — right-click a workspace tab for Rename / Save / Close,
+  name a new workspace inline the moment you create it, and drag tabs to reorder them.
 - **Broadcast input** — send a command to every terminal in the active workspace at
   once (the `⇉` button or `Ctrl+Shift+Enter`), as raw keystrokes or a bracketed paste.
 - **Editor scratch buffer** — every editor pane now has a persistent **Untitled**
