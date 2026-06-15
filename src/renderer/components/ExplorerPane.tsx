@@ -67,7 +67,7 @@ export function ExplorerPane({ paneId, wsId, config }: { paneId: string; wsId: s
       <div key={e.path}>
         <div data-testid={`entry-${base(e.path)}`}
           onClick={() => e.isDir ? toggle(e.path) : openFileInEditor(wsId, e.path)}
-          style={{ paddingLeft: depth * 14 + 6, cursor: 'pointer', color: '#ddd', userSelect: 'none', whiteSpace: 'nowrap' }}>
+          style={{ paddingLeft: depth * 14 + 6, cursor: 'pointer', color: 'var(--fg, #ddd)', userSelect: 'none', whiteSpace: 'nowrap' }}>
           {e.isDir ? (expanded.has(e.path) ? '▾ ' : '▸ ') : '  '}{e.name}
         </div>
         {e.isDir && expanded.has(e.path) && renderDir(e.path, depth + 1)}
@@ -76,7 +76,7 @@ export function ExplorerPane({ paneId, wsId, config }: { paneId: string; wsId: s
   }
 
   return (
-    <div data-testid={`explorer-${paneId}`} style={{ height: '100%', overflow: 'auto', background: '#252526', fontFamily: 'Consolas, monospace', fontSize: 13 }}>
+    <div data-testid={`explorer-${paneId}`} style={{ height: '100%', overflow: 'auto', background: 'var(--elevated, #252526)', fontFamily: 'Consolas, monospace', fontSize: 13 }}>
       <div style={{ padding: '4px 6px', color: '#999' }}>{base(config.root)}</div>
       {renderDir(config.root, 0)}
     </div>

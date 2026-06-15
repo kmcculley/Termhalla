@@ -42,7 +42,7 @@ export function ScheduleDialog({ paneId, onClose }: { paneId: string; onClose: (
     <div data-testid="schedule-dialog" onClick={onClose}
       style={{ position: 'fixed', inset: 0, background: '#0008', display: 'grid', placeItems: 'center', zIndex: 50 }}>
       <div onClick={e => e.stopPropagation()}
-        style={{ background: '#252526', color: '#eee', border: '1px solid #444', borderRadius: 6, padding: 12, width: 480, display: 'flex', flexDirection: 'column', gap: 8 }}>
+        style={{ background: 'var(--elevated, #252526)', color: 'var(--fg, #eee)', border: '1px solid var(--border, #444)', borderRadius: 6, padding: 12, width: 480, display: 'flex', flexDirection: 'column', gap: 8, fontSize: 'var(--font-size, 13px)' }}>
         <div style={{ fontWeight: 600 }}>Schedule command for this terminal</div>
         <textarea data-testid="schedule-text" value={text} onChange={e => setText(e.target.value)} rows={3} autoFocus
           style={{ fontFamily: 'Consolas, monospace', fontSize: 13 }} />
@@ -74,7 +74,7 @@ export function ScheduleDialog({ paneId, onClose }: { paneId: string; onClose: (
           <button data-testid="schedule-add" disabled={!text.trim()} onClick={add}>Schedule</button>
         </div>
         {tasks.length > 0 && (
-          <div style={{ borderTop: '1px solid #444', paddingTop: 6, display: 'flex', flexDirection: 'column', gap: 2 }}>
+          <div style={{ borderTop: '1px solid var(--border, #444)', paddingTop: 6, display: 'flex', flexDirection: 'column', gap: 2 }}>
             {tasks.map(t => (
               <div key={t.id} data-testid={`schedule-task-${t.id}`} style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
                 <span style={{ flex: 1, fontFamily: 'Consolas, monospace', fontSize: 12, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>

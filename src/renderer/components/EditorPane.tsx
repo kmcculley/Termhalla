@@ -232,7 +232,7 @@ export function EditorPane({ paneId, wsId, config }: { paneId: string; wsId: str
 
   return (
     <div data-testid={`editor-${paneId}`} style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-      <div data-testid="editor-tabs" style={{ display: 'flex', background: '#1e1e1e', overflowX: 'auto' }}>
+      <div data-testid="editor-tabs" style={{ display: 'flex', background: 'var(--panel, #1e1e1e)', overflowX: 'auto' }}>
         {(() => {
           const ut = tabs.current.get(UNTITLED)
           const content = ut?.model.getValue() ?? ''
@@ -240,7 +240,7 @@ export function EditorPane({ paneId, wsId, config }: { paneId: string; wsId: str
           return (
             <div data-testid="tab-untitled" onClick={() => setActiveModel(UNTITLED)}
               style={{ display: 'flex', gap: 4, alignItems: 'center', padding: '2px 8px', cursor: 'pointer',
-                background: active === UNTITLED ? '#333' : 'transparent', color: '#ddd', whiteSpace: 'nowrap' }}>
+                background: active === UNTITLED ? 'var(--accent, #1e88e5)' : 'transparent', color: 'var(--fg, #ddd)', whiteSpace: 'nowrap' }}>
               <span>Untitled{content !== '' ? ' •' : ''}</span>
               {active === UNTITLED && content !== '' && (
                 <button data-testid="untitled-saveas" title="Save As…"
@@ -262,7 +262,7 @@ export function EditorPane({ paneId, wsId, config }: { paneId: string; wsId: str
           return (
             <div key={p} data-testid={`tab-${base(p)}`} onClick={() => setActiveModel(p)}
               style={{ display: 'flex', gap: 4, alignItems: 'center', padding: '2px 8px', cursor: 'pointer',
-                background: p === active ? '#333' : 'transparent', color: '#ddd', whiteSpace: 'nowrap' }}>
+                background: p === active ? 'var(--accent, #1e88e5)' : 'transparent', color: 'var(--fg, #ddd)', whiteSpace: 'nowrap' }}>
               <span style={{ textDecoration: t?.missing ? 'line-through' : 'none' }}>
                 {base(p)}{isDirty(t) ? ' •' : ''}{t?.missing ? ' (deleted)' : ''}
               </span>

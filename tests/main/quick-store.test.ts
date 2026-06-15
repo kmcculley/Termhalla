@@ -22,7 +22,8 @@ describe('QuickStore', () => {
       recentConnections: ['c1'],
       favoriteDirs: ['C:\\proj'],
       recentDirs: ['C:\\proj', 'C:\\work'],
-      templates: []
+      templates: [],
+      themePresets: []
     }
     await store.save(data)
     expect(await store.load()).toEqual(data)

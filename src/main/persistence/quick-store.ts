@@ -11,7 +11,10 @@ function normalizeQuick(value: unknown): QuickData {
     recentConnections: Array.isArray(v.recentConnections) ? v.recentConnections : [],
     favoriteDirs: Array.isArray(v.favoriteDirs) ? v.favoriteDirs : [],
     recentDirs: Array.isArray(v.recentDirs) ? v.recentDirs : [],
-    templates: Array.isArray(v.templates) ? v.templates : []
+    templates: Array.isArray(v.templates) ? v.templates : [],
+    theme: (value as { theme?: unknown })?.theme && typeof (value as { theme?: unknown }).theme === 'object'
+      ? (value as { theme?: object }).theme as Partial<import('@shared/types').Theme> : undefined,
+    themePresets: Array.isArray(v.themePresets) ? v.themePresets : [],
   }
 }
 

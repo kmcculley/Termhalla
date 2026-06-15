@@ -1,14 +1,12 @@
 html, body, #root { margin: 0; height: 100%; }
+/* Theme the window background, text color, and UI font on body. NOTE: `font-size` is applied
+   per-chrome-surface (workspace tab bar, status bar, dialogs) and deliberately NOT set on body —
+   a global font-size corrupts Monaco's char-width measurement and breaks model-switch rendering. */
+body { background: var(--bg, #1e1e1e); color: var(--fg, #eee); font-family: var(--font, 'Segoe UI', sans-serif); }
 .mosaic, .mosaic-root { height: 100%; }
 .mosaic-blueprint-theme { height: 100%; }
 .term-tile { box-sizing: border-box; }
 
-/* Status fills the whole pane title bar with the status color.
-   The title text turns white (with a shadow) and the toolbar buttons get a
-   solid light backing so both stay readable on any color. */
-
-/* buttons: solid light backing + dark glyph, readable on every tint.
-   The .mosaic-blueprint-theme prefix + !important out-specify the theme. */
 .mosaic-blueprint-theme .mosaic-window.term-status .mosaic-window-toolbar button {
   background: rgba(255, 255, 255, 0.92) !important;
   color: #182026 !important;
@@ -18,19 +16,13 @@ html, body, #root { margin: 0; height: 100%; }
 .mosaic-blueprint-theme .mosaic-window.term-needs-input .mosaic-window-title {
   color: #fff !important; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
 }
-
-/* BUSY — solid blue, gentle pulse between two readable blues */
 .mosaic-window.term-busy .mosaic-window-toolbar {
   animation: term-bar-busy 1.4s ease-in-out infinite;
+  background-color: var(--status-busy, #1e88e5);
 }
-@keyframes term-bar-busy { 0%, 100% { background-color: #1e88e5 } 50% { background-color: #15598a } }
-
-/* NEEDS-INPUT — amber, flashing between bright amber and a deep orange (never pale) */
+@keyframes term-bar-busy { 0%, 100% { opacity: 1 } 50% { opacity: 0.6 } }
 .mosaic-window.term-needs-input .mosaic-window-toolbar {
   animation: term-bar-needs 0.8s steps(1) infinite;
+  background-color: var(--status-needs, #ff8f00);
 }
-@keyframes term-bar-needs { 0%, 50% { background-color: #ff8f00 } 51%, 100% { background-color: #b34700 } }
-
-/* IDLE — neutral, no color (consistent across all shell types; no exit-code tint,
-   since exit codes are only available for integrated shells). The busy/needs-input
-   rules above simply stop matching, so the title bar returns to its default look. */
+@keyframes term-bar-needs { 0%, 50% { filter: none } 51%, 100% { filter: brightness(0.7) } }

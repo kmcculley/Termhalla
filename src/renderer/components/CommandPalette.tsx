@@ -62,13 +62,13 @@ export function CommandPalette() {
         display: 'flex', justifyContent: 'center', alignItems: 'flex-start', paddingTop: '12vh' }}>
       <div data-testid="command-palette" role="dialog" aria-modal={true} aria-label="Command palette"
         onClick={e => e.stopPropagation()}
-        style={{ width: 560, maxHeight: '60vh', background: '#252526', color: '#eee',
-          border: '1px solid #444', borderRadius: 6, display: 'flex', flexDirection: 'column',
-          boxShadow: '0 8px 32px rgba(0,0,0,0.5)' }}>
+        style={{ width: 560, maxHeight: '60vh', background: 'var(--elevated, #252526)', color: 'var(--fg, #eee)',
+          border: '1px solid var(--border, #444)', borderRadius: 6, display: 'flex', flexDirection: 'column',
+          boxShadow: '0 8px 32px rgba(0,0,0,0.5)', fontSize: 'var(--font-size, 13px)' }}>
         <input data-testid="palette-input" autoFocus value={query}
           onChange={e => setQuery(e.target.value)} onKeyDown={onKeyDown}
           placeholder="Connect to… or jump to a directory"
-          style={{ background: '#1e1e1e', color: '#eee', border: 'none', borderBottom: '1px solid #444',
+          style={{ background: 'var(--panel, #1e1e1e)', color: 'var(--fg, #eee)', border: 'none', borderBottom: '1px solid var(--border, #444)',
             padding: '10px 12px', fontSize: 14, outline: 'none' }} />
         <div style={{ overflowY: 'auto' }}>
           {items.length === 0 && <div style={{ padding: 12, opacity: 0.6 }}>No matches</div>}

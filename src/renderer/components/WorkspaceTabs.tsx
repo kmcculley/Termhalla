@@ -4,6 +4,7 @@ import { resolveAlerts } from '@shared/alerts'
 import { useStore, aiState } from '../store'
 import { api } from '../api'
 import { TemplatesMenu } from './TemplatesMenu'
+import { ThemeEditor } from './ThemeEditor'
 
 function tabBadge(
   ws: Workspace,
@@ -40,13 +41,14 @@ export function WorkspaceTabs() {
   const [menuFor, setMenuFor] = useState<{ id: string; x: number; y: number } | null>(null)
   const [draggedId, setDraggedId] = useState<string | null>(null)
   const [templatesOpen, setTemplatesOpen] = useState(false)
+  const [themeOpen, setThemeOpen] = useState(false)
 
   const startRename = (id: string) => { setRenameText(workspaces[id]?.name ?? ''); setRenamingId(id); setMenuFor(null) }
   const commitRename = (id: string) => { renameWorkspace(id, renameText); setRenamingId(null) }
 
   return (
     <div data-testid="workspace-tabs"
-      style={{ display: 'flex', gap: 4, padding: 4, background: '#1e1e1e', alignItems: 'center' }}>
+      style={{ display: 'flex', gap: 4, padding: 4, background: 'var(--panel, #1e1e1e)', alignItems: 'center', fontSize: 'var(--font-size, 13px)' }}>
       {order.map(id => (
         renamingId === id ? (
           <input key={id} data-testid={`ws-rename-${id}`} autoFocus value={renameText}
@@ -94,6 +96,7 @@ export function WorkspaceTabs() {
       </select>
       <button data-testid="broadcast-button" title="Broadcast to all terminals (Ctrl+Shift+Enter)"
         onClick={() => setBroadcastOpen(!broadcastOpen)}>⇉</button>
+      <button data-testid="theme-button" title="Theme" onClick={() => setThemeOpen(true)}>🎨</button>
       <button data-testid="save-workspace" onClick={() => saveAll()}>Save</button>
 
       {menuFor && (
@@ -101,8 +104,8 @@ export function WorkspaceTabs() {
           <div onClick={() => setMenuFor(null)} onContextMenu={e => { e.preventDefault(); setMenuFor(null) }}
             style={{ position: 'fixed', inset: 0, zIndex: 40 }} />
           <div data-testid="ws-menu"
-            style={{ position: 'fixed', left: menuFor.x, top: menuFor.y, zIndex: 41, background: '#252526',
-              color: '#eee', border: '1px solid #444', borderRadius: 4, padding: 4, display: 'flex', flexDirection: 'column', gap: 2 }}>
+            style={{ position: 'fixed', left: menuFor.x, top: menuFor.y, zIndex: 41, background: 'var(--elevated, #252526)',
+              color: 'var(--fg, #eee)', border: '1px solid var(--border, #444)', borderRadius: 4, padding: 4, display: 'flex', flexDirection: 'column', gap: 2, fontSize: 'var(--font-size, 13px)' }}>
             <button data-testid="ws-menu-rename" onClick={() => startRename(menuFor.id)}>Rename</button>
             <button data-testid="ws-menu-save" onClick={() => { void saveAll(); setMenuFor(null) }}>Save</button>
             <button data-testid="ws-menu-close" onClick={() => {
@@ -116,6 +119,7 @@ export function WorkspaceTabs() {
         </>
       )}
       {templatesOpen && <TemplatesMenu onPicked={startRename} onClose={() => setTemplatesOpen(false)} />}
+      {themeOpen && <ThemeEditor onClose={() => setThemeOpen(false)} />}
     </div>
   )
 }
