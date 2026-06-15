@@ -130,6 +130,12 @@ export interface ProcInfo {
   tree: ProcNode[]     // DFS pre-order; render indented by `depth`
 }
 
+/** A detected AI coding-agent session running in a terminal. */
+export interface AiSession {
+  tool: string    // 'claude' | 'codex'
+  label: string   // 'Claude' | 'Codex'
+}
+
 export type CloudState = 'checking' | 'logged-in' | 'logged-out' | 'not-installed' | 'error'
 
 /** Global login status for one cloud provider (AWS/Azure). Runtime-only, never persisted. */
