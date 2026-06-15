@@ -4,7 +4,8 @@ import type { Workspace, ShellInfo, MosaicNode, MosaicDirection, TerminalConfig,
 import { EMPTY_QUICK } from '@shared/types'
 import { buildSshArgs, nextRecentDirs, pushRecent, RECENT_CONN_CAP } from '@shared/quick'
 import {
-  createWorkspace, addFirstPane, splitPane, removePane, reorderIds
+  createWorkspace, addFirstPane, splitPane, removePane, reorderIds,
+  templateFromWorkspace, workspaceFromTemplate
 } from '@shared/workspace-model'
 import { resolveAlerts, effectiveStatus } from '@shared/alerts'
 import { encodeBroadcast, terminalPaneIds } from '@shared/broadcast'
@@ -66,6 +67,9 @@ interface State {
   unpinDir: (dir: string) => void
   launchConnection: (connId: string) => void
   launchDir: (dir: string) => void
+  saveTemplate: (name: string) => void
+  deleteTemplate: (id: string) => void
+  newWorkspaceFromTemplate: (templateId: string, name: string) => string
 }
 
 let autosaveTimer: ReturnType<typeof setTimeout> | null = null
@@ -170,6 +174,29 @@ export const useStore = create<State>((set, get) => {
         order: [...s.order, ws.id],
         activeId: ws.id
       }))
+      scheduleAutosave()
+      return ws.id
+    },
+
+    saveTemplate: (name) => {
+      const n = name.trim(); if (!n) return
+      const s = get(); const ws = s.activeId ? s.workspaces[s.activeId] : null
+      if (!ws) return
+      const tpl = templateFromWorkspace(ws, uuid(), n)
+      set(st => ({ quick: { ...st.quick, templates: [...st.quick.templates, tpl] } }))
+      scheduleQuickSave()
+    },
+
+    deleteTemplate: (id) => {
+      set(st => ({ quick: { ...st.quick, templates: st.quick.templates.filter(t => t.id !== id) } }))
+      scheduleQuickSave()
+    },
+
+    newWorkspaceFromTemplate: (templateId, name) => {
+      const tpl = get().quick.templates.find(t => t.id === templateId)
+      if (!tpl) return get().newWorkspace(name)
+      const ws = workspaceFromTemplate(tpl, uuid(), name, uuid)
+      set(s => ({ workspaces: { ...s.workspaces, [ws.id]: ws }, order: [...s.order, ws.id], activeId: ws.id }))
       scheduleAutosave()
       return ws.id
     },
