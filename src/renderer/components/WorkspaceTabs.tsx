@@ -4,6 +4,7 @@ import { resolveAlerts } from '@shared/alerts'
 import { useStore, aiState } from '../store'
 import { api } from '../api'
 import { TemplatesMenu } from './TemplatesMenu'
+import { ThemeEditor } from './ThemeEditor'
 
 function tabBadge(
   ws: Workspace,
@@ -40,6 +41,7 @@ export function WorkspaceTabs() {
   const [menuFor, setMenuFor] = useState<{ id: string; x: number; y: number } | null>(null)
   const [draggedId, setDraggedId] = useState<string | null>(null)
   const [templatesOpen, setTemplatesOpen] = useState(false)
+  const [themeOpen, setThemeOpen] = useState(false)
 
   const startRename = (id: string) => { setRenameText(workspaces[id]?.name ?? ''); setRenamingId(id); setMenuFor(null) }
   const commitRename = (id: string) => { renameWorkspace(id, renameText); setRenamingId(null) }
@@ -94,6 +96,7 @@ export function WorkspaceTabs() {
       </select>
       <button data-testid="broadcast-button" title="Broadcast to all terminals (Ctrl+Shift+Enter)"
         onClick={() => setBroadcastOpen(!broadcastOpen)}>⇉</button>
+      <button data-testid="theme-button" title="Theme" onClick={() => setThemeOpen(true)}>🎨</button>
       <button data-testid="save-workspace" onClick={() => saveAll()}>Save</button>
 
       {menuFor && (
@@ -116,6 +119,7 @@ export function WorkspaceTabs() {
         </>
       )}
       {templatesOpen && <TemplatesMenu onPicked={startRename} onClose={() => setTemplatesOpen(false)} />}
+      {themeOpen && <ThemeEditor onClose={() => setThemeOpen(false)} />}
     </div>
   )
 }
