@@ -149,4 +149,15 @@ export interface CloudStatus {
   login?: TerminalLaunch              // command for the "Log in" button (reuses the launch shape)
 }
 
+/** Live usage metrics for a Claude session, parsed from its transcript. */
+export interface UsageMetrics {
+  input: number          // cumulative non-cached input tokens
+  output: number         // cumulative output tokens
+  cacheRead: number      // cumulative cache-read tokens
+  cacheCreation: number  // cumulative cache-creation tokens
+  contextTokens: number  // current context size (last assistant turn's input-side total)
+  contextWindow: number  // the model's context window (e.g. 200000)
+  contextPct: number     // round(contextTokens / contextWindow * 100)
+}
+
 export const SCHEMA_VERSION = 3
