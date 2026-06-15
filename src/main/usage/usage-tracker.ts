@@ -20,13 +20,14 @@ export class UsageTracker {
   ) {}
 
   async watch(id: string, cwd: string): Promise<void> {
-    this.stop(id) // replace any existing watch for this terminal (no clear emit)
-    const file = await this.resolveTranscript(cwd)
-    if (!file) { this.onMetrics(id, null); return }
+    this.stop(id) // remove any prior watch for this id (stop is silent — no emit)
     const sess: Session = { watcher: null, timer: null }
-    this.sessions.set(id, sess)
-    await this.reparse(id, file) // immediate
-    if (!this.sessions.has(id)) return // unwatched during the await
+    this.sessions.set(id, sess) // claim the slot BEFORE awaiting so a concurrent watch/unwatch can supersede us
+    const file = await this.resolveTranscript(cwd)
+    if (this.sessions.get(id) !== sess) return // superseded during resolve
+    if (!file) { this.sessions.delete(id); this.onMetrics(id, null); return }
+    await this.reparse(id, file, sess) // immediate parse
+    if (this.sessions.get(id) !== sess) return // superseded during reparse
     const w = chokidar.watch(file, {
       ignoreInitial: true,
       awaitWriteFinish: { stabilityThreshold: 200, pollInterval: 50 }
@@ -55,14 +56,14 @@ export class UsageTracker {
     const s = this.sessions.get(id)
     if (!s) return
     if (s.timer) clearTimeout(s.timer)
-    s.timer = setTimeout(() => { void this.reparse(id, file) }, this.debounceMs)
+    s.timer = setTimeout(() => { void this.reparse(id, file, s) }, this.debounceMs)
   }
 
-  private async reparse(id: string, file: string): Promise<void> {
-    if (!this.sessions.has(id)) return
+  private async reparse(id: string, file: string, sess: Session): Promise<void> {
+    if (this.sessions.get(id) !== sess) return
     let content: string
     try { content = await readFile(file, 'utf8') } catch { return }
-    if (!this.sessions.has(id)) return
+    if (this.sessions.get(id) !== sess) return
     this.onMetrics(id, parseClaudeUsage(content))
   }
 
