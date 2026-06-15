@@ -1,0 +1,72 @@
+# Terminal Workspaces
+
+> Multiple real Windows shells tiled in a saveable, named-tab layout that survives restart.
+
+**Status:** Shipped · **Spec:** [termhalla-design](../superpowers/specs/2026-06-13-termhalla-design.md) · **Plan:** [phase1-terminal-workspace](../superpowers/plans/2026-06-13-termhalla-phase1-terminal-workspace.md)
+
+## What it does
+
+A workspace is a named tab holding a tiled arrangement of panes. In Phase 1 every pane is a live Windows terminal (PowerShell 7, Windows PowerShell, Git Bash, WSL, or cmd — whichever are installed). Panes split horizontally or vertically via `react-mosaic`, resize by dragging the gutters, and rearrange by drag-and-drop. A picker in the tab strip selects which discovered shell new terminals use.
+
+Workspaces are saved to disk and restored on the next launch: layout tree, per-pane shell, and cwd come back, the window returns to its last size/position/maximized state, and fresh PTYs are spawned (no process resurrection, per spec). Saving is automatic and debounced — an explicit Save button exists but is rarely needed.
+
+## How it works
+
+**Main process** owns all privileged state. `src/main/pty/shells.ts:detectShells` probes a candidate list (`DEFAULT_SHELL_CANDIDATES`) with an injectable `exists` function and always guarantees a `cmd` fallback. `src/main/pty/pty-manager.ts:PtyManager` spawns/tracks node-pty (ConPTY) sessions keyed by pane id — `spawn`/`write`/`resize`/`kill`/`killAll`. `resolveSpawnSpec` (`src/main/pty/spawn-spec.ts`) decides the actual file/args/env (a `launch` override such as SSH runs verbatim; otherwise the shell's integrated args/env), and `sanitizeShellEnv` (`src/main/pty/env.ts`) strips Electron-injected vars (e.g. `ELECTRON_RUN_AS_NODE`) before they leak into the child. Persistence lives in `src/main/persistence/store.ts:WorkspaceStore` (one `workspaces/<id>.json` per workspace plus `app-state.json`) and `src/main/window-state.ts` (`clampWindowState` + load/save `window-state.json`); file paths resolve through `src/main/persistence/paths.ts`.
+
+**IPC channels** (verified against `src/shared/ipc-contract.ts`, the `CH` map): `shells:list`; `ws:listIds`, `ws:load`, `ws:save`; `app:loadState`, `app:saveState`; `pty:spawn`, `pty:write`, `pty:resize`, `pty:kill` (renderer→main), and `pty:data`, `pty:exit` (main→renderer events). The typed `TermhallaApi` is exposed via `src/preload/index.ts` and consumed in the renderer through `src/renderer/api.ts`.
+
+**Shared model** is pure and unit-tested. `src/shared/types.ts` defines the `PaneConfig` discriminated union (`TerminalConfig | EditorConfig | ExplorerConfig`, keyed on `kind`), the `MosaicNode` layout tree (string leaves = pane ids; `MosaicParent` = `{ direction, first, second, splitPercentage? }`), and `Workspace`/`AppState`/`WindowState`. `src/shared/workspace-model.ts` provides `createWorkspace`, `addFirstPane`, `splitPane`, `removePane` (collapses the orphaned parent), and `serializeWorkspace`/`deserializeWorkspace` which stamp/validate `schemaVersion` and `migrate` (rejects future versions).
+
+**Renderer** holds the mirror state in `src/renderer/store.ts` (zustand). `init` loads shells + app-state, hydrates the open workspaces, and falls back to creating "Workspace 1". Mutations (`newWorkspace`, `setActive`, `setLayout`, `addTerminal`, `closePane`, `setCwd`) call `scheduleAutosave` (500 ms debounce → `saveAll`, which writes every workspace + app-state); `applyCwds` folds live cwds into each terminal config before persisting so restore reopens in the right directory. `src/renderer/App.tsx` renders the tab strip + the mosaic host and wires the lifecycle (below). `src/renderer/components/WorkspaceTabs.tsx` is the tab strip + shell picker + add-pane menu. `src/renderer/components/WorkspaceView.tsx` renders the `Mosaic`, mapping each leaf to a `MosaicWindow` with a `TerminalPane`. `src/renderer/components/TerminalPane.tsx` wires xterm.js to a PTY: it `ptySpawn`s on mount, streams `onPtyData`→`term.write` and keystrokes→`ptyWrite`, and resizes via a `ResizeObserver`+`FitAddon` (only firing `ptyResize` when the grid actually changes, to avoid a ConPTY repaint).
+
+## Key files
+
+| File | Responsibility |
+|---|---|
+| `src/shared/types.ts` | `Workspace`, `PaneConfig` union, `MosaicNode`, `AppState`, `WindowState`, `ShellInfo` |
+| `src/shared/workspace-model.ts` | Pure layout ops + serialize/deserialize/migrate |
+| `src/shared/ipc-contract.ts` | `CH` channel names + `TermhallaApi` types |
+| `src/main/pty/shells.ts` | Windows shell discovery with guaranteed cmd fallback |
+| `src/main/pty/pty-manager.ts` | node-pty/ConPTY session spawn/write/resize/kill |
+| `src/main/pty/spawn-spec.ts` | Resolve file/args/env (launch override vs. integrated shell) |
+| `src/main/pty/env.ts` | Strip Electron-injected env vars from child shells |
+| `src/main/persistence/store.ts` | Per-workspace JSON + app-state read/write |
+| `src/main/persistence/paths.ts` | userData file path resolution |
+| `src/main/window-state.ts` | Window-bounds clamping + persistence |
+| `src/renderer/store.ts` | zustand mirror store + debounced autosave |
+| `src/renderer/App.tsx` | Tab strip + mosaic host + keep-mounted lifecycle |
+| `src/renderer/components/WorkspaceView.tsx` | react-mosaic rendering of the layout tree |
+| `src/renderer/components/WorkspaceTabs.tsx` | Workspace tabs, shell picker, add-pane menu |
+| `src/renderer/components/TerminalPane.tsx` | xterm.js wired to a PTY over IPC |
+
+## Behaviors & edge cases
+
+- **Keep-workspaces-mounted lifecycle.** `App.tsx` renders *every* workspace host at once; only the active one is shown via `visibility: hidden` — deliberately **not** `display: none`, which would zero each host's size and thrash xterm's `FitAddon` / the PTY grid (the ConPTY full-screen-repaint hazard). Inactive hosts stay full-size but non-interactive (`pointer-events: none`, `aria-hidden`). Switching tabs never unmounts a `TerminalPane`, so scrollback survives and live TUIs (e.g. a Claude session) don't freeze.
+- **Eager terminal spawn.** Because nothing unmounts, all workspaces' terminals spawn at launch rather than lazily on first view. Cost is paid up front for users with many saved workspaces × terminals; deferred as acceptable (see lifecycle follow-ups).
+- **Debounced auto-save.** Layout/active/cwd mutations schedule `saveAll` on a 500 ms timer; `beforeunload` flushes synchronously so a quit mid-debounce still persists. `updatePaneConfig`/`addEditor`/`addExplorer` save immediately.
+- **Window-state clamping.** `clampWindowState` recenters a window that lands off all displays onto the first display; an on-screen window is returned unchanged and the `maximized` flag is preserved. Missing state falls back to `DEFAULT_WINDOW_STATE` (1200×800).
+- **Failed-spawn guard.** A bad launch (e.g. `ssh` not on PATH) is caught in `PtyManager.spawn`; it surfaces a `[failed to launch …]` line to the pane, unwinds status-engine registration, and emits `onExit` instead of crashing main.
+- **Fresh PTYs on restore.** Reload rebuilds layout + config and spawns new processes; there is no live-process resurrection.
+- **cwd round-trip.** Live cwd updates are mirrored into each terminal's `config.cwd` via `applyCwds` before persisting, so a restored workspace reopens in the last directory.
+- **cmd fallback.** If no candidate shell resolves, `detectShells` still returns cmd so the app is never shell-less.
+
+## Testing
+
+Vitest (in `tests/`):
+- `tests/shared/workspace-model.test.ts` — create/add/split/remove layout ops, serialize↔deserialize round-trip, schema-version stamping, malformed-JSON rejection.
+- `tests/main/shells.test.ts` — `detectShells` filters to existing executables and guarantees the cmd fallback.
+- `tests/main/store.test.ts` — `WorkspaceStore` save/load/list workspaces, app-state round-trip, missing-workspace returns null.
+- `tests/main/window-state.test.ts` — `clampWindowState` defaults, on-screen passthrough, off-screen recenter, maximized preservation.
+- `tests/main/env.test.ts` — `sanitizeShellEnv` strips Electron vars; `tests/main/spawn-spec.test.ts` — `resolveSpawnSpec` launch-override vs. integrated paths; `tests/shared/pane-union.test.ts` — `PaneConfig` discriminated-union handling.
+
+Playwright-for-Electron (in `tests/e2e/`):
+- `tests/e2e/smoke.spec.ts` — launch, open a terminal, type and see echoed output, split into a second tile.
+- `tests/e2e/persistence.spec.ts` — create two tiled terminals, save, relaunch with the same `--user-data-dir`, assert the 2-terminal layout restores with no empty state.
+- `tests/e2e/workspace-switch.spec.ts` — leave a marker in a terminal, create a second workspace (switching away), switch back, assert scrollback survives (regression test for the keep-mounted decision).
+
+## Related
+
+- [Architecture](../architecture.md) · [Decisions](../decisions.md)
+- Lifecycle follow-ups: [workspace-lifecycle-review-followups](../superpowers/workspace-lifecycle-review-followups.md)
+- Sibling features: [status-engine](status-engine.md) · [editor-explorer](editor-explorer.md) · [cwd-awareness](cwd-awareness.md) · [ssh-favorites](ssh-favorites.md)
