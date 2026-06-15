@@ -33,6 +33,10 @@ export default function App() {
     const off = api.onCloudStatus((statuses) => useStore.getState().setCloud(statuses))
     return off
   }, [])
+  useEffect(() => {
+    const off = api.onAiSession((id, ai) => useStore.getState().setAiSession(id, ai))
+    return off
+  }, [])
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {

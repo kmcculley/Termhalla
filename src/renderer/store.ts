@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import { v4 as uuid } from 'uuid'
-import type { Workspace, ShellInfo, MosaicNode, MosaicDirection, TerminalConfig, TerminalStatus, PaneConfig, EditorConfig, ExplorerConfig, QuickStore, SshConnection, ProcInfo, CloudStatus, TerminalLaunch } from '@shared/types'
+import type { Workspace, ShellInfo, MosaicNode, MosaicDirection, TerminalConfig, TerminalStatus, PaneConfig, EditorConfig, ExplorerConfig, QuickStore, SshConnection, ProcInfo, CloudStatus, TerminalLaunch, AiSession } from '@shared/types'
 import { EMPTY_QUICK } from '@shared/types'
 import { buildSshArgs, nextRecentDirs, pushRecent, RECENT_CONN_CAP } from '@shared/quick'
 import {
@@ -31,6 +31,8 @@ interface State {
   setCwd: (id: string, cwd: string) => void
   procs: Record<string, ProcInfo>
   setProcs: (id: string, info: ProcInfo | null) => void
+  aiSessions: Record<string, AiSession>
+  setAiSession: (id: string, ai: AiSession | null) => void
   cloud: CloudStatus[]
   setCloud: (statuses: CloudStatus[]) => void
   refreshCloud: () => void
@@ -91,6 +93,15 @@ export function paneCwd(
   return ''
 }
 
+/** Display state for an AI session pane: 'working' when busy, 'awaiting' when quiet, null if not an AI session. */
+export function aiState(
+  s: { aiSessions: Record<string, AiSession>; statuses: Record<string, TerminalStatus> },
+  paneId: string
+): 'working' | 'awaiting' | null {
+  if (!s.aiSessions[paneId]) return null
+  return s.statuses[paneId]?.state === 'busy' ? 'working' : 'awaiting'
+}
+
 export const useStore = create<State>((set, get) => {
   const scheduleAutosave = () => {
     if (autosaveTimer) clearTimeout(autosaveTimer)
@@ -113,6 +124,7 @@ export const useStore = create<State>((set, get) => {
     statuses: {},
     cwds: {},
     procs: {},
+    aiSessions: {},
     cloud: [],
     quick: EMPTY_QUICK,
     home: '',
@@ -177,7 +189,8 @@ export const useStore = create<State>((set, get) => {
         const statuses = { ...s.statuses }; delete statuses[paneId]
         const cwds = { ...s.cwds }; delete cwds[paneId]
         const procs = { ...s.procs }; delete procs[paneId]
-        return { workspaces: { ...s.workspaces, [wsId]: ws }, statuses, cwds, procs }
+        const aiSessions = { ...s.aiSessions }; delete aiSessions[paneId]
+        return { workspaces: { ...s.workspaces, [wsId]: ws }, statuses, cwds, procs, aiSessions }
       })
       api.ptyKill(paneId)
       scheduleAutosave()
@@ -192,9 +205,16 @@ export const useStore = create<State>((set, get) => {
       const alerts = resolveAlerts(termCfg?.alerts)
       const eff = effectiveStatus(status, termCfg?.alerts)
       set(s => ({ statuses: { ...s.statuses, [id]: eff } }))
-      if (status.state === 'needs-input' && prev?.state !== 'needs-input'
-          && alerts.needsInput && alerts.osNotification
-          && typeof document !== 'undefined' && !document.hasFocus()) {
+      const ai = get().aiSessions[id]
+      const unfocused = typeof document !== 'undefined' && !document.hasFocus()
+      if (ai) {
+        // AI session: notify when it flips from working (busy) to awaiting (quiet).
+        if (prev?.state === 'busy' && status.state !== 'busy'
+            && alerts.needsInput && alerts.osNotification && unfocused) {
+          api.notify({ title: `${ai.label} is waiting for you`, body: termCfg?.name ?? `${ai.label} needs your input` })
+        }
+      } else if (status.state === 'needs-input' && prev?.state !== 'needs-input'
+          && alerts.needsInput && alerts.osNotification && unfocused) {
         api.notify({ title: 'Terminal needs input', body: termCfg?.name ?? 'A terminal is waiting for input' })
       }
     },
@@ -216,6 +236,13 @@ export const useStore = create<State>((set, get) => {
       if (info) procs[id] = info
       else delete procs[id]
       return { procs }
+    }),
+
+    setAiSession: (id, ai) => set(s => {
+      const aiSessions = { ...s.aiSessions }
+      if (ai) aiSessions[id] = ai
+      else delete aiSessions[id]
+      return { aiSessions }
     }),
 
     setCloud: (statuses) => set({ cloud: statuses }),
