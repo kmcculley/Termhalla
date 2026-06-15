@@ -6,7 +6,7 @@
 
 ## What it does
 
-Open the broadcast modal (the `⇉` button in the workspace tab bar, or `Ctrl+Shift+Enter`), type a command, and send it to **all terminal panes in the active workspace** at once. Choose **Keystrokes** (raw bytes, "as if typed") or **Paste** (wrapped in bracketed-paste escapes for apps that treat pastes specially), and optionally append Enter. Handy for running one command across many shells or SSH sessions.
+Open the broadcast modal (the `⇉` button in the workspace tab bar, or `Ctrl+Shift+Enter`), type a command, and send it to **all terminal panes in the active workspace** at once — click **Send** or press **Shift+Enter**. Choose **Keystrokes** (raw bytes, "as if typed") or **Paste** (wrapped in bracketed-paste escapes for apps that treat pastes specially), and optionally append Enter. A row of **quick-key** buttons (Esc, Ctrl+C/D/Z/L, Tab, Enter, ↑/↓) sends the corresponding control sequence to all terminals immediately. Handy for running one command — or interrupting/answering — across many shells or SSH sessions.
 
 ## How it works
 

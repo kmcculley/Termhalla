@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { createPortal } from 'react-dom'
 import { useStore } from '../store'
 import { toMs, scheduleLabel } from '@shared/schedule'
 import type { ScheduleTrigger } from '@shared/types'
@@ -35,7 +36,9 @@ export function ScheduleDialog({ paneId, onClose }: { paneId: string; onClose: (
     </select>
   )
 
-  return (
+  // Portal to <body>: react-mosaic tiles establish a transform containing block, which would
+  // otherwise confine this `position: fixed` overlay to one tile (and let the adjacent tile clip it).
+  return createPortal(
     <div data-testid="schedule-dialog" onClick={onClose}
       style={{ position: 'fixed', inset: 0, background: '#0008', display: 'grid', placeItems: 'center', zIndex: 50 }}>
       <div onClick={e => e.stopPropagation()}
@@ -83,6 +86,7 @@ export function ScheduleDialog({ paneId, onClose }: { paneId: string; onClose: (
           </div>
         )}
       </div>
-    </div>
+    </div>,
+    document.body
   )
 }

@@ -2,6 +2,19 @@ import { useState } from 'react'
 import { useStore } from '../store'
 import { terminalPaneIds } from '@shared/broadcast'
 
+/** Common control sequences sent (raw keystrokes, no Enter) to all terminals on click. */
+const QUICK_KEYS: { id: string; label: string; bytes: string }[] = [
+  { id: 'esc', label: 'Esc', bytes: '\x1b' },
+  { id: 'ctrl-c', label: 'Ctrl+C', bytes: '\x03' },
+  { id: 'ctrl-d', label: 'Ctrl+D', bytes: '\x04' },
+  { id: 'ctrl-z', label: 'Ctrl+Z', bytes: '\x1a' },
+  { id: 'ctrl-l', label: 'Ctrl+L', bytes: '\x0c' },
+  { id: 'tab', label: 'Tab', bytes: '\t' },
+  { id: 'enter', label: 'Enter', bytes: '\r' },
+  { id: 'up', label: '↑', bytes: '\x1b[A' },
+  { id: 'down', label: '↓', bytes: '\x1b[B' }
+]
+
 export function BroadcastDialog() {
   const open = useStore(s => s.broadcastOpen)
   const setOpen = useStore(s => s.setBroadcastOpen)
@@ -20,7 +33,16 @@ export function BroadcastDialog() {
         style={{ background: '#252526', color: '#eee', border: '1px solid #444', borderRadius: 6, padding: 12, width: 460, display: 'flex', flexDirection: 'column', gap: 8 }}>
         <div style={{ fontWeight: 600 }}>Broadcast to all terminals</div>
         <textarea data-testid="broadcast-text" value={text} onChange={e => setText(e.target.value)} rows={4}
-          autoFocus style={{ fontFamily: 'Consolas, monospace', fontSize: 13 }} />
+          autoFocus onKeyDown={e => { if (e.key === 'Enter' && e.shiftKey) { e.preventDefault(); send() } }}
+          style={{ fontFamily: 'Consolas, monospace', fontSize: 13 }} />
+        <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', alignItems: 'center' }}>
+          <span style={{ opacity: 0.7 }}>Quick keys:</span>
+          {QUICK_KEYS.map(k => (
+            <button key={k.id} data-testid={`broadcast-key-${k.id}`} disabled={count === 0}
+              title={`Send ${k.label} to all terminals`}
+              onClick={() => broadcastInput(k.bytes, 'keys', false)}>{k.label}</button>
+          ))}
+        </div>
         <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
           <label>Send as:&nbsp;
             <select data-testid="broadcast-mode" value={mode} onChange={e => setMode(e.target.value as 'paste' | 'keys')}>
