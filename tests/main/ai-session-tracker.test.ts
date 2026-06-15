@@ -53,4 +53,17 @@ describe('AiSessionTracker', () => {
     t.commandDone('x'); t.unregister('x')
     expect(onAi).not.toHaveBeenCalled()
   })
+
+  it('re-emits if the tool changes while a session is already active', () => {
+    const codexInfo: ProcInfo = {
+      foreground: 'node',
+      tree: [{ pid: 3, ppid: 1, name: 'node', command: 'node .../node_modules/@openai/codex/bin.js', depth: 0 }]
+    }
+    const onAi = vi.fn()
+    const t = new AiSessionTracker(onAi)
+    t.onProcs('a', claudeInfo)
+    t.onProcs('a', codexInfo)
+    expect(onAi).toHaveBeenCalledTimes(2)
+    expect(onAi).toHaveBeenLastCalledWith('a', { tool: 'codex', label: 'Codex' })
+  })
 })
