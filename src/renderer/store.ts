@@ -199,13 +199,14 @@ export const useStore = create<State>((set, get) => {
     setNewTerminalShell: (id) => set({ newTerminalShellId: id }),
 
     setStatus: (id, status) => {
-      const prev = get().statuses[id]
-      const cfg = findPaneConfig(get(), id)
+      const state = get()
+      const prev = state.statuses[id]
+      const ai = state.aiSessions[id]
+      const cfg = findPaneConfig(state, id)
       const termCfg = cfg?.kind === 'terminal' ? cfg : undefined
       const alerts = resolveAlerts(termCfg?.alerts)
       const eff = effectiveStatus(status, termCfg?.alerts)
       set(s => ({ statuses: { ...s.statuses, [id]: eff } }))
-      const ai = get().aiSessions[id]
       const unfocused = typeof document !== 'undefined' && !document.hasFocus()
       if (ai) {
         // AI session: notify when it flips from working (busy) to awaiting (quiet).
