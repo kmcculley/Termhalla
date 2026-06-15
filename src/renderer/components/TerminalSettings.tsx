@@ -12,8 +12,8 @@ export function TerminalSettings(
   const toggle = (key: keyof typeof a) => onChange({ alerts: { ...config.alerts, [key]: !a[key] } })
   return (
     <div data-testid="terminal-settings"
-      style={{ position: 'absolute', right: 4, top: 28, zIndex: 10, background: '#252526',
-        color: '#eee', border: '1px solid #444', borderRadius: 4, padding: 8, width: 220 }}
+      style={{ position: 'absolute', right: 4, top: 28, zIndex: 10, background: 'var(--elevated, #252526)',
+        color: 'var(--fg, #eee)', border: '1px solid var(--border, #444)', borderRadius: 4, padding: 8, width: 220 }}
       onClick={e => e.stopPropagation()}>
       <label style={{ display: 'block', marginBottom: 6 }}>
         Name

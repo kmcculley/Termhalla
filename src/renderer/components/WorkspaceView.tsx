@@ -121,12 +121,12 @@ export function WorkspaceView({ ws }: { ws: Workspace }) {
               )}
               {procsMenuFor === paneId && (
                 <div data-testid="proc-menu" onClick={e => e.stopPropagation()}
-                  style={{ position: 'absolute', left: 4, top: 28, zIndex: 10, background: '#252526',
-                    color: '#eee', border: '1px solid #444', borderRadius: 4, padding: 6, maxWidth: 460,
+                  style={{ position: 'absolute', left: 4, top: 28, zIndex: 10, background: 'var(--elevated, #252526)',
+                    color: 'var(--fg, #eee)', border: '1px solid var(--border, #444)', borderRadius: 4, padding: 6, maxWidth: 460,
                     maxHeight: 240, overflow: 'auto', fontSize: 12, fontFamily: 'Consolas, monospace' }}>
                   {aiSession && usage && (
                     <div data-testid={`usage-${paneId}`}
-                      style={{ borderBottom: '1px solid #444', paddingBottom: 4, marginBottom: 4 }}>
+                      style={{ borderBottom: '1px solid var(--border, #444)', paddingBottom: 4, marginBottom: 4 }}>
                       <div>context {fmtTokens(usage.contextTokens)} / {fmtTokens(usage.contextWindow)} · {usage.contextPct}%</div>
                       <div style={{ opacity: 0.7 }}>
                         in {fmtTokens(usage.input)} · out {fmtTokens(usage.output)} · cache r {fmtTokens(usage.cacheRead)} / w {fmtTokens(usage.cacheCreation)}
@@ -146,8 +146,8 @@ export function WorkspaceView({ ws }: { ws: Workspace }) {
               {scheduleFor === paneId && <ScheduleDialog paneId={paneId} onClose={() => setScheduleFor(null)} />}
               {cwdMenuFor === paneId && (
                 <div data-testid="cwd-menu" onClick={e => e.stopPropagation()}
-                  style={{ position: 'absolute', right: 4, top: 28, zIndex: 10, background: '#252526',
-                    color: '#eee', border: '1px solid #444', borderRadius: 4, padding: 4,
+                  style={{ position: 'absolute', right: 4, top: 28, zIndex: 10, background: 'var(--elevated, #252526)',
+                    color: 'var(--fg, #eee)', border: '1px solid var(--border, #444)', borderRadius: 4, padding: 4,
                     display: 'flex', flexDirection: 'column', gap: 2 }}>
                   <button data-testid={`open-explorer-here-${paneId}`} disabled={!cwd}
                     onClick={() => { openExplorerHere(ws.id, paneId); setCwdMenuFor(null) }}>Open Explorer here</button>

@@ -51,7 +51,7 @@ export function SshConnectionForm() {
       <span style={{ opacity: 0.8 }}>{label}</span>{node}
     </label>
   )
-  const inputStyle = { background: '#1e1e1e', color: '#eee', border: '1px solid #444',
+  const inputStyle = { background: 'var(--panel, #1e1e1e)', color: 'var(--fg, #eee)', border: '1px solid var(--border, #444)',
     borderRadius: 4, padding: '6px 8px', fontSize: 13 } as const
 
   return (
@@ -60,7 +60,7 @@ export function SshConnectionForm() {
         display: 'flex', justifyContent: 'center', alignItems: 'flex-start', paddingTop: '12vh' }}>
       <div data-testid="connection-form" role="dialog" aria-modal={true} aria-label="SSH connection"
         onClick={e => e.stopPropagation()} onKeyDown={e => { if (e.key === 'Escape') close() }}
-        style={{ width: 420, background: '#252526', color: '#eee', border: '1px solid #444',
+        style={{ width: 420, background: 'var(--elevated, #252526)', color: 'var(--fg, #eee)', border: '1px solid var(--border, #444)',
           borderRadius: 6, padding: 16, display: 'flex', flexDirection: 'column', gap: 10 }}>
         <h3 style={{ margin: 0, fontSize: 15 }}>{editing ? 'Edit SSH connection' : 'New SSH connection'}</h3>
         {field('Name', <input data-testid="conn-name" autoFocus value={name}

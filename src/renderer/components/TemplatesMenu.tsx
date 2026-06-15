@@ -11,8 +11,8 @@ export function TemplatesMenu({ onPicked, onClose }: { onPicked: (id: string) =>
     <>
       <div onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 40 }} />
       <div data-testid="templates-menu"
-        style={{ position: 'fixed', top: 30, left: 4, zIndex: 41, background: '#252526', color: '#eee',
-          border: '1px solid #444', borderRadius: 4, padding: 6, display: 'flex', flexDirection: 'column', gap: 4, minWidth: 220 }}>
+        style={{ position: 'fixed', top: 30, left: 4, zIndex: 41, background: 'var(--elevated, #252526)', color: 'var(--fg, #eee)',
+          border: '1px solid var(--border, #444)', borderRadius: 4, padding: 6, display: 'flex', flexDirection: 'column', gap: 4, minWidth: 220 }}>
         <div style={{ display: 'flex', gap: 4 }}>
           <input data-testid="tpl-name" placeholder="Template name" value={name}
             onChange={e => setName(e.target.value)} style={{ flex: 1 }} />
