@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import { v4 as uuid } from 'uuid'
-import type { Workspace, ShellInfo, MosaicNode, MosaicDirection, TerminalConfig, TerminalStatus, PaneConfig, EditorConfig, ExplorerConfig, QuickStore, SshConnection, ProcInfo, CloudStatus, TerminalLaunch, AiSession, UsageMetrics, EditorDraft } from '@shared/types'
+import type { Workspace, ShellInfo, MosaicNode, MosaicDirection, TerminalConfig, TerminalStatus, PaneConfig, EditorConfig, ExplorerConfig, QuickStore, SshConnection, ProcInfo, CloudStatus, TerminalLaunch, AiSession, UsageMetrics, EditorDraft, ScheduledTask } from '@shared/types'
 import { EMPTY_QUICK } from '@shared/types'
 import { buildSshArgs, nextRecentDirs, pushRecent, RECENT_CONN_CAP } from '@shared/quick'
 import {
@@ -9,6 +9,7 @@ import {
 } from '@shared/workspace-model'
 import { resolveAlerts, effectiveStatus } from '@shared/alerts'
 import { encodeBroadcast, terminalPaneIds } from '@shared/broadcast'
+import { schedulesWithout } from '@shared/schedule'
 import { api } from './api'
 
 interface State {
@@ -51,6 +52,9 @@ interface State {
   addExplorer: (wsId: string, targetPaneId: string | null, dir: MosaicDirection, root: string) => string
   openFileInEditor: (wsId: string, path: string) => void
   openExplorerHere: (wsId: string, paneId: string) => void
+  schedules: Record<string, ScheduledTask>
+  addSchedule: (task: Omit<ScheduledTask, 'id'>) => string
+  cancelSchedule: (id: string) => void
   quick: QuickStore
   home: string
   paletteOpen: boolean
@@ -142,6 +146,7 @@ export const useStore = create<State>((set, get) => {
     usage: {},
     drafts: {},
     cloud: [],
+    schedules: {},
     quick: EMPTY_QUICK,
     home: '',
     paletteOpen: false,
@@ -225,7 +230,7 @@ export const useStore = create<State>((set, get) => {
         const usage = { ...s.usage }
         for (const pid of paneIds) { delete statuses[pid]; delete cwds[pid]; delete procs[pid]; delete aiSessions[pid]; delete usage[pid] }
         const activeId = s.activeId === id ? (order[0] ?? null) : s.activeId
-        return { workspaces, order, activeId, statuses, cwds, procs, aiSessions, usage }
+        return { workspaces, order, activeId, statuses, cwds, procs, aiSessions, usage, schedules: schedulesWithout(s.schedules, paneIds) }
       })
       if (get().order.length === 0) get().newWorkspace('Workspace 1')
       scheduleAutosave()
@@ -266,12 +271,23 @@ export const useStore = create<State>((set, get) => {
         const procs = { ...s.procs }; delete procs[paneId]
         const aiSessions = { ...s.aiSessions }; delete aiSessions[paneId]
         const usage = { ...s.usage }; delete usage[paneId]
-        return { workspaces: { ...s.workspaces, [wsId]: ws }, statuses, cwds, procs, aiSessions, usage }
+        return { workspaces: { ...s.workspaces, [wsId]: ws }, statuses, cwds, procs, aiSessions, usage, schedules: schedulesWithout(s.schedules, [paneId]) }
       })
       api.usageUnwatch(paneId)
       api.ptyKill(paneId)
       scheduleAutosave()
     },
+
+    addSchedule: (task) => {
+      const id = uuid()
+      set(s => ({ schedules: { ...s.schedules, [id]: { ...task, id } } }))
+      return id
+    },
+
+    cancelSchedule: (id) => set(s => {
+      const schedules = { ...s.schedules }; delete schedules[id]
+      return { schedules }
+    }),
 
     setNewTerminalShell: (id) => set({ newTerminalShellId: id }),
 
