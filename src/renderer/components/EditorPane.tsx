@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
 import { monaco } from '../editor/monaco-setup'
 import { languageForPath } from '@shared/language'
+import { draftKey, resolveDraftOnOpen } from '@shared/editor-draft'
 import { api } from '../api'
 import { useStore } from '../store'
 import type { EditorConfig } from '@shared/types'
@@ -48,6 +49,25 @@ export function EditorPane({ paneId, wsId, config }: { paneId: string; wsId: str
   }, [])
 
   const loading = useRef<Set<string>>(new Set())
+  const draftTimers = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map())
+
+  // Persist or clear the draft for one tab based on its current dirty state.
+  const persistDraft = useCallback((path: string) => {
+    const t = tabs.current.get(path)
+    if (!t || t.tooLarge) return
+    const key = draftKey(paneId, path)
+    const value = t.model.getValue()
+    if (value === t.saved) api.draftDelete(key)
+    else api.draftSet(key, { content: value, baseline: t.saved })
+  }, [paneId])
+
+  // Debounced persist on edit (mirrors the workspace autosave cadence).
+  const scheduleDraftPersist = useCallback((path: string) => {
+    const timers = draftTimers.current
+    const existing = timers.get(path)
+    if (existing) clearTimeout(existing)
+    timers.set(path, setTimeout(() => { timers.delete(path); persistDraft(path) }, 500))
+  }, [persistDraft])
 
   const openTab = useCallback(async (path: string) => {
     if (tabs.current.has(path)) { setActiveModel(path); return }
@@ -57,17 +77,23 @@ export function EditorPane({ paneId, wsId, config }: { paneId: string; wsId: str
       let saved = '', tooLarge = false, missing = false
       try { const r = await api.fsRead(path); saved = r.content; tooLarge = r.tooLarge }
       catch { missing = true }
-      const model = monaco.editor.createModel(tooLarge || missing ? '' : saved, languageForPath(path))
-      const disp = model.onDidChangeContent(() => rerender())
-      tabs.current.set(path, { path, model, saved, disp, tooLarge, missing })
-      api.fsWatch(`${paneId}::${path}`, path)
+      const key = draftKey(paneId, path)
+      const draft = useStore.getState().drafts[key]
+      const resolved = tooLarge
+        ? { content: '', dirty: false, externalChanged: false }
+        : resolveDraftOnOpen(missing ? null : saved, draft)
+      const model = monaco.editor.createModel(resolved.content, languageForPath(path))
+      const disp = model.onDidChangeContent(() => { rerender(); scheduleDraftPersist(path) })
+      tabs.current.set(path, { path, model, saved, disp, tooLarge, missing, externalChanged: resolved.externalChanged || undefined })
+      if (draft && !resolved.dirty) api.draftDelete(key)  // stale draft equals disk
+      api.fsWatch(key, path)
       setOrder(o => (o.includes(path) ? o : [...o, path]))
       setActiveModel(path)
       rerender()
     } finally {
       loading.current.delete(path)
     }
-  }, [rerender, setActiveModel])
+  }, [rerender, setActiveModel, scheduleDraftPersist])
 
   const saveActive = useCallback(async () => {
     if (!active) return
@@ -76,8 +102,9 @@ export function EditorPane({ paneId, wsId, config }: { paneId: string; wsId: str
     const value = t.model.getValue()
     await api.fsWrite(active, value)
     t.saved = value
+    api.draftDelete(draftKey(paneId, active))
     rerender()
-  }, [active, rerender])
+  }, [active, rerender, paneId])
 
   const saveActiveRef = useRef(saveActive)
   useEffect(() => { saveActiveRef.current = saveActive }, [saveActive])
@@ -90,6 +117,8 @@ export function EditorPane({ paneId, wsId, config }: { paneId: string; wsId: str
     }
     t.disp.dispose(); t.model.dispose(); tabs.current.delete(path)
     api.fsUnwatch(`${paneId}::${path}`)
+    api.draftDelete(draftKey(paneId, path))
+    const dt = draftTimers.current.get(path); if (dt) { clearTimeout(dt); draftTimers.current.delete(path) }
     setOrder(o => {
       const next = o.filter(p => p !== path)
       const nextActive = active === path ? next[next.length - 1] : active
@@ -99,7 +128,7 @@ export function EditorPane({ paneId, wsId, config }: { paneId: string; wsId: str
       return next
     })
     rerender()
-  }, [active, persist, setActiveModel, rerender])
+  }, [active, persist, setActiveModel, rerender, paneId])
 
   useEffect(() => {
     const ed = monaco.editor.create(hostRef.current!, {
@@ -111,11 +140,24 @@ export function EditorPane({ paneId, wsId, config }: { paneId: string; wsId: str
     ed.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS, () => { void saveActiveRef.current() })
     return () => {
       focusDisp.dispose(); ed.dispose()
-      for (const t of tabs.current.values()) { api.fsUnwatch(`${paneId}::${t.path}`); t.disp.dispose(); t.model.dispose() }
+      for (const t of draftTimers.current.values()) clearTimeout(t)
+      draftTimers.current.clear()
+      for (const t of tabs.current.values()) { api.fsUnwatch(`${paneId}::${t.path}`); api.draftDelete(draftKey(paneId, t.path)); t.disp.dispose(); t.model.dispose() }
       tabs.current.clear()
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [paneId])
+
+  // Best-effort flush of pending drafts when the whole app is closing.
+  useEffect(() => {
+    const flush = () => {
+      for (const t of draftTimers.current.values()) clearTimeout(t)
+      draftTimers.current.clear()
+      for (const path of tabs.current.keys()) persistDraft(path)
+    }
+    window.addEventListener('beforeunload', flush)
+    return () => window.removeEventListener('beforeunload', flush)
+  }, [persistDraft])
 
   useEffect(() => {
     for (const f of config.files) if (!tabs.current.has(f)) void openTab(f)
