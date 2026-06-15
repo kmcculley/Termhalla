@@ -6,6 +6,15 @@ export function draftKey(paneId: string, path: string): string {
   return `${paneId}::${path}`
 }
 
+/** Reserved sentinel "path" for a pane's untitled scratch buffer. The angle brackets are
+ *  invalid in Windows paths, and the app only ever opens absolute paths, so this can never
+ *  collide with a real file tab's key. */
+export const UNTITLED = '<untitled>'
+
+export function isUntitled(path: string): boolean {
+  return path === UNTITLED
+}
+
 export interface DraftResolution {
   content: string          // what to load into the model
   dirty: boolean           // mark the tab dirty?
