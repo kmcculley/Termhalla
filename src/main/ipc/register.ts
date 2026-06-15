@@ -14,6 +14,7 @@ import { WatchManager } from '../fs/watch-manager'
 import { ProcessTracker } from '../proc/process-tracker'
 import { CloudStatusService } from '../cloud/cloud-status-service'
 import { AiSessionTracker } from '../ai/ai-session-tracker'
+import { UsageTracker } from '../usage/usage-tracker'
 
 export function registerHandlers(win: BrowserWindow): PtyManager {
   const store = new WorkspaceStore(userDataDir())
@@ -49,6 +50,11 @@ export function registerHandlers(win: BrowserWindow): PtyManager {
     (id, info) => { safeSend(CH.ptyProcs, id, info); ai?.onProcs(id, info) }
   )
   ai = new AiSessionTracker((id, session) => safeSend(CH.aiSession, id, session))
+
+  const usage = new UsageTracker((id, metrics) => safeSend(CH.usageMetrics, id, metrics))
+  ipcMain.on(CH.usageWatch, (_e, id: string, cwd: string) => { void usage.watch(id, cwd) })
+  ipcMain.on(CH.usageUnwatch, (_e, id: string) => usage.unwatch(id))
+  win.on('closed', () => usage.dispose())
 
   const cloud = new CloudStatusService((statuses) => safeSend(CH.cloudStatus, statuses))
   cloud.start()

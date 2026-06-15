@@ -1,4 +1,4 @@
-import type { ShellInfo, Workspace, AppState, TerminalStatus, DirEntry, ReadResult, StatResult, FsChange, TerminalLaunch, QuickStore, ProcInfo, CloudStatus, AiSession } from './types'
+import type { ShellInfo, Workspace, AppState, TerminalStatus, DirEntry, ReadResult, StatResult, FsChange, TerminalLaunch, QuickStore, ProcInfo, CloudStatus, AiSession, UsageMetrics } from './types'
 
 export const CH = {
   listShells: 'shells:list',
@@ -32,7 +32,10 @@ export const CH = {
   ptyProcs: 'pty:procs',           // main -> renderer event
   cloudStatus: 'cloud:status',     // main -> renderer event
   cloudRefresh: 'cloud:refresh',
-  aiSession: 'ai:session'   // main -> renderer event
+  aiSession: 'ai:session',         // main -> renderer event
+  usageWatch: 'usage:watch',
+  usageUnwatch: 'usage:unwatch',
+  usageMetrics: 'usage:metrics'    // main -> renderer event
 } as const
 
 export interface NotifyArgs { title: string; body: string }
@@ -69,6 +72,9 @@ export interface TermhallaApi {
   onCloudStatus(cb: (statuses: CloudStatus[]) => void): () => void
   cloudRefresh(): Promise<void>
   onAiSession(cb: (id: string, ai: AiSession | null) => void): () => void
+  usageWatch(id: string, cwd: string): void
+  usageUnwatch(id: string): void
+  onUsageMetrics(cb: (id: string, metrics: UsageMetrics | null) => void): () => void
   revealPath(path: string): Promise<void>
   loadQuick(): Promise<QuickStore>
   saveQuick(data: QuickStore): Promise<void>
