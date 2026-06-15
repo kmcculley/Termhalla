@@ -1,5 +1,5 @@
 import type {
-  Workspace, PaneConfig, MosaicNode, MosaicParent, MosaicDirection
+  Workspace, PaneConfig, MosaicNode, MosaicParent, MosaicDirection, PaneNode, WorkspaceTemplate
 } from '@shared/types'
 import { SCHEMA_VERSION } from '@shared/types'
 
@@ -93,4 +93,37 @@ export function reorderIds(order: string[], fromId: string, toId: string): strin
   next.splice(from, 1)
   next.splice(to, 0, fromId)
   return next
+}
+
+function cloneConfig<T>(v: T): T { return JSON.parse(JSON.stringify(v)) }
+
+/** Re-key every pane with a fresh id, rewriting the layout-tree leaves and the panes map. */
+export function remapPaneIds(
+  layout: MosaicNode | null,
+  panes: Record<string, PaneNode>,
+  uuid: () => string
+): { layout: MosaicNode | null; panes: Record<string, PaneNode> } {
+  const idMap = new Map<string, string>()
+  for (const oldId of Object.keys(panes)) idMap.set(oldId, uuid())
+  const remapNode = (node: MosaicNode): MosaicNode =>
+    typeof node === 'string'
+      ? (idMap.get(node) ?? node)
+      : { ...node, first: remapNode(node.first), second: remapNode(node.second) }
+  const newPanes: Record<string, PaneNode> = {}
+  for (const [oldId, pane] of Object.entries(panes)) {
+    const newId = idMap.get(oldId)!
+    newPanes[newId] = { paneId: newId, config: cloneConfig(pane.config) }
+  }
+  return { layout: layout === null ? null : remapNode(layout), panes: newPanes }
+}
+
+/** Capture a workspace's layout as a (deep-copied) template blueprint. */
+export function templateFromWorkspace(ws: Workspace, id: string, name: string): WorkspaceTemplate {
+  return { id, name, layout: ws.layout === null ? null : cloneConfig(ws.layout), panes: cloneConfig(ws.panes) }
+}
+
+/** Instantiate a fresh workspace from a template (new pane ids). */
+export function workspaceFromTemplate(tpl: WorkspaceTemplate, wsId: string, name: string, uuid: () => string): Workspace {
+  const { layout, panes } = remapPaneIds(tpl.layout, tpl.panes, uuid)
+  return { id: wsId, name, layout, panes }
 }

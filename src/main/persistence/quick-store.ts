@@ -10,7 +10,8 @@ function normalizeQuick(value: unknown): QuickData {
     connections: Array.isArray(v.connections) ? v.connections : [],
     recentConnections: Array.isArray(v.recentConnections) ? v.recentConnections : [],
     favoriteDirs: Array.isArray(v.favoriteDirs) ? v.favoriteDirs : [],
-    recentDirs: Array.isArray(v.recentDirs) ? v.recentDirs : []
+    recentDirs: Array.isArray(v.recentDirs) ? v.recentDirs : [],
+    templates: Array.isArray(v.templates) ? v.templates : []
   }
 }
 

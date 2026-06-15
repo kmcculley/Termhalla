@@ -3,6 +3,7 @@ import type { Workspace, AiSession, TerminalStatus } from '@shared/types'
 import { resolveAlerts } from '@shared/alerts'
 import { useStore, aiState } from '../store'
 import { api } from '../api'
+import { TemplatesMenu } from './TemplatesMenu'
 
 function tabBadge(
   ws: Workspace,
@@ -38,6 +39,7 @@ export function WorkspaceTabs() {
   const [renameText, setRenameText] = useState('')
   const [menuFor, setMenuFor] = useState<{ id: string; x: number; y: number } | null>(null)
   const [draggedId, setDraggedId] = useState<string | null>(null)
+  const [templatesOpen, setTemplatesOpen] = useState(false)
 
   const startRename = (id: string) => { setRenameText(workspaces[id]?.name ?? ''); setRenamingId(id); setMenuFor(null) }
   const commitRename = (id: string) => { renameWorkspace(id, renameText); setRenamingId(null) }
@@ -68,6 +70,8 @@ export function WorkspaceTabs() {
       ))}
       <button data-testid="new-workspace"
         onClick={() => { const id = newWorkspace(`Workspace ${order.length + 1}`); startRename(id) }}>+</button>
+      <button data-testid="templates-button" title="Workspace templates"
+        onClick={() => setTemplatesOpen(o => !o)}>▾</button>
       <span style={{ flex: 1 }} />
       <select data-testid="shell-picker" value={newTerminalShellId ?? ''}
         onChange={e => setNewTerminalShell(e.target.value)}>
@@ -110,6 +114,7 @@ export function WorkspaceTabs() {
           </div>
         </>
       )}
+      {templatesOpen && <TemplatesMenu onPicked={startRename} onClose={() => setTemplatesOpen(false)} />}
     </div>
   )
 }
