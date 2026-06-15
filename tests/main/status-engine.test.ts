@@ -58,6 +58,9 @@ describe('StatusEngine.onCommandDone', () => {
     done.mockClear()
     engine.markExit('a', 0)
     expect(done).toHaveBeenCalledWith('a')
+    done.mockClear()
+    engine.feed('a', '\x1b]133;D;0\x07\x1b]133;D;0\x07')   // two D markers in one chunk -> fire once
+    expect(done).toHaveBeenCalledTimes(1)
     engine.dispose()
   })
 })

@@ -43,6 +43,7 @@ export class StatusEngine {
   feed(id: string, data: string): void {
     const s = this.sessions.get(id); if (!s) return
     const t = this.now()
+    // Fire onCommandDone at most once per feed call even if the parser emits multiple D markers.
     let done = false
     for (const m of s.parser.push(data)) {
       s.tracker.onMarker(m.kind, m.exit, t)
