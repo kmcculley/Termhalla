@@ -7,6 +7,7 @@ import {
   createWorkspace, addFirstPane, splitPane, removePane
 } from '@shared/workspace-model'
 import { resolveAlerts, effectiveStatus } from '@shared/alerts'
+import { encodeBroadcast, terminalPaneIds } from '@shared/broadcast'
 import { api } from './api'
 
 interface State {
@@ -49,6 +50,9 @@ interface State {
   quick: QuickStore
   home: string
   paletteOpen: boolean
+  broadcastOpen: boolean
+  setBroadcastOpen: (open: boolean) => void
+  broadcastInput: (text: string, mode: 'paste' | 'keys', enter: boolean) => void
   connectionFormFor: SshConnection | 'new' | null
   loadQuick: () => Promise<void>
   setPaletteOpen: (open: boolean) => void
@@ -134,6 +138,7 @@ export const useStore = create<State>((set, get) => {
     quick: EMPTY_QUICK,
     home: '',
     paletteOpen: false,
+    broadcastOpen: false,
     connectionFormFor: null,
 
     init: async () => {
@@ -324,6 +329,16 @@ export const useStore = create<State>((set, get) => {
     },
 
     setPaletteOpen: (open) => set({ paletteOpen: open }),
+    setBroadcastOpen: (open) => set({ broadcastOpen: open }),
+
+    broadcastInput: (text, mode, enter) => {
+      const s = get()
+      const ws = s.activeId ? s.workspaces[s.activeId] : null
+      if (!ws) return
+      const data = encodeBroadcast(text, mode, enter)
+      for (const id of terminalPaneIds(ws)) api.ptyWrite({ id, data })
+    },
+
     setConnectionForm: (target) => set({ connectionFormFor: target }),
 
     saveConnection: (conn) => {

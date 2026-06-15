@@ -32,7 +32,8 @@ export function WorkspaceTabs() {
   const {
     order, workspaces, activeId, setActive, newWorkspace,
     saveAll, shells, newTerminalShellId, setNewTerminalShell, statuses,
-    addTerminal, addEditor, addExplorer, aiSessions
+    addTerminal, addEditor, addExplorer, aiSessions,
+    setBroadcastOpen, broadcastOpen
   } = useStore()
   return (
     <div data-testid="workspace-tabs"
@@ -65,6 +66,8 @@ export function WorkspaceTabs() {
         <option value="editor">Editor</option>
         <option value="explorer">Explorer</option>
       </select>
+      <button data-testid="broadcast-button" title="Broadcast to all terminals (Ctrl+Shift+Enter)"
+        onClick={() => setBroadcastOpen(!broadcastOpen)}>⇉</button>
       <button data-testid="save-workspace" onClick={() => saveAll()}>Save</button>
     </div>
   )
