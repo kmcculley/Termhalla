@@ -61,6 +61,11 @@ const api: TermhallaApi = {
     return () => ipcRenderer.removeListener(CH.cloudStatus, h as never)
   },
   cloudRefresh: () => ipcRenderer.invoke(CH.cloudRefresh),
+  onAiSession: (cb) => {
+    const h = (_e: unknown, id: string, ai: import('@shared/types').AiSession | null) => cb(id, ai)
+    ipcRenderer.on(CH.aiSession, h as never)
+    return () => ipcRenderer.removeListener(CH.aiSession, h as never)
+  },
 }
 
 contextBridge.exposeInMainWorld('termhalla', api)

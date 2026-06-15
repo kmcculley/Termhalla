@@ -1,4 +1,4 @@
-import type { ShellInfo, Workspace, AppState, TerminalStatus, DirEntry, ReadResult, StatResult, FsChange, TerminalLaunch, QuickStore, ProcInfo, CloudStatus } from './types'
+import type { ShellInfo, Workspace, AppState, TerminalStatus, DirEntry, ReadResult, StatResult, FsChange, TerminalLaunch, QuickStore, ProcInfo, CloudStatus, AiSession } from './types'
 
 export const CH = {
   listShells: 'shells:list',
@@ -31,7 +31,8 @@ export const CH = {
   homeDir: 'app:homeDir',
   ptyProcs: 'pty:procs',           // main -> renderer event
   cloudStatus: 'cloud:status',     // main -> renderer event
-  cloudRefresh: 'cloud:refresh'
+  cloudRefresh: 'cloud:refresh',
+  aiSession: 'ai:session'   // main -> renderer event
 } as const
 
 export interface NotifyArgs { title: string; body: string }
@@ -67,6 +68,7 @@ export interface TermhallaApi {
   onPtyProcs(cb: (id: string, info: ProcInfo | null) => void): () => void
   onCloudStatus(cb: (statuses: CloudStatus[]) => void): () => void
   cloudRefresh(): Promise<void>
+  onAiSession(cb: (id: string, ai: AiSession | null) => void): () => void
   revealPath(path: string): Promise<void>
   loadQuick(): Promise<QuickStore>
   saveQuick(data: QuickStore): Promise<void>

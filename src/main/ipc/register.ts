@@ -13,6 +13,7 @@ import { readTextFile, writeTextFile, readDirectory, statPath } from '../fs/file
 import { WatchManager } from '../fs/watch-manager'
 import { ProcessTracker } from '../proc/process-tracker'
 import { CloudStatusService } from '../cloud/cloud-status-service'
+import { AiSessionTracker } from '../ai/ai-session-tracker'
 
 export function registerHandlers(win: BrowserWindow): PtyManager {
   const store = new WorkspaceStore(userDataDir())
@@ -31,19 +32,23 @@ export function registerHandlers(win: BrowserWindow): PtyManager {
   }
 
   let tracker: ProcessTracker | undefined
+  let ai: AiSessionTracker | undefined
   const engine = new StatusEngine(
     (id, status) => { safeSend(CH.ptyStatus, id, status); tracker?.setBusy(id, status.state === 'busy') },
-    (id, cwd) => safeSend(CH.ptyCwd, id, cwd)
+    (id, cwd) => safeSend(CH.ptyCwd, id, cwd),
+    undefined,
+    (id) => ai?.commandDone(id)
   )
   const pty = new PtyManager(
     (id, data) => safeSend(CH.ptyData, id, data),
-    (id, code) => { safeSend(CH.ptyExit, id, code); tracker?.unregister(id) },
+    (id, code) => { safeSend(CH.ptyExit, id, code); tracker?.unregister(id); ai?.unregister(id) },
     engine, scriptDir
   )
   tracker = new ProcessTracker(
     (id) => pty.pidOf(id),
-    (id, info) => safeSend(CH.ptyProcs, id, info)
+    (id, info) => { safeSend(CH.ptyProcs, id, info); ai?.onProcs(id, info) }
   )
+  ai = new AiSessionTracker((id, session) => safeSend(CH.aiSession, id, session))
 
   const cloud = new CloudStatusService((statuses) => safeSend(CH.cloudStatus, statuses))
   cloud.start()
@@ -70,7 +75,7 @@ export function registerHandlers(win: BrowserWindow): PtyManager {
   })
   ipcMain.on(CH.ptyWrite, (_e, a: PtyWriteArgs) => pty.write(a.id, a.data))
   ipcMain.on(CH.ptyResize, (_e, a: PtyResizeArgs) => pty.resize(a.id, a.cols, a.rows))
-  ipcMain.on(CH.ptyKill, (_e, id: string) => { pty.kill(id); tracker!.unregister(id) })
+  ipcMain.on(CH.ptyKill, (_e, id: string) => { pty.kill(id); tracker!.unregister(id); ai!.unregister(id) })
 
   ipcMain.on(CH.notify, (_e, a: NotifyArgs) => {
     if (!Notification.isSupported()) return
