@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import { v4 as uuid } from 'uuid'
-import type { Workspace, ShellInfo, MosaicNode, MosaicDirection, TerminalConfig, TerminalStatus, PaneConfig, EditorConfig, ExplorerConfig, QuickStore, SshConnection, ProcInfo, CloudStatus, TerminalLaunch, AiSession, UsageMetrics } from '@shared/types'
+import type { Workspace, ShellInfo, MosaicNode, MosaicDirection, TerminalConfig, TerminalStatus, PaneConfig, EditorConfig, ExplorerConfig, QuickStore, SshConnection, ProcInfo, CloudStatus, TerminalLaunch, AiSession, UsageMetrics, EditorDraft } from '@shared/types'
 import { EMPTY_QUICK } from '@shared/types'
 import { buildSshArgs, nextRecentDirs, pushRecent, RECENT_CONN_CAP } from '@shared/quick'
 import {
@@ -35,6 +35,7 @@ interface State {
   setAiSession: (id: string, ai: AiSession | null) => void
   usage: Record<string, UsageMetrics>
   setUsage: (id: string, metrics: UsageMetrics | null) => void
+  drafts: Record<string, EditorDraft>
   cloud: CloudStatus[]
   setCloud: (statuses: CloudStatus[]) => void
   refreshCloud: () => void
@@ -128,6 +129,7 @@ export const useStore = create<State>((set, get) => {
     procs: {},
     aiSessions: {},
     usage: {},
+    drafts: {},
     cloud: [],
     quick: EMPTY_QUICK,
     home: '',
@@ -137,8 +139,8 @@ export const useStore = create<State>((set, get) => {
     init: async () => {
       const shells = await api.listShells()
       set({ shells, newTerminalShellId: shells[0]?.id ?? null })
-      const [quick, home] = await Promise.all([api.loadQuick(), api.homeDir()])
-      set({ quick, home })
+      const [quick, home, drafts] = await Promise.all([api.loadQuick(), api.homeDir(), api.draftsLoad()])
+      set({ quick, home, drafts })
       const state = await api.loadAppState()
       if (state && Array.isArray(state.openWorkspaceIds) && state.openWorkspaceIds.length > 0) {
         const loaded = await Promise.all(state.openWorkspaceIds.map(id => api.loadWorkspace(id)))
