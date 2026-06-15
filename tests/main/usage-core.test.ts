@@ -28,6 +28,12 @@ describe('windowFor', () => {
     expect(windowFor('claude-opus-4')).toBe(200000)
     expect(windowFor('claude-opus-4-8[1m]')).toBe(1000000)
   })
+  it('detects [1m] from the model alias when the transcript model lacks it', () => {
+    // Real transcripts record the canonical id (no [1m]); the 1M flag lives in the
+    // settings model alias, e.g. "opus[1m]".
+    expect(windowFor('claude-opus-4-8')).toBe(200000)
+    expect(windowFor('claude-opus-4-8', 'opus[1m]')).toBe(1000000)
+  })
 })
 
 describe('parseClaudeUsage', () => {
@@ -50,6 +56,23 @@ describe('parseClaudeUsage', () => {
   })
   it('returns all-zero for an empty/assistant-less transcript', () => {
     expect(parseClaudeUsage('')).toEqual({ input: 0, output: 0, cacheRead: 0, cacheCreation: 0, contextTokens: 0, contextWindow: 200000, contextPct: 0 })
+  })
+
+  it('uses the 1M window when the alias marks a [1m] model', () => {
+    const m = parseClaudeUsage(jsonl, 'opus[1m]')
+    expect(m.contextTokens).toBe(150120)
+    expect(m.contextWindow).toBe(1000000)
+    expect(m.contextPct).toBe(15)   // round(150120/1000000*100)
+  })
+
+  it('auto-bumps the window to 1M when observed context exceeds 200k', () => {
+    // A long session whose context exceeds 200k can only be a >200k window, even if
+    // the alias is unknown — never report >100%.
+    const big = JSON.stringify({ type: 'assistant', message: { model: 'claude-opus-4', usage: { input_tokens: 250000, output_tokens: 10, cache_read_input_tokens: 0, cache_creation_input_tokens: 0 } } })
+    const m = parseClaudeUsage(big)
+    expect(m.contextTokens).toBe(250000)
+    expect(m.contextWindow).toBe(1000000)
+    expect(m.contextPct).toBe(25)
   })
 
   it('handles CRLF line endings (real Windows transcripts)', () => {

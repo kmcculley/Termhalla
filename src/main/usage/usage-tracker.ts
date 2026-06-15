@@ -5,11 +5,22 @@ import { join } from 'node:path'
 import type { UsageMetrics } from '@shared/types'
 import { encodeProjectDir, pickNewestTranscript } from './project-dir'
 import { parseClaudeUsage } from './parse-usage'
+import { readModelAlias } from './model-alias'
 
-interface Session { watcher: FSWatcher | null; timer: ReturnType<typeof setTimeout> | null }
+interface Session {
+  watcher: FSWatcher | null
+  timer: ReturnType<typeof setTimeout> | null
+  dir: string
+  alias: string
+}
 
-/** Watches a Claude session's transcript (resolved from the terminal's cwd) and emits live
- *  usage metrics, re-parsing on change (debounced). Driven by usage:watch / usage:unwatch. */
+/** Watches a Claude session's transcript directory (resolved from the terminal's cwd) and emits
+ *  live usage metrics, re-resolving the newest transcript and re-parsing on every change
+ *  (debounced). Driven by usage:watch / usage:unwatch.
+ *
+ *  The directory — not a single fixed file — is watched, because the active transcript can change
+ *  after the watch starts: a new session creates a new .jsonl, and the file that is "newest" at
+ *  watch-start may be a stale/empty stub. Re-resolving on each event keeps us on the live file. */
 export class UsageTracker {
   private sessions = new Map<string, Session>()
 
@@ -21,18 +32,19 @@ export class UsageTracker {
 
   async watch(id: string, cwd: string): Promise<void> {
     this.stop(id) // remove any prior watch for this id (stop is silent — no emit)
-    const sess: Session = { watcher: null, timer: null }
+    const sess: Session = { watcher: null, timer: null, dir: join(this.claudeHome, 'projects', encodeProjectDir(cwd)), alias: '' }
     this.sessions.set(id, sess) // claim the slot BEFORE awaiting so a concurrent watch/unwatch can supersede us
-    const file = await this.resolveTranscript(cwd)
-    if (this.sessions.get(id) !== sess) return // superseded during resolve
-    if (!file) { this.sessions.delete(id); this.onMetrics(id, null); return }
-    await this.reparse(id, file, sess) // immediate parse
+    sess.alias = await readModelAlias(cwd, this.claudeHome)
+    if (this.sessions.get(id) !== sess) return // superseded during alias read
+    await this.reparse(id, sess) // immediate parse of the current newest transcript
     if (this.sessions.get(id) !== sess) return // superseded during reparse
-    const w = chokidar.watch(file, {
+    const w = chokidar.watch(sess.dir, {
       ignoreInitial: true,
+      depth: 0,
       awaitWriteFinish: { stabilityThreshold: 200, pollInterval: 50 }
     })
-    w.on('change', () => this.schedule(id, file))
+    const onEvt = (p: string): void => { if (p.endsWith('.jsonl')) this.schedule(id) }
+    w.on('add', onEvt).on('change', onEvt)
     sess.watcher = w
   }
 
@@ -52,23 +64,25 @@ export class UsageTracker {
     this.sessions.delete(id)
   }
 
-  private schedule(id: string, file: string): void {
+  private schedule(id: string): void {
     const s = this.sessions.get(id)
     if (!s) return
     if (s.timer) clearTimeout(s.timer)
-    s.timer = setTimeout(() => { void this.reparse(id, file, s) }, this.debounceMs)
+    s.timer = setTimeout(() => { void this.reparse(id, s) }, this.debounceMs)
   }
 
-  private async reparse(id: string, file: string, sess: Session): Promise<void> {
+  private async reparse(id: string, sess: Session): Promise<void> {
     if (this.sessions.get(id) !== sess) return
+    const file = await this.resolveTranscript(sess.dir)
+    if (this.sessions.get(id) !== sess) return
+    if (!file) { this.onMetrics(id, null); return }
     let content: string
     try { content = await readFile(file, 'utf8') } catch { return }
     if (this.sessions.get(id) !== sess) return
-    this.onMetrics(id, parseClaudeUsage(content))
+    this.onMetrics(id, parseClaudeUsage(content, sess.alias))
   }
 
-  private async resolveTranscript(cwd: string): Promise<string | null> {
-    const dir = join(this.claudeHome, 'projects', encodeProjectDir(cwd))
+  private async resolveTranscript(dir: string): Promise<string | null> {
     let names: string[]
     try { names = await readdir(dir) } catch { return null }
     const entries = await Promise.all(names.filter(n => n.endsWith('.jsonl')).map(async n => {
