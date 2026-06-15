@@ -86,17 +86,20 @@ export interface TerminalConfig {
   alerts?: AlertConfig
   launch?: TerminalLaunch   // when set, run this instead of a discovered shell (SSH)
   connectionId?: string     // links back to the saved SshConnection, for display
+  theme?: Partial<Theme>
 }
 
 export interface EditorConfig {
   kind: 'editor'
   files: string[]
   activePath?: string
+  theme?: Partial<Theme>
 }
 
 export interface ExplorerConfig {
   kind: 'explorer'
   root: string
+  theme?: Partial<Theme>
 }
 
 /** A persisted unsaved editor buffer (hot-exit). Keyed by `paneId::path` in the draft store. */
@@ -127,6 +130,7 @@ export interface Workspace {
   name: string
   layout: MosaicNode | null         // null = no panes yet
   panes: Record<string, PaneNode>   // paneId -> pane
+  theme?: Partial<Theme>
 }
 
 export interface AppState {
