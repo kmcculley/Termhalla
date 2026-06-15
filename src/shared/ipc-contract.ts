@@ -24,6 +24,7 @@ export const CH = {
   fsChange: 'fs:change',          // main -> renderer event
   dialogOpenFolder: 'dialog:openFolder',
   dialogOpenFile: 'dialog:openFile',
+  dialogSaveFile: 'dialog:saveFile',
   ptyCwd: 'pty:cwd',          // main -> renderer event
   revealPath: 'shell:reveal',
   quickLoad: 'quick:load',
@@ -70,6 +71,7 @@ export interface TermhallaApi {
   onFsChange(cb: (id: string, change: FsChange) => void): () => void
   openFolder(): Promise<string | null>
   openFile(): Promise<string | null>
+  saveFileDialog(): Promise<string | null>
   onPtyCwd(cb: (id: string, cwd: string) => void): () => void
   onPtyProcs(cb: (id: string, info: ProcInfo | null) => void): () => void
   onCloudStatus(cb: (statuses: CloudStatus[]) => void): () => void
