@@ -66,6 +66,13 @@ const api: TermhallaApi = {
     ipcRenderer.on(CH.aiSession, h as never)
     return () => ipcRenderer.removeListener(CH.aiSession, h as never)
   },
+  usageWatch: (id, cwd) => ipcRenderer.send(CH.usageWatch, id, cwd),
+  usageUnwatch: (id) => ipcRenderer.send(CH.usageUnwatch, id),
+  onUsageMetrics: (cb) => {
+    const h = (_e: unknown, id: string, m: import('@shared/types').UsageMetrics | null) => cb(id, m)
+    ipcRenderer.on(CH.usageMetrics, h as never)
+    return () => ipcRenderer.removeListener(CH.usageMetrics, h as never)
+  },
 }
 
 contextBridge.exposeInMainWorld('termhalla', api)

@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import { v4 as uuid } from 'uuid'
-import type { Workspace, ShellInfo, MosaicNode, MosaicDirection, TerminalConfig, TerminalStatus, PaneConfig, EditorConfig, ExplorerConfig, QuickStore, SshConnection, ProcInfo, CloudStatus, TerminalLaunch, AiSession } from '@shared/types'
+import type { Workspace, ShellInfo, MosaicNode, MosaicDirection, TerminalConfig, TerminalStatus, PaneConfig, EditorConfig, ExplorerConfig, QuickStore, SshConnection, ProcInfo, CloudStatus, TerminalLaunch, AiSession, UsageMetrics } from '@shared/types'
 import { EMPTY_QUICK } from '@shared/types'
 import { buildSshArgs, nextRecentDirs, pushRecent, RECENT_CONN_CAP } from '@shared/quick'
 import {
@@ -33,6 +33,8 @@ interface State {
   setProcs: (id: string, info: ProcInfo | null) => void
   aiSessions: Record<string, AiSession>
   setAiSession: (id: string, ai: AiSession | null) => void
+  usage: Record<string, UsageMetrics>
+  setUsage: (id: string, metrics: UsageMetrics | null) => void
   cloud: CloudStatus[]
   setCloud: (statuses: CloudStatus[]) => void
   refreshCloud: () => void
@@ -125,6 +127,7 @@ export const useStore = create<State>((set, get) => {
     cwds: {},
     procs: {},
     aiSessions: {},
+    usage: {},
     cloud: [],
     quick: EMPTY_QUICK,
     home: '',
@@ -190,8 +193,10 @@ export const useStore = create<State>((set, get) => {
         const cwds = { ...s.cwds }; delete cwds[paneId]
         const procs = { ...s.procs }; delete procs[paneId]
         const aiSessions = { ...s.aiSessions }; delete aiSessions[paneId]
-        return { workspaces: { ...s.workspaces, [wsId]: ws }, statuses, cwds, procs, aiSessions }
+        const usage = { ...s.usage }; delete usage[paneId]
+        return { workspaces: { ...s.workspaces, [wsId]: ws }, statuses, cwds, procs, aiSessions, usage }
       })
+      api.usageUnwatch(paneId)
       api.ptyKill(paneId)
       scheduleAutosave()
     },
@@ -244,6 +249,13 @@ export const useStore = create<State>((set, get) => {
       if (ai) aiSessions[id] = ai
       else delete aiSessions[id]
       return { aiSessions }
+    }),
+
+    setUsage: (id, metrics) => set(s => {
+      const usage = { ...s.usage }
+      if (metrics) usage[id] = metrics
+      else delete usage[id]
+      return { usage }
     }),
 
     setCloud: (statuses) => set({ cloud: statuses }),

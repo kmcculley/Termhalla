@@ -5,6 +5,7 @@ import { WorkspaceView } from './components/WorkspaceView'
 import { CommandPalette } from './components/CommandPalette'
 import { SshConnectionForm } from './components/SshConnectionForm'
 import { StatusBar } from './components/StatusBar'
+import { UsageWatcher } from './components/UsageWatcher'
 import { api } from './api'
 
 export default function App() {
@@ -37,6 +38,10 @@ export default function App() {
     const off = api.onAiSession((id, ai) => useStore.getState().setAiSession(id, ai))
     return off
   }, [])
+  useEffect(() => {
+    const off = api.onUsageMetrics((id, m) => useStore.getState().setUsage(id, m))
+    return off
+  }, [])
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -58,6 +63,7 @@ export default function App() {
         {active ? <WorkspaceView ws={active} /> : <div data-testid="app-title">Termhalla</div>}
       </div>
       <StatusBar />
+      <UsageWatcher />
       <CommandPalette />
       <SshConnectionForm key={connectionFormFor === null ? 'none' : connectionFormFor === 'new' ? 'new' : connectionFormFor.id} />
     </div>
