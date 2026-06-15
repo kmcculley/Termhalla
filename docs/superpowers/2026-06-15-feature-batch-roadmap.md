@@ -21,7 +21,9 @@ the recommended option at every decision point (no user gating).
 - [x] **A — Broadcast input to all terminals** — DONE, merged (`feat/broadcast-input`)
 - [x] **B — Workspace tab management** (context menu, name-on-create, drag-reorder) — DONE, merged
 - [x] **C — Workspace layout templates** — DONE, merged
-- [ ] **D — Scheduled / automated terminal commands** — spec+plan done; implementing
+- [x] **D — Scheduled / automated terminal commands** — DONE, merged
+
+**Batch complete (2026-06-15): all 7 features shipped across A–D, merged to `main`.**
 
 Each sub-project: `docs/superpowers/specs/2026-06-15-termhalla-<name>-design.md` +
 `docs/superpowers/plans/2026-06-15-termhalla-<name>.md`, implemented on its own
