@@ -75,6 +75,8 @@ export function registerHandlers(win: BrowserWindow): PtyManager {
   })
   ipcMain.on(CH.ptyWrite, (_e, a: PtyWriteArgs) => pty.write(a.id, a.data))
   ipcMain.on(CH.ptyResize, (_e, a: PtyResizeArgs) => pty.resize(a.id, a.cols, a.rows))
+  // ai/tracker unregister here is synchronous; the async pty onExit fires them again but
+  // both are idempotent (Map.delete returns false), so the renderer sees a single clear.
   ipcMain.on(CH.ptyKill, (_e, id: string) => { pty.kill(id); tracker!.unregister(id); ai!.unregister(id) })
 
   ipcMain.on(CH.notify, (_e, a: NotifyArgs) => {
