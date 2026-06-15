@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
 import { monaco } from '../editor/monaco-setup'
 import { languageForPath } from '@shared/language'
-import { draftKey, resolveDraftOnOpen } from '@shared/editor-draft'
+import { draftKey, resolveDraftOnOpen, UNTITLED, isUntitled } from '@shared/editor-draft'
 import { api } from '../api'
 import { useStore } from '../store'
 import type { EditorConfig } from '@shared/types'
@@ -45,7 +45,7 @@ export function EditorPane({ paneId, wsId, config }: { paneId: string; wsId: str
     const t = tabs.current.get(path)
     if (t && edRef.current) edRef.current.setModel(t.model)
     setActive(path)
-    persistRef.current(orderRef.current, path)
+    persistRef.current(orderRef.current, isUntitled(path) ? undefined : path)
   }, [])
 
   const loading = useRef<Set<string>>(new Set())
@@ -68,6 +68,17 @@ export function EditorPane({ paneId, wsId, config }: { paneId: string; wsId: str
     if (existing) clearTimeout(existing)
     timers.set(path, setTimeout(() => { timers.delete(path); persistDraft(path) }, 500))
   }, [persistDraft])
+
+  // Clear the untitled scratch buffer (the × on its tab) and drop its persisted draft.
+  const clearUntitled = useCallback(() => {
+    const t = tabs.current.get(UNTITLED)
+    if (!t) return
+    applyContent(t.model, '')
+    api.draftDelete(draftKey(paneId, UNTITLED))
+    const dt = draftTimers.current.get(UNTITLED); if (dt) { clearTimeout(dt); draftTimers.current.delete(UNTITLED) }
+    if (active === UNTITLED) { const f = orderRef.current[0]; if (f) setActiveModel(f) }
+    rerender()
+  }, [active, paneId, setActiveModel, rerender])
 
   const openTab = useCallback(async (path: string) => {
     if (tabs.current.has(path)) { setActiveModel(path); return }
@@ -141,6 +152,14 @@ export function EditorPane({ paneId, wsId, config }: { paneId: string; wsId: str
     registerEditorPane(paneId)
     const focusDisp = ed.onDidFocusEditorText(() => registerEditorPane(paneId))
     ed.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS, () => { void saveActiveRef.current() })
+    // One persistent untitled scratch buffer per pane (saved='' so the existing dirty/persist
+    // logic treats any non-empty content as a draft). Seeded from the loaded drafts map.
+    const untitledModel = monaco.editor.createModel(
+      useStore.getState().drafts[draftKey(paneId, UNTITLED)]?.content ?? '', 'plaintext'
+    )
+    const untitledDisp = untitledModel.onDidChangeContent(() => { rerender(); scheduleDraftPersist(UNTITLED) })
+    tabs.current.set(UNTITLED, { path: UNTITLED, model: untitledModel, saved: '', disp: untitledDisp, tooLarge: false, missing: false })
+    if (config.files.length === 0) setActiveModel(UNTITLED)
     return () => {
       focusDisp.dispose(); ed.dispose()
       for (const t of draftTimers.current.values()) clearTimeout(t)
@@ -196,6 +215,21 @@ export function EditorPane({ paneId, wsId, config }: { paneId: string; wsId: str
   return (
     <div data-testid={`editor-${paneId}`} style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
       <div data-testid="editor-tabs" style={{ display: 'flex', background: '#1e1e1e', overflowX: 'auto' }}>
+        {(() => {
+          const ut = tabs.current.get(UNTITLED)
+          const content = ut?.model.getValue() ?? ''
+          if (order.length !== 0 && content === '') return null
+          return (
+            <div data-testid="tab-untitled" onClick={() => setActiveModel(UNTITLED)}
+              style={{ display: 'flex', gap: 4, alignItems: 'center', padding: '2px 8px', cursor: 'pointer',
+                background: active === UNTITLED ? '#333' : 'transparent', color: '#ddd', whiteSpace: 'nowrap' }}>
+              <span>Untitled{content !== '' ? ' •' : ''}</span>
+              {order.length > 0 && (
+                <button data-testid="tab-close-untitled" onClick={e => { e.stopPropagation(); clearUntitled() }}>×</button>
+              )}
+            </div>
+          )
+        })()}
         {order.length === 0 && (
           <button data-testid="editor-open-file" onClick={async () => { const p = await api.openFile(); if (p) void openTab(p) }}>
             Open File…
