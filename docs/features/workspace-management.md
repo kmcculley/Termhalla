@@ -7,7 +7,7 @@
 ## What it does
 
 - **Right-click a workspace tab** → a context menu with **Rename**, **Save**, **Close**.
-- **Rename** inline — the tab becomes a text input (Enter/blur commits, Esc cancels, blank keeps the old name). Double-clicking a tab also starts a rename.
+- **Rename** inline — the tab becomes a text input with the existing name **pre-selected** (type to replace; Enter/blur commits, Esc cancels, blank keeps the old name). Double-clicking a tab also starts a rename.
 - **Name on creation** — clicking `+` creates the workspace and immediately drops its tab into rename mode, so you can type the name right away.
 - **Drag to reorder** — hold the left mouse button on a tab and drop it on another to reorder.
 - **Close** removes the workspace, closing its terminals; it asks for confirmation only when the workspace has panes, and if you close the last one a fresh empty workspace is created.

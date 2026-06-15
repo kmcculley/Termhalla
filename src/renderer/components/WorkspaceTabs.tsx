@@ -50,6 +50,7 @@ export function WorkspaceTabs() {
       {order.map(id => (
         renamingId === id ? (
           <input key={id} data-testid={`ws-rename-${id}`} autoFocus value={renameText}
+            onFocus={e => e.currentTarget.select()}
             onChange={e => setRenameText(e.target.value)}
             onKeyDown={e => { if (e.key === 'Enter') commitRename(id); else if (e.key === 'Escape') setRenamingId(null) }}
             onBlur={() => commitRename(id)}

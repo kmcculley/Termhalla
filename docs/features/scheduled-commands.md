@@ -35,6 +35,7 @@ Pure `src/shared/schedule.ts`: `toMs(value, unit)`, `nextRecurringDelay(everyMs,
 - A recurring task keeps firing until cancelled; the next delay is re-randomized each fire.
 - An `idle` task fires once on the first not-busy observation (immediately if already idle), then auto-cancels.
 - Closing a terminal or workspace cancels its schedules; app close drops all (runtime-only).
+- The dialog portals to `<body>` so it covers the full window rather than being confined to (and clipped by) the mosaic tile it was opened from.
 
 ## Testing
 

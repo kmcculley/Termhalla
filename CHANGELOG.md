@@ -6,7 +6,14 @@ All notable changes to Termhalla are recorded here. The format follows
 
 ## [Unreleased]
 
+### Changed
+- **Broadcast dialog** — **Shift+Enter** now sends; added quick-key buttons (Esc, Ctrl+C/D/Z/L,
+  Tab, Enter, ↑/↓) that send the control sequence to all terminals.
+- **Workspace rename** — the existing name is selected on focus, so you can type to replace it.
+
 ### Fixed
+- **Scheduled-command dialog** was clipped by adjacent terminals — it now portals to `<body>`
+  and covers the full window (react-mosaic tiles created a transform containing block).
 - **Claude usage metrics** showed a stuck `0%` and the wrong context window.
   The transcript watcher now watches the project *directory* and re-resolves the
   newest transcript on every change (fixes binding to stale/empty session stubs),
