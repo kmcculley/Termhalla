@@ -84,7 +84,9 @@ export function EditorPane({ paneId, wsId, config }: { paneId: string; wsId: str
         : resolveDraftOnOpen(missing ? null : saved, draft)
       const model = monaco.editor.createModel(resolved.content, languageForPath(path))
       const disp = model.onDidChangeContent(() => { rerender(); scheduleDraftPersist(path) })
-      tabs.current.set(path, { path, model, saved, disp, tooLarge, missing, externalChanged: resolved.externalChanged || undefined })
+      // Only surface the "changed on disk" bar when the restored draft actually differs from
+      // disk; a stale draft equal to disk (deleted just below) shouldn't raise it.
+      tabs.current.set(path, { path, model, saved, disp, tooLarge, missing, externalChanged: (resolved.dirty && resolved.externalChanged) || undefined })
       if (draft && !resolved.dirty) api.draftDelete(key)  // stale draft equals disk
       api.fsWatch(key, path)
       setOrder(o => (o.includes(path) ? o : [...o, path]))
