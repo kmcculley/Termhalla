@@ -157,7 +157,7 @@ export function WorkspaceView({ ws }: { ws: Workspace }) {
                     onClick={() => { void api.revealPath(cwd); setCwdMenuFor(null) }}>Reveal in File Explorer</button>
                 </div>
               )}
-              {pane?.config.kind === 'terminal' && termCfg && <TerminalPane paneId={paneId} config={termCfg} />}
+              {pane?.config.kind === 'terminal' && termCfg && <TerminalPane paneId={paneId} wsId={ws.id} config={termCfg} />}
               {pane?.config.kind === 'editor' && <EditorPane paneId={paneId} wsId={ws.id} config={pane.config} />}
               {pane?.config.kind === 'explorer' && <ExplorerPane paneId={paneId} wsId={ws.id} config={pane.config} />}
               {!pane && <div>missing pane</div>}

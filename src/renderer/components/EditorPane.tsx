@@ -4,6 +4,7 @@ import { languageForPath } from '@shared/language'
 import { draftKey, resolveDraftOnOpen, UNTITLED, isUntitled } from '@shared/editor-draft'
 import { api } from '../api'
 import { useStore } from '../store'
+import { resolveTheme } from '@shared/theme'
 import type { EditorConfig } from '@shared/types'
 import type { editor as monacoEditor } from 'monaco-editor'
 
@@ -226,6 +227,21 @@ export function EditorPane({ paneId, wsId, config }: { paneId: string; wsId: str
     return off
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [paneId])
+
+  const appTheme = useStore(s => s.quick.theme)
+  const wsTheme = useStore(s => s.workspaces[wsId]?.theme)
+  const paneTheme = config.theme
+  useEffect(() => {
+    const ed = edRef.current
+    if (!ed) return
+    const t = resolveTheme(appTheme, wsTheme, paneTheme)
+    const name = `termhalla-${paneId}`
+    try {
+      monaco.editor.defineTheme(name, { base: 'vs-dark', inherit: true, rules: [],
+        colors: { 'editor.background': t.windowBg, 'editor.foreground': t.text } })
+      ed.updateOptions({ theme: name })
+    } catch { /* invalid color */ }
+  }, [appTheme, wsTheme, paneTheme, paneId])
 
   const activeTab = active ? tabs.current.get(active) : undefined
   const isDirty = (t: Tab | undefined) => !!t && !t.tooLarge && !t.missing && t.model.getValue() !== t.saved
