@@ -10,7 +10,7 @@ import { api } from './api'
 
 export default function App() {
   const init = useStore(s => s.init)
-  const { activeId, workspaces } = useStore()
+  const { activeId, workspaces, order } = useStore()
   const connectionFormFor = useStore(s => s.connectionFormFor)
   useEffect(() => { init() }, [init])
   useEffect(() => {
@@ -55,12 +55,29 @@ export default function App() {
     return () => window.removeEventListener('keydown', onKey)
   }, [])
 
-  const active = activeId ? workspaces[activeId] : null
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100vh' }}>
       <WorkspaceTabs />
       <div style={{ flex: 1, position: 'relative' }} className="mosaic-blueprint-theme">
-        {active ? <WorkspaceView ws={active} /> : <div data-testid="app-title">Termhalla</div>}
+        {order.length === 0 && <div data-testid="app-title">Termhalla</div>}
+        {/* Every workspace stays mounted; only the active one is shown. Switching tabs must NOT
+            unmount inactive panes — that would dispose their xterm instances (losing scrollback
+            and freezing live TUIs like Claude until the next write) and Monaco models (losing
+            unsaved edits). `visibility: hidden` (not `display: none`) keeps each host at full
+            size, so xterm's FitAddon and the PTY grid never resize on switch. */}
+        {order.map(id => {
+          const ws = workspaces[id]
+          if (!ws) return null
+          const isActive = id === activeId
+          return (
+            <div key={id} data-testid="workspace-host" data-ws={id} data-active={isActive ? 'true' : 'false'}
+              aria-hidden={!isActive}
+              style={{ position: 'absolute', inset: 0, visibility: isActive ? 'visible' : 'hidden',
+                pointerEvents: isActive ? 'auto' : 'none', zIndex: isActive ? 1 : 0 }}>
+              <WorkspaceView ws={ws} />
+            </div>
+          )
+        })}
       </div>
       <StatusBar />
       <UsageWatcher />
