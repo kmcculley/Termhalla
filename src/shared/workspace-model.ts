@@ -81,3 +81,16 @@ function migrate(ws: Workspace, version: number): Workspace {
   }
   return ws
 }
+
+/** Move `fromId` to the index currently held by `toId`, returning a new array.
+ *  No-op when either id is missing or they are equal. */
+export function reorderIds(order: string[], fromId: string, toId: string): string[] {
+  if (fromId === toId) return order
+  const from = order.indexOf(fromId)
+  const to = order.indexOf(toId)
+  if (from < 0 || to < 0) return order
+  const next = order.slice()
+  next.splice(from, 1)
+  next.splice(to, 0, fromId)
+  return next
+}
