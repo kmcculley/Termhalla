@@ -3,6 +3,7 @@ import { Mosaic, MosaicWindow } from 'react-mosaic-component'
 import 'react-mosaic-component/react-mosaic-component.css'
 import type { MosaicNode as ModelNode, Workspace } from '@shared/types'
 import { resolveAlerts } from '@shared/alerts'
+import { themeCssVarsPartial } from '@shared/theme'
 import { useStore } from '../store'
 import { api } from '../api'
 import { TerminalPane } from './TerminalPane'
@@ -113,7 +114,8 @@ export function WorkspaceView({ ws }: { ws: Workspace }) {
             ]}
           >
             <div className="term-tile" data-status={state}
-              data-testid={`tile-${paneId}`} data-cwd={cwd} style={{ position: 'relative', height: '100%' }}>
+              data-testid={`tile-${paneId}`} data-cwd={cwd}
+              style={{ ...themeCssVarsPartial(pane?.config.theme ?? {}), position: 'relative', height: '100%' }}>
               {settingsFor === paneId && pane && termCfg && (
                 <TerminalSettings config={termCfg}
                   onChange={patch => updatePaneConfig(ws.id, paneId, patch)}
