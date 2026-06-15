@@ -103,6 +103,7 @@ export function EditorPane({ paneId, wsId, config }: { paneId: string; wsId: str
     await api.fsWrite(active, value)
     t.saved = value
     api.draftDelete(draftKey(paneId, active))
+    const dt = draftTimers.current.get(active); if (dt) { clearTimeout(dt); draftTimers.current.delete(active) }
     rerender()
   }, [active, rerender, paneId])
 
@@ -116,7 +117,7 @@ export function EditorPane({ paneId, wsId, config }: { paneId: string; wsId: str
       if (!window.confirm(`${base(path)} has unsaved changes. Close anyway?`)) return
     }
     t.disp.dispose(); t.model.dispose(); tabs.current.delete(path)
-    api.fsUnwatch(`${paneId}::${path}`)
+    api.fsUnwatch(draftKey(paneId, path))
     api.draftDelete(draftKey(paneId, path))
     const dt = draftTimers.current.get(path); if (dt) { clearTimeout(dt); draftTimers.current.delete(path) }
     setOrder(o => {
@@ -142,13 +143,15 @@ export function EditorPane({ paneId, wsId, config }: { paneId: string; wsId: str
       focusDisp.dispose(); ed.dispose()
       for (const t of draftTimers.current.values()) clearTimeout(t)
       draftTimers.current.clear()
-      for (const t of tabs.current.values()) { api.fsUnwatch(`${paneId}::${t.path}`); api.draftDelete(draftKey(paneId, t.path)); t.disp.dispose(); t.model.dispose() }
+      for (const t of tabs.current.values()) { api.fsUnwatch(draftKey(paneId, t.path)); api.draftDelete(draftKey(paneId, t.path)); t.disp.dispose(); t.model.dispose() }
       tabs.current.clear()
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [paneId])
 
-  // Best-effort flush of pending drafts when the whole app is closing.
+  // Best-effort flush of pending drafts when the whole app is closing. The draftSet/draftDelete
+  // sends are queued synchronously here (in beforeunload) before the renderer is torn down; the
+  // main process's win.on('close') -> DraftStore.flush() is the second safety net.
   useEffect(() => {
     const flush = () => {
       for (const t of draftTimers.current.values()) clearTimeout(t)
