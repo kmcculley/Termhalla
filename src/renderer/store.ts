@@ -196,6 +196,7 @@ export const useStore = create<State>((set, get) => {
         const usage = { ...s.usage }; delete usage[paneId]
         return { workspaces: { ...s.workspaces, [wsId]: ws }, statuses, cwds, procs, aiSessions, usage }
       })
+      api.usageUnwatch(paneId)
       api.ptyKill(paneId)
       scheduleAutosave()
     },
