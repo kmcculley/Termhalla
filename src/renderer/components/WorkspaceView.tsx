@@ -10,6 +10,13 @@ import { EditorPane } from './EditorPane'
 import { ExplorerPane } from './ExplorerPane'
 import { TerminalSettings } from './TerminalSettings'
 
+/** Compact token count: 999 -> "999", 1234 -> "1.2k", 156000 -> "156k". */
+function fmtTokens(n: number): string {
+  if (n < 1000) return String(n)
+  const k = n / 1000
+  return `${k >= 10 ? Math.round(k) : k.toFixed(1)}k`
+}
+
 /** Short, compact names for the idle process chip. */
 const SHELL_CHIP_LABEL: Record<string, string> = {
   'Windows PowerShell': 'pwsh',
@@ -29,6 +36,7 @@ export function WorkspaceView({ ws }: { ws: Workspace }) {
   const procs = useStore(s => s.procs)
   const shells = useStore(s => s.shells)
   const aiSessions = useStore(s => s.aiSessions)
+  const usages = useStore(s => s.usage)
   const [settingsFor, setSettingsFor] = useState<string | null>(null)
   const [cwdMenuFor, setCwdMenuFor] = useState<string | null>(null)
   const [procsMenuFor, setProcsMenuFor] = useState<string | null>(null)
@@ -68,7 +76,8 @@ export function WorkspaceView({ ws }: { ws: Workspace }) {
         const rawShellLabel = termCfg ? (shells.find(sh => sh.id === termCfg.shellId)?.label ?? termCfg.shellId) : ''
         const shellLabel = SHELL_CHIP_LABEL[rawShellLabel] ?? rawShellLabel
         const aiSession = aiSessions[paneId]
-        const chipText = aiSession ? `✨ ${aiSession.label}`
+        const usage = usages[paneId]
+        const chipText = aiSession ? `✨ ${aiSession.label}${usage ? ` ${usage.contextPct}%` : ''}`
           : procInfo && procInfo.foreground ? `▶ ${procInfo.foreground}` : shellLabel
         const status = statuses[paneId]
         const alerts = resolveAlerts(termCfg?.alerts)
@@ -111,6 +120,15 @@ export function WorkspaceView({ ws }: { ws: Workspace }) {
                   style={{ position: 'absolute', left: 4, top: 28, zIndex: 10, background: '#252526',
                     color: '#eee', border: '1px solid #444', borderRadius: 4, padding: 6, maxWidth: 460,
                     maxHeight: 240, overflow: 'auto', fontSize: 12, fontFamily: 'Consolas, monospace' }}>
+                  {usage && (
+                    <div data-testid={`usage-${paneId}`}
+                      style={{ borderBottom: '1px solid #444', paddingBottom: 4, marginBottom: 4 }}>
+                      <div>context {fmtTokens(usage.contextTokens)} / {fmtTokens(usage.contextWindow)} · {usage.contextPct}%</div>
+                      <div style={{ opacity: 0.7 }}>
+                        in {fmtTokens(usage.input)} · out {fmtTokens(usage.output)} · cache r {fmtTokens(usage.cacheRead)} / w {fmtTokens(usage.cacheCreation)}
+                      </div>
+                    </div>
+                  )}
                   {(!procInfo || procInfo.tree.length === 0) && <div style={{ opacity: 0.6 }}>No child processes.</div>}
                   {procInfo && procInfo.tree.map(n => (
                     <div key={n.pid} data-testid={`proc-row-${n.pid}`}
