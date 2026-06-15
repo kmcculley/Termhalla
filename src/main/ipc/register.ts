@@ -118,6 +118,12 @@ export function registerHandlers(win: BrowserWindow): PtyManager {
     const r = await dialog.showOpenDialog(win, { properties: ['openFile'] })
     return r.canceled || r.filePaths.length === 0 ? null : r.filePaths[0]
   })
+  ipcMain.handle(CH.dialogSaveFile, async () => {
+    // Test hook: hermetic e2e can't drive a native dialog (mirrors TERMHALLA_CLAUDE_HOME).
+    if (process.env.TERMHALLA_SAVE_PATH) return process.env.TERMHALLA_SAVE_PATH
+    const r = await dialog.showSaveDialog(win, {})
+    return r.canceled || !r.filePath ? null : r.filePath
+  })
   ipcMain.handle(CH.revealPath, async (_e, path: string) => { await shell.openPath(path) })
 
   ipcMain.handle(CH.quickLoad, () => quick.load())

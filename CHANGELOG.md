@@ -19,6 +19,9 @@ All notable changes to Termhalla are recorded here. The format follows
   preserving all pane state across switches.
 
 ### Added
+- **Editor scratch buffer** — every editor pane now has a persistent **Untitled**
+  scratch tab: type into an empty editor and the text survives a restart. **Ctrl+S**
+  (or "Save As…") turns the scratch into a real file.
 - **Editor hot-exit** — unsaved editor buffers now persist across an app restart
   (or crash) and are restored exactly on reopen. If a drafted file also changed on
   disk while the app was closed, the existing "Changed on disk" bar appears

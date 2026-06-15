@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { draftKey, resolveDraftOnOpen } from '../../src/shared/editor-draft'
+import { draftKey, resolveDraftOnOpen, UNTITLED, isUntitled } from '../../src/shared/editor-draft'
 
 describe('draftKey', () => {
   it('combines paneId and path with the :: separator (matches the fs-watch id scheme)', () => {
@@ -29,5 +29,23 @@ describe('resolveDraftOnOpen', () => {
   it('reports not-dirty when the draft equals disk (stale draft)', () => {
     const r = resolveDraftOnOpen('same', { content: 'same', baseline: 'base' })
     expect(r).toEqual({ content: 'same', dirty: false, externalChanged: true })
+  })
+})
+
+describe('UNTITLED sentinel', () => {
+  it('is a non-empty sentinel that is not a real path', () => {
+    expect(typeof UNTITLED).toBe('string')
+    expect(UNTITLED.length).toBeGreaterThan(0)
+    expect(/[<>]/.test(UNTITLED)).toBe(true) // contains chars invalid in Windows paths
+    expect(isUntitled('C:\\dev\\untitled')).toBe(false) // an absolute path is never the sentinel
+  })
+  it('isUntitled matches only the sentinel', () => {
+    expect(isUntitled(UNTITLED)).toBe(true)
+    expect(isUntitled('C:\\dev\\a.ts')).toBe(false)
+    expect(isUntitled('untitled')).toBe(false)
+    expect(isUntitled('')).toBe(false)
+  })
+  it('draftKey works with the sentinel', () => {
+    expect(draftKey('p1', UNTITLED)).toBe(`p1::${UNTITLED}`)
   })
 })

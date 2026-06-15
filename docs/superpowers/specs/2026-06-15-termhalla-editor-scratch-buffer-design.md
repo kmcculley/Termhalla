@@ -49,9 +49,11 @@ store, IPC, or types are needed for persistence; only the Save-As path adds IPC.
 
 In `src/shared/editor-draft.ts`:
 
-- `export const UNTITLED = '<NUL>untitled'` — a sentinel "path" that can never equal
-  a real filesystem path (NUL is invalid in paths). Used as the untitled tab's key and
-  in `draftKey(paneId, UNTITLED)`.
+- `export const UNTITLED = '<untitled>'` — a sentinel "path" that can never equal a real
+  path the app opens (the angle brackets are invalid in Windows paths, and the app only
+  ever opens absolute paths). Used as the untitled tab's key and in `draftKey(paneId, UNTITLED)`.
+  *(Implementation note: the original draft proposed a NUL-prefixed sentinel; the angle-bracket
+  form was chosen as a clean-ASCII equivalent — see `docs/decisions.md`.)*
 - `export function isUntitled(path: string): boolean { return path === UNTITLED }`.
 
 These are trivially unit-testable and keep the sentinel definition in one place

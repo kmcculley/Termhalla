@@ -41,6 +41,7 @@ const api: TermhallaApi = {
   },
   openFolder: () => ipcRenderer.invoke(CH.dialogOpenFolder),
   openFile: () => ipcRenderer.invoke(CH.dialogOpenFile),
+  saveFileDialog: () => ipcRenderer.invoke(CH.dialogSaveFile),
   revealPath: (path) => ipcRenderer.invoke(CH.revealPath, path),
   loadQuick: () => ipcRenderer.invoke(CH.quickLoad),
   saveQuick: (data) => ipcRenderer.invoke(CH.quickSave, data),
