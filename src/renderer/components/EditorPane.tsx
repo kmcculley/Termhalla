@@ -108,8 +108,25 @@ export function EditorPane({ paneId, wsId, config }: { paneId: string; wsId: str
     }
   }, [rerender, setActiveModel, scheduleDraftPersist])
 
+  // Save the untitled scratch buffer to a new file: write it, drop its draft, clear it,
+  // and open the saved file as a normal (clean) tab.
+  const saveUntitledAs = useCallback(async () => {
+    const t = tabs.current.get(UNTITLED)
+    if (!t) return
+    const content = t.model.getValue()
+    const path = await api.saveFileDialog()
+    if (!path) return
+    await api.fsWrite(path, content)
+    api.draftDelete(draftKey(paneId, UNTITLED))
+    const dt = draftTimers.current.get(UNTITLED); if (dt) { clearTimeout(dt); draftTimers.current.delete(UNTITLED) }
+    applyContent(t.model, '')
+    await openTab(path)
+    rerender()
+  }, [paneId, openTab, rerender])
+
   const saveActive = useCallback(async () => {
     if (!active) return
+    if (isUntitled(active)) { await saveUntitledAs(); return }
     const t = tabs.current.get(active)
     if (!t || t.tooLarge) return
     const value = t.model.getValue()
@@ -118,7 +135,7 @@ export function EditorPane({ paneId, wsId, config }: { paneId: string; wsId: str
     api.draftDelete(draftKey(paneId, active))
     const dt = draftTimers.current.get(active); if (dt) { clearTimeout(dt); draftTimers.current.delete(active) }
     rerender()
-  }, [active, rerender, paneId])
+  }, [active, rerender, paneId, saveUntitledAs])
 
   const saveActiveRef = useRef(saveActive)
   useEffect(() => { saveActiveRef.current = saveActive }, [saveActive])
@@ -224,6 +241,10 @@ export function EditorPane({ paneId, wsId, config }: { paneId: string; wsId: str
               style={{ display: 'flex', gap: 4, alignItems: 'center', padding: '2px 8px', cursor: 'pointer',
                 background: active === UNTITLED ? '#333' : 'transparent', color: '#ddd', whiteSpace: 'nowrap' }}>
               <span>Untitled{content !== '' ? ' •' : ''}</span>
+              {active === UNTITLED && content !== '' && (
+                <button data-testid="untitled-saveas" title="Save As…"
+                  onClick={e => { e.stopPropagation(); void saveUntitledAs() }}>Save As…</button>
+              )}
               {order.length > 0 && (
                 <button data-testid="tab-close-untitled" onClick={e => { e.stopPropagation(); clearUntitled() }}>×</button>
               )}
