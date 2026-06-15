@@ -54,7 +54,8 @@ const quick: QuickStore = {
   recentConnections: ['c2'],
   favoriteDirs: ['C:\\proj'],
   recentDirs: ['C:\\proj', 'C:\\work'],
-  templates: []
+  templates: [],
+  themePresets: []
 }
 
 describe('buildPaletteItems', () => {

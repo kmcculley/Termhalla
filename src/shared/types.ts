@@ -69,10 +69,12 @@ export interface QuickStore {
   favoriteDirs: string[]        // user-pinned (★)
   recentDirs: string[]          // MRU, deduped, capped, home excluded
   templates: WorkspaceTemplate[]
+  theme?: Partial<Theme>
+  themePresets: { id: string; name: string; theme: Theme }[]
 }
 
 export const EMPTY_QUICK: QuickStore = {
-  connections: [], recentConnections: [], favoriteDirs: [], recentDirs: [], templates: []
+  connections: [], recentConnections: [], favoriteDirs: [], recentDirs: [], templates: [], themePresets: []
 }
 
 /** Per-terminal pane configuration (what gets serialized). */
