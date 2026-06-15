@@ -1,6 +1,7 @@
 import { useEffect } from 'react'
 import { useStore } from './store'
 import { ThemeProvider } from './components/ThemeProvider'
+import { themeCssVarsPartial } from '@shared/theme'
 import { WorkspaceTabs } from './components/WorkspaceTabs'
 import { WorkspaceView } from './components/WorkspaceView'
 import { BroadcastDialog } from './components/BroadcastDialog'
@@ -64,7 +65,7 @@ export default function App() {
   }, [])
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100vh' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', background: 'var(--bg, #1e1e1e)' }}>
       <ThemeProvider />
       <WorkspaceTabs />
       <div style={{ flex: 1, position: 'relative' }} className="mosaic-blueprint-theme">
@@ -81,7 +82,7 @@ export default function App() {
           return (
             <div key={id} data-testid="workspace-host" data-ws={id} data-active={isActive ? 'true' : 'false'}
               aria-hidden={!isActive}
-              style={{ position: 'absolute', inset: 0, visibility: isActive ? 'visible' : 'hidden',
+              style={{ ...themeCssVarsPartial(ws.theme ?? {}), position: 'absolute', inset: 0, visibility: isActive ? 'visible' : 'hidden',
                 pointerEvents: isActive ? 'auto' : 'none', zIndex: isActive ? 1 : 0 }}>
               <WorkspaceView ws={ws} />
             </div>

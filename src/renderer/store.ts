@@ -2,7 +2,7 @@ import { create } from 'zustand'
 import { v4 as uuid } from 'uuid'
 import type { Workspace, ShellInfo, MosaicNode, MosaicDirection, TerminalConfig, TerminalStatus, PaneConfig, EditorConfig, ExplorerConfig, QuickStore, SshConnection, ProcInfo, CloudStatus, TerminalLaunch, AiSession, UsageMetrics, EditorDraft, ScheduledTask, Theme } from '@shared/types'
 import { EMPTY_QUICK } from '@shared/types'
-import { DEFAULT_THEME, mergeTheme } from '@shared/theme'
+import { DEFAULT_THEME, mergeTheme, resolveTheme } from '@shared/theme'
 import { buildSshArgs, nextRecentDirs, pushRecent, RECENT_CONN_CAP } from '@shared/quick'
 import {
   createWorkspace, addFirstPane, splitPane, removePane, reorderIds,
@@ -12,6 +12,8 @@ import { resolveAlerts, effectiveStatus } from '@shared/alerts'
 import { encodeBroadcast, terminalPaneIds } from '@shared/broadcast'
 import { schedulesWithout } from '@shared/schedule'
 import { api } from './api'
+
+export type ThemeScope = { kind: 'app' } | { kind: 'workspace'; wsId: string } | { kind: 'pane'; wsId: string; paneId: string }
 
 interface State {
   shells: ShellInfo[]
@@ -77,6 +79,8 @@ interface State {
   newWorkspaceFromTemplate: (templateId: string, name: string) => string
   setTheme: (patch: Partial<Theme>) => void
   resetTheme: () => void
+  setThemeScoped: (scope: ThemeScope, patch: Partial<Theme>) => void
+  resetThemeScope: (scope: ThemeScope) => void
   saveThemePreset: (name: string) => void
   applyThemePreset: (id: string) => void
   deleteThemePreset: (id: string) => void
@@ -115,6 +119,11 @@ export function paneCwd(
     if (pane?.config.kind === 'terminal') return pane.config.cwd
   }
   return ''
+}
+
+export function resolvedPaneTheme(s: { quick: { theme?: Partial<Theme> }; workspaces: Record<string, Workspace> }, wsId: string, paneId: string): Theme {
+  const ws = s.workspaces[wsId]
+  return resolveTheme(s.quick.theme, ws?.theme, ws?.panes[paneId]?.config.theme)
 }
 
 /** Display state for an AI session pane: 'working' when busy, 'awaiting' when quiet, null if not an AI session. */
@@ -210,6 +219,33 @@ export const useStore = create<State>((set, get) => {
     resetTheme: () => {
       set(s => ({ quick: { ...s.quick, theme: { ...DEFAULT_THEME } } }))
       scheduleQuickSave()
+    },
+
+    setThemeScoped: (scope, patch) => {
+      if (scope.kind === 'app') { get().setTheme(patch); return }
+      if (scope.kind === 'workspace') {
+        set(s => { const ws = s.workspaces[scope.wsId]; if (!ws) return {}
+          return { workspaces: { ...s.workspaces, [scope.wsId]: { ...ws, theme: { ...(ws.theme ?? {}), ...patch } } } } })
+        scheduleAutosave(); return
+      }
+      set(s => { const ws = s.workspaces[scope.wsId]; const pane = ws?.panes[scope.paneId]; if (!ws || !pane) return {}
+        const cfg = { ...pane.config, theme: { ...(pane.config.theme ?? {}), ...patch } }
+        return { workspaces: { ...s.workspaces, [scope.wsId]: { ...ws, panes: { ...ws.panes, [scope.paneId]: { ...pane, config: cfg } } } } } })
+      scheduleAutosave()
+    },
+
+    resetThemeScope: (scope) => {
+      if (scope.kind === 'app') { get().resetTheme(); return }
+      if (scope.kind === 'workspace') {
+        set(s => { const ws = s.workspaces[scope.wsId]; if (!ws) return {}
+          const { theme: _omit, ...rest } = ws; void _omit
+          return { workspaces: { ...s.workspaces, [scope.wsId]: rest as typeof ws } } })
+        scheduleAutosave(); return
+      }
+      set(s => { const ws = s.workspaces[scope.wsId]; const pane = ws?.panes[scope.paneId]; if (!ws || !pane) return {}
+        const { theme: _omit, ...restCfg } = pane.config; void _omit
+        return { workspaces: { ...s.workspaces, [scope.wsId]: { ...ws, panes: { ...ws.panes, [scope.paneId]: { ...pane, config: restCfg as typeof pane.config } } } } } })
+      scheduleAutosave()
     },
     saveThemePreset: (name) => {
       const n = name.trim(); if (!n) return

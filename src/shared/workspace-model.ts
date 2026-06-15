@@ -117,13 +117,19 @@ export function remapPaneIds(
   return { layout: layout === null ? null : remapNode(layout), panes: newPanes }
 }
 
-/** Capture a workspace's layout as a (deep-copied) template blueprint. */
+/** Capture a workspace's layout as a (deep-copied) template blueprint, including its
+ *  workspace-level theme override (pane-level overrides ride along inside `panes`). */
 export function templateFromWorkspace(ws: Workspace, id: string, name: string): WorkspaceTemplate {
-  return { id, name, layout: ws.layout === null ? null : cloneConfig(ws.layout), panes: cloneConfig(ws.panes) }
+  return {
+    id, name,
+    layout: ws.layout === null ? null : cloneConfig(ws.layout),
+    panes: cloneConfig(ws.panes),
+    theme: ws.theme ? cloneConfig(ws.theme) : undefined
+  }
 }
 
-/** Instantiate a fresh workspace from a template (new pane ids). */
+/** Instantiate a fresh workspace from a template (new pane ids), restoring its theme override. */
 export function workspaceFromTemplate(tpl: WorkspaceTemplate, wsId: string, name: string, uuid: () => string): Workspace {
   const { layout, panes } = remapPaneIds(tpl.layout, tpl.panes, uuid)
-  return { id: wsId, name, layout, panes }
+  return { id: wsId, name, layout, panes, theme: tpl.theme ? cloneConfig(tpl.theme) : undefined }
 }

@@ -43,3 +43,27 @@ export function themeCssVars(t: Theme): Record<string, string> {
     '--term-font-size': `${t.termFontSize}px`
   }
 }
+
+/** Effective theme for a pane: app < workspace < pane overrides. */
+export function resolveTheme(app: Partial<Theme> | undefined, ws: Partial<Theme> | undefined, pane: Partial<Theme> | undefined): Theme {
+  return mergeTheme({ ...(app ?? {}), ...(ws ?? {}), ...(pane ?? {}) })
+}
+
+const VAR_OF: Record<keyof Theme, string> = {
+  windowBg: '--bg', panelBg: '--panel', elevatedBg: '--elevated', border: '--border',
+  text: '--fg', textDim: '--fg-dim', accent: '--accent', statusBusy: '--status-busy',
+  statusNeedsInput: '--status-needs', fontFamily: '--font', fontSize: '--font-size',
+  termBg: '--term-bg', termFg: '--term-fg', termFontFamily: '--term-font', termFontSize: '--term-font-size'
+}
+const SIZE_KEYS = new Set<keyof Theme>(['fontSize', 'termFontSize'])
+
+/** CSS variables for only the tokens present in a partial theme (override layers). */
+export function themeCssVarsPartial(partial: Partial<Theme>): Record<string, string> {
+  const out: Record<string, string> = {}
+  for (const k of Object.keys(partial) as (keyof Theme)[]) {
+    const v = partial[k]
+    if (v === undefined) continue
+    out[VAR_OF[k]] = SIZE_KEYS.has(k) ? `${v}px` : String(v)
+  }
+  return out
+}

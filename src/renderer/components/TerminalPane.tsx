@@ -4,16 +4,16 @@ import { FitAddon } from '@xterm/addon-fit'
 import '@xterm/xterm/css/xterm.css'
 import { api } from '../api'
 import type { TerminalConfig } from '@shared/types'
-import { mergeTheme } from '@shared/theme'
+import { resolveTheme } from '@shared/theme'
 import { useStore } from '../store'
 
-export function TerminalPane({ paneId, config }: { paneId: string; config: TerminalConfig }) {
+export function TerminalPane({ paneId, wsId, config }: { paneId: string; wsId: string; config: TerminalConfig }) {
   const hostRef = useRef<HTMLDivElement>(null)
   const termRef = useRef<Terminal | null>(null)
   const fitRef = useRef<FitAddon | null>(null)
 
   useEffect(() => {
-    const t0 = mergeTheme(useStore.getState().quick.theme)
+    const t0 = resolveTheme(useStore.getState().quick.theme, useStore.getState().workspaces[wsId]?.theme, config.theme)
     const term = new Terminal({
       fontFamily: t0.termFontFamily, fontSize: t0.termFontSize, cursorBlink: true,
       theme: { background: t0.termBg, foreground: t0.termFg }
@@ -55,16 +55,18 @@ export function TerminalPane({ paneId, config }: { paneId: string; config: Termi
   // SSH terminal re-spawns if its target changes, without re-running on unrelated renders.
   }, [paneId, config.shellId, config.cwd, config.launch?.command, JSON.stringify(config.launch?.args)])
 
-  const quickTheme = useStore(s => s.quick.theme)
+  const appTheme = useStore(s => s.quick.theme)
+  const wsTheme = useStore(s => s.workspaces[wsId]?.theme)
+  const paneTheme = config.theme
   useEffect(() => {
     const term = termRef.current
     if (!term) return
-    const t = mergeTheme(quickTheme)
+    const t = resolveTheme(appTheme, wsTheme, paneTheme)
     term.options.theme = { background: t.termBg, foreground: t.termFg }
     term.options.fontFamily = t.termFontFamily
     term.options.fontSize = t.termFontSize
     fitRef.current?.fit()
-  }, [quickTheme])
+  }, [appTheme, wsTheme, paneTheme])
 
   return <div data-testid={`terminal-${paneId}`} ref={hostRef} style={{ width: '100%', height: '100%' }} />
 }

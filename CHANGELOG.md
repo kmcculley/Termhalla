@@ -7,6 +7,10 @@ All notable changes to Termhalla are recorded here. The format follows
 ## [Unreleased]
 
 ### Changed
+- **Theming is now scoped** — a Scope selector in the `🎨` editor themes the **app**, a
+  **workspace**, or an individual **pane** (terminal/editor/explorer), layered nearest-wins.
+  The window-background color is now visible (app root + mosaic gutters), and the color picker
+  no longer lags (live preview writes the CSS var directly; Monaco re-theme is debounced).
 - **Broadcast dialog** — **Shift+Enter** now sends; added quick-key buttons (Esc, Ctrl+C/D/Z/L,
   Tab, Enter, ↑/↓) that send the control sequence to all terminals.
 - **Workspace rename** — the existing name is selected on focus, so you can type to replace it.
