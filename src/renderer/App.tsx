@@ -1,5 +1,6 @@
 import { useEffect } from 'react'
 import { useStore } from './store'
+import { ThemeProvider } from './components/ThemeProvider'
 import { WorkspaceTabs } from './components/WorkspaceTabs'
 import { WorkspaceView } from './components/WorkspaceView'
 import { BroadcastDialog } from './components/BroadcastDialog'
@@ -64,6 +65,7 @@ export default function App() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100vh' }}>
+      <ThemeProvider />
       <WorkspaceTabs />
       <div style={{ flex: 1, position: 'relative' }} className="mosaic-blueprint-theme">
         {order.length === 0 && <div data-testid="app-title">Termhalla</div>}
