@@ -1,7 +1,8 @@
 import { create } from 'zustand'
 import { v4 as uuid } from 'uuid'
-import type { Workspace, ShellInfo, MosaicNode, MosaicDirection, TerminalConfig, TerminalStatus, PaneConfig, EditorConfig, ExplorerConfig, QuickStore, SshConnection, ProcInfo, CloudStatus, TerminalLaunch, AiSession, UsageMetrics, EditorDraft, ScheduledTask } from '@shared/types'
+import type { Workspace, ShellInfo, MosaicNode, MosaicDirection, TerminalConfig, TerminalStatus, PaneConfig, EditorConfig, ExplorerConfig, QuickStore, SshConnection, ProcInfo, CloudStatus, TerminalLaunch, AiSession, UsageMetrics, EditorDraft, ScheduledTask, Theme } from '@shared/types'
 import { EMPTY_QUICK } from '@shared/types'
+import { DEFAULT_THEME, mergeTheme } from '@shared/theme'
 import { buildSshArgs, nextRecentDirs, pushRecent, RECENT_CONN_CAP } from '@shared/quick'
 import {
   createWorkspace, addFirstPane, splitPane, removePane, reorderIds,
@@ -74,6 +75,11 @@ interface State {
   saveTemplate: (name: string) => void
   deleteTemplate: (id: string) => void
   newWorkspaceFromTemplate: (templateId: string, name: string) => string
+  setTheme: (patch: Partial<Theme>) => void
+  resetTheme: () => void
+  saveThemePreset: (name: string) => void
+  applyThemePreset: (id: string) => void
+  deleteThemePreset: (id: string) => void
 }
 
 let autosaveTimer: ReturnType<typeof setTimeout> | null = null
@@ -194,6 +200,30 @@ export const useStore = create<State>((set, get) => {
 
     deleteTemplate: (id) => {
       set(st => ({ quick: { ...st.quick, templates: st.quick.templates.filter(t => t.id !== id) } }))
+      scheduleQuickSave()
+    },
+
+    setTheme: (patch) => {
+      set(s => ({ quick: { ...s.quick, theme: { ...mergeTheme(s.quick.theme), ...patch } } }))
+      scheduleQuickSave()
+    },
+    resetTheme: () => {
+      set(s => ({ quick: { ...s.quick, theme: { ...DEFAULT_THEME } } }))
+      scheduleQuickSave()
+    },
+    saveThemePreset: (name) => {
+      const n = name.trim(); if (!n) return
+      set(s => ({ quick: { ...s.quick, themePresets: [...s.quick.themePresets, { id: uuid(), name: n, theme: mergeTheme(s.quick.theme) }] } }))
+      scheduleQuickSave()
+    },
+    applyThemePreset: (id) => {
+      const p = get().quick.themePresets.find(t => t.id === id)
+      if (!p) return
+      set(s => ({ quick: { ...s.quick, theme: { ...p.theme } } }))
+      scheduleQuickSave()
+    },
+    deleteThemePreset: (id) => {
+      set(s => ({ quick: { ...s.quick, themePresets: s.quick.themePresets.filter(t => t.id !== id) } }))
       scheduleQuickSave()
     },
 
