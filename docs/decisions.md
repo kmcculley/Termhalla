@@ -151,6 +151,27 @@ mounted (above) means tab switches never trigger that cleanup either.
 untitled-buffer persistence; orphan drafts for deleted workspaces are not pruned. See
 [superpowers/specs/2026-06-15-termhalla-editor-hot-exit-design.md](superpowers/specs/2026-06-15-termhalla-editor-hot-exit-design.md).
 
+### [2026-06-15] Untitled scratch buffer reuses the drafts store; angle-bracket sentinel
+
+**Context:** Users type into an editor pane with no file open (Monaco's auto untitled
+model); that text was untracked, unsaveable, and lost on restart — which is what the
+hot-exit feature appeared to "not fix" in real use.
+**Decision:** Model the untitled buffer as a `Tab` keyed by a reserved sentinel
+`UNTITLED` with `saved = ''`, so the existing hot-exit `persistDraft`/flush/cleanup
+machinery persists and restores it (under `paneId::<untitled>`) with no new store, IPC,
+or types. Save-As adds one IPC (`dialog:saveFile`). The sentinel is `'<untitled>'` —
+angle brackets are invalid in Windows paths and the app only opens absolute paths, so it
+can never collide with a file tab's key.
+**Rationale:** `saved=''` makes "any non-empty content" automatically dirty/persisted via
+the unchanged draft logic — minimal, low-risk reuse. The sentinel was originally proposed
+as NUL-prefixed (` untitled`, invalid on all platforms); the angle-bracket form was
+chosen as a clean-ASCII equivalent that avoids a raw NUL byte in source. (Trade-off: `<`/`>`
+are valid in POSIX paths, so on a future non-Windows port a file literally named
+`<untitled>` could theoretically collide — acceptable for this Windows-first app.)
+**Consequences:** One scratch buffer per pane; plaintext only; no cursor/scroll persistence.
+Drafts survive app close, are deleted on genuine pane removal — same invariant as hot-exit.
+See [superpowers/specs/2026-06-15-termhalla-editor-scratch-buffer-design.md](superpowers/specs/2026-06-15-termhalla-editor-scratch-buffer-design.md).
+
 ### [2026-06-15] Session-identity race pattern for watchers
 
 **Context:** Watchers that `await` between claiming a map slot and using it can leak
