@@ -14,6 +14,7 @@ export const AI_TOOLS: AiToolPattern[] = [
 
 /** Detect a Claude/Codex session anywhere in a terminal's descendant process tree, or null. */
 export function classifyAiSession(tree: ProcNode[]): AiSession | null {
+  // AI_TOOLS order is the priority: the first tool that matches ANY node in the tree wins.
   for (const t of AI_TOOLS) {
     for (const n of tree) {
       if (t.re.test(n.command) || t.re.test(n.name)) return { tool: t.tool, label: t.label }

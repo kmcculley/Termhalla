@@ -28,6 +28,10 @@ describe('classifyAiSession', () => {
     const tree = [node('pwsh', 'pwsh'), node('claude.cmd', 'claude.cmd'), node('rg foo', 'rg')]
     expect(classifyAiSession(tree)?.tool).toBe('claude')
   })
+  it('matches by process name when the command does not contain the tool', () => {
+    expect(classifyAiSession([node('C:\\Windows\\system32\\cmd.exe', 'claude')]))
+      .toEqual({ tool: 'claude', label: 'Claude' })
+  })
   it('returns null for an ordinary tree', () => {
     expect(classifyAiSession([node('npm run dev'), node('node vite.js')])).toBeNull()
   })
