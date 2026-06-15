@@ -19,6 +19,11 @@ All notable changes to Termhalla are recorded here. The format follows
   preserving all pane state across switches.
 
 ### Added
+- **Editor hot-exit** — unsaved editor buffers now persist across an app restart
+  (or crash) and are restored exactly on reopen. If a drafted file also changed on
+  disk while the app was closed, the existing "Changed on disk" bar appears
+  (Reload / Keep mine). Drafts are stored separately (`editor-drafts.json`), so
+  workspace files stay small.
 - Project documentation: `README.md`, `CLAUDE.md`, `docs/architecture.md`,
   `docs/decisions.md`, this changelog, and a doc per feature under `docs/features/`.
 

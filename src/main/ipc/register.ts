@@ -15,6 +15,7 @@ import { ProcessTracker } from '../proc/process-tracker'
 import { CloudStatusService } from '../cloud/cloud-status-service'
 import { AiSessionTracker } from '../ai/ai-session-tracker'
 import { UsageTracker } from '../usage/usage-tracker'
+import { DraftStore } from '../persistence/draft-store'
 
 export function registerHandlers(win: BrowserWindow): PtyManager {
   const store = new WorkspaceStore(userDataDir())
@@ -55,6 +56,13 @@ export function registerHandlers(win: BrowserWindow): PtyManager {
   ipcMain.on(CH.usageWatch, (_e, id: string, cwd: string) => { void usage.watch(id, cwd) })
   ipcMain.on(CH.usageUnwatch, (_e, id: string) => usage.unwatch(id))
   win.on('closed', () => usage.dispose())
+
+  const drafts = new DraftStore(userDataDir())
+  void drafts.load()
+  ipcMain.handle(CH.draftsLoad, () => drafts.load())
+  ipcMain.on(CH.draftsSet, (_e, key: string, draft: import('@shared/types').EditorDraft) => drafts.set(key, draft))
+  ipcMain.on(CH.draftsDelete, (_e, key: string) => drafts.delete(key))
+  win.on('close', () => drafts.flush())
 
   const cloud = new CloudStatusService((statuses) => safeSend(CH.cloudStatus, statuses))
   cloud.start()

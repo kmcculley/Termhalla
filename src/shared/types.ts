@@ -71,6 +71,12 @@ export interface ExplorerConfig {
   root: string
 }
 
+/** A persisted unsaved editor buffer (hot-exit). Keyed by `paneId::path` in the draft store. */
+export interface EditorDraft {
+  content: string    // the unsaved buffer text to restore
+  baseline: string   // the disk text the buffer diverged from (for on-reopen conflict detection)
+}
+
 export type PaneConfig = TerminalConfig | EditorConfig | ExplorerConfig
 
 export interface PaneNode {

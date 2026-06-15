@@ -45,6 +45,9 @@ const api: TermhallaApi = {
   loadQuick: () => ipcRenderer.invoke(CH.quickLoad),
   saveQuick: (data) => ipcRenderer.invoke(CH.quickSave, data),
   homeDir: () => ipcRenderer.invoke(CH.homeDir),
+  draftsLoad: () => ipcRenderer.invoke(CH.draftsLoad),
+  draftSet: (key, draft) => ipcRenderer.send(CH.draftsSet, key, draft),
+  draftDelete: (key) => ipcRenderer.send(CH.draftsDelete, key),
   onPtyCwd: (cb) => {
     const h = (_e: unknown, id: string, cwd: string) => cb(id, cwd)
     ipcRenderer.on(CH.ptyCwd, h as never)

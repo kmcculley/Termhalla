@@ -1,4 +1,4 @@
-import type { ShellInfo, Workspace, AppState, TerminalStatus, DirEntry, ReadResult, StatResult, FsChange, TerminalLaunch, QuickStore, ProcInfo, CloudStatus, AiSession, UsageMetrics } from './types'
+import type { ShellInfo, Workspace, AppState, TerminalStatus, DirEntry, ReadResult, StatResult, FsChange, TerminalLaunch, QuickStore, ProcInfo, CloudStatus, AiSession, UsageMetrics, EditorDraft } from './types'
 
 export const CH = {
   listShells: 'shells:list',
@@ -35,7 +35,10 @@ export const CH = {
   aiSession: 'ai:session',         // main -> renderer event
   usageWatch: 'usage:watch',
   usageUnwatch: 'usage:unwatch',
-  usageMetrics: 'usage:metrics'    // main -> renderer event
+  usageMetrics: 'usage:metrics',    // main -> renderer event
+  draftsLoad: 'drafts:load',
+  draftsSet: 'drafts:set',
+  draftsDelete: 'drafts:delete'
 } as const
 
 export interface NotifyArgs { title: string; body: string }
@@ -79,4 +82,7 @@ export interface TermhallaApi {
   loadQuick(): Promise<QuickStore>
   saveQuick(data: QuickStore): Promise<void>
   homeDir(): Promise<string>
+  draftsLoad(): Promise<Record<string, EditorDraft>>
+  draftSet(key: string, draft: EditorDraft): void
+  draftDelete(key: string): void
 }
