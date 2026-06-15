@@ -120,7 +120,7 @@ export function WorkspaceView({ ws }: { ws: Workspace }) {
                   style={{ position: 'absolute', left: 4, top: 28, zIndex: 10, background: '#252526',
                     color: '#eee', border: '1px solid #444', borderRadius: 4, padding: 6, maxWidth: 460,
                     maxHeight: 240, overflow: 'auto', fontSize: 12, fontFamily: 'Consolas, monospace' }}>
-                  {usage && (
+                  {aiSession && usage && (
                     <div data-testid={`usage-${paneId}`}
                       style={{ borderBottom: '1px solid #444', paddingBottom: 4, marginBottom: 4 }}>
                       <div>context {fmtTokens(usage.contextTokens)} / {fmtTokens(usage.contextWindow)} · {usage.contextPct}%</div>
