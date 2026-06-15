@@ -44,6 +44,24 @@ export interface WorkspaceTemplate {
   panes: Record<string, PaneNode>
 }
 
+export interface Theme {
+  windowBg: string
+  panelBg: string
+  elevatedBg: string
+  border: string
+  text: string
+  textDim: string
+  accent: string
+  statusBusy: string
+  statusNeedsInput: string
+  fontFamily: string
+  fontSize: number
+  termBg: string
+  termFg: string
+  termFontFamily: string
+  termFontSize: number
+}
+
 /** App-global favorites/recents (persisted to quick.json, not per-workspace). */
 export interface QuickStore {
   connections: SshConnection[]
