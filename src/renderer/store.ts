@@ -4,7 +4,7 @@ import type { Workspace, ShellInfo, MosaicNode, MosaicDirection, TerminalConfig,
 import { EMPTY_QUICK } from '@shared/types'
 import { buildSshArgs, nextRecentDirs, pushRecent, RECENT_CONN_CAP } from '@shared/quick'
 import {
-  createWorkspace, addFirstPane, splitPane, removePane
+  createWorkspace, addFirstPane, splitPane, removePane, reorderIds
 } from '@shared/workspace-model'
 import { resolveAlerts, effectiveStatus } from '@shared/alerts'
 import { encodeBroadcast, terminalPaneIds } from '@shared/broadcast'
@@ -19,6 +19,9 @@ interface State {
   lastEditorPaneId: string | null
   init: () => Promise<void>
   newWorkspace: (name: string) => string
+  renameWorkspace: (id: string, name: string) => void
+  closeWorkspace: (id: string) => void
+  moveWorkspace: (fromId: string, toId: string) => void
   setActive: (id: string) => void
   setLayout: (wsId: string, layout: MosaicNode | null) => void
   addTerminal: (wsId: string, targetPaneId: string | null, dir: MosaicDirection) => string
@@ -169,6 +172,41 @@ export const useStore = create<State>((set, get) => {
       }))
       scheduleAutosave()
       return ws.id
+    },
+
+    renameWorkspace: (id, name) => {
+      const n = name.trim()
+      if (!n) return
+      set(s => s.workspaces[id] ? { workspaces: { ...s.workspaces, [id]: { ...s.workspaces[id], name: n } } } : {})
+      scheduleAutosave()
+    },
+
+    closeWorkspace: (id) => {
+      const ws = get().workspaces[id]
+      if (!ws) return
+      const paneIds = Object.keys(ws.panes)
+      for (const pid of paneIds) {
+        if (ws.panes[pid].config.kind === 'terminal') { api.ptyKill(pid); api.usageUnwatch(pid) }
+      }
+      set(s => {
+        const workspaces = { ...s.workspaces }; delete workspaces[id]
+        const order = s.order.filter(x => x !== id)
+        const statuses = { ...s.statuses }
+        const cwds = { ...s.cwds }
+        const procs = { ...s.procs }
+        const aiSessions = { ...s.aiSessions }
+        const usage = { ...s.usage }
+        for (const pid of paneIds) { delete statuses[pid]; delete cwds[pid]; delete procs[pid]; delete aiSessions[pid]; delete usage[pid] }
+        const activeId = s.activeId === id ? (order[0] ?? null) : s.activeId
+        return { workspaces, order, activeId, statuses, cwds, procs, aiSessions, usage }
+      })
+      if (get().order.length === 0) get().newWorkspace('Workspace 1')
+      scheduleAutosave()
+    },
+
+    moveWorkspace: (fromId, toId) => {
+      set(s => ({ order: reorderIds(s.order, fromId, toId) }))
+      scheduleAutosave()
     },
 
     setActive: (id) => { set({ activeId: id }); scheduleAutosave() },
