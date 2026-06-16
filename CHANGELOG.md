@@ -14,13 +14,16 @@ All notable changes to Termhalla are recorded here. The format follows
   `🔑` button (layered over globals).
 
 ### Fixed
-- **Claude (and other AI agents) always showed "active" while idle at the prompt.** An AI agent
-  runs as one long shell command, so the shell never emits a command-done marker until it exits,
-  and the agent's TUI prompt isn't a shell prompt the idle heuristic recognizes — so the terminal
-  stayed `busy` for the agent's whole lifetime. The AI-session signal now feeds
-  `StatusEngine.setAiActive`, so a quiet AI terminal is read as **idle/awaiting** (the `✨⏳`
-  indicator and the "{agent} is waiting for you" notification now actually fire). Gated on the AI
-  signal, so ordinary silent commands still correctly stay busy.
+- **AI agent (Claude/Codex) working-vs-awaiting status is now accurate.** An agent runs as one long
+  shell command (no command-done marker until it exits) sitting at its own TUI prompt, which the
+  generic idle heuristic can't read — so it used to show **active forever**, even when idle at the
+  prompt. The status now tracks the agent's own `esc to interrupt` working indicator: the terminal
+  is **busy** while the agent is working (including while it's blocked-but-quiet on a long tool/`sleep`,
+  and across screen repaints), **resumes** to busy when the next turn begins, and flips to
+  **awaiting** (`✨⏳` + the "{agent} is waiting for you" notification) only once the agent has
+  stopped showing that indicator and gone quiet. Fixes both the "always active" and the
+  "idle during the sleep / idle no matter what" failure modes. Scoped to detected AI sessions;
+  ordinary terminals are unaffected.
 - **`MaxListenersExceededWarning` with many open terminals.** Each `TerminalPane` attached its own
   raw `ipcRenderer.on` for `pty:data`/`pty:exit`, and since every workspace stays mounted, 11+
   terminals crossed Node's default 10-listeners-per-event cap and logged a spurious leak warning.

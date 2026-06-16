@@ -97,4 +97,35 @@ describe('StatusTracker (heuristic, no markers)', () => {
     t.setAiActive(true)
     expect(t.tick(7000).state).toBe('idle')             // ai-active + sustained silence -> idle (awaiting)
   })
+
+  it('keeps an AI session BUSY while it shows "esc to interrupt", even when the quiet timer is silent', () => {
+    // Reproduces "idle during the sleep": claude is working (blocked on a tool) and redraws its
+    // working bar via cursor-home screen repaints, which are pure-control and do NOT update the
+    // quiet timer. Silence alone would wrongly idle it; the working-indicator scan keeps it busy.
+    const t = new StatusTracker(0, cfg())
+    t.onMarker('C', undefined, 0)
+    t.setAiActive(true)
+    const workingRepaint = '\x1b[H working on it… esc to interrupt '  // starts with cursor-home -> pure control
+    t.onOutput(workingRepaint, 1000)
+    t.onOutput(workingRepaint, 4000)                    // bar re-rendered ~every few seconds
+    t.onOutput(workingRepaint, 7000)
+    // Real-output quiet timer says 9s of silence, but the working bar was seen 2s ago -> still busy.
+    expect(t.tick(9000).state).toBe('busy')
+    // Agent finishes and stops showing the bar; after the grace + silence it goes idle (awaiting).
+    expect(t.tick(14000).state).toBe('idle')
+  })
+
+  it('an idle AI session returns to busy when the agent starts its next turn', () => {
+    // The core "idle no matter what" bug: once the agent idles at its prompt, the launching shell
+    // emits no new command-start marker for the next turn, so the agent's working output must be
+    // what flips it back to busy.
+    const t = new StatusTracker(0, cfg())
+    t.onMarker('C', undefined, 0)
+    t.setAiActive(true)
+    t.onOutput('Welcome\r\n? for shortcuts', 100)        // ready prompt
+    expect(t.tick(7000).state).toBe('idle')              // awaiting
+    t.onOutput('\x1b[H thinking… esc to interrupt', 8000) // user submitted a task; agent works
+    expect(t.status().state).toBe('busy')                // flips back to busy on the working indicator
+    expect(t.tick(9000).state).toBe('busy')              // stays busy while working
+  })
 })

@@ -78,17 +78,31 @@ export function looksLikePrompt(tail: string): boolean {
  * `aiActive` marks a terminal running a detected AI agent (claude/codex). Such an agent is
  * launched as one long shell command (so markers latch busy and no command-done D fires until
  * it exits) and sits at its own TUI prompt — a box, not a shell prompt `looksLikePrompt` would
- * recognize. For these, sustained silence alone means "awaiting input", so we idle without the
- * prompt requirement. Gated on `aiActive` so a genuinely silent ordinary command stays busy.
+ * recognize. For these we idle on sustained silence, BUT only once the agent's own "working"
+ * indicator has gone away too (`aiWorkingRecent` false): an agent that is busy-but-quiet (e.g.
+ * blocked on a `sleep`/long tool, or redrawing only via screen repaints the quiet timer ignores)
+ * keeps showing "esc to interrupt", so silence alone must not flip it to idle. See AGENT_WORKING_RE.
  */
 export function computeIdleFallback(
-  quietMs: number, tail: string, hasMarkers: boolean, cfg: NeedsInputConfig, aiActive = false
+  quietMs: number, tail: string, hasMarkers: boolean, cfg: NeedsInputConfig,
+  aiActive = false, aiWorkingRecent = false
 ): boolean {
   if (quietMs < cfg.heuristicIdleMs) return false
   if (tailMatchesInputPrompt(tail, cfg.patterns)) return false
   const atRecognizedPrompt = looksLikePrompt(tail)
   if (!hasMarkers && atRecognizedPrompt) return true
   const sustainedSilence = quietMs >= cfg.heuristicIdleHardMs
-  if (aiActive) return sustainedSilence
+  if (aiActive) return sustainedSilence && !aiWorkingRecent
   return sustainedSilence && (atRecognizedPrompt || !hasMarkers)
 }
+
+/** An AI agent's "I'm working, press esc to interrupt" status line. Matched space-insensitively
+ *  because TUIs position the words with cursor moves (stripped by stripAnsi), so the text arrives
+ *  jammed together as "esctointerrupt". Present the whole time the agent works (incl. while
+ *  blocked on a tool); absent once it awaits input. */
+export const AGENT_WORKING_RE = /esc\s*to\s*interrupt/i
+
+/** How long after the agent last showed its working indicator we still consider it "working".
+ *  Must exceed the gap between working-indicator redraws (observed ≈3 s); the agent re-renders it
+ *  roughly once a second while busy. */
+export const AGENT_WORKING_GRACE_MS = 6000

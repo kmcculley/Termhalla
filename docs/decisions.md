@@ -283,29 +283,33 @@ passed down rather than owned by a single registrar.
 because it must run synchronously while the window still exists; only `closed`-time teardown goes
 through the disposer list.
 
-### [2026-06-16] AI sessions drive an explicit idle signal (setAiActive), not prompt-shape detection
+### [2026-06-16] AI working/awaiting tracks the agent's "esc to interrupt" indicator, not output silence
 
-**Context:** "Claude always shows active." An AI agent is launched as one long shell command, so
-the shell emits OSC 133 **C** (busy) and no **D** until the agent exits; meanwhile the agent sits
-at its own TUI prompt (a box), which `looksLikePrompt` does not recognize. The AI-session feature
-had *assumed* "Claude's prompt ends in `>`" so the generic heuristic would idle it — false for the
-real TUI, so the status tracker stayed busy for the agent's whole lifetime and `aiState` was
-permanently `'working'` (the `✨⏳` awaiting state and the busy→quiet notification never fired).
-**Decision:** Plumb an explicit AI signal: `AiSessionTracker`'s emit calls
-`StatusEngine.setAiActive(id, session !== null)` → `StatusTracker.setAiActive` →
-`computeIdleFallback(…, aiActive)`. When `aiActive`, **sustained output silence alone** marks the
-terminal idle (awaiting), bypassing the shell-prompt and marker requirements. Reuses the existing
-`lastOutputAt` quiet timer; no new polling.
-**Rationale:** Distinguishing "interactive program waiting" from "silently working" from output
-alone is unreliable — but for AI agents we have an independent, authoritative signal (the process
-is `claude`/`codex`). Gating the relaxed idle rule on that signal fixes the agent case without
-making genuinely-silent ordinary commands (a quiet compile) flap to idle. Tried and rejected:
-broadening the heuristic for all marker'd sessions (breaks the "keep a silent compile busy" rule)
-and teaching `looksLikePrompt` Claude's box layout (fragile across agent versions).
-**Consequences:** Threshold is `heuristicIdleHardMs` (5 s of silence) so brief streaming pauses
-don't flap to awaiting. Other non-AI long-running TUIs (vim, top) still read as busy — out of
-scope. When an AI agent idles, the busy-gated process poll also stops, so this *reduces* WMI
-polling while an agent waits.
+**Context:** Two opposite bugs. (1) "Claude always shows active": an AI agent is one long shell
+command (OSC 133 **C** at launch, no **D** until it exits) sitting at its own TUI prompt, which
+`looksLikePrompt` doesn't recognize — so the tracker stayed busy forever and `aiState` was
+permanently `'working'`. A first fix idled AI terminals on **sustained output silence**, which then
+caused (2) "idle no matter what during the sleep": an agent blocked on a `sleep`/long tool is
+busy-but-quiet, so silence falsely idled it — and worse, once idle the agent's *next turn* emits no
+new start marker, so it never went back to busy (genuinely "idle no matter what"). Extensive real-app
+capture (max `quietMs` ≈ 200 ms during normal work; ConPTY repaints of the working bar are
+pure-control and bypass the quiet timer) confirmed output timing/silence cannot distinguish
+working-but-quiet from awaiting.
+**Decision:** Drive AI busy/awaiting off the agent's own **working indicator** — the `esc to
+interrupt` status line (`AGENT_WORKING_RE`), scanned from *all* output (including pure-control
+repaints, matched space-insensitively because TUIs space words with cursor moves stripped by
+`stripAnsi`). `StatusTracker` records `lastWorkingAt`; while it's within `AGENT_WORKING_GRACE_MS`
+(6 s) the terminal is busy, a fresh sighting **resumes** an idle session to busy, and only when the
+indicator is that stale *and* output is silent does `computeIdleFallback(…, aiActive, aiWorkingRecent)`
+let it idle. If the indicator never appears, it falls back to plain sustained-silence.
+**Rationale:** The agent authoritatively advertises "I'm working" via `esc to interrupt` the entire
+time it's busy (incl. blocked on a tool), and drops it only when awaiting — the one signal robust to
+output stalls and repaint classification. Tried and rejected: silence-only (this regression);
+`looksLikePrompt` on the agent's box (fragile); the process tree (busy-gated polling stops once
+idle, and "transient tool child" vs the agent's persistent helpers is fuzzy).
+**Consequences:** Couples to the `esc to interrupt` wording (with a silence fallback if it changes).
+~6 s lag before "awaiting" shows after a turn ends. Other non-AI TUIs (vim, top) still read as busy —
+out of scope.
 
 ### [project] node-pty Spectre patch + electron-rebuild
 

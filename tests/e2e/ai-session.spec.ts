@@ -50,3 +50,47 @@ test('detects a Claude session and clears it when the command ends', async () =>
 
   const pid = app.process().pid; await app.close().catch(() => {}); if (pid) killTree(pid)
 })
+
+test('AI session resumes to busy on its next turn after going idle (the "idle no matter what" fix)', async () => {
+  test.setTimeout(70_000)
+  const userData = mkdtempSync(join(tmpdir(), 'termh-ai2-'))
+  const stubDir = mkdtempSync(join(tmpdir(), 'termh-aistub2-'))
+  // Models a real agent's render loop: it shows its working indicator ("esc to interrupt") while
+  // busy, goes quiet at its prompt (awaiting), then a SECOND turn shows the indicator again. The
+  // shell emits no new command-start marker for that next turn, so the working indicator is what
+  // must flip the status back to busy.
+  const stub = join(stubDir, 'claude.cmd')
+  writeFileSync(stub,
+    '@echo off\r\n' +
+    'echo Claude Code starting\r\n' +
+    'echo esc to interrupt\r\n' +
+    'ping -n 9 127.0.0.1 >nul\r\n' +   // ~8s quiet at the prompt -> awaiting (✨⏳)
+    'echo esc to interrupt\r\n' +      // next turn begins -> must resume to busy
+    'ping -n 4 127.0.0.1 >nul\r\n' +
+    'set /p x=\r\n', 'utf8')
+
+  const app: ElectronApplication = await electron.launch({
+    args: ['out/main/index.js', '--no-sandbox', '--disable-gpu', `--user-data-dir=${userData}`]
+  })
+  const win = await app.firstWindow()
+  await win.getByTestId('shell-picker').selectOption('powershell')
+  await win.getByTestId('add-first-terminal').click()
+  await expect(win.locator('[data-testid^="terminal-"]')).toBeVisible({ timeout: 15_000 })
+
+  await win.locator('.xterm-screen').click()
+  await win.keyboard.type(`& '${stub}'`)
+  await win.keyboard.press('Enter')
+
+  const tab = win.locator('[data-testid^="tab-"]').first()
+  await expect(win.locator('[data-testid^="proc-chip-"]').first()).toContainText('Claude', { timeout: 25_000 })
+  // After the ~8s quiet, the session is awaiting.
+  await expect(tab).toContainText('✨⏳', { timeout: 20_000 })
+  // The next turn's working indicator must clear the awaiting state (resume to busy) — without the
+  // fix it would stay ✨⏳ forever ("idle no matter what").
+  await expect(tab).not.toContainText('⏳', { timeout: 15_000 })
+
+  await win.keyboard.type('done'); await win.keyboard.press('Enter')
+  await expect(win.locator('[data-testid^="proc-chip-"]').first()).not.toContainText('Claude', { timeout: 20_000 })
+
+  const pid = app.process().pid; await app.close().catch(() => {}); if (pid) killTree(pid)
+})

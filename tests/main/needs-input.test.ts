@@ -43,6 +43,12 @@ describe('computeIdleFallback', () => {
     it('still defers a genuine input prompt to needs-input (no idle)', () => {
       expect(computeIdleFallback(12000, 'Continue? [y/N] ', true, cfg(), true)).toBe(false)
     })
+    it('stays busy when the agent working indicator was seen recently, despite silence', () => {
+      // aiActive, sustained silence, but aiWorkingRecent=true -> NOT idle (working blocked on a tool).
+      expect(computeIdleFallback(9000, aiTail, true, cfg(), true, true)).toBe(false)
+      // once the indicator goes stale (aiWorkingRecent=false), silence -> idle (awaiting).
+      expect(computeIdleFallback(9000, aiTail, true, cfg(), true, false)).toBe(true)
+    })
   })
 })
 
