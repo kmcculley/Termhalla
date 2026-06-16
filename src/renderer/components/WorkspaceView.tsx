@@ -40,6 +40,7 @@ export function WorkspaceView({ ws }: { ws: Workspace }) {
   const shells = useStore(s => s.shells)
   const aiSessions = useStore(s => s.aiSessions)
   const usages = useStore(s => s.usage)
+  const recording = useStore(s => s.recording)
   const [settingsFor, setSettingsFor] = useState<string | null>(null)
   const [cwdMenuFor, setCwdMenuFor] = useState<string | null>(null)
   const [procsMenuFor, setProcsMenuFor] = useState<string | null>(null)
@@ -101,7 +102,11 @@ export function WorkspaceView({ ws }: { ws: Workspace }) {
                   style={{ maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
                   onClick={() => setProcsMenuFor(procsMenuFor === paneId ? null : paneId)}>{chipText}</button>,
                 <button key="sched" type="button" data-testid={`schedule-chip-${paneId}`} title="Schedule a command"
-                  onClick={() => setScheduleFor(scheduleFor === paneId ? null : paneId)}>⏱</button>
+                  onClick={() => setScheduleFor(scheduleFor === paneId ? null : paneId)}>⏱</button>,
+                <button key="rec" type="button" data-testid={`rec-${paneId}`}
+                  title={recording[paneId] ? 'Stop recording' : 'Record session'}
+                  style={{ color: recording[paneId] ? '#e53935' : undefined }}
+                  onClick={() => recording[paneId] ? api.recStop(paneId) : api.recStart(paneId)}>⏺</button>
               ] : []),
               <button key="cwd" data-testid={`cwd-${paneId}`} title="Folder actions"
                 onClick={() => setCwdMenuFor(cwdMenuFor === paneId ? null : paneId)}>📁</button>,

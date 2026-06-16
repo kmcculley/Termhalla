@@ -46,6 +46,7 @@ export default function App() {
     const off = api.onUsageMetrics((id, m) => useStore.getState().setUsage(id, m))
     return off
   }, [])
+  useEffect(() => { const off = api.onRecState((id, on) => useStore.getState().setRecording(id, on)); return off }, [])
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {

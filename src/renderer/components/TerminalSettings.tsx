@@ -1,5 +1,7 @@
 import type { TerminalConfig } from '@shared/types'
 import { resolveAlerts } from '@shared/alerts'
+import { useStore } from '../store'
+import { api } from '../api'
 
 export function TerminalSettings(
   { config, onChange, onClose }: {
@@ -10,6 +12,8 @@ export function TerminalSettings(
 ) {
   const a = resolveAlerts(config.alerts)
   const toggle = (key: keyof typeof a) => onChange({ alerts: { ...config.alerts, [key]: !a[key] } })
+  const recordByDefault = useStore(s => s.quick.recordByDefault)
+  const setRecordByDefault = useStore(s => s.setRecordByDefault)
   return (
     <div data-testid="terminal-settings"
       style={{ position: 'absolute', right: 4, top: 28, zIndex: 10, background: 'var(--elevated, #252526)',
@@ -30,6 +34,11 @@ export function TerminalSettings(
           {label}
         </label>
       ))}
+      <label style={{ display: 'block', marginTop: 6 }}>
+        <input data-testid="rec-default" type="checkbox" checked={!!recordByDefault}
+          onChange={e => setRecordByDefault(e.target.checked)} /> Record new terminals by default
+      </label>
+      <button data-testid="rec-folder" onClick={() => api.recReveal()}>Open recordings folder</button>
       <button data-testid="settings-close" style={{ marginTop: 8 }} onClick={onClose}>Close</button>
     </div>
   )

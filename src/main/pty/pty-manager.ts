@@ -46,6 +46,10 @@ export class PtyManager {
   }
 
   pidOf(id: string): number | undefined { return this.sessions.get(id)?.proc.pid }
+  sizeOf(id: string): { cols: number; rows: number } | undefined {
+    const p = this.sessions.get(id)?.proc
+    return p ? { cols: p.cols, rows: p.rows } : undefined
+  }
   write(id: string, data: string): void { this.sessions.get(id)?.proc.write(data) }
   resize(id: string, cols: number, rows: number): void {
     this.sessions.get(id)?.proc.resize(Math.max(cols, 1), Math.max(rows, 1))

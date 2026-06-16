@@ -77,6 +77,10 @@ const api: TermhallaApi = {
     ipcRenderer.on(CH.usageMetrics, h as never)
     return () => ipcRenderer.removeListener(CH.usageMetrics, h as never)
   },
+  recStart: (id) => ipcRenderer.send(CH.recStart, id),
+  recStop: (id) => ipcRenderer.send(CH.recStop, id),
+  onRecState: (cb) => { const h = (_e: unknown, id: string, recording: boolean, file: string | null) => cb(id, recording, file); ipcRenderer.on(CH.recState, h as never); return () => ipcRenderer.removeListener(CH.recState, h as never) },
+  recReveal: () => ipcRenderer.send(CH.recReveal),
 }
 
 contextBridge.exposeInMainWorld('termhalla', api)

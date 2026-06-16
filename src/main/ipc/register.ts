@@ -16,11 +16,13 @@ import { CloudStatusService } from '../cloud/cloud-status-service'
 import { AiSessionTracker } from '../ai/ai-session-tracker'
 import { UsageTracker } from '../usage/usage-tracker'
 import { DraftStore } from '../persistence/draft-store'
+import { Recorder } from '../recording/recorder'
 
 export function registerHandlers(win: BrowserWindow): PtyManager {
   const store = new WorkspaceStore(userDataDir())
   const quick = new QuickStore(userDataDir())
   const shells = detectShells()
+  const recorder = new Recorder()
 
   const scriptDir = join(userDataDir(), 'shell-integration')
   writeIntegrationScripts(scriptDir)
@@ -42,8 +44,8 @@ export function registerHandlers(win: BrowserWindow): PtyManager {
     (id) => ai?.commandDone(id)
   )
   const pty = new PtyManager(
-    (id, data) => safeSend(CH.ptyData, id, data),
-    (id, code) => { safeSend(CH.ptyExit, id, code); tracker?.unregister(id); ai?.unregister(id) },
+    (id, data) => { safeSend(CH.ptyData, id, data); recorder.data(id, data) },
+    (id, code) => { safeSend(CH.ptyExit, id, code); tracker?.unregister(id); ai?.unregister(id); recorder.stop(id); safeSend(CH.recState, id, false, null) },
     engine, scriptDir
   )
   tracker = new ProcessTracker(
@@ -88,7 +90,7 @@ export function registerHandlers(win: BrowserWindow): PtyManager {
     pty.spawn(a.id, shell, a.cwd, a.cols, a.rows, a.launch)
   })
   ipcMain.on(CH.ptyWrite, (_e, a: PtyWriteArgs) => pty.write(a.id, a.data))
-  ipcMain.on(CH.ptyResize, (_e, a: PtyResizeArgs) => pty.resize(a.id, a.cols, a.rows))
+  ipcMain.on(CH.ptyResize, (_e, a: PtyResizeArgs) => { pty.resize(a.id, a.cols, a.rows); recorder.resize(a.id, a.cols, a.rows) })
   // ai/tracker unregister here is synchronous; the async pty onExit fires them again but
   // both are idempotent (Map.delete returns false), so the renderer sees a single clear.
   ipcMain.on(CH.ptyKill, (_e, id: string) => { pty.kill(id); tracker!.unregister(id); ai!.unregister(id) })
@@ -129,6 +131,15 @@ export function registerHandlers(win: BrowserWindow): PtyManager {
   ipcMain.handle(CH.quickLoad, () => quick.load())
   ipcMain.handle(CH.quickSave, (_e, data: import('@shared/types').QuickStore) => quick.save(data))
   ipcMain.handle(CH.homeDir, () => process.env.USERPROFILE ?? process.env.HOME ?? '')
+
+  ipcMain.on(CH.recStart, (_e, id: string) => {
+    const sz = pty.sizeOf(id) ?? { cols: 80, rows: 24 }
+    const file = recorder.start(id, sz.cols, sz.rows, userDataDir())
+    safeSend(CH.recState, id, true, file)
+  })
+  ipcMain.on(CH.recStop, (_e, id: string) => { const f = recorder.stop(id); safeSend(CH.recState, id, false, f) })
+  ipcMain.on(CH.recReveal, () => { void shell.openPath(join(userDataDir(), 'recordings')) })
+  win.on('closed', () => recorder.dispose())
 
   return pty
 }

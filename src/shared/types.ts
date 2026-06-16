@@ -72,6 +72,7 @@ export interface QuickStore {
   templates: WorkspaceTemplate[]
   theme?: Partial<Theme>
   themePresets: { id: string; name: string; theme: Theme }[]
+  recordByDefault?: boolean
 }
 
 export const EMPTY_QUICK: QuickStore = {
