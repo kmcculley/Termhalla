@@ -40,8 +40,8 @@ reasoning behind specific choices see [`decisions.md`](decisions.md).
   `src/main/index.ts`; `registerHandlers(win)` in `src/main/ipc/register.ts` is a
   thin composition root — it builds the shared services and delegates to per-domain
   registrars (`register-pty`/`-fs`/`-workspaces`/`-drafts`/`-cloud`/`-usage`/
-  `-recording`/`-env`), aggregating their teardown disposers into one
-  `win.on('closed')`.
+  `-recording`/`-env`/`-clipboard`), aggregating the teardown disposers (those that
+  have one) into a single `win.on('closed')`.
 - **preload** runs with `contextIsolation` and exposes exactly one object,
   `window.api`, implementing the `TermhallaApi` interface. The renderer has no
   other way to reach Node.

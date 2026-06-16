@@ -29,7 +29,7 @@ filesystem, process queries, cloud probes, persistence. **renderer**
 via `contextBridge`. The contract lives in `src/shared/ipc-contract.ts` (channel
 names + the `TermhallaApi` interface); add a feature by extending that contract,
 implementing it in the relevant per-domain registrar under `src/main/ipc/`
-(`register-pty`/`-fs`/`-workspaces`/`-drafts`/`-cloud`/`-usage`/`-recording`/`-env`,
+(`register-pty`/`-fs`/`-workspaces`/`-drafts`/`-cloud`/`-usage`/`-recording`/`-env`/`-clipboard`,
 composed by the thin `register.ts` root), and consuming it through
 `src/renderer/api.ts`. `contextIsolation: true`, `nodeIntegration: false`.
 
