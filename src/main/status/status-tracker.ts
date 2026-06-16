@@ -10,11 +10,17 @@ export class StatusTracker {
   private lastOutputAt: number
   private tail = ''
   private hasMarkers = false
+  private aiActive = false
 
   constructor(now: number, private readonly cfg: NeedsInputConfig) {
     this.since = now
     this.lastOutputAt = now
   }
+
+  /** Mark whether this terminal is running a detected AI agent. When set, sustained output
+   *  silence is treated as idle (awaiting input) even without a recognized shell prompt — an
+   *  AI agent is one long shell command that sits quiet at its own TUI prompt. */
+  setAiActive(active: boolean): void { this.aiActive = active }
 
   onMarker(kind: 'A' | 'B' | 'C' | 'D', exit: number | undefined, now: number): TerminalStatus {
     this.hasMarkers = true
@@ -46,7 +52,7 @@ export class StatusTracker {
 
   tick(now: number): TerminalStatus {
     const quietMs = now - this.lastOutputAt
-    if (this.state === 'busy' && computeIdleFallback(quietMs, this.tail, this.hasMarkers, this.cfg)) {
+    if (this.state === 'busy' && computeIdleFallback(quietMs, this.tail, this.hasMarkers, this.cfg, this.aiActive)) {
       this.set('idle', now)
     }
     if (this.state === 'busy' && computeNeedsInput(quietMs, this.tail, this.cfg)) {

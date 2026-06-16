@@ -39,6 +39,10 @@ test('detects a Claude session and clears it when the command ends', async () =>
   await expect(win.locator('[data-testid^="proc-chip-"]').first()).toContainText('Claude', { timeout: 25_000 })
   await expect(win.locator('[data-testid^="tab-"]').first()).toContainText('✨', { timeout: 5_000 })
 
+  // Once the stub goes quiet at `set /p` (still running, just waiting), the AI session must flip
+  // to "awaiting input" (✨⏳) instead of staying "working" forever — the claude-always-active fix.
+  await expect(win.locator('[data-testid^="tab-"]').first()).toContainText('✨⏳', { timeout: 20_000 })
+
   // Satisfy the stub's `set /p` read so it exits -> command-done -> the AI indicator clears.
   await win.keyboard.type('done')
   await win.keyboard.press('Enter')

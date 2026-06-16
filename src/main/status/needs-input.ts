@@ -74,14 +74,21 @@ export function looksLikePrompt(tail: string): boolean {
  *  - Slow path: after sustained silence (hard threshold), idle when EITHER we sit at a
  *    prompt (markers stopped — e.g. a nested shell like `cmd` inside pwsh) OR there were
  *    never any markers and the prompt simply went unrecognized.
+ *
+ * `aiActive` marks a terminal running a detected AI agent (claude/codex). Such an agent is
+ * launched as one long shell command (so markers latch busy and no command-done D fires until
+ * it exits) and sits at its own TUI prompt — a box, not a shell prompt `looksLikePrompt` would
+ * recognize. For these, sustained silence alone means "awaiting input", so we idle without the
+ * prompt requirement. Gated on `aiActive` so a genuinely silent ordinary command stays busy.
  */
 export function computeIdleFallback(
-  quietMs: number, tail: string, hasMarkers: boolean, cfg: NeedsInputConfig
+  quietMs: number, tail: string, hasMarkers: boolean, cfg: NeedsInputConfig, aiActive = false
 ): boolean {
   if (quietMs < cfg.heuristicIdleMs) return false
   if (tailMatchesInputPrompt(tail, cfg.patterns)) return false
   const atRecognizedPrompt = looksLikePrompt(tail)
   if (!hasMarkers && atRecognizedPrompt) return true
   const sustainedSilence = quietMs >= cfg.heuristicIdleHardMs
+  if (aiActive) return sustainedSilence
   return sustainedSilence && (atRecognizedPrompt || !hasMarkers)
 }

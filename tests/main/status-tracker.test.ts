@@ -85,4 +85,16 @@ describe('StatusTracker (heuristic, no markers)', () => {
     t.onOutput('still compiling...', 100)          // output, not a prompt
     expect(t.tick(8000).state).toBe('busy')        // silent but not a prompt -> stays busy (marker A will idle it)
   })
+
+  it('an AI session goes idle (awaiting) once quiet, despite markers + a non-shell-prompt tail', () => {
+    // Reproduces "claude always shows active": the shell emits C when `claude` launches (busy,
+    // hasMarkers) and won't emit D until claude exits; claude's TUI tail is not a shell prompt,
+    // so the normal heuristic can never idle it. The AI-active signal fixes that.
+    const t = new StatusTracker(0, cfg())
+    t.onMarker('C', undefined, 0)                       // shell launched `claude` -> busy
+    t.onOutput('Claude Code ready\r\n? for shortcuts', 100)
+    expect(t.tick(6000).state).toBe('busy')             // without ai-active: stuck busy (the bug)
+    t.setAiActive(true)
+    expect(t.tick(7000).state).toBe('idle')             // ai-active + sustained silence -> idle (awaiting)
+  })
 })

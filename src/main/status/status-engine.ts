@@ -65,6 +65,13 @@ export class StatusEngine {
     this.onCommandDone(id)
   }
 
+  /** Mark a terminal as running (or no longer running) a detected AI agent, so the tracker can
+   *  read its quiet TUI prompt as idle/awaiting instead of a permanent "busy". Driven by
+   *  AiSessionTracker (set on detect, cleared on command-done / close). */
+  setAiActive(id: string, active: boolean): void {
+    this.sessions.get(id)?.tracker.setAiActive(active)
+  }
+
   unregister(id: string): void {
     this.sessions.delete(id)
     if (this.sessions.size === 0) this.stopTimer()

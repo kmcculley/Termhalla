@@ -18,11 +18,17 @@ export function registerPty(
 ): PtyManager {
   const { shells, recorder, envVault, scriptDir, send } = deps
 
-  // `ai` only needs send, so it can be constructed up front. `tracker` is in a genuine cycle (it
-  // needs pty.pidOf; pty needs engine; engine needs tracker), so it stays a `let` assigned after
-  // pty — but the closures below only run on PTY activity, long after assignment, so they
-  // reference it directly without `?.`/`!`.
-  const ai = new AiSessionTracker((id, session) => send(CH.aiSession, id, session))
+  // `ai` only needs send (and `engine`, referenced lazily — see below), so it can be constructed
+  // up front. `tracker` is in a genuine cycle (it needs pty.pidOf; pty needs engine; engine needs
+  // tracker), so it stays a `let` assigned after pty — but the closures below only run on PTY
+  // activity, long after assignment, so they reference it directly without `?.`/`!`.
+  // The AI session also drives `engine.setAiActive` so the status tracker reads a quiet AI agent
+  // as idle/awaiting (it sits at its own TUI prompt with markers latched busy). `engine` is
+  // assigned just below; this closure only fires on process activity, after assignment.
+  const ai = new AiSessionTracker((id, session) => {
+    send(CH.aiSession, id, session)
+    engine.setAiActive(id, session !== null)
+  })
   let tracker: ProcessTracker
   const engine = new StatusEngine(
     (id, status) => { send(CH.ptyStatus, id, status); tracker.setBusy(id, status.state === 'busy') },
