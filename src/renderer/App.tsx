@@ -12,6 +12,7 @@ import { SshConnectionForm } from './components/SshConnectionForm'
 import { StatusBar } from './components/StatusBar'
 import { UsageWatcher } from './components/UsageWatcher'
 import { Scheduler } from './components/Scheduler'
+import { Toasts } from './components/Toasts'
 import { api } from './api'
 
 export default function App() {
@@ -97,6 +98,7 @@ export default function App() {
       <StatusBar />
       <UsageWatcher />
       <Scheduler />
+      <Toasts />
       <BroadcastDialog />
       <CommandPalette />
       <SshConnectionForm key={connectionFormFor === null ? 'none' : connectionFormFor === 'new' ? 'new' : connectionFormFor.id} />
