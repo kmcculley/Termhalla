@@ -24,6 +24,7 @@ function EnvRow({ name, value, onRemove }: { name: string; value: string; onRemo
 export function EnvManager({ onClose, wsId, paneId }: { onClose: () => void; wsId?: string; paneId?: string }) {
   const env = useStore(s => s.envVault)
   const updatePaneConfig = useStore(s => s.updatePaneConfig)
+  const pushToast = useStore(s => s.pushToast)
   const paneConfig = useStore(s => (wsId && paneId) ? s.workspaces[wsId]?.panes[paneId]?.config : undefined)
   const envId = (paneConfig && paneConfig.kind === 'terminal') ? paneConfig.envId : undefined
   const scoped = !!(wsId && paneId)
@@ -41,7 +42,7 @@ export function EnvManager({ onClose, wsId, paneId }: { onClose: () => void; wsI
   // Load values whenever the vault becomes unlocked.
   useEffect(() => { if (env.unlocked) void refresh() }, [env.unlocked])
 
-  const create = async (): Promise<void> => { await api.envCreate(passphrase); setPassphrase('') }
+  const create = async (): Promise<void> => { await api.envCreate(passphrase); pushToast('Vault created'); setPassphrase('') }
   const unlock = async (): Promise<void> => {
     const ok = await api.envUnlock(passphrase)
     if (!ok) { setError(true); return }
@@ -50,6 +51,7 @@ export function EnvManager({ onClose, wsId, paneId }: { onClose: () => void; wsI
   const add = (): void => {
     if (!newName.trim()) return
     api.envSetGlobal(newName, newValue)
+    pushToast('Variable added')
     setNewName(''); setNewValue('')
     void refresh()
   }
@@ -58,6 +60,7 @@ export function EnvManager({ onClose, wsId, paneId }: { onClose: () => void; wsI
     let id = envId
     if (!id) { id = uuid(); updatePaneConfig(wsId, paneId, { envId: id }) }
     api.envSetTerminal(id, tName, tValue)
+    pushToast('Variable added')
     setTName(''); setTValue(''); void refresh()
   }
 

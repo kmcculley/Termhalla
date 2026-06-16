@@ -7,6 +7,7 @@ export function TemplatesMenu({ onPicked, onClose }: { onPicked: (id: string) =>
   const saveTemplate = useStore(s => s.saveTemplate)
   const deleteTemplate = useStore(s => s.deleteTemplate)
   const newFromTemplate = useStore(s => s.newWorkspaceFromTemplate)
+  const pushToast = useStore(s => s.pushToast)
   const [name, setName] = useState('')
   return (
     <>
@@ -17,7 +18,7 @@ export function TemplatesMenu({ onPicked, onClose }: { onPicked: (id: string) =>
           <input data-testid="tpl-name" placeholder="Template name" value={name}
             onChange={e => setName(e.target.value)} style={{ flex: 1 }} />
           <button data-testid="tpl-save" disabled={!name.trim()}
-            onClick={() => { saveTemplate(name); setName('') }}>Save current</button>
+            onClick={() => { saveTemplate(name); pushToast('Template saved'); setName('') }}>Save current</button>
         </div>
         {templates.length === 0 && <div style={{ color: 'var(--fg-dim, #aaa)' }}>No templates yet.</div>}
         {templates.map(t => (
@@ -25,7 +26,7 @@ export function TemplatesMenu({ onPicked, onClose }: { onPicked: (id: string) =>
             <button data-testid={`tpl-${t.id}`} style={{ flex: 1, textAlign: 'left' }}
               onClick={() => { const id = newFromTemplate(t.id, t.name); onClose(); onPicked(id) }}>{t.name}</button>
             <button data-testid={`tpl-del-${t.id}`} title="Delete template"
-              onClick={() => deleteTemplate(t.id)}>×</button>
+              onClick={() => { deleteTemplate(t.id); pushToast('Template deleted') }}>×</button>
           </div>
         ))}
       </div>

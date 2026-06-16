@@ -10,6 +10,7 @@ export function ScheduleDialog({ paneId, onClose }: { paneId: string; onClose: (
   const addSchedule = useStore(s => s.addSchedule)
   const cancelSchedule = useStore(s => s.cancelSchedule)
   const schedules = useStore(s => s.schedules)
+  const pushToast = useStore(s => s.pushToast)
   const tasks = Object.values(schedules).filter(t => t.paneId === paneId)
   const [text, setText] = useState('')
   const [mode, setMode] = useState<'paste' | 'keys'>('keys')
@@ -27,6 +28,7 @@ export function ScheduleDialog({ paneId, onClose }: { paneId: string; onClose: (
   const add = () => {
     const trigger = build()
     addSchedule({ paneId, text, mode, enter, trigger, label: scheduleLabel(trigger) })
+    pushToast('Command scheduled')
     setText('')
   }
 
@@ -75,7 +77,7 @@ export function ScheduleDialog({ paneId, onClose }: { paneId: string; onClose: (
                 <span style={{ flex: 1, fontFamily: 'var(--mono)', fontSize: 12, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                   {t.label} — {t.text.split('\n')[0]}
                 </span>
-                <button data-testid={`schedule-cancel-${t.id}`} onClick={() => cancelSchedule(t.id)}>×</button>
+                <button data-testid={`schedule-cancel-${t.id}`} onClick={() => { cancelSchedule(t.id); pushToast('Schedule canceled') }}>×</button>
               </div>
             ))}
           </div>
