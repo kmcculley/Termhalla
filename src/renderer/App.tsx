@@ -47,6 +47,7 @@ export default function App() {
     return off
   }, [])
   useEffect(() => { const off = api.onRecState((id, on) => useStore.getState().setRecording(id, on)); return off }, [])
+  useEffect(() => { const off = api.onEnvState(s => useStore.getState().setEnvState(s)); return off }, [])
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {

@@ -27,7 +27,7 @@ export function TerminalPane({ paneId, wsId, config }: { paneId: string; wsId: s
     let disposed = false
     api.ptySpawn({
       id: paneId, shellId: config.shellId, cwd: config.cwd,
-      cols: term.cols, rows: term.rows, launch: config.launch
+      cols: term.cols, rows: term.rows, launch: config.launch, envId: config.envId
     })
     if (useStore.getState().quick.recordByDefault) api.recStart(paneId)
 

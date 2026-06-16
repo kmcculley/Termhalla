@@ -51,6 +51,8 @@ interface State {
   cloud: CloudStatus[]
   setCloud: (statuses: CloudStatus[]) => void
   refreshCloud: () => void
+  envVault: { exists: boolean; unlocked: boolean }
+  setEnvState: (s: { exists: boolean; unlocked: boolean }) => void
   launchCommand: (launch: TerminalLaunch) => void
   updatePaneConfig: (wsId: string, paneId: string, patch: Partial<Omit<EditorConfig, 'kind'> & Omit<ExplorerConfig, 'kind'> & Omit<TerminalConfig, 'kind'>>) => void
   registerEditorPane: (paneId: string) => void
@@ -165,6 +167,7 @@ export const useStore = create<State>((set, get) => {
     recording: {},
     drafts: {},
     cloud: [],
+    envVault: { exists: false, unlocked: false },
     schedules: {},
     quick: EMPTY_QUICK,
     home: '',
@@ -423,6 +426,8 @@ export const useStore = create<State>((set, get) => {
     setCloud: (statuses) => set({ cloud: statuses }),
 
     refreshCloud: () => { void api.cloudRefresh() },
+
+    setEnvState: (s) => set({ envVault: s }),
 
     launchCommand: (launch) => {
       const wsId = get().activeId
