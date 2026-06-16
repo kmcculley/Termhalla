@@ -16,6 +16,13 @@ import {
 /** Height (px) of the main window's tab strip — the drop zone for re-docking a torn-off tab. */
 const STRIP_HEIGHT = 36
 
+/** Grace period before a mid-move pane whose destination never re-attached is flushed and
+ *  un-buffered, so a dropped/failed handoff can't leak memory or wedge the terminal forever. */
+const TRANSIT_GC_MS = 10_000
+
+/** Debounce for persisting window bounds during a resize/move drag (which fires continuously). */
+const PERSIST_DEBOUNCE_MS = 300
+
 /** Channels whose first argument is a paneId and therefore route to the owning window. Everything
  *  else (cloud:status, env:state, fs:change, …) is app-global and broadcasts to every window. */
 const PANE_SCOPED = new Set<string>([
@@ -23,9 +30,12 @@ const PANE_SCOPED = new Set<string>([
   CH.aiSession, CH.usageMetrics, CH.recState, CH.termSerialize
 ])
 
-/** A move currently in flight (drags are serial): the workspace being moved, its destination
+/** A move currently in flight (moves are serialized): the workspace being moved, its destination
  *  window, the pane ids whose snapshots have arrived, and the resolver for the await. */
 interface Inflight { workspaceId: string; destWindowId: string; paneIds: string[]; resolve: () => void }
+
+/** A pane-scoped push event buffered while its pane is mid-move (channel + original args). */
+interface BufferedEvent { channel: string; args: unknown[] }
 
 /**
  * Owns the set of OS windows for the multi-window/undock feature. The privileged service layer
@@ -44,9 +54,11 @@ export class WindowManager {
   private wins = new Map<string, BrowserWindow>()      // windowId -> BrowserWindow
   private core: CoreState = { windows: [] }            // authoritative window/workspace arrangement
   private paneOwner = new Map<string, string>()        // paneId -> windowId
-  private transit = new Map<string, string[]>()        // paneId -> live pty:data buffered mid-move
+  private transit = new Map<string, BufferedEvent[]>() // paneId -> pane-scoped events buffered mid-move
+  private transitTimers = new Map<string, ReturnType<typeof setTimeout>>() // paneId -> GC timer
   private snapshots = new Map<string, string>()        // paneId -> captured ANSI snapshot
   private inflight: Inflight | null = null
+  private persistTimer: ReturnType<typeof setTimeout> | null = null
   private closedCbs: (() => void)[] = []
 
   constructor(private readonly persist: (s: AppState) => void) {}
@@ -77,10 +89,10 @@ export class WindowManager {
 
   /** Load renderer content into every prepared window. Assignments are pushed on did-finish-load. */
   start(): void {
-    for (const [id, win] of this.wins) this.load(win, id)
+    for (const win of this.wins.values()) this.load(win)
   }
 
-  private load(win: BrowserWindow, _id: string): void {
+  private load(win: BrowserWindow): void {
     if (process.env.ELECTRON_RENDERER_URL) void win.loadURL(process.env.ELECTRON_RENDERER_URL)
     else void win.loadFile(resolve(import.meta.dirname, '../renderer/index.html'))
   }
@@ -96,9 +108,12 @@ export class WindowManager {
     if (bounds.maximized) win.maximize()
     this.wins.set(id, win)
     win.once('ready-to-show', () => win.show())
-    // Re-send on every load so a dev hot-reload re-hydrates the window's assignment.
+    // Re-send on every load so a dev hot-reload re-hydrates the window's assignment. This is the
+    // source of truth for a brand-new window's first assignment; `move`'s explicit send only
+    // reaches windows whose content has already loaded (assignment delivery is idempotent).
     win.webContents.on('did-finish-load', () => this.sendAssignment(id))
-    const persist = () => this.persistState()
+    // resize/move fire continuously during a drag → debounce the (full app-state) write.
+    const persist = () => this.schedulePersist()
     win.on('resize', persist)
     win.on('move', persist)
     win.on('close', (e) => this.onClose(id, e))
@@ -106,22 +121,36 @@ export class WindowManager {
     return win
   }
 
-  /** A floating window's native X re-docks its workspace instead of killing its shells; the
+  /** A floating window's native X re-docks its workspace(s) instead of killing its shells; the
    *  main window's X is a normal close (→ app quit via window-all-closed). */
   private onClose(id: string, e: Electron.Event): void {
     const cw = this.core.windows.find(w => w.id === id)
     if (cw && !cw.isMain && cw.workspaceIds.length > 0) {
       e.preventDefault()
-      for (const wsId of [...cw.workspaceIds]) void this.move(wsId, this.mainWindowId())
+      void this.redockAll([...cw.workspaceIds])   // serialized: each move owns `inflight` in turn
       return
     }
     this.persistState()
   }
 
+  /** Re-dock workspaces back to main one at a time — moves must not overlap (they share `inflight`
+   *  and the per-pane transit handoff). */
+  private async redockAll(workspaceIds: string[]): Promise<void> {
+    for (const wsId of workspaceIds) await this.move(wsId, this.mainWindowId())
+  }
+
   private onClosed(id: string): void {
     this.wins.delete(id)
+    const wasMain = this.core.windows.find(w => w.id === id)?.isMain ?? false
     this.core.windows = this.core.windows.filter(w => w.id !== id)
-    for (const [pid, wid] of this.paneOwner) if (wid === id) this.paneOwner.delete(pid)
+    // Never end up main-less if some other window survives (defends mainWindowId()'s `!`).
+    if (wasMain && this.core.windows.length > 0 && !this.core.windows.some(w => w.isMain)) {
+      this.core.windows[0].isMain = true
+    }
+    // Drop ownership + any in-flight buffering for panes that died with this window.
+    for (const [pid, wid] of this.paneOwner) {
+      if (wid === id) { this.paneOwner.delete(pid); this.endTransit(pid); this.transit.delete(pid); this.snapshots.delete(pid) }
+    }
     if (this.wins.size === 0) for (const cb of this.closedCbs) cb()
   }
 
@@ -133,12 +162,12 @@ export class WindowManager {
   isPaneScoped(channel: string): boolean { return PANE_SCOPED.has(channel) }
 
   routeToPane(paneId: string, channel: string, ...args: unknown[]): void {
-    // Buffer live terminal output while a pane is mid-handoff (destination not attached yet).
-    if (channel === CH.ptyData && this.transit.has(paneId)) {
-      this.transit.get(paneId)!.push(args[1] as string)
-      return
-    }
+    // While a pane is mid-handoff, buffer EVERY pane-scoped event (data, status, cwd, exit, …) so
+    // nothing is delivered to the destination before its xterm mounts and nothing is lost.
+    const buf = this.transit.get(paneId)
+    if (buf) { buf.push({ channel, args }); return }
     const winId = this.paneOwner.get(paneId)
+    // An unowned pane (sender vanished between spawn and route) defaults to the main window.
     this.safeSend(winId ? this.wins.get(winId) : this.mainWindow(), channel, ...args)
   }
 
@@ -157,15 +186,23 @@ export class WindowManager {
   }
 
   /** A moved pane re-spawned in its new window: it already has a live pty, so instead of spawning
-   *  we replay the captured snapshot then flush any bytes buffered during the move. */
+   *  we replay the captured snapshot then the events buffered during the move, in order. Also the
+   *  GC path for a handoff whose destination never re-attached (see TRANSIT_GC_MS). */
   replayInto(paneId: string): void {
+    this.endTransit(paneId)
     const winId = this.paneOwner.get(paneId)
     const win = winId ? this.wins.get(winId) : undefined
     const snap = this.snapshots.get(paneId)
-    if (snap !== undefined) { this.safeSend(win, CH.ptyData, paneId, snap); this.snapshots.delete(paneId) }
+    this.snapshots.delete(paneId)
     const buffered = this.transit.get(paneId)
     this.transit.delete(paneId)               // stop buffering; live output flows again
-    if (buffered) for (const chunk of buffered) this.safeSend(win, CH.ptyData, paneId, chunk)
+    if (snap !== undefined) this.safeSend(win, CH.ptyData, paneId, snap)
+    if (buffered) for (const ev of buffered) this.safeSend(win, ev.channel, ...ev.args)
+  }
+
+  private endTransit(paneId: string): void {
+    const t = this.transitTimers.get(paneId)
+    if (t) { clearTimeout(t); this.transitTimers.delete(paneId) }
   }
 
   private safeSend(win: BrowserWindow | undefined, channel: string, ...args: unknown[]): void {
@@ -223,7 +260,7 @@ export class WindowManager {
       const bounds = clampWindowState(
         { width: 900, height: 640, x: cursor?.x, y: cursor?.y, maximized: false }, displays)
       const win = this.createBrowserWindow(newWindowId, bounds)
-      this.load(win, newWindowId)
+      this.load(win)
     } else {
       const r = redock(this.core, workspaceId, destWindowId)
       this.core = r.state
@@ -252,15 +289,20 @@ export class WindowManager {
   }
 
   /** One snapshot reply per terminal pane, then a `__end__:<workspaceId>` sentinel. Each pane is
-   *  marked moving (buffer its live output, re-own to the destination) so the destination's xterm
-   *  can replay it on attach. */
+   *  marked moving (buffer its events, re-own to the destination) so the destination's xterm can
+   *  replay it on attach. The sentinel only resolves the move it belongs to. */
   private onSnapshot(a: TermSnapshotArgs): void {
-    if (a.paneId.startsWith('__end__:')) { this.inflight?.resolve(); return }
+    const end = /^__end__:(.+)$/.exec(a.paneId)
+    if (end) { if (this.inflight && this.inflight.workspaceId === end[1]) this.inflight.resolve(); return }
     if (!this.inflight) return
     this.inflight.paneIds.push(a.paneId)
     this.snapshots.set(a.paneId, a.data)
-    if (!this.transit.has(a.paneId)) this.transit.set(a.paneId, [])
     this.paneOwner.set(a.paneId, this.inflight.destWindowId)
+    if (!this.transit.has(a.paneId)) {
+      this.transit.set(a.paneId, [])
+      // If the destination never re-attaches this pane, GC the buffer so it can't grow forever.
+      this.transitTimers.set(a.paneId, setTimeout(() => this.replayInto(a.paneId), TRANSIT_GC_MS))
+    }
   }
 
   // ── helpers ────────────────────────────────────────────────────────────────────────────────────
@@ -281,7 +323,15 @@ export class WindowManager {
     this.safeSend(this.wins.get(windowId), CH.winAssignment, payload)
   }
 
+  /** Debounced persist for the high-frequency resize/move path (avoids rewriting the whole
+   *  app-state JSON dozens of times per second during a window drag). */
+  private schedulePersist(): void {
+    if (this.persistTimer) clearTimeout(this.persistTimer)
+    this.persistTimer = setTimeout(() => { this.persistTimer = null; this.persistState() }, PERSIST_DEBOUNCE_MS)
+  }
+
   private persistState(): void {
+    if (this.persistTimer) { clearTimeout(this.persistTimer); this.persistTimer = null }
     const windows = this.core.windows.map(w => {
       const win = this.wins.get(w.id)
       const b = win && !win.isDestroyed() ? win.getBounds() : undefined
