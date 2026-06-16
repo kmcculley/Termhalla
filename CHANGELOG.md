@@ -11,6 +11,14 @@ All notable changes to Termhalla are recorded here. The format follows
   `🔑` button (layered over globals).
 
 ### Changed
+- **Internal refactor — code-quality pass (no behavior change).** Resolved the three Major
+  findings from the quality review: (1) the seven copy-pasted "open a pane" branches in the
+  renderer store now route through a single `placePane`/`firstTarget` helper; (2) the five-plus
+  hand-rolled modal overlays (broadcast, schedule, env, theme, command palette, SSH form) now
+  share one `<Modal>` component with a centralized `Z` stacking scale, replacing the ad-hoc
+  z-index/backdrop literals; (3) `EditorPane` shed its draft-persistence and external-file-watch
+  concerns into dedicated `useEditorDrafts`/`useExternalFileWatch` hooks plus a shared `editor/tabs`
+  module. Covered by the existing editor, dialog, theme, and workspace e2e suites.
 - **UI polish pass — cohesive dark chrome.** The react-mosaic window toolbars are now dark when
   idle (instead of the default light blueprint bar), and buttons, selects, and inputs across the
   tab bar, pane toolbars, status bar, and every dialog/popover share a themed look with

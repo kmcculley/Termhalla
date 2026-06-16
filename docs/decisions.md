@@ -183,6 +183,37 @@ detect it and bail.
 **Consequences:** The canonical shape for `UsageTracker`, `WatchManager`, and any
 future watcher.
 
+### [2026-06-16] Shared `<Modal>` + central `Z` stacking scale
+
+**Context:** Every dialog re-implemented its own `createPortal` + full-viewport backdrop
++ stop-propagation card, and z-indexes were ad-hoc literals (40/50/60/1000/1100) with two
+different backdrop colors — so layering was accidental and any overlay tweak was shotgun
+surgery across six files (flagged Major in the quality review).
+**Decision:** All modal dialogs render through `src/renderer/components/Modal.tsx`
+(`<Modal>` owns the portal, backdrop, stop-propagation, and `align: 'center' | 'top'`),
+and every overlay z-index comes from the exported `Z` scale
+(`popover < menu < dialog < palette < paletteForm`). `createPortal` now lives only in
+`Modal.tsx`. Per-dialog look (width/padding/maxHeight) is passed via the `card` prop.
+**Rationale:** One source of truth for stacking and scrim removes the duplication and makes
+layering intentional; new dialogs get correct behavior for free.
+**Consequences:** New dialogs should use `<Modal>` and a `Z.*` value, never a raw
+`position:fixed` overlay. Non-portal dropdown menus (workspace context menu, templates) and
+in-tile popovers still render inline but draw their z-index from the same `Z` scale.
+
+### [2026-06-16] EditorPane concerns split into hooks + a shared tabs module
+
+**Context:** `EditorPane` had grown into a god component mixing tab/model lifecycle, draft
+persistence, file-watching, save logic, and theming (Major finding).
+**Decision:** Extract the two self-contained concerns into `src/renderer/editor/`:
+`useEditorDrafts` (debounced hot-exit draft persistence + per-path timer bookkeeping) and
+`useExternalFileWatch` (on-disk change reconciliation), plus `tabs.ts` for the shared `Tab`
+type and `applyContent`/`base`/`isDirty` helpers. The component keeps the Monaco/tab glue
+(and its ref-held tab `Map` + `force` re-render).
+**Rationale:** Behavior-preserving SRP cleanup verified by the existing editor e2e suites;
+isolates the timer/IO logic from the rendering glue without rearchitecting the tab core.
+**Consequences:** The deeper move of the tab `Map` into real React state (to retire the
+`force` re-render hack) remains open as a future refactor.
+
 ### [project] node-pty Spectre patch + electron-rebuild
 
 **Context:** node-pty is native and must match Electron's ABI; its build expects
