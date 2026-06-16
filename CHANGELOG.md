@@ -6,6 +6,10 @@ All notable changes to Termhalla are recorded here. The format follows
 
 ## [Unreleased]
 
+### Added
+- **Per-terminal environment variables** — edit a single terminal's own env vars from its
+  `🔑` button (layered over globals).
+
 ### Changed
 - **Theming is now scoped** — a Scope selector in the `🎨` editor themes the **app**, a
   **workspace**, or an individual **pane** (terminal/editor/explorer), layered nearest-wins.
