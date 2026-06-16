@@ -1,13 +1,6 @@
-import { type BrowserWindow } from 'electron'
-import { join } from 'node:path'
-import { detectShells } from '../pty/shells'
+import type { Services } from '../services'
+import type { WindowManager } from '../window-manager'
 import type { PtyManager } from '../pty/pty-manager'
-import { writeIntegrationScripts } from '../status/integration-scripts'
-import { WorkspaceStore } from '../persistence/store'
-import { QuickStore } from '../persistence/quick-store'
-import { userDataDir } from '../persistence/paths'
-import { Recorder } from '../recording/recorder'
-import { EnvVault } from '../env-vault/env-vault'
 import type { Disposer } from './types'
 import { registerPty } from './register-pty'
 import { registerFs } from './register-fs'
@@ -19,44 +12,38 @@ import { registerRecording } from './register-recording'
 import { registerEnv } from './register-env'
 import { registerClipboard } from './register-clipboard'
 
-/** Composition root: build the shared services, then hand each subsystem to its own registrar.
- *  Adding a feature means extending the relevant register-*.ts (or adding a new one here), not
- *  growing one monolith. Returns the PtyManager so the window can kill PTYs on close. */
-export function registerHandlers(win: BrowserWindow): PtyManager {
-  const dir = userDataDir()
-  const store = new WorkspaceStore(dir)
-  const quick = new QuickStore(dir)
-  const shells = detectShells()
-  const recorder = new Recorder()
-  const envVault = new EnvVault(dir)
+/** Composition root: register every IPC handler ONCE against the build-once service layer. Push
+ *  events go through `send`, which routes pane-scoped channels (their first arg is a paneId) to the
+ *  window that owns the pane and broadcasts app-global channels to all windows. The interactive
+ *  registrars (notify/dialogs/drafts) take the main window, which already exists after
+ *  `WindowManager.prepare()`. Returns the PtyManager so the app can kill PTYs on quit. */
+export function registerHandlers(services: Services, wm: WindowManager): PtyManager {
+  const { store, quick, shells, recorder, envVault, scriptDir, dir } = services
 
-  const scriptDir = join(dir, 'shell-integration')
-  writeIntegrationScripts(scriptDir)
-
-  // Main->renderer events can still fire during teardown (e.g. pty exit events after the
-  // window/webContents is destroyed on app close). Guard every send so it never throws
-  // "Object has been destroyed".
   const send = (channel: string, ...args: unknown[]): void => {
-    if (win.isDestroyed() || win.webContents.isDestroyed()) return
-    try { win.webContents.send(channel, ...args) } catch { /* torn down mid-send */ }
+    const paneId = typeof args[0] === 'string' ? args[0] : null
+    if (paneId && wm.isPaneScoped(channel)) wm.routeToPane(paneId, channel, ...args)
+    else wm.broadcast(channel, ...args)
   }
 
-  const pty = registerPty(win, { shells, recorder, envVault, scriptDir, send })
+  const win = wm.mainWindow()
+  const pty = registerPty(win, {
+    shells, recorder, envVault, scriptDir, send,
+    claimPane: (id, sender) => wm.claimPane(id, sender),
+    replayInto: (id) => wm.replayInto(id)
+  })
   registerWorkspaces({ store, quick, shells })
   registerEnv(win, envVault, send)
   registerClipboard()
   registerDrafts(win, dir)
 
-  // Disposers for the long-lived services, aggregated into one teardown. `drafts.flush()` stays
-  // on the earlier `close` event (inside registerDrafts) because it must run synchronously while
-  // the window still exists.
   const disposers: Disposer[] = [
     registerFs(win, send),
     registerCloud(win, send),
     registerUsage(send),
     registerRecording({ pty, recorder, userDataDir: dir, send })
   ]
-  win.on('closed', () => { for (const dispose of disposers) dispose() })
+  wm.onAllWindowsClosed(() => { for (const dispose of disposers) dispose() })
 
   return pty
 }

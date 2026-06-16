@@ -1,4 +1,4 @@
-import { ipcMain, Notification, type BrowserWindow } from 'electron'
+import { ipcMain, Notification, type BrowserWindow, type WebContents } from 'electron'
 import { CH, type PtySpawnArgs, type PtyWriteArgs, type PtyResizeArgs, type NotifyArgs } from '@shared/ipc-contract'
 import type { ShellInfo } from '@shared/types'
 import { PtyManager } from '../pty/pty-manager'
@@ -14,7 +14,13 @@ import type { Send } from './types'
  *  read pane sizes. */
 export function registerPty(
   win: BrowserWindow,
-  deps: { shells: ShellInfo[]; recorder: Recorder; envVault: EnvVault; scriptDir: string; send: Send }
+  deps: {
+    shells: ShellInfo[]; recorder: Recorder; envVault: EnvVault; scriptDir: string; send: Send
+    // Multi-window: associate a pane with the window that spawned it, and (when a moved pane
+    // re-spawns into a new window) adopt the live pty by replaying its snapshot instead of respawning.
+    claimPane?: (paneId: string, sender: WebContents) => void
+    replayInto?: (paneId: string) => void
+  }
 ): PtyManager {
   const { shells, recorder, envVault, scriptDir, send } = deps
 
@@ -46,7 +52,9 @@ export function registerPty(
     (id, info) => { send(CH.ptyProcs, id, info); ai.onProcs(id, info) }
   )
 
-  ipcMain.handle(CH.ptySpawn, (_e, a: PtySpawnArgs) => {
+  ipcMain.handle(CH.ptySpawn, (e, a: PtySpawnArgs) => {
+    deps.claimPane?.(a.id, e.sender)   // record which window owns this pane (also re-affirmed after a move)
+    if (pty.has(a.id)) { deps.replayInto?.(a.id); return }   // moved pane: adopt the live pty, don't respawn
     const shell = shells.find(s => s.id === a.shellId) ?? shells[0]
     tracker.register(a.id)   // register BEFORE spawn: a failed spawn calls onExit->unregister synchronously, keeping the registry clean
     pty.spawn(a.id, shell, a.cwd, a.cols, a.rows, a.launch, envVault.envFor(a.envId))

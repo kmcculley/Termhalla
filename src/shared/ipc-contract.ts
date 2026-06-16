@@ -49,6 +49,7 @@ export const CH = {
   clipboardWrite: 'clipboard:write', clipboardRead: 'clipboard:read',  // renderer -> main
   winDragEnd: 'win:dragEnd',         // renderer -> main
   winRedock: 'win:redock',           // renderer -> main
+  winReport: 'win:report',           // renderer -> main (this window's workspace list/active changed)
   winAssignment: 'win:assignment',   // main -> renderer event
   termSerialize: 'term:serialize',   // main -> renderer event (request a snapshot)
   termSnapshot: 'term:snapshot',     // renderer -> main (the snapshot reply)
@@ -61,6 +62,7 @@ export interface PtyResizeArgs { id: string; cols: number; rows: number }
 
 export interface WinDragEndArgs { workspaceId: string; cursor: { x: number; y: number } }
 export interface WinRedockArgs { workspaceId: string; targetWindowId: string }
+export interface WinReportArgs { windowId: string; workspaceIds: string[]; activeId: string | null }
 export interface WinAssignment { windowId: string; isMain: boolean; workspaceIds: string[]; activeId: string | null }
 export interface TermSnapshotArgs { paneId: string; data: string }
 
@@ -121,6 +123,7 @@ export interface TermhallaApi {
   clipboardRead(): Promise<string>
   winDragEnd(args: WinDragEndArgs): void
   winRedock(args: WinRedockArgs): void
+  winReport(args: WinReportArgs): void
   onWinAssignment(cb: (a: WinAssignment) => void): () => void
   onTermSerialize(cb: (workspaceId: string) => void): () => void
   termSnapshot(args: TermSnapshotArgs): void
