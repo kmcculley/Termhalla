@@ -19,12 +19,13 @@ const BACKDROP = '#0008'
  *  add positioning/padding. Single source so the surface look changes in exactly one place. */
 export const SURFACE: CSSProperties = {
   background: 'var(--elevated, #252526)', color: 'var(--fg, #eee)',
-  border: '1px solid var(--border, #444)', borderRadius: 4
+  border: '1px solid var(--border, #444)', borderRadius: 4,
+  boxShadow: 'var(--shadow-pop)'
 }
 
 /** Base look of a modal card; per-dialog tweaks (width, padding, maxHeight) come via `card`. */
 const CARD_BASE: CSSProperties = {
-  ...SURFACE, borderRadius: 6,
+  ...SURFACE, borderRadius: 6, boxShadow: 'var(--shadow-modal)',
   display: 'flex', flexDirection: 'column', gap: 8, fontSize: 'var(--font-size, 13px)'
 }
 
@@ -54,7 +55,7 @@ export function Modal({ onClose, align = 'center', z = Z.dialog, backdropTestId,
   }
   return createPortal(
     <div data-testid={backdropTestId} onClick={onClose} style={overlay}>
-      <div data-testid={cardTestId} onClick={e => e.stopPropagation()} {...cardProps} style={{ ...CARD_BASE, ...card }}>
+      <div data-testid={cardTestId} className="ui-pop-in" onClick={e => e.stopPropagation()} {...cardProps} style={{ ...CARD_BASE, ...card }}>
         {children}
       </div>
     </div>,
