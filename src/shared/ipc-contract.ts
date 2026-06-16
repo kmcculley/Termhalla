@@ -50,6 +50,7 @@ export const CH = {
   winDragEnd: 'win:dragEnd',         // renderer -> main
   winRedock: 'win:redock',           // renderer -> main
   winReport: 'win:report',           // renderer -> main (this window's workspace list/active changed)
+  winReady: 'win:ready',             // renderer -> main (subscribed; request my assignment)
   winAssignment: 'win:assignment',   // main -> renderer event
   termSerialize: 'term:serialize',   // main -> renderer event (request a snapshot)
   termSnapshot: 'term:snapshot',     // renderer -> main (the snapshot reply)
@@ -124,6 +125,7 @@ export interface TermhallaApi {
   winDragEnd(args: WinDragEndArgs): void
   winRedock(args: WinRedockArgs): void
   winReport(args: WinReportArgs): void
+  winReady(): void
   onWinAssignment(cb: (a: WinAssignment) => void): () => void
   onTermSerialize(cb: (workspaceId: string) => void): () => void
   termSnapshot(args: TermSnapshotArgs): void

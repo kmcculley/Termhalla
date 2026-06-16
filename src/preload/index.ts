@@ -81,6 +81,7 @@ const api: TermhallaApi = {
   winDragEnd: (a) => ipcRenderer.send(CH.winDragEnd, a),
   winRedock: (a) => ipcRenderer.send(CH.winRedock, a),
   winReport: (a) => ipcRenderer.send(CH.winReport, a),
+  winReady: () => ipcRenderer.send(CH.winReady),
   onWinAssignment: pushChannel<[import('@shared/ipc-contract').WinAssignment]>(CH.winAssignment),
   onTermSerialize: pushChannel<[string]>(CH.termSerialize),
   termSnapshot: (a) => ipcRenderer.send(CH.termSnapshot, a),

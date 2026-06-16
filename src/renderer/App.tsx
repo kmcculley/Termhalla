@@ -46,6 +46,9 @@ export default function App() {
       api.onWinAssignment(a => { void s().applyAssignment(a) }),
       api.onTermSerialize(wsId => s().serializeWorkspace(wsId))
     ]
+    // Now that win:assignment is subscribed, ask main for this window's assignment (avoids losing
+    // a push that fired on did-finish-load before React mounted this listener).
+    api.winReady()
     return () => offs.forEach(off => off())
   }, [])
 

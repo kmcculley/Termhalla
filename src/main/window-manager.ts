@@ -1,4 +1,4 @@
-import { BrowserWindow, screen, ipcMain, type WebContents } from 'electron'
+import { app, BrowserWindow, screen, ipcMain, type WebContents } from 'electron'
 import { resolve } from 'node:path'
 import { v4 as uuid } from 'uuid'
 import {
@@ -59,9 +59,14 @@ export class WindowManager {
   private snapshots = new Map<string, string>()        // paneId -> captured ANSI snapshot
   private inflight: Inflight | null = null
   private persistTimer: ReturnType<typeof setTimeout> | null = null
+  private quitting = false
   private closedCbs: (() => void)[] = []
 
   constructor(private readonly persist: (s: AppState) => void) {}
+
+  /** The app is quitting: snapshot the final arrangement+bounds once, and let every window close
+   *  normally (no re-dock interception, no shrinking per-window persist). */
+  beginQuit(): void { this.quitting = true; this.persistState() }
 
   // ── lifecycle ───────────────────────────────────────────────────────────────────────────────
   // Windows are created (but not loaded) in `prepare`, then `registerHandlers` registers the
@@ -121,16 +126,19 @@ export class WindowManager {
     return win
   }
 
-  /** A floating window's native X re-docks its workspace(s) instead of killing its shells; the
-   *  main window's X is a normal close (→ app quit via window-all-closed). */
+  /** A floating window's native X re-docks its workspace(s) instead of killing its shells (unless
+   *  the app is quitting, when every window must close normally). The arrangement is persisted on
+   *  structural changes + beginQuit, so a per-window close never overwrites it with a shrinking set.
+   *  The main window's X quits the app. */
   private onClose(id: string, e: Electron.Event): void {
+    if (this.quitting) return
     const cw = this.core.windows.find(w => w.id === id)
     if (cw && !cw.isMain && cw.workspaceIds.length > 0) {
       e.preventDefault()
       void this.redockAll([...cw.workspaceIds])   // serialized: each move owns `inflight` in turn
       return
     }
-    this.persistState()
+    if (cw?.isMain) app.quit()   // closing main tears down the whole app (incl. any floating windows)
   }
 
   /** Re-dock workspaces back to main one at a time — moves must not overlap (they share `inflight`
@@ -143,9 +151,11 @@ export class WindowManager {
     this.wins.delete(id)
     const wasMain = this.core.windows.find(w => w.id === id)?.isMain ?? false
     this.core.windows = this.core.windows.filter(w => w.id !== id)
-    // Never end up main-less if some other window survives (defends mainWindowId()'s `!`).
+    // Never end up main-less if some other window survives (defends mainWindowId()'s `!`); the
+    // promoted window must switch from the floating header to the tab strip, so re-assign it.
     if (wasMain && this.core.windows.length > 0 && !this.core.windows.some(w => w.isMain)) {
       this.core.windows[0].isMain = true
+      this.sendAssignment(this.core.windows[0].id)
     }
     // Drop ownership + any in-flight buffering for panes that died with this window.
     for (const [pid, wid] of this.paneOwner) {
@@ -180,9 +190,8 @@ export class WindowManager {
   /** Associate a pane with the window that spawned it (from the ipcMain event sender). Called on
    *  every `pty:spawn`, so ownership is correct for fresh panes and re-affirmed after a move. */
   claimPane(paneId: string, sender: WebContents): void {
-    for (const [id, win] of this.wins) {
-      if (!win.isDestroyed() && win.webContents.id === sender.id) { this.paneOwner.set(paneId, id); return }
-    }
+    const id = this.windowIdOf(sender)
+    if (id) this.paneOwner.set(paneId, id)
   }
 
   /** A moved pane re-spawned in its new window: it already has a live pty, so instead of spawning
@@ -217,6 +226,14 @@ export class WindowManager {
     ipcMain.on(CH.winRedock, (_e, a: WinRedockArgs) => { void this.move(a.workspaceId, this.resolveTarget(a.targetWindowId)) })
     ipcMain.on(CH.winReport, (_e, a: WinReportArgs) => this.onReport(a))
     ipcMain.on(CH.termSnapshot, (_e, a: TermSnapshotArgs) => this.onSnapshot(a))
+    // The renderer signals ready AFTER subscribing to win:assignment, so the first assignment is
+    // never lost to a push that races ahead of the listener. (did-finish-load is the dev-reload path.)
+    ipcMain.on(CH.winReady, (e) => { const id = this.windowIdOf(e.sender); if (id) this.sendAssignment(id) })
+  }
+
+  private windowIdOf(sender: WebContents): string | undefined {
+    for (const [id, win] of this.wins) if (!win.isDestroyed() && win.webContents.id === sender.id) return id
+    return undefined
   }
 
   private resolveTarget(t: string): string { return t === 'main' ? this.mainWindowId() : t }

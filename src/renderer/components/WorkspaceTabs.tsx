@@ -87,7 +87,10 @@ export function WorkspaceTabs() {
       const overTab = (ue.target as HTMLElement | null)?.closest?.('[data-tab-id]') as HTMLElement | null
       const overId = overTab?.dataset.tabId
       if (overId && overId !== id) { moveWorkspace(id, overId); return }
-      api.winDragEnd({ workspaceId: id, cursor: { x: ue.screenX, y: ue.screenY } })
+      // Flush the workspace to disk first: the new window loads it from disk, and autosave is
+      // debounced, so without this the torn-off window can load a stale/absent file.
+      const cursor = { x: ue.screenX, y: ue.screenY }
+      void useStore.getState().saveAll().then(() => api.winDragEnd({ workspaceId: id, cursor }))
     }
     window.addEventListener('pointermove', onMove)
     window.addEventListener('pointerup', onUp)

@@ -14,6 +14,9 @@ async function start(): Promise<void> {
   const pty = registerHandlers(services, wm)
   wm.start()
 
+  // Snapshot the full multi-window arrangement before windows start closing, so a quit doesn't
+  // shrink the saved state window-by-window.
+  app.on('before-quit', () => wm.beginQuit())
   app.on('window-all-closed', () => { pty.killAll(); if (process.platform !== 'darwin') app.quit() })
 }
 

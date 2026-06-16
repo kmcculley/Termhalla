@@ -13,7 +13,11 @@ export function FloatingHeader() {
       style={{ display: 'flex', alignItems: 'center', gap: 8, padding: 4, background: 'var(--panel, #1e1e1e)', fontSize: 'var(--font-size, 13px)' }}>
       <span style={{ flex: 1, padding: '0 4px' }}>{wsId ? workspaces[wsId]?.name : ''}</span>
       <button data-testid="dock-button" title="Dock back into the main window" disabled={!wsId}
-        onClick={() => { if (wsId) api.winRedock({ workspaceId: wsId, targetWindowId: 'main' }) }}>⤓ Dock</button>
+        onClick={() => {
+          if (!wsId) return
+          // Flush first: the main window re-loads this workspace from disk on re-dock.
+          void useStore.getState().saveAll().then(() => api.winRedock({ workspaceId: wsId, targetWindowId: 'main' }))
+        }}>⤓ Dock</button>
     </div>
   )
 }
