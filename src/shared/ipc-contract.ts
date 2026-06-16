@@ -19,6 +19,9 @@ export const CH = {
   fsWrite: 'fs:write',
   fsReadDir: 'fs:readDir',
   fsStat: 'fs:stat',
+  fsRename: 'fs:rename',
+  fsTrash: 'fs:trash',
+  fsRevealItem: 'fs:revealItem',
   fsWatch: 'fs:watch',
   fsUnwatch: 'fs:unwatch',
   fsChange: 'fs:change',          // main -> renderer event
@@ -101,6 +104,9 @@ export interface TermhallaApi {
   usageUnwatch(id: string): void
   onUsageMetrics(cb: (id: string, metrics: UsageMetrics | null) => void): () => void
   revealPath(path: string): Promise<void>
+  fsRename(oldPath: string, newPath: string): Promise<void>
+  fsTrash(path: string): Promise<void>
+  fsRevealItem(path: string): Promise<void>
   loadQuick(): Promise<QuickStore>
   saveQuick(data: QuickStore): Promise<void>
   homeDir(): Promise<string>
