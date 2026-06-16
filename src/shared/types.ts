@@ -136,10 +136,17 @@ export interface Workspace {
   theme?: Partial<Theme>
 }
 
+/** One OS window: which workspaces it hosts (tab order), its active tab, and its bounds. */
+export interface WindowLayout {
+  workspaceIds: string[]
+  activeId: string | null
+  bounds: WindowState
+  isMain: boolean        // exactly one window is the main/root window
+}
+
 export interface AppState {
   schemaVersion: number
-  openWorkspaceIds: string[]
-  activeWorkspaceId: string | null
+  windows: WindowLayout[]   // windows[0] is the main window
 }
 
 export interface WindowState {
@@ -213,7 +220,7 @@ export interface UsageMetrics {
 /** Decrypted env-vault contents surfaced to the renderer while unlocked. */
 export interface EnvVaultData { global: Record<string, string>; terminals: Record<string, Record<string, string>> }
 
-export const SCHEMA_VERSION = 3
+export const SCHEMA_VERSION = 4
 
 export type ScheduleTrigger =
   | { kind: 'delay'; ms: number }
