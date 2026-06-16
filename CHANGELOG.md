@@ -11,6 +11,12 @@ All notable changes to Termhalla are recorded here. The format follows
   `🔑` button (layered over globals).
 
 ### Changed
+- **UI polish pass — cohesive dark chrome.** The react-mosaic window toolbars are now dark when
+  idle (instead of the default light blueprint bar), and buttons, selects, and inputs across the
+  tab bar, pane toolbars, status bar, and every dialog/popover share a themed look with
+  hover/active feedback and an accent keyboard-focus ring. The active workspace tab gets an accent
+  highlight. All scoped to chrome surfaces, so the terminal, Monaco, and their own widgets are
+  untouched.
 - **Theming is now scoped** — a Scope selector in the `🎨` editor themes the **app**, a
   **workspace**, or an individual **pane** (terminal/editor/explorer), layered nearest-wins.
   The window-background color is now visible (app root + mosaic gutters), and the color picker

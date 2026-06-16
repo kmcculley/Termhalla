@@ -16,6 +16,24 @@ A **Scope** selector chooses what your edits apply to, layered as overrides: **A
 
 A `Theme` (15 tokens) in `src/shared/theme.ts` with `DEFAULT_THEME`, `mergeTheme(partial)`, `resolveTheme(app, ws, pane)` (layered override resolution), `themeCssVars(theme)` (full token → `--bg`/`--panel`/…/`--term-font-size`), and `themeCssVarsPartial(partial)` (only the present tokens — for override layers). Application is a **CSS-variable cascade**: `ThemeProvider` writes the full app vars onto `document.documentElement` (and defines the Monaco theme, **debounced** so color drags don't re-tokenize per tick); each workspace **host** element and each pane **tile** element spread their override vars (`themeCssVarsPartial`) into their inline `style` as custom properties, so the nearest level wins for any descendant. Per-pane terminals/editors read `resolveTheme(app, ws, pane)`: `TerminalPane` live-updates its xterm colors/font (no PTY respawn); `EditorPane` defines a per-pane Monaco theme (`termhalla-<paneId>`) and `updateOptions({ theme })` so panes don't fight over Monaco's global theme. The window background (`--bg`) is painted on the app root and the mosaic background/gutters so it's actually visible. Store: `setThemeScoped(scope, patch)` / `resetThemeScope(scope)` write to `quick.theme` (app), `Workspace.theme` (workspace), or `PaneConfig.theme` (pane); app presets via `saveThemePreset`/`applyThemePreset`/`deleteThemePreset`. The editor previews live by writing the CSS variable directly to the scope's element on `input`, committing to the store on `change`.
 
+## Cohesive dark chrome
+
+Beyond the configurable tokens, `index.css` gives the app a consistent dark "chrome" look:
+the react-mosaic (blueprint) window toolbar is themed dark when idle (it still flips to the
+saturated busy/needs-input colour for those states), and buttons/selects/inputs across the tab
+bar, toolbars, status bar and every dialog/popover get themed backgrounds, hover/active states,
+and an accent focus-visible ring. These rules are **scoped to chrome surfaces by stable
+`data-testid`** (plus `.mosaic-window-toolbar`), never global element selectors — so Monaco's
+find widget and xterm's hidden input textarea are never matched.
+
+> **Load-bearing gotcha — paint-only on `[data-testid="editor-tabs"]`.** The editor's own tab
+> strip is a flex **sibling** of the Monaco host in a flex column. Giving its buttons a
+> `border`/`padding`/`font` changes the strip's height, which perturbs Monaco's layout
+> measurement and **corrupts model-switch rendering** (`.view-lines` stays stuck on the previous
+> file — the same class of failure as setting `font-size` on `body`; caught by
+> `tests/e2e/editor.spec.ts` "saves the active tab after switching tabs"). Theme that strip with
+> **paint-only** properties (`background`/`color`/`border-radius`) only.
+
 ## Key files
 
 | File | Responsibility |

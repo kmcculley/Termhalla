@@ -74,6 +74,14 @@ related area:
   zeros their size and thrashes xterm's FitAddon + the PTY grid). Unmounting
   disposes xterm instances (lost scrollback, frozen live TUIs) and Monaco models
   (lost edits). See `docs/features/workspaces.md`.
+- **Chrome CSS must not change the box of `[data-testid="editor-tabs"]` children.**
+  That tab strip is a flex *sibling* of the Monaco host; giving its buttons a
+  `border`/`padding`/`font` shifts the strip height, perturbs Monaco's layout
+  measurement, and wedges model-switch rendering (`.view-lines` stuck on the
+  previous file — same class as a global `body` font-size). Theme it paint-only
+  (`background`/`color`/`border-radius`). The UI-polish chrome styles are otherwise
+  scoped to chrome `data-testid`s so Monaco/xterm widgets are never matched.
+  Guarded by `tests/e2e/editor.spec.ts`.
 - **Register process/ai trackers BEFORE spawning** a PTY: a failed spawn calls
   `onExit`→`unregister` synchronously, so registering after would orphan state.
 - **Session-identity race pattern.** Watchers that `await` between claiming a map
