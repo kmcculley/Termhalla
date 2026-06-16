@@ -8,7 +8,9 @@ body { background: var(--bg, #1e1e1e); color: var(--fg, #eee); font-family: var(
 .mosaic-blueprint-theme { height: 100%; }
 .term-tile { box-sizing: border-box; }
 
-.mosaic-blueprint-theme .mosaic-window.term-status .mosaic-window-toolbar button {
+/* On the saturated busy/needs-input bar, force white-on-colour buttons for contrast.
+   (Idle toolbars are dark-themed below — only the alert states invert.) */
+.mosaic-blueprint-theme .mosaic-window:is(.term-busy, .term-needs-input) .mosaic-window-toolbar button {
   background: rgba(255, 255, 255, 0.92) !important;
   color: #182026 !important;
   border-radius: 3px;
@@ -27,3 +29,151 @@ body { background: var(--bg, #1e1e1e); color: var(--fg, #eee); font-family: var(
   background-color: var(--status-needs, #ff8f00);
 }
 @keyframes term-bar-needs { 0%, 50% { filter: none } 51%, 100% { filter: brightness(0.7) } }
+
+/* =====================================================================
+   UI polish — cohesive dark chrome.
+   Scoped to app chrome surfaces only (tab bar, mosaic window toolbars,
+   status bar, dialogs/popovers) by stable data-testid, so Monaco's and
+   xterm's own DOM controls (find widget, hidden input textarea) are never
+   matched. All colors come from the theme tokens.
+   ===================================================================== */
+
+/* The react-mosaic (blueprint) window toolbar defaults to a light bar that
+   clashes with the dark app. Theme the idle toolbar (bar, title, buttons); the
+   busy/needs-input rules above still win for those alert states. */
+.mosaic-blueprint-theme .mosaic-window:not(.term-busy):not(.term-needs-input) .mosaic-window-toolbar {
+  background: var(--panel, #1e1e1e) !important;
+  box-shadow: none;
+  border-bottom: 1px solid var(--border, #444);
+}
+.mosaic-blueprint-theme .mosaic-window:not(.term-busy):not(.term-needs-input) .mosaic-window-title {
+  color: var(--fg, #eee) !important;
+  font-weight: 600;
+}
+.mosaic-blueprint-theme .mosaic-window:not(.term-busy):not(.term-needs-input) .mosaic-window-toolbar button {
+  color: var(--fg, #eee);
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--border, #444);
+  border-radius: 4px;
+}
+.mosaic-blueprint-theme .mosaic-window:not(.term-busy):not(.term-needs-input) .mosaic-window-toolbar button:hover {
+  background: rgba(255, 255, 255, 0.13);
+  border-color: var(--accent, #1e88e5);
+}
+/* Tone down the split gutters/lines to the theme border colour. */
+.mosaic-blueprint-theme .mosaic-split .mosaic-split-line { box-shadow: none; }
+.mosaic-blueprint-theme .mosaic-split:hover .mosaic-split-line { background: var(--accent, #1e88e5); opacity: 0.4; }
+
+/* The set of chrome surfaces whose controls get themed. */
+:is(
+  [data-testid="workspace-tabs"],
+  [data-testid="status-bar"],
+  [data-testid="empty-workspace"],
+  .mosaic-window-toolbar,
+  [data-testid="env-manager"],
+  [data-testid="theme-editor"],
+  [data-testid="broadcast-dialog"],
+  [data-testid="schedule-dialog"],
+  [data-testid="connection-form-backdrop"],
+  [data-testid="command-palette-backdrop"],
+  [data-testid="terminal-settings"],
+  [data-testid="templates-menu"],
+  [data-testid="ws-menu"],
+  [data-testid="proc-menu"],
+  [data-testid="cwd-menu"],
+  [data-testid^="cloud-menu-"]
+) :is(button, select) {
+  font: inherit;
+  color: var(--fg, #eee);
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--border, #444);
+  border-radius: 4px;
+  padding: 2px 8px;
+  cursor: pointer;
+  transition: background 120ms ease, border-color 120ms ease;
+}
+:is(
+  [data-testid="workspace-tabs"], [data-testid="status-bar"], [data-testid="empty-workspace"],
+  .mosaic-window-toolbar, [data-testid="env-manager"], [data-testid="theme-editor"],
+  [data-testid="broadcast-dialog"], [data-testid="schedule-dialog"], [data-testid="connection-form-backdrop"],
+  [data-testid="command-palette-backdrop"], [data-testid="terminal-settings"], [data-testid="templates-menu"],
+  [data-testid="ws-menu"], [data-testid="proc-menu"], [data-testid="cwd-menu"], [data-testid^="cloud-menu-"]
+) :is(button, select):hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.13);
+  border-color: var(--accent, #1e88e5);
+}
+:is(
+  [data-testid="workspace-tabs"], [data-testid="status-bar"], [data-testid="empty-workspace"],
+  .mosaic-window-toolbar, [data-testid="env-manager"], [data-testid="theme-editor"],
+  [data-testid="broadcast-dialog"], [data-testid="schedule-dialog"], [data-testid="connection-form-backdrop"],
+  [data-testid="command-palette-backdrop"], [data-testid="terminal-settings"], [data-testid="templates-menu"],
+  [data-testid="ws-menu"], [data-testid="proc-menu"], [data-testid="cwd-menu"], [data-testid^="cloud-menu-"]
+) :is(button, select):active:not(:disabled) {
+  background: rgba(255, 255, 255, 0.18);
+}
+:is(
+  [data-testid="workspace-tabs"], [data-testid="status-bar"], [data-testid="empty-workspace"],
+  .mosaic-window-toolbar, [data-testid="env-manager"], [data-testid="theme-editor"],
+  [data-testid="broadcast-dialog"], [data-testid="schedule-dialog"], [data-testid="connection-form-backdrop"],
+  [data-testid="command-palette-backdrop"], [data-testid="terminal-settings"], [data-testid="templates-menu"],
+  [data-testid="ws-menu"], [data-testid="proc-menu"], [data-testid="cwd-menu"], [data-testid^="cloud-menu-"]
+) :is(button, select):disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+/* Text inputs / textareas in dialogs (exclude color swatches, checkboxes, ranges). */
+:is(
+  [data-testid="workspace-tabs"], [data-testid="env-manager"], [data-testid="theme-editor"],
+  [data-testid="broadcast-dialog"], [data-testid="schedule-dialog"], [data-testid="connection-form-backdrop"],
+  [data-testid="command-palette-backdrop"], [data-testid="terminal-settings"]
+) :is(input:not([type="checkbox"]):not([type="color"]):not([type="range"]), textarea) {
+  font: inherit;
+  color: var(--fg, #eee);
+  background: rgba(0, 0, 0, 0.28);
+  border: 1px solid var(--border, #444);
+  border-radius: 4px;
+  padding: 3px 7px;
+}
+
+/* Accessible keyboard focus ring on chrome controls. */
+:is(
+  [data-testid="workspace-tabs"], [data-testid="status-bar"], [data-testid="empty-workspace"],
+  .mosaic-window-toolbar, [data-testid="env-manager"], [data-testid="theme-editor"],
+  [data-testid="broadcast-dialog"], [data-testid="schedule-dialog"], [data-testid="connection-form-backdrop"],
+  [data-testid="command-palette-backdrop"], [data-testid="terminal-settings"], [data-testid="templates-menu"],
+  [data-testid="ws-menu"], [data-testid="proc-menu"], [data-testid="cwd-menu"], [data-testid^="cloud-menu-"]
+) :is(button, select, input, textarea):focus-visible {
+  outline: 2px solid var(--accent, #1e88e5);
+  outline-offset: 1px;
+}
+
+/* Editor pane's own tab strip. The strip is a flex SIBLING of the Monaco host in
+   a flex column, so any rule that changes a child's BOX (border/padding/font)
+   shifts the strip height, perturbs Monaco's layout measurement, and corrupts
+   model-switch rendering (.view-lines stuck on the previous file — the same class
+   as the body font-size gotcha). So theme paint-only here: NO border/padding/font. */
+[data-testid="editor-tabs"] button {
+  color: var(--fg, #eee);
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 4px;
+  cursor: pointer;
+}
+[data-testid="editor-tabs"] button:hover { background: rgba(255, 255, 255, 0.15); }
+
+/* Active workspace tab gets an accent treatment (set via data-active). */
+[data-testid="workspace-tabs"] [data-testid^="tab-"][data-active="true"] {
+  background: rgba(255, 255, 255, 0.12);
+  border-color: var(--accent, #1e88e5);
+  border-bottom-width: 2px;
+}
+
+/* Themed scrollbars for chrome scroll regions (xterm/Monaco render their own). */
+:is([data-testid="env-manager"], [data-testid="theme-editor"], [data-testid="proc-menu"],
+   [data-testid="command-palette-backdrop"], [data-testid="templates-menu"])::-webkit-scrollbar,
+:is([data-testid="env-manager"], [data-testid="theme-editor"], [data-testid="proc-menu"],
+   [data-testid="command-palette-backdrop"], [data-testid="templates-menu"]) *::-webkit-scrollbar { width: 10px; height: 10px; }
+:is([data-testid="env-manager"], [data-testid="theme-editor"], [data-testid="proc-menu"],
+   [data-testid="command-palette-backdrop"], [data-testid="templates-menu"]) *::-webkit-scrollbar-thumb {
+  background: var(--border, #444); border-radius: 5px;
+}

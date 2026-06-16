@@ -61,6 +61,7 @@ export function WorkspaceTabs() {
             style={{ width: 120 }} />
         ) : (
           <button key={id} data-testid={`tab-${id}`}
+            data-active={id === activeId}
             draggable
             onDragStart={() => setDraggedId(id)}
             onDragOver={e => e.preventDefault()}
