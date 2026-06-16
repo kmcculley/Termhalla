@@ -44,6 +44,9 @@ interface State {
   setAiSession: (id: string, ai: AiSession | null) => void
   usage: Record<string, UsageMetrics>
   setUsage: (id: string, metrics: UsageMetrics | null) => void
+  recording: Record<string, boolean>
+  setRecording: (id: string, on: boolean) => void
+  setRecordByDefault: (on: boolean) => void
   drafts: Record<string, EditorDraft>
   cloud: CloudStatus[]
   setCloud: (statuses: CloudStatus[]) => void
@@ -159,6 +162,7 @@ export const useStore = create<State>((set, get) => {
     procs: {},
     aiSessions: {},
     usage: {},
+    recording: {},
     drafts: {},
     cloud: [],
     schedules: {},
@@ -341,6 +345,7 @@ export const useStore = create<State>((set, get) => {
       })
       api.usageUnwatch(paneId)
       api.ptyKill(paneId)
+      api.recStop(paneId)
       scheduleAutosave()
     },
 
@@ -411,6 +416,9 @@ export const useStore = create<State>((set, get) => {
       else delete usage[id]
       return { usage }
     }),
+
+    setRecording: (id, on) => set(s => { const r = { ...s.recording }; if (on) r[id] = true; else delete r[id]; return { recording: r } }),
+    setRecordByDefault: (on) => { set(s => ({ quick: { ...s.quick, recordByDefault: on } })); scheduleQuickSave() },
 
     setCloud: (statuses) => set({ cloud: statuses }),
 

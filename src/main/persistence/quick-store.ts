@@ -15,6 +15,7 @@ function normalizeQuick(value: unknown): QuickData {
     theme: (value as { theme?: unknown })?.theme && typeof (value as { theme?: unknown }).theme === 'object'
       ? (value as { theme?: object }).theme as Partial<import('@shared/types').Theme> : undefined,
     themePresets: Array.isArray(v.themePresets) ? v.themePresets : [],
+    recordByDefault: typeof v.recordByDefault === 'boolean' ? v.recordByDefault : false,
   }
 }
 
