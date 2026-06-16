@@ -1,7 +1,7 @@
 # UI Polish — Phase 2: Feedback & micro-QoL
 
 **Date:** 2026-06-16
-**Status:** Design — pending review
+**Status:** Implemented
 **Part of:** UI polish + QoL initiative (Phase 2 of 4). Phase 1 (design tokens) is
 merged. Phases 3 (keyboard/a11y + command palette) and 4 (unified Settings) follow.
 

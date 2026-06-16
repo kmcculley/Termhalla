@@ -7,6 +7,13 @@ All notable changes to Termhalla are recorded here. The format follows
 ## [Unreleased]
 
 ### Added
+- **In-app toasts + file-explorer context menu (UI polish phase 2).** Discrete actions that
+  used to succeed silently (saving a workspace template or theme preset, saving an SSH
+  favorite, scheduling a command, adding an env var) now confirm with a bottom-right toast.
+  Right-clicking a file or folder in the explorer opens a menu: Open, Reveal in File Explorer,
+  Copy path / Copy relative path, Rename (inline), and Delete (to the Recycle Bin — recoverable,
+  behind a confirm). The explorer now shows "Folder is empty" / "Couldn't read folder" instead
+  of a blank pane, and the env-vault passphrase field auto-focuses.
 - **Undock a workspace into its own window** — drag a workspace tab off the strip to tear it into
   a real OS window you can move onto any monitor; drag it back onto the main strip, click its
   **Dock** button, or hit the window's native ✕ to re-dock (✕ never kills the shells). The running
