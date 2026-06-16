@@ -7,6 +7,7 @@ import type { TerminalConfig } from '@shared/types'
 import { resolveTheme } from '@shared/theme'
 import { useStore } from '../store'
 import { useResolvedPaneTheme } from '../use-resolved-theme'
+import { clipboardKeyAction } from './terminal-clipboard'
 
 export function TerminalPane({ paneId, wsId, config }: { paneId: string; wsId: string; config: TerminalConfig }) {
   const hostRef = useRef<HTMLDivElement>(null)
@@ -36,6 +37,19 @@ export function TerminalPane({ paneId, wsId, config }: { paneId: string; wsId: s
     const offExit = api.onPtyExit((id) => { if (id === paneId && !disposed) term.write('\r\n[process exited]\r\n') })
     const inputDisp = term.onData(d => api.ptyWrite({ id: paneId, data: d }))
 
+    // Clipboard: Ctrl+C copies a selection (else ^C falls through), Ctrl+V / right-click paste.
+    // Paste goes through term.paste() so it honors bracketed-paste mode (multi-line pastes into a
+    // shell or TUI don't auto-run); it flows out via the inputDisp onData handler above.
+    const paste = async () => { const text = await api.clipboardRead(); if (text) term.paste(text) }
+    term.attachCustomKeyEventHandler(e => {
+      const action = clipboardKeyAction(e, term.hasSelection())
+      if (action === 'copy') { api.clipboardWrite(term.getSelection()); term.clearSelection(); return false }
+      if (action === 'paste') { void paste(); return false }
+      return true
+    })
+    const onContextMenu = (e: MouseEvent) => { e.preventDefault(); void paste() }
+    hostRef.current!.addEventListener('contextmenu', onContextMenu)
+
     let lastCols = term.cols, lastRows = term.rows
     const ro = new ResizeObserver(() => {
       fit.fit()
@@ -50,6 +64,7 @@ export function TerminalPane({ paneId, wsId, config }: { paneId: string; wsId: s
 
     return () => {
       disposed = true
+      hostRef.current?.removeEventListener('contextmenu', onContextMenu)
       ro.disconnect(); inputDisp.dispose(); offData(); offExit(); term.dispose()
       termRef.current = null; fitRef.current = null
     }
