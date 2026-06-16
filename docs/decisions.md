@@ -214,6 +214,41 @@ isolates the timer/IO logic from the rendering glue without rearchitecting the t
 **Consequences:** The deeper move of the tab `Map` into real React state (to retire the
 `force` re-render hack) remains open as a future refactor.
 
+### [2026-06-16] Renderer store decomposed into slices; WorkspaceView into PaneTile
+
+**Context:** A second `/review-quality` pass flagged the ~600-line `store.ts` as a god module
+and `WorkspaceView` as a god component (layout + six modal states + toolbar + popovers + the
+status/AI display for every pane in one ~100-line `renderTile`).
+**Decision:** Split the store into cohesive slice creators under `src/renderer/store/`
+(`theme/runtime/quick/schedule-slice`) composed by a thin root in `store.ts`; the single `State`
+type stays whole (in `store/types.ts`) so no consumer changes. Shared debounced-save and
+`commitPane` helpers are passed to slices via a `SliceDeps` object; pure helpers live in
+`store/internals.ts` (and are re-exported from `store.ts` for back-compat). Split `WorkspaceView`
+into `PaneTile` (one per mosaic tile, owning its own single-`menu` state and subscribing only to
+*its* pane's store slices) plus `PaneToolbar`, `ProcessPopover`, and `CwdMenu`.
+**Rationale:** Per-tile subscriptions also cut re-renders — sibling tiles no longer re-render on
+another pane's runtime churn. Behavior-preserving; verified by the full unit + e2e suites.
+**Consequences:** Adding store behavior means editing the relevant slice (not one giant file);
+new per-pane UI goes in `PaneTile`/its subcomponents. `data-testid`s and DOM were kept identical.
+
+### [2026-06-16] EditorPane owns the live tab set; config.files is initializer + additive only
+
+**Context:** The quality review flagged that `EditorPane`'s config-sync effect added tabs for new
+`config.files` but never removed ones dropped elsewhere — two sources of truth. The obvious fix
+(full add+remove reconciliation) was implemented and **broke Save As in e2e**: `openTab` is async,
+so a freshly opened path is in the local `tabs.current` before the `config` snapshot the effect
+closes over reflects it, and the removal pass tore the new tab down.
+**Decision:** Keep the sync effect **additive only** and document that `EditorPane` owns the live
+tab set (`tabs.current` + `order`); `config.files` is the initializer and an additive source, and
+tab *removal* is driven locally by `closeTab`, which persists the shrunk list straight back. Also
+fixed `openTab` to persist the accurate file list (was persisting a by-one-render-stale order) and
+extracted a shared `dropTab` used by `closeTab`.
+**Rationale:** Nothing in the app removes a file from `config.files` externally, so the two never
+drift in practice; the additive contract avoids racing the async `openTab`. This is the
+review's explicitly-offered alternative resolution.
+**Consequences:** A future need to remove tabs from outside the pane would require a
+race-safe reconciliation (e.g. keyed on a stable signal, not the live `config` snapshot).
+
 ### [project] node-pty Spectre patch + electron-rebuild
 
 **Context:** node-pty is native and must match Electron's ABI; its build expects

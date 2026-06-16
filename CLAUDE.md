@@ -103,7 +103,7 @@ related area:
 | AI session detection | `src/main/ai/` | [ai-session-awareness](docs/features/ai-session-awareness.md) |
 | Claude usage metrics | `src/main/usage/` | [usage-metrics](docs/features/usage-metrics.md) |
 | SSH / favorites store | `src/main/persistence/quick-store.ts`, `src/shared/quick.ts` | [ssh-favorites](docs/features/ssh-favorites.md) |
-| Renderer store | `src/renderer/store.ts` | — |
+| Renderer store | `src/renderer/store.ts` (root) + `src/renderer/store/` (slices + helpers) | — |
 | IPC contract | `src/shared/ipc-contract.ts` | — |
 
 ## Process / workflow

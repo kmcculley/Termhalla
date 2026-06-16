@@ -11,6 +11,24 @@ All notable changes to Termhalla are recorded here. The format follows
   `🔑` button (layered over globals).
 
 ### Changed
+- **Internal refactor — code-quality pass #2 (no behavior change).** Resolved the Critical and
+  Major findings from the second quality review. Renderer: `WorkspaceView` was a god component
+  doing layout + six modal states + toolbar + popovers for every pane; it is split into
+  `PaneTile` (owns its own menu state and subscribes only to *its* pane's slices), `PaneToolbar`,
+  `ProcessPopover`, and `CwdMenu`. The 600-line zustand store is decomposed into cohesive slice
+  modules (`store/theme-slice`, `runtime-slice`, `quick-slice`, `schedule-slice`, plus
+  `internals`/`types`) composed by a thin root; the seven copy-pasted "open a pane" actions now
+  share a `commitPane` helper and the drift-prone per-pane cleanup (status/cwd/procs/ai/usage/
+  recording) goes through one `clearPaneRuntime` + `teardownPanes` path (fixing inconsistent
+  workspace-close teardown). `WorkspaceTabs` now uses scoped `useShallow` selectors with derived
+  badge strings (no longer re-renders on every line of terminal output); `App` collapses eight
+  identical IPC-subscription effects into one; the floating popover surfaces share a `SURFACE`
+  style from `Modal`. Main: the duplicated OSC scan loop in `osc133-parser`/`cwd-parser` is
+  extracted to `scanOsc`; `register.ts` consolidates per-service teardown into one
+  `win.on('closed')` and drops the `tracker!`/`ai!` non-null assertions. Contract: named
+  `RecState`/`EnvVaultState`/`AiTool` types replace anonymous callback shapes, and the
+  `draftsSet`/`draftsDelete` API names match their channels. Covered by the existing unit + e2e
+  suites.
 - **Internal refactor — code-quality pass (no behavior change).** Resolved the three Major
   findings from the quality review: (1) the seven copy-pasted "open a pane" branches in the
   renderer store now route through a single `placePane`/`firstTarget` helper; (2) the five-plus

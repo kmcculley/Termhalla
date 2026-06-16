@@ -104,10 +104,16 @@ are documented in [CLAUDE.md](../CLAUDE.md) → Load-bearing gotchas.
 
 ## State management
 
-The renderer keeps one zustand store (`src/renderer/store.ts`) holding the
+The renderer keeps one zustand store, composed by a thin root
+(`src/renderer/store.ts`) from cohesive slice modules under `src/renderer/store/`
+(`theme-slice`, `runtime-slice`, `quick-slice`, `schedule-slice`, with shared pure
+helpers in `internals.ts` and the `State` type in `types.ts`). It holds the
 workspaces plus per-pane runtime maps keyed by paneId: `statuses`, `cwds`,
-`procs`, `aiSessions`, `usage`. Push events update these maps; `closePane` clears
-all of them together (cleanup parity matters — a missed map is a slow leak).
+`procs`, `aiSessions`, `usage`, `recording`. Push events update these maps;
+`clearPaneRuntime` (paired with `teardownPanes` for the main-side PTY/usage/rec
+stop) drops every map together and is the single cleanup site used by both
+`closePane` and `closeWorkspace` — cleanup parity matters, a missed map is a slow
+leak, so it lives in one helper. New panes are committed through `commitPane`.
 Workspace edits trigger a debounced auto-save.
 
 ## Persistence
