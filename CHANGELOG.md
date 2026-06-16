@@ -7,6 +7,9 @@ All notable changes to Termhalla are recorded here. The format follows
 ## [Unreleased]
 
 ### Added
+- **Terminal clipboard** — copy a mouse selection with **Ctrl+C** (falls back to `^C` interrupt
+  when nothing is selected), and paste with **Ctrl+V** or **right-click** (bracketed-paste-safe,
+  so multi-line pastes don't auto-run).
 - **Per-terminal environment variables** — edit a single terminal's own env vars from its
   `🔑` button (layered over globals).
 

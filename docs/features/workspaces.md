@@ -51,6 +51,12 @@ Workspaces are saved to disk and restored on the next launch: layout tree, per-p
 - **cwd round-trip.** Live cwd updates are mirrored into each terminal's `config.cwd` via `applyCwds` before persisting, so a restored workspace reopens in the last directory.
 - **cmd fallback.** If no candidate shell resolves, `detectShells` still returns cmd so the app is never shell-less.
 
+### Clipboard
+
+- **Copy:** select text with the mouse and press **Ctrl+C**. With a selection, Ctrl+C copies it (and clears the selection); with no selection, Ctrl+C sends the interrupt signal (`^C`) as usual. The selection-vs-interrupt decision is the pure `clipboardKeyAction` (`components/terminal-clipboard.ts`), wired via xterm's `attachCustomKeyEventHandler`.
+- **Paste:** **Ctrl+V** or **right-click**. Paste goes through `term.paste()`, which honors bracketed-paste mode, so pasting multi-line text into a shell or a TUI (e.g. Claude) does not auto-execute each line. It flows out through the existing `onData → ptyWrite` path.
+- Clipboard access lives in the **main** process (Electron `clipboard`) behind the `clipboard:read` / `clipboard:write` IPC channels (`ipc/register-clipboard.ts`); the renderer never touches the OS clipboard directly.
+
 ## Testing
 
 Vitest (in `tests/`):
@@ -64,6 +70,7 @@ Playwright-for-Electron (in `tests/e2e/`):
 - `tests/e2e/smoke.spec.ts` — launch, open a terminal, type and see echoed output, split into a second tile.
 - `tests/e2e/persistence.spec.ts` — create two tiled terminals, save, relaunch with the same `--user-data-dir`, assert the 2-terminal layout restores with no empty state.
 - `tests/e2e/workspace-switch.spec.ts` — leave a marker in a terminal, create a second workspace (switching away), switch back, assert scrollback survives (regression test for the keep-mounted decision).
+- `tests/e2e/clipboard.spec.ts` — copy a selected line with Ctrl+C (asserts the system clipboard via `app.evaluate`), and paste with Ctrl+V and right-click.
 
 ## Related
 
