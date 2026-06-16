@@ -17,12 +17,14 @@ import { AiSessionTracker } from '../ai/ai-session-tracker'
 import { UsageTracker } from '../usage/usage-tracker'
 import { DraftStore } from '../persistence/draft-store'
 import { Recorder } from '../recording/recorder'
+import { EnvVault } from '../env-vault/env-vault'
 
 export function registerHandlers(win: BrowserWindow): PtyManager {
   const store = new WorkspaceStore(userDataDir())
   const quick = new QuickStore(userDataDir())
   const shells = detectShells()
   const recorder = new Recorder()
+  const envVault = new EnvVault(userDataDir())
 
   const scriptDir = join(userDataDir(), 'shell-integration')
   writeIntegrationScripts(scriptDir)
@@ -87,7 +89,7 @@ export function registerHandlers(win: BrowserWindow): PtyManager {
   ipcMain.handle(CH.ptySpawn, (_e, a: PtySpawnArgs) => {
     const shell = shells.find(s => s.id === a.shellId) ?? shells[0]
     tracker!.register(a.id)   // register BEFORE spawn: a failed spawn calls onExit->unregister synchronously, keeping the registry clean
-    pty.spawn(a.id, shell, a.cwd, a.cols, a.rows, a.launch)
+    pty.spawn(a.id, shell, a.cwd, a.cols, a.rows, a.launch, envVault.envFor(a.envId))
   })
   ipcMain.on(CH.ptyWrite, (_e, a: PtyWriteArgs) => pty.write(a.id, a.data))
   ipcMain.on(CH.ptyResize, (_e, a: PtyResizeArgs) => { pty.resize(a.id, a.cols, a.rows); recorder.resize(a.id, a.cols, a.rows) })
@@ -140,6 +142,18 @@ export function registerHandlers(win: BrowserWindow): PtyManager {
   ipcMain.on(CH.recStop, (_e, id: string) => { const f = recorder.stop(id); safeSend(CH.recState, id, false, f) })
   ipcMain.on(CH.recReveal, () => { void shell.openPath(join(userDataDir(), 'recordings')) })
   win.on('closed', () => recorder.dispose())
+
+  const emitEnvState = (): void => safeSend(CH.envState, { exists: envVault.exists(), unlocked: envVault.isUnlocked() })
+  ipcMain.handle(CH.envUnlock, (_e, p: string) => { const ok = envVault.unlock(p); emitEnvState(); return ok })
+  ipcMain.handle(CH.envCreate, (_e, p: string) => { envVault.create(p); emitEnvState() })
+  ipcMain.on(CH.envLock, () => { envVault.lock(); emitEnvState() })
+  ipcMain.handle(CH.envGet, () => envVault.current())
+  ipcMain.on(CH.envSetGlobal, (_e, n: string, v: string) => { envVault.setGlobal(n, v); emitEnvState() })
+  ipcMain.on(CH.envRemoveGlobal, (_e, n: string) => { envVault.removeGlobal(n); emitEnvState() })
+  ipcMain.on(CH.envSetTerminal, (_e, id: string, n: string, v: string) => { envVault.setTerminal(id, n, v); emitEnvState() })
+  ipcMain.on(CH.envRemoveTerminal, (_e, id: string, n: string) => { envVault.removeTerminal(id, n); emitEnvState() })
+  // No existing initial-state push hook in this file; emit once the renderer is ready to receive it.
+  win.webContents.on('did-finish-load', emitEnvState)
 
   return pty
 }

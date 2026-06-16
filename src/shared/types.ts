@@ -88,6 +88,7 @@ export interface TerminalConfig {
   alerts?: AlertConfig
   launch?: TerminalLaunch   // when set, run this instead of a discovered shell (SSH)
   connectionId?: string     // links back to the saved SshConnection, for display
+  envId?: string            // links to a per-terminal env-vault entry; injected on spawn
   theme?: Partial<Theme>
 }
 
@@ -199,6 +200,9 @@ export interface UsageMetrics {
   contextWindow: number  // the model's context window (e.g. 200000)
   contextPct: number     // round(contextTokens / contextWindow * 100)
 }
+
+/** Decrypted env-vault contents surfaced to the renderer while unlocked. */
+export interface EnvVaultData { global: Record<string, string>; terminals: Record<string, Record<string, string>> }
 
 export const SCHEMA_VERSION = 3
 

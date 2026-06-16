@@ -16,7 +16,7 @@ export class PtyManager {
     private readonly scriptDir: string
   ) {}
 
-  spawn(id: string, shell: ShellInfo, cwd: string, cols = 80, rows = 24, launch?: TerminalLaunch): void {
+  spawn(id: string, shell: ShellInfo, cwd: string, cols = 80, rows = 24, launch?: TerminalLaunch, extraEnv?: Record<string, string>): void {
     if (this.sessions.has(id)) return
     const dir = cwd && cwd.length ? cwd : (process.env.USERPROFILE ?? process.env.HOME ?? process.cwd())
     const spec = resolveSpawnSpec(shell, this.scriptDir, launch)
@@ -26,7 +26,7 @@ export class PtyManager {
     try {
       proc = pty.spawn(spec.file, spec.args, {
         name: 'xterm-256color', cols, rows, cwd: dir,
-        env: sanitizeShellEnv({ ...process.env, ...(spec.env ?? {}) })
+        env: sanitizeShellEnv({ ...process.env, ...(spec.env ?? {}), ...(extraEnv ?? {}) })
       })
     } catch (e) {
       // A bad launch command (e.g. ssh not on PATH) must not crash main. Surface it
