@@ -123,8 +123,11 @@ debounce, `WorkspaceView` mosaic cast, etc.) stay deferred below.
   of the friendly domain error; wrap the parse.
 - **`workspace-model.migrate` is identity for all versions** with no v1/v2 cases
   though `SCHEMA_VERSION` is 3 — document the no-op or add explicit cases.
-- **`preload` listeners use `as never`** to satisfy `ipcRenderer.on`; type with
-  `IpcRendererEvent` instead. (`onRecState`/`onEnvState` reformatted; rest remain.)
+- ~~**`preload` listeners use `as never`** to satisfy `ipcRenderer.on`; type with
+  `IpcRendererEvent` instead.~~ **Resolved** — every push channel now goes through one
+  `pushChannel<A>()` factory that attaches a single `IpcRendererEvent`-typed listener and fans
+  out to subscribers (no casts). This also fixed a `MaxListenersExceededWarning` at 11+ open
+  terminals (each pane previously added its own `pty:data`/`pty:exit` listener).
 - **`ThemeProvider`'s 150 ms Monaco-theme delay is a magic timing hack;**
   `status-tracker`'s `400` tail length and `ScheduleDialog`'s `dV/dU/...` paired
   state names are unnamed/opaque.

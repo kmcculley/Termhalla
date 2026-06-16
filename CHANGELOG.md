@@ -10,6 +10,14 @@ All notable changes to Termhalla are recorded here. The format follows
 - **Per-terminal environment variables** — edit a single terminal's own env vars from its
   `🔑` button (layered over globals).
 
+### Fixed
+- **`MaxListenersExceededWarning` with many open terminals.** Each `TerminalPane` attached its own
+  raw `ipcRenderer.on` for `pty:data`/`pty:exit`, and since every workspace stays mounted, 11+
+  terminals crossed Node's default 10-listeners-per-event cap and logged a spurious leak warning.
+  The preload now attaches exactly one underlying listener per push channel and fans out to its
+  subscribers (detaching when the last one leaves), so listener count no longer scales with pane
+  count. Also removes the per-subscriber `as never` casts.
+
 ### Changed
 - **Internal refactor — code-quality pass #3 (no behavior change).** Resolved the 2 Critical and
   9 Major findings from the third quality review. Correctness: `EditorPane.closeTab` no longer
