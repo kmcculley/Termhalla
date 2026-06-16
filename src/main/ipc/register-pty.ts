@@ -1,4 +1,4 @@
-import { ipcMain, Notification, type BrowserWindow, type WebContents } from 'electron'
+import { ipcMain, Notification, BrowserWindow, type WebContents } from 'electron'
 import { CH, type PtySpawnArgs, type PtyWriteArgs, type PtyResizeArgs, type NotifyArgs } from '@shared/ipc-contract'
 import type { ShellInfo } from '@shared/types'
 import { PtyManager } from '../pty/pty-manager'
@@ -65,10 +65,12 @@ export function registerPty(
   // both are idempotent (Map.delete returns false), so the renderer sees a single clear.
   ipcMain.on(CH.ptyKill, (_e, id: string) => { pty.kill(id); tracker.unregister(id); ai.unregister(id) })
 
-  ipcMain.on(CH.notify, (_e, a: NotifyArgs) => {
+  ipcMain.on(CH.notify, (e, a: NotifyArgs) => {
     if (!Notification.isSupported()) return
+    // Focus the window that raised the notification (an undocked window, not always main).
+    const target = BrowserWindow.fromWebContents(e.sender) ?? win
     const n = new Notification({ title: a.title, body: a.body })
-    n.on('click', () => { win.show(); win.focus() })
+    n.on('click', () => { target.show(); target.focus() })
     n.show()
   })
 

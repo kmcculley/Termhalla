@@ -173,7 +173,9 @@ export const useStore = create<State>((set, get) => {
         const activeId = s.activeId === id ? (order[0] ?? null) : s.activeId
         return { workspaces, order, activeId, ...clearPaneRuntime(s, paneIds), schedules: schedulesWithout(s.schedules, paneIds) }
       })
-      if (get().order.length === 0) get().newWorkspace('Workspace 1')
+      // Only the main window keeps at least one workspace; a floating window that loses its sole
+      // workspace closes instead of re-seeding a phantom one.
+      if (get().order.length === 0 && get().isMainWindow) get().newWorkspace('Workspace 1')
       scheduleAutosave()
       reportAssignment()
     },
