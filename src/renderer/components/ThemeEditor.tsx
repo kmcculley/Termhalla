@@ -23,7 +23,7 @@ function varFor(key: keyof Theme, value: string | number): [string, string] {
   return Object.entries(themeCssVarsPartial({ [key]: value } as Partial<Theme>))[0] as [string, string]
 }
 
-export function ThemeEditor({ onClose }: { onClose: () => void }) {
+export function ThemeEditor({ onClose, initialPaneId }: { onClose: () => void; initialPaneId?: string }) {
   const activeId = useStore(s => s.activeId)
   const ws = useStore(s => (s.activeId ? s.workspaces[s.activeId] : null))
   const quickTheme = useStore(s => s.quick.theme)
@@ -34,7 +34,8 @@ export function ThemeEditor({ onClose }: { onClose: () => void }) {
   const deleteThemePreset = useStore(s => s.deleteThemePreset)
   const presets = useStore(s => s.quick.themePresets)
 
-  const [sel, setSel] = useState('app') // 'app' | 'workspace' | `pane:<paneId>`
+  // Opened from a pane's button → start scoped to that pane; otherwise app-wide.
+  const [sel, setSel] = useState(initialPaneId ? `pane:${initialPaneId}` : 'app') // 'app' | 'workspace' | `pane:<paneId>`
   const [presetName, setPresetName] = useState('')
 
   const paneId = sel.startsWith('pane:') ? sel.slice(5) : null

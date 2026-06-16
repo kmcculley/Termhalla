@@ -72,3 +72,24 @@ test('scoped theming: app vs per-pane override, persisted', async () => {
   await expect.poll(() => selVar(win, '[data-testid^="tile-"]', '--term-bg'), { timeout: 12_000 }).toBe('#22aa55')
   pid = app.process().pid; await app.close().catch(() => {}); killTree(pid)
 })
+
+test('a pane theme button opens the editor scoped to that pane', async () => {
+  test.setTimeout(60_000)
+  const userData = mkdtempSync(join(tmpdir(), 'termh-panetheme-'))
+  const app = await launch(userData)
+  const win = await app.firstWindow()
+  await win.getByTestId('add-first-terminal').click()
+  await expect(win.locator('[data-testid^="terminal-"]')).toHaveCount(1, { timeout: 15_000 })
+
+  // Open the theme editor from THIS pane's 🎨 button → starts scoped to the pane.
+  await win.locator('[data-testid^="theme-chip-"]').first().click()
+  await expect(win.getByTestId('theme-editor')).toBeVisible()
+  expect(await win.getByTestId('theme-scope').inputValue()).toMatch(/^pane:/)
+
+  // Editing applies to that pane only.
+  await setColor(win, 'theme-termBg', '#0099cc')
+  await expect.poll(() => selVar(win, '[data-testid^="tile-"]', '--term-bg'), { timeout: 10_000 }).toBe('#0099cc')
+  expect(await rootVar(win, '--term-bg')).not.toBe('#0099cc')
+
+  const pid = app.process().pid; await app.close().catch(() => {}); killTree(pid)
+})
