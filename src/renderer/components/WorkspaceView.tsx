@@ -11,6 +11,7 @@ import { EditorPane } from './EditorPane'
 import { ExplorerPane } from './ExplorerPane'
 import { TerminalSettings } from './TerminalSettings'
 import { ScheduleDialog } from './ScheduleDialog'
+import { ThemeEditor } from './ThemeEditor'
 
 /** Compact token count: 999 -> "999", 1234 -> "1.2k", 156000 -> "156k". */
 function fmtTokens(n: number): string {
@@ -43,6 +44,7 @@ export function WorkspaceView({ ws }: { ws: Workspace }) {
   const [cwdMenuFor, setCwdMenuFor] = useState<string | null>(null)
   const [procsMenuFor, setProcsMenuFor] = useState<string | null>(null)
   const [scheduleFor, setScheduleFor] = useState<string | null>(null)
+  const [themeFor, setThemeFor] = useState<string | null>(null)
 
   // Auto-dismiss the process popover 2s after it opens on a terminal with no child
   // processes. If a process appears within that window, procs changes, the effect
@@ -105,6 +107,8 @@ export function WorkspaceView({ ws }: { ws: Workspace }) {
                 onClick={() => setCwdMenuFor(cwdMenuFor === paneId ? null : paneId)}>📁</button>,
               <button key="gear" data-testid={`gear-${paneId}`} title="Terminal settings"
                 onClick={() => setSettingsFor(settingsFor === paneId ? null : paneId)}>⚙</button>,
+              <button key="theme" data-testid={`theme-chip-${paneId}`} title="Theme this pane"
+                onClick={() => setThemeFor(themeFor === paneId ? null : paneId)}>🎨</button>,
               <button key="split-row" data-testid={`split-${paneId}`} title="Split right"
                 onClick={() => addTerminal(ws.id, paneId, 'row')}>⬌</button>,
               <button key="split-col" data-testid={`split-col-${paneId}`} title="Split down"
@@ -146,6 +150,7 @@ export function WorkspaceView({ ws }: { ws: Workspace }) {
                 </div>
               )}
               {scheduleFor === paneId && <ScheduleDialog paneId={paneId} onClose={() => setScheduleFor(null)} />}
+              {themeFor === paneId && <ThemeEditor initialPaneId={paneId} onClose={() => setThemeFor(null)} />}
               {cwdMenuFor === paneId && (
                 <div data-testid="cwd-menu" onClick={e => e.stopPropagation()}
                   style={{ position: 'absolute', right: 4, top: 28, zIndex: 10, background: 'var(--elevated, #252526)',

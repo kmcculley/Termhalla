@@ -10,7 +10,7 @@ The `🎨` button in the workspace tab bar opens the **Theme** editor. Pick colo
 
 ### Scope (per-entity)
 
-A **Scope** selector chooses what your edits apply to, layered as overrides: **App (default)** (base theme, in `quick.json`), **This workspace** (overrides the app theme for the active workspace, in the workspace JSON), or **a pane** (terminal / editor / explorer — overrides for that pane only, in its config). A pane's effective look = `app ← workspace ← pane` (nearest wins). "Reset this scope" clears just that level; presets are named **app**-level themes.
+A **Scope** selector chooses what your edits apply to, layered as overrides: **App (default)** (base theme, in `quick.json`), **This workspace** (overrides the app theme for the active workspace, in the workspace JSON), or **a pane** (terminal / editor / explorer — overrides for that pane only, in its config). Every pane also has its own `🎨` toolbar button that opens the editor **pre-scoped to that pane**; the global `🎨` in the tab bar opens at App scope. A pane's effective look = `app ← workspace ← pane` (nearest wins). "Reset this scope" clears just that level; presets are named **app**-level themes.
 
 ## How it works
 
