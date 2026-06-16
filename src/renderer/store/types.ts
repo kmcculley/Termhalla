@@ -10,6 +10,9 @@ export type ThemeScope =
   | { kind: 'workspace'; wsId: string }
   | { kind: 'pane'; wsId: string; paneId: string }
 
+export type ToastKind = 'success' | 'error' | 'info'
+export interface Toast { id: string; kind: ToastKind; text: string }
+
 export interface State {
   shells: ShellInfo[]
   workspaces: Record<string, Workspace>
@@ -90,6 +93,9 @@ export interface State {
   saveThemePreset: (name: string) => void
   applyThemePreset: (id: string) => void
   deleteThemePreset: (id: string) => void
+  toasts: Toast[]
+  pushToast: (text: string, kind?: ToastKind) => string
+  dismissToast: (id: string) => void
 }
 
 /** Wiring handed to every slice creator: the store's set/get plus the shared debounced-save and

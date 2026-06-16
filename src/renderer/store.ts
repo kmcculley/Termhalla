@@ -15,6 +15,7 @@ import { createThemeSlice } from './store/theme-slice'
 import { createRuntimeSlice } from './store/runtime-slice'
 import { createQuickSlice } from './store/quick-slice'
 import { createScheduleSlice } from './store/schedule-slice'
+import { createToastsSlice } from './store/toasts-slice'
 
 // Re-exported so existing `import { ... } from '../store'` call sites keep working.
 export type { ThemeScope } from './store/types'
@@ -91,6 +92,7 @@ export const useStore = create<State>((set, get) => {
     ...createRuntimeSlice(deps),
     ...createQuickSlice(deps),
     ...createScheduleSlice(deps),
+    ...createToastsSlice(deps),
 
     // ---- core: bootstrap + persistence ----
     init: async () => {
