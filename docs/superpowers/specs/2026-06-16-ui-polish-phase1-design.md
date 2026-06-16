@@ -1,7 +1,7 @@
 # UI Polish — Phase 1: Design-token & visual-consistency foundation
 
 **Date:** 2026-06-16
-**Status:** Design — pending review
+**Status:** Implemented
 **Part of:** UI polish + QoL initiative (Phase 1 of 4). Later phases: 2 = feedback &
 micro-QoL, 3 = keyboard/a11y + command palette, 4 = unified Settings panel. Light
 mode was explicitly cut.

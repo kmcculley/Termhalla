@@ -20,9 +20,9 @@ export function EditorPane({ paneId, wsId, config }: { paneId: string; wsId: str
         onSaveUntitledAs={() => void saveUntitledAs()} onClearUntitled={clearUntitled}
         onOpenFile={async () => { const p = await api.openFile(); if (p) void openTab(p) }}
       />
-      {activeTab?.tooLarge && <div data-testid="editor-toolarge" style={{ color: '#bbb', padding: 8 }}>File too large to open.</div>}
+      {activeTab?.tooLarge && <div data-testid="editor-toolarge" style={{ color: 'var(--fg-dim, #aaa)', padding: 8 }}>File too large to open.</div>}
       {activeTab?.externalChanged && (
-        <div data-testid="editor-reloadbar" style={{ background: '#5a4a00', color: '#fff', padding: '2px 8px', display: 'flex', gap: 8 }}>
+        <div data-testid="editor-reloadbar" style={{ background: 'var(--warn-bg)', color: 'var(--warn-fg)', padding: '2px 8px', display: 'flex', gap: 8 }}>
           <span>Changed on disk.</span>
           <button data-testid="editor-reload" onClick={() => void reloadActive()}>Reload</button>
           <button data-testid="editor-keepmine" onClick={dismissExternalChange}>Keep mine</button>

@@ -38,6 +38,16 @@ All notable changes to Termhalla are recorded here. The format follows
   count. Also removes the per-subscriber `as never` casts.
 
 ### Changed
+- **UI polish (phase 1) — design-token foundation (no behavior change).** Hardcoded colors and
+  fonts scattered through the renderer (`#094771` palette selection, the `#5a4a00`/`#bbb` editor
+  bars, eight `Consolas, monospace` literals, a spread of ad-hoc `opacity` dim-text values) now
+  route through a single layer of derived `:root` tokens (`--mono`, `--sel-bg`, `--warn-bg/-fg`,
+  `--shadow-pop/-modal`, `--fg-dim`, `--dim/--dimmer`) that track the active theme via `color-mix`
+  — so per-app/-workspace/-pane theming restyles them automatically. Modals and in-tile popovers
+  gain consistent drop-shadows and a reduced-motion-safe pop-in; long pane titles now ellipsize
+  instead of shoving toolbar buttons off the bar; the file explorer gets the themed scrollbar; and
+  workspace tabs show a keyboard focus ring. A guard test keeps the retired literals from creeping
+  back. First of a four-phase polish/QoL pass.
 - **Internal refactor — code-quality pass #3 (no behavior change).** Resolved the 2 Critical and
   9 Major findings from the third quality review. Correctness: `EditorPane.closeTab` no longer
   runs side effects (model switch + persist) *inside* a `setOrder` updater — React can

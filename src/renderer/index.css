@@ -1,3 +1,19 @@
+/* Derived/static design tokens. Not user-editable (those live in the Theme type);
+   these are computed once here and tracked off the user tokens via color-mix so they
+   restyle with the theme. Each carries the legacy literal as a fallback. */
+:root {
+  --mono: 'Consolas', 'Cascadia Mono', monospace;
+  --radius: 4px;
+  --radius-lg: 6px;
+  --shadow-pop: 0 4px 16px rgba(0, 0, 0, 0.4);
+  --shadow-modal: 0 8px 32px rgba(0, 0, 0, 0.5);
+  --sel-bg: color-mix(in srgb, var(--accent, #1e88e5) 32%, transparent);
+  --warn-bg: color-mix(in srgb, var(--status-needs, #ff8f00) 30%, var(--elevated, #252526));
+  --warn-fg: var(--fg, #eee);
+  --dim: 0.7;
+  --dimmer: 0.5;
+}
+
 html, body, #root { margin: 0; height: 100%; }
 /* Theme the window background, text color, and UI font on body. NOTE: `font-size` is applied
    per-chrome-surface (workspace tab bar, status bar, dialogs) and deliberately NOT set on body —
@@ -49,6 +65,10 @@ body { background: var(--bg, #1e1e1e); color: var(--fg, #eee); font-family: var(
 .mosaic-blueprint-theme .mosaic-window:not(.term-busy):not(.term-needs-input) .mosaic-window-title {
   color: var(--fg, #eee) !important;
   font-weight: 600;
+}
+/* Long pane titles truncate instead of shoving the toolbar buttons off the bar. */
+.mosaic-blueprint-theme .mosaic-window-title {
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0;
 }
 .mosaic-blueprint-theme .mosaic-window:not(.term-busy):not(.term-needs-input) .mosaic-window-toolbar button {
   color: var(--fg, #eee);
@@ -170,10 +190,26 @@ body { background: var(--bg, #1e1e1e); color: var(--fg, #eee); font-family: var(
 
 /* Themed scrollbars for chrome scroll regions (xterm/Monaco render their own). */
 :is([data-testid="env-manager"], [data-testid="theme-editor"], [data-testid="proc-menu"],
-   [data-testid="command-palette-backdrop"], [data-testid="templates-menu"])::-webkit-scrollbar,
+   [data-testid="command-palette-backdrop"], [data-testid="templates-menu"], [data-testid^="explorer-"])::-webkit-scrollbar,
 :is([data-testid="env-manager"], [data-testid="theme-editor"], [data-testid="proc-menu"],
-   [data-testid="command-palette-backdrop"], [data-testid="templates-menu"]) *::-webkit-scrollbar { width: 10px; height: 10px; }
+   [data-testid="command-palette-backdrop"], [data-testid="templates-menu"], [data-testid^="explorer-"]) *::-webkit-scrollbar { width: 10px; height: 10px; }
 :is([data-testid="env-manager"], [data-testid="theme-editor"], [data-testid="proc-menu"],
-   [data-testid="command-palette-backdrop"], [data-testid="templates-menu"]) *::-webkit-scrollbar-thumb {
+   [data-testid="command-palette-backdrop"], [data-testid="templates-menu"], [data-testid^="explorer-"]) *::-webkit-scrollbar-thumb {
   background: var(--border, #444); border-radius: 5px;
+}
+:is([data-testid^="explorer-"])::-webkit-scrollbar-thumb { background: var(--border, #444); border-radius: 5px; }
+
+/* Visual keyboard focus ring on workspace tabs (movement logic is a later phase). */
+[data-testid="workspace-tabs"] [data-testid^="tab-"]:focus-visible {
+  outline: 2px solid var(--accent, #1e88e5); outline-offset: -2px;
+}
+
+/* Subtle entrance for modal cards / popovers. Reduced-motion users get opacity only. */
+@keyframes ui-pop-in {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.ui-pop-in { animation: ui-pop-in 120ms ease-out; }
+@media (prefers-reduced-motion: reduce) {
+  .ui-pop-in { animation: none; }
 }

@@ -32,9 +32,9 @@ export function BroadcastDialog() {
         <div style={{ fontWeight: 600 }}>Broadcast to all terminals</div>
         <textarea data-testid="broadcast-text" value={text} onChange={e => setText(e.target.value)} rows={4}
           autoFocus onKeyDown={e => { if (e.key === 'Enter' && e.shiftKey) { e.preventDefault(); send() } }}
-          style={{ fontFamily: 'Consolas, monospace', fontSize: 13 }} />
+          style={{ fontFamily: 'var(--mono)', fontSize: 13 }} />
         <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', alignItems: 'center' }}>
-          <span style={{ opacity: 0.7 }}>Quick keys:</span>
+          <span style={{ color: 'var(--fg-dim, #aaa)' }}>Quick keys:</span>
           {QUICK_KEYS.map(k => (
             <button key={k.id} data-testid={`broadcast-key-${k.id}`} disabled={count === 0}
               title={`Send ${k.label} to all terminals`}
@@ -51,7 +51,7 @@ export function BroadcastDialog() {
           <label><input data-testid="broadcast-enter" type="checkbox" checked={enter} onChange={e => setEnter(e.target.checked)} /> Send Enter after</label>
         </div>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <span style={{ opacity: 0.7 }}>Send to {count} terminal{count === 1 ? '' : 's'}</span>
+          <span style={{ color: 'var(--fg-dim, #aaa)' }}>Send to {count} terminal{count === 1 ? '' : 's'}</span>
           <span style={{ display: 'flex', gap: 6 }}>
             <button onClick={() => setOpen(false)}>Cancel</button>
             <button data-testid="broadcast-send" disabled={count === 0} onClick={send}>Send</button>

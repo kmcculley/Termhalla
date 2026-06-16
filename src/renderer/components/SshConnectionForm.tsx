@@ -49,7 +49,7 @@ export function SshConnectionForm() {
 
   const field = (label: string, node: React.ReactNode) => (
     <label style={{ display: 'flex', flexDirection: 'column', gap: 2, fontSize: 12 }}>
-      <span style={{ opacity: 0.8 }}>{label}</span>{node}
+      <span style={{ color: 'var(--fg-dim, #aaa)' }}>{label}</span>{node}
     </label>
   )
   const inputStyle = { background: 'var(--panel, #1e1e1e)', color: 'var(--fg, #eee)', border: '1px solid var(--border, #444)',

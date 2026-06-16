@@ -1,6 +1,7 @@
 import { useEffect } from 'react'
 import type { ProcInfo, AiSession, UsageMetrics } from '@shared/types'
 import { Z, SURFACE } from './Modal'
+import { INDENT_PX } from '../ui-tokens'
 
 /** Compact token count: 999 -> "999", 1234 -> "1.2k", 156000 -> "156k". */
 function fmtTokens(n: number): string {
@@ -30,22 +31,22 @@ export function ProcessPopover(
   return (
     <div data-testid="proc-menu" onClick={e => e.stopPropagation()}
       style={{ ...SURFACE, position: 'absolute', left: 4, top: 28, zIndex: Z.popover, padding: 6, maxWidth: 460,
-        maxHeight: 240, overflow: 'auto', fontSize: 12, fontFamily: 'Consolas, monospace' }}>
+        maxHeight: 240, overflow: 'auto', fontSize: 12, fontFamily: 'var(--mono)' }}>
       {aiSession && usage && (
         <div data-testid={`usage-${paneId}`}
           style={{ borderBottom: '1px solid var(--border, #444)', paddingBottom: 4, marginBottom: 4 }}>
           <div>context {fmtTokens(usage.contextTokens)} / {fmtTokens(usage.contextWindow)} · {usage.contextPct}%</div>
-          <div style={{ opacity: 0.7 }}>
+          <div style={{ color: 'var(--fg-dim, #aaa)' }}>
             in {fmtTokens(usage.input)} · out {fmtTokens(usage.output)} · cache r {fmtTokens(usage.cacheRead)} / w {fmtTokens(usage.cacheCreation)}
           </div>
         </div>
       )}
-      {(!procInfo || procInfo.tree.length === 0) && <div style={{ opacity: 0.6 }}>No child processes.</div>}
+      {(!procInfo || procInfo.tree.length === 0) && <div style={{ color: 'var(--fg-dim, #aaa)' }}>No child processes.</div>}
       {procInfo && procInfo.tree.map(n => (
         <div key={n.pid} data-testid={`proc-row-${n.pid}`}
-          style={{ paddingLeft: n.depth * 14, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-          <span style={{ opacity: 0.7 }}>{n.name}</span>
-          <span style={{ opacity: 0.45 }}>  {n.command}</span>
+          style={{ paddingLeft: n.depth * INDENT_PX, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+          <span style={{ color: 'var(--fg-dim, #aaa)' }}>{n.name}</span>
+          <span style={{ opacity: 'var(--dimmer)' }}>  {n.command}</span>
         </div>
       ))}
     </div>
