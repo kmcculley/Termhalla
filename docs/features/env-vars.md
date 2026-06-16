@@ -24,7 +24,7 @@ Values are never stored in plaintext. The vault is a single AES-256-GCM blob at 
 ## Security model
 
 - **Decrypted values + the passphrase live in main-process memory only while unlocked.** Locking (or app close) clears them; only the encrypted blob remains on disk.
-- **Workspace JSON stores only `envId`** (a link to a per-terminal entry) — never names or values. (`TerminalLaunch.envId` in `src/shared/types.ts`.)
+- **Workspace JSON stores only `envId`** (a link to a per-terminal entry) — never names or values. (`TerminalConfig.envId` in `src/shared/types.ts`.)
 - **The renderer receives decrypted values only for display** while the vault is unlocked (`api.envGet()` returns the current `EnvVaultData`); nothing is persisted renderer-side.
 - Consistent with the repo's "no secrets persisted in plaintext" rule — the vault is the one place secrets live, and only as ciphertext.
 
@@ -61,6 +61,14 @@ The `{ exists, unlocked }` state is pushed to the renderer via the `onEnvState` 
 
 - **Per-terminal var editing UI.** The `EnvVault` and IPC (`envSetTerminal` / `envRemoveTerminal`, keyed on a pane's `config.envId`) exist and are exercised at spawn time, but the modal only edits **global** vars today.
 - **External vault backends.** Bitwarden / Azure Key Vault / AWS Secrets Manager are deferred behind a future `SecretSource` seam — the encrypted-local store would become one implementation of that interface.
+
+### Hardening follow-ups (noted from the security review)
+
+These are quality/hardening items, not security holes — the five core constraints above all hold today. Tracked for a later pass:
+
+- **Cache the derived key.** `persist()` currently re-runs scrypt (~80 ms, synchronous on the main loop) on every var mutation because it re-encrypts with a fresh salt each write. Pin one salt per vault, derive the key once on unlock/create, and reuse it (fresh IV per write keeps GCM safe) — or move to the async `scrypt`. Avoids brief main-loop stalls when adding several vars quickly.
+- **Surface persist failures.** `EnvVault.persist()` is intentionally best-effort and swallows write errors; on Windows an AV file lock could silently drop a change. Surface a `persistError` through `env:state` so the UI can warn.
+- **Least-privilege `env:get`.** `env:get` returns the whole `VaultData` (all per-terminal groups) though the UI only shows globals. Scope it to `getGlobals` / `getTerminal(envId)` when the per-terminal editing UI lands.
 
 ## Related
 
