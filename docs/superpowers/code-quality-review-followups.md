@@ -45,6 +45,55 @@ entries), [architecture.md](../architecture.md) (State management), and the
 - **`EditorPane` tab drift** → additive sync + documented ownership + accurate
   `openTab` persist + shared `dropTab` (full removal omitted; see decision entry).
 
+## Third review (2026-06-16 #3) — Critical + Major resolved
+
+A third `/review-quality` pass over the post-refactor `src/` found 2 Critical +
+9 Major + 16 Minor. All Critical and Major were resolved on `main` as
+behavior-preserving changes, covered by the existing unit + e2e suites plus new
+unit tests (256 unit tests, all 25 e2e specs green):
+
+- **[Critical] `closeTab` ran side effects inside a `setOrder` updater** (model
+  switch + persist), which React may double-invoke under StrictMode/batching. The
+  next order/active is now computed *outside* the updater and the effects run
+  after. Moved into the new `editor/use-editor-tabs.ts` hook.
+- **[Critical] `EnvVault.unlock` could silently destroy stored vars.** A
+  decrypted-but-malformed payload was coerced to empty maps, so the next
+  `setGlobal` overwrote the real file. New pure `parseVaultData` strictly
+  validates shape (and a `version` field) and *rejects* rather than coercing;
+  `persist` now stamps `VAULT_VERSION`. Legacy (version-less) vaults still read.
+- **[Major] `EditorPane` god component** → all Monaco/tab/draft/save/untitled/
+  theme lifecycle moved into `editor/use-editor-tabs.ts`; the tab-strip JSX (incl.
+  the inline untitled IIFE) is now `components/EditorTabStrip.tsx`
+  (`UntitledTab`/`FileTab`). `EditorPane` is ~35 lines of presentation.
+- **[Major] `register.ts` god module** → split into per-domain registrars
+  (`register-pty`/`-fs`/`-workspaces`/`-drafts`/`-cloud`/`-usage`/`-recording`/
+  `-env`, with `ipc/types.ts` for the shared `Send`/`Disposer`). `registerHandlers`
+  is now a thin composition root that aggregates disposers into one
+  `win.on('closed')`.
+- **[Major] Env-vault unlock backoff lived in the IPC layer** (loose closure vars
+  + magic numbers). Moved into `EnvVault.unlock(passphrase, now?)` with named
+  `UNLOCK_BACKOFF_BASE_MS`/`MAX_MS`, so it can't be bypassed and is unit-tested.
+- **[Major] Corrupt workspace/app-state crashed `ws:load`.** `loadWorkspace` now
+  degrades a malformed file to `null` (like quick/draft state) instead of
+  rejecting the IPC call; `loadAppState` validates shape via `isAppState`.
+- **[Major] `StatusTracker.tick` idle heuristic** extracted to a pure
+  `computeIdleFallback(quietMs, tail, hasMarkers, cfg)` in `needs-input.ts`, with
+  named intermediates and direct unit tests.
+- **[Major] `App` subscribed to the whole store** → scoped `useShallow` selector
+  for `{ activeId, workspaces, order }`.
+- **[Major] Per-pane theme effect duplicated** in `EditorPane`/`TerminalPane` →
+  shared `useResolvedPaneTheme(wsId, paneTheme)` hook.
+- **[Major] Divergent `basename` helpers** (4 copies) → one `@shared/paths`
+  `basename` (trailing-slash-safe), imported everywhere.
+- **[Major] Duplicated MRU logic** (`pushRecent` vs `nextRecentDirs`) →
+  `pushRecent` gained an optional equality predicate; `nextRecentDirs` delegates.
+
+Minor fixes folded in along the way: the fragile `join(' ')` order-equality check
+is now element-wise `sameOrder`; several magic numbers named (`CLOUD_FOCUS_REFRESH_MS`,
+`DEFAULT_REC_SIZE`). The remaining Minor findings (IPC channel casing, `as never`
+preload casts, `VaultData`/`EnvVaultData` duplicate, window-state dynamic import +
+debounce, `WorkspaceView` mosaic cast, etc.) stay deferred below.
+
 ## Still deferred
 
 - **EditorPane tab state still lives in a ref-held `Map` + `force` re-render.**

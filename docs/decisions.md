@@ -249,6 +249,40 @@ review's explicitly-offered alternative resolution.
 **Consequences:** A future need to remove tabs from outside the pane would require a
 race-safe reconciliation (e.g. keyed on a stable signal, not the live `config` snapshot).
 
+### [2026-06-16] Env-vault payload is versioned and unlock rejects malformed shapes
+
+**Context:** Review #3 found `EnvVault.unlock` coerced a decrypted-but-wrong-shaped payload via
+`d.global ?? {}` / `d.terminals ?? {}`. A correct passphrase decrypting a structurally-unexpected
+blob would unlock to *empty* maps, and the next `setGlobal` would `persist()` over the real file —
+silent total loss of stored vars. The vault payload also carried no schema version (unlike
+workspaces).
+**Decision:** Add a pure `parseVaultData(d)` that strictly validates shape and a `version` field
+and returns `null` (→ unlock fails) rather than coercing when `global`/`terminals` are
+present-but-wrong-typed or the version is newer than supported. `persist()` now stamps
+`VAULT_VERSION`. Absent fields still default to `{}`, and version-less legacy vaults are read as v1.
+**Rationale:** Rejecting is strictly safer than coercing — a failed unlock leaves the encrypted
+file untouched, where coercion could erase it. Backward compatibility matters because existing
+users have unversioned vaults on disk.
+**Consequences:** A future format change bumps `VAULT_VERSION` and adds migration in
+`parseVaultData`; a too-new vault opened by old code refuses to unlock instead of corrupting.
+
+### [2026-06-16] register.ts is a composition root over per-domain registrars
+
+**Context:** Review #3 flagged the 178-line `registerHandlers` as a god module with divergent-change
+pressure — it constructed every service, registered ~40 handlers, and owned cross-cutting teardown.
+**Decision:** Split it into per-domain registrars (`register-pty`/`-fs`/`-workspaces`/`-drafts`/
+`-cloud`/`-usage`/`-recording`/`-env`), each owning its handlers and returning an optional
+`Disposer`. `registerHandlers` builds the genuinely-shared services (`store`, `quick`, `shells`,
+`recorder`, `envVault`, the `send` teardown guard) and the PTY/status/process/ai stack — which is
+in a real construction cycle, so it stays in `register-pty.ts` and returns the `PtyManager` the
+recording registrar needs — then aggregates all disposers into one `win.on('closed')`.
+**Rationale:** Mirrors the store-slice split: adding a feature edits one registrar, not a monolith.
+The `recorder` and `envVault` are shared across domains, so they're constructed in the root and
+passed down rather than owned by a single registrar.
+**Consequences:** `drafts.flush()` stays on the earlier `close` event (inside `register-drafts`)
+because it must run synchronously while the window still exists; only `closed`-time teardown goes
+through the disposer list.
+
 ### [project] node-pty Spectre patch + electron-rebuild
 
 **Context:** node-pty is native and must match Electron's ABI; its build expects

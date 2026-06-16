@@ -19,7 +19,7 @@ reasoning behind specific choices see [`decisions.md`](decisions.md).
 │  ai/       Claude/Codex session detection from the process tree  │
 │  usage/    Claude transcript watcher → usage metrics             │
 │  persistence/ workspaces, app-state, quick.json, window-state    │
-│  ipc/register.ts  wires every service to IPC channels            │
+│  ipc/register*.ts  per-domain registrars wire services to IPC   │
 └───────────────▲───────────────────────────────┬─────────────────┘
                 │ contextBridge (window.api)     │ push events
 ┌───────────────┴───────────────────────────────▼─────────────────┐
@@ -37,8 +37,11 @@ reasoning behind specific choices see [`decisions.md`](decisions.md).
 ```
 
 - **main** owns everything privileged. A `BrowserWindow` is created in
-  `src/main/index.ts`; `registerHandlers(win)` in `src/main/ipc/register.ts`
-  constructs every service and binds it to IPC channels.
+  `src/main/index.ts`; `registerHandlers(win)` in `src/main/ipc/register.ts` is a
+  thin composition root — it builds the shared services and delegates to per-domain
+  registrars (`register-pty`/`-fs`/`-workspaces`/`-drafts`/`-cloud`/`-usage`/
+  `-recording`/`-env`), aggregating their teardown disposers into one
+  `win.on('closed')`.
 - **preload** runs with `contextIsolation` and exposes exactly one object,
   `window.api`, implementing the `TermhallaApi` interface. The renderer has no
   other way to reach Node.

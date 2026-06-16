@@ -11,6 +11,24 @@ All notable changes to Termhalla are recorded here. The format follows
   `🔑` button (layered over globals).
 
 ### Changed
+- **Internal refactor — code-quality pass #3 (no behavior change).** Resolved the 2 Critical and
+  9 Major findings from the third quality review. Correctness: `EditorPane.closeTab` no longer
+  runs side effects (model switch + persist) *inside* a `setOrder` updater — React can
+  double-invoke those under StrictMode/batching — and `EnvVault.unlock` no longer silently
+  destroys stored vars when a decrypted payload is malformed (a new pure `parseVaultData`
+  validates shape + a `version` field and rejects rather than coercing to empty; legacy
+  version-less vaults still read). Structure: `EditorPane` shed its entire Monaco/tab/draft/save/
+  untitled/theme lifecycle into `editor/use-editor-tabs.ts`, with the tab strip now in
+  `EditorTabStrip.tsx`; the 178-line `register.ts` god module is split into eight per-domain
+  registrars (`register-pty`/`-fs`/`-workspaces`/`-drafts`/`-cloud`/`-usage`/`-recording`/`-env`)
+  composed by a thin root that aggregates disposers into one `win.on('closed')`; the env-vault
+  unlock backoff moved out of the IPC layer into `EnvVault.unlock`; the `StatusTracker.tick` idle
+  heuristic extracted to a pure, unit-tested `computeIdleFallback`. Resilience: `loadWorkspace`/
+  `loadAppState` degrade a corrupt file to `null` instead of rejecting the IPC call. Dedup: a
+  shared `@shared/paths` `basename` replaces four divergent copies, a `useResolvedPaneTheme` hook
+  replaces the per-pane theme effect duplicated in `EditorPane`/`TerminalPane`, `App` uses a
+  scoped `useShallow` selector, and `pushRecent` gained an equality predicate so `nextRecentDirs`
+  delegates to it. Covered by the existing unit + e2e suites plus new unit tests.
 - **Internal refactor — code-quality pass #2 (no behavior change).** Resolved the Critical and
   Major findings from the second quality review. Renderer: `WorkspaceView` was a god component
   doing layout + six modal states + toolbar + popovers for every pane; it is split into
