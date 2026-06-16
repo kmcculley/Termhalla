@@ -1,0 +1,55 @@
+import { test, expect, _electron as electron, ElectronApplication } from '@playwright/test'
+import { execSync } from 'child_process'
+import { mkdtempSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
+
+function killTree(pid: number | undefined): void {
+  if (pid && process.platform === 'win32') { try { execSync(`taskkill /F /T /PID ${pid}`, { stdio: 'ignore' }) } catch {} }
+}
+
+test('a per-terminal var is written under the pane and persists', async () => {
+  test.setTimeout(60_000)
+  const userData = mkdtempSync(join(tmpdir(), 'termh-env-term-'))
+  const app: ElectronApplication = await electron.launch({
+    args: ['out/main/index.js', '--no-sandbox', '--disable-gpu', `--user-data-dir=${userData}`]
+  })
+  const win = await app.firstWindow()
+
+  // Create a fresh encrypted vault (unlocked in-session) via the global manager.
+  await win.getByTestId('env-button').click()
+  await expect(win.getByTestId('env-manager')).toBeVisible()
+  await win.getByTestId('env-passphrase').fill('pw')
+  await win.getByTestId('env-create').click()
+
+  // Close the global manager.
+  await win.getByRole('button', { name: 'Close' }).click()
+  await expect(win.getByTestId('env-manager')).toBeHidden()
+
+  // Spawn a PowerShell terminal.
+  await win.getByTestId('shell-picker').selectOption('powershell')
+  await win.getByTestId('add-first-terminal').click()
+  await expect(win.locator('[data-testid^="terminal-"]')).toBeVisible({ timeout: 15_000 })
+
+  // Open the pane-scoped env manager via the pane's 🔑 chip.
+  await win.locator('[data-testid^="env-chip-"]').first().click()
+  await expect(win.getByTestId('env-manager')).toBeVisible()
+  await expect(win.getByTestId('env-term-section')).toBeVisible({ timeout: 10_000 })
+
+  // Add a per-terminal var; the row appearing confirms it persisted under the pane's envId.
+  await win.getByTestId('env-term-name').fill('BAR')
+  await win.getByTestId('env-term-value').fill('baz9911')
+  await win.getByTestId('env-term-add').click()
+  await expect(win.getByTestId('env-term-row-BAR')).toBeVisible({ timeout: 10_000 })
+
+  // Close the manager.
+  await win.getByRole('button', { name: 'Close' }).click()
+  await expect(win.getByTestId('env-manager')).toBeHidden()
+
+  // Reopen the pane's env — the var must still be there (re-read from the vault via env:get).
+  await win.locator('[data-testid^="env-chip-"]').first().click()
+  await expect(win.getByTestId('env-manager')).toBeVisible()
+  await expect(win.getByTestId('env-term-row-BAR')).toBeVisible({ timeout: 10_000 })
+
+  const pid = app.process().pid; await app.close().catch(() => {}); killTree(pid)
+})

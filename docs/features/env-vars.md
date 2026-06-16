@@ -13,6 +13,13 @@ A **🔑** button in the tab bar opens the **Environment variables** manager. Th
 
 On terminal spawn the main process merges `envVault.envFor(envId)` (global ∪ per-terminal) into the PTY environment, so a global var set **before** spawning a shell is visible there (e.g. `echo $env:FOO` in PowerShell). Variables added to an already-running terminal apply to terminals spawned afterward, not retroactively.
 
+## Per-terminal variables
+
+Each terminal pane has its own **🔑** button (`env-chip-<paneId>`) that opens the manager **scoped to that terminal** — alongside the read-only globals it shows a **This terminal** section where you can add and delete vars that apply to just that pane (layered over the globals, last-wins).
+
+- The pane's `config.envId` is assigned **lazily** (a fresh uuid) the first time you add a per-terminal var, and the var is written under that id via `api.envSetTerminal(envId, name, value)`. The id is persisted in the workspace JSON so the pane's vars survive a relaunch (`api.envGet()` returns `{ global, terminals }`, re-read on each open).
+- **Spawn-timing semantic:** like globals, a per-terminal var applies the **next time that terminal is spawned** (e.g. after reopening the workspace) while the vault is unlocked — it is **not** injected retroactively into the already-running shell.
+
 ## Encrypted-local model
 
 Values are never stored in plaintext. The vault is a single AES-256-GCM blob at `…/userData/env-vault.json`:
@@ -55,11 +62,10 @@ The `{ exists, unlocked }` state is pushed to the renderer via the `onEnvState` 
 ## Testing
 
 - **Unit:** `tests/main/env-crypto.test.ts` (round-trip; wrong passphrase / tamper fails), `tests/main/env-vault.test.ts` (create → setGlobal → `envFor`; persists and re-unlocks).
-- **e2e:** `tests/e2e/env-vars.spec.ts` — create a vault, add a global `FOO=bar7788`, spawn a PowerShell terminal, and assert `echo $env:FOO` prints the value.
+- **e2e:** `tests/e2e/env-vars.spec.ts` — create a vault, add a global `FOO=bar7788`, spawn a PowerShell terminal, and assert `echo $env:FOO` prints the value. `tests/e2e/env-per-terminal.spec.ts` — open a pane's scoped manager, add a per-terminal var, and assert it persists after closing and reopening.
 
 ## Deferred / non-goals
 
-- **Per-terminal var editing UI.** The `EnvVault` and IPC (`envSetTerminal` / `envRemoveTerminal`, keyed on a pane's `config.envId`) exist and are exercised at spawn time, but the modal only edits **global** vars today.
 - **External vault backends.** Bitwarden / Azure Key Vault / AWS Secrets Manager are deferred behind a future `SecretSource` seam — the encrypted-local store would become one implementation of that interface.
 
 ### Hardening follow-ups (noted from the security review)
