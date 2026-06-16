@@ -3,6 +3,7 @@ import { v4 as uuid } from 'uuid'
 import { useStore } from '../store'
 import { api } from '../api'
 import type { SshConnection } from '@shared/types'
+import { Modal, Z } from './Modal'
 
 export function SshConnectionForm() {
   const target = useStore(s => s.connectionFormFor)
@@ -55,13 +56,11 @@ export function SshConnectionForm() {
     borderRadius: 4, padding: '6px 8px', fontSize: 13 } as const
 
   return (
-    <div data-testid="connection-form-backdrop" onClick={close}
-      style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', zIndex: 1100,
-        display: 'flex', justifyContent: 'center', alignItems: 'flex-start', paddingTop: '12vh' }}>
-      <div data-testid="connection-form" role="dialog" aria-modal={true} aria-label="SSH connection"
-        onClick={e => e.stopPropagation()} onKeyDown={e => { if (e.key === 'Escape') close() }}
-        style={{ width: 420, background: 'var(--elevated, #252526)', color: 'var(--fg, #eee)', border: '1px solid var(--border, #444)',
-          borderRadius: 6, padding: 16, display: 'flex', flexDirection: 'column', gap: 10, fontSize: 'var(--font-size, 13px)' }}>
+    <Modal onClose={close} align="top" z={Z.paletteForm}
+      backdropTestId="connection-form-backdrop" cardTestId="connection-form"
+      cardProps={{ role: 'dialog', 'aria-modal': true, 'aria-label': 'SSH connection',
+        onKeyDown: e => { if (e.key === 'Escape') close() } }}
+      card={{ width: 420, padding: 16, gap: 10 }}>
         <h3 style={{ margin: 0, fontSize: 15 }}>{editing ? 'Edit SSH connection' : 'New SSH connection'}</h3>
         {field('Name', <input data-testid="conn-name" autoFocus value={name}
           onChange={e => setName(e.target.value)} style={inputStyle} />)}
@@ -83,7 +82,6 @@ export function SshConnectionForm() {
           <button data-testid="conn-save" disabled={!valid} onClick={() => onSave(false)}>Save</button>
           <button data-testid="conn-save-connect" disabled={!valid} onClick={() => onSave(true)}>Save & Connect</button>
         </div>
-      </div>
-    </div>
+    </Modal>
   )
 }

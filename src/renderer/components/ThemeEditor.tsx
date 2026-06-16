@@ -1,8 +1,8 @@
 import { useState } from 'react'
-import { createPortal } from 'react-dom'
 import { useStore, type ThemeScope } from '../store'
 import { mergeTheme, resolveTheme, themeCssVarsPartial } from '@shared/theme'
 import type { Theme } from '@shared/types'
+import { Modal } from './Modal'
 
 const COLORS: { key: keyof Theme; label: string }[] = [
   { key: 'windowBg', label: 'Window background' },
@@ -62,12 +62,8 @@ export function ThemeEditor({ onClose, initialPaneId }: { onClose: () => void; i
 
   const row = { display: 'flex', alignItems: 'center', gap: 8, justifyContent: 'space-between' } as const
 
-  return createPortal(
-    <div data-testid="theme-editor" onClick={onClose}
-      style={{ position: 'fixed', inset: 0, background: '#0008', display: 'grid', placeItems: 'center', zIndex: 60 }}>
-      <div onClick={e => e.stopPropagation()}
-        style={{ background: 'var(--elevated, #252526)', color: 'var(--fg, #eee)', border: '1px solid var(--border, #444)',
-          borderRadius: 6, padding: 14, width: 440, maxHeight: '86vh', overflow: 'auto', display: 'flex', flexDirection: 'column', gap: 8, fontSize: 'var(--font-size, 13px)' }}>
+  return (
+    <Modal onClose={onClose} backdropTestId="theme-editor" card={{ padding: 14, width: 440, maxHeight: '86vh', overflow: 'auto' }}>
         <div style={{ fontWeight: 600 }}>Theme</div>
         <label style={row}><span>Scope</span>
           <select data-testid="theme-scope" value={sel} onChange={e => setSel(e.target.value)} style={{ flex: 1, marginLeft: 8 }}>
@@ -120,8 +116,6 @@ export function ThemeEditor({ onClose, initialPaneId }: { onClose: () => void; i
         <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
           <button onClick={onClose}>Close</button>
         </div>
-      </div>
-    </div>,
-    document.body
+    </Modal>
   )
 }

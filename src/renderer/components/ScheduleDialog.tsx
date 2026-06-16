@@ -1,8 +1,8 @@
 import { useState } from 'react'
-import { createPortal } from 'react-dom'
 import { useStore } from '../store'
 import { toMs, scheduleLabel } from '@shared/schedule'
 import type { ScheduleTrigger } from '@shared/types'
+import { Modal } from './Modal'
 
 const numStyle = { width: 56 }
 
@@ -36,13 +36,8 @@ export function ScheduleDialog({ paneId, onClose }: { paneId: string; onClose: (
     </select>
   )
 
-  // Portal to <body>: react-mosaic tiles establish a transform containing block, which would
-  // otherwise confine this `position: fixed` overlay to one tile (and let the adjacent tile clip it).
-  return createPortal(
-    <div data-testid="schedule-dialog" onClick={onClose}
-      style={{ position: 'fixed', inset: 0, background: '#0008', display: 'grid', placeItems: 'center', zIndex: 50 }}>
-      <div onClick={e => e.stopPropagation()}
-        style={{ background: 'var(--elevated, #252526)', color: 'var(--fg, #eee)', border: '1px solid var(--border, #444)', borderRadius: 6, padding: 12, width: 480, display: 'flex', flexDirection: 'column', gap: 8, fontSize: 'var(--font-size, 13px)' }}>
+  return (
+    <Modal onClose={onClose} backdropTestId="schedule-dialog" card={{ padding: 12, width: 480 }}>
         <div style={{ fontWeight: 600 }}>Schedule command for this terminal</div>
         <textarea data-testid="schedule-text" value={text} onChange={e => setText(e.target.value)} rows={3} autoFocus
           style={{ fontFamily: 'Consolas, monospace', fontSize: 13 }} />
@@ -85,8 +80,6 @@ export function ScheduleDialog({ paneId, onClose }: { paneId: string; onClose: (
             ))}
           </div>
         )}
-      </div>
-    </div>,
-    document.body
+    </Modal>
   )
 }

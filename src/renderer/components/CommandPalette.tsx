@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useStore, paneCwd } from '../store'
 import { buildPaletteItems, filterPaletteItems, type PaletteItem } from '@shared/quick'
+import { Modal, Z } from './Modal'
 
 export function CommandPalette() {
   const open = useStore(s => s.paletteOpen)
@@ -57,14 +58,10 @@ export function CommandPalette() {
   }
 
   return (
-    <div data-testid="command-palette-backdrop" onClick={close}
-      style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', zIndex: 1000,
-        display: 'flex', justifyContent: 'center', alignItems: 'flex-start', paddingTop: '12vh' }}>
-      <div data-testid="command-palette" role="dialog" aria-modal={true} aria-label="Command palette"
-        onClick={e => e.stopPropagation()}
-        style={{ width: 560, maxHeight: '60vh', background: 'var(--elevated, #252526)', color: 'var(--fg, #eee)',
-          border: '1px solid var(--border, #444)', borderRadius: 6, display: 'flex', flexDirection: 'column',
-          boxShadow: '0 8px 32px rgba(0,0,0,0.5)', fontSize: 'var(--font-size, 13px)' }}>
+    <Modal onClose={close} align="top" z={Z.palette}
+      backdropTestId="command-palette-backdrop" cardTestId="command-palette"
+      cardProps={{ role: 'dialog', 'aria-modal': true, 'aria-label': 'Command palette' }}
+      card={{ width: 560, maxHeight: '60vh', gap: 0, boxShadow: '0 8px 32px rgba(0,0,0,0.5)' }}>
         <input data-testid="palette-input" autoFocus value={query}
           onChange={e => setQuery(e.target.value)} onKeyDown={onKeyDown}
           placeholder="Connect to… or jump to a directory"
@@ -104,7 +101,6 @@ export function CommandPalette() {
             )
           })}
         </div>
-      </div>
-    </div>
+    </Modal>
   )
 }

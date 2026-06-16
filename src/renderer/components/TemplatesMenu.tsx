@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useStore } from '../store'
+import { Z } from './Modal'
 
 export function TemplatesMenu({ onPicked, onClose }: { onPicked: (id: string) => void; onClose: () => void }) {
   const templates = useStore(s => s.quick.templates)
@@ -9,9 +10,9 @@ export function TemplatesMenu({ onPicked, onClose }: { onPicked: (id: string) =>
   const [name, setName] = useState('')
   return (
     <>
-      <div onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 40 }} />
+      <div onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: Z.menu }} />
       <div data-testid="templates-menu"
-        style={{ position: 'fixed', top: 30, left: 4, zIndex: 41, background: 'var(--elevated, #252526)', color: 'var(--fg, #eee)',
+        style={{ position: 'fixed', top: 30, left: 4, zIndex: Z.menu + 1, background: 'var(--elevated, #252526)', color: 'var(--fg, #eee)',
           border: '1px solid var(--border, #444)', borderRadius: 4, padding: 6, display: 'flex', flexDirection: 'column', gap: 4, minWidth: 220, fontSize: 'var(--font-size, 13px)' }}>
         <div style={{ display: 'flex', gap: 4 }}>
           <input data-testid="tpl-name" placeholder="Template name" value={name}

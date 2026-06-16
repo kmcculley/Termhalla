@@ -13,6 +13,7 @@ import { TerminalSettings } from './TerminalSettings'
 import { ScheduleDialog } from './ScheduleDialog'
 import { ThemeEditor } from './ThemeEditor'
 import { EnvManager } from './EnvManager'
+import { Z } from './Modal'
 
 /** Compact token count: 999 -> "999", 1234 -> "1.2k", 156000 -> "156k". */
 function fmtTokens(n: number): string {
@@ -137,7 +138,7 @@ export function WorkspaceView({ ws }: { ws: Workspace }) {
               )}
               {procsMenuFor === paneId && (
                 <div data-testid="proc-menu" onClick={e => e.stopPropagation()}
-                  style={{ position: 'absolute', left: 4, top: 28, zIndex: 10, background: 'var(--elevated, #252526)',
+                  style={{ position: 'absolute', left: 4, top: 28, zIndex: Z.popover, background: 'var(--elevated, #252526)',
                     color: 'var(--fg, #eee)', border: '1px solid var(--border, #444)', borderRadius: 4, padding: 6, maxWidth: 460,
                     maxHeight: 240, overflow: 'auto', fontSize: 12, fontFamily: 'Consolas, monospace' }}>
                   {aiSession && usage && (
@@ -164,7 +165,7 @@ export function WorkspaceView({ ws }: { ws: Workspace }) {
               {envFor === paneId && <EnvManager wsId={ws.id} paneId={paneId} onClose={() => setEnvFor(null)} />}
               {cwdMenuFor === paneId && (
                 <div data-testid="cwd-menu" onClick={e => e.stopPropagation()}
-                  style={{ position: 'absolute', right: 4, top: 28, zIndex: 10, background: 'var(--elevated, #252526)',
+                  style={{ position: 'absolute', right: 4, top: 28, zIndex: Z.popover, background: 'var(--elevated, #252526)',
                     color: 'var(--fg, #eee)', border: '1px solid var(--border, #444)', borderRadius: 4, padding: 4,
                     display: 'flex', flexDirection: 'column', gap: 2 }}>
                   <button data-testid={`open-explorer-here-${paneId}`} disabled={!cwd}

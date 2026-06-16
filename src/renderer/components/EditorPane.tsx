@@ -6,23 +6,9 @@ import { api } from '../api'
 import { useStore } from '../store'
 import { resolveTheme } from '@shared/theme'
 import type { EditorConfig } from '@shared/types'
-import type { editor as monacoEditor } from 'monaco-editor'
-
-function applyContent(model: monacoEditor.ITextModel, content: string): void {
-  model.pushEditOperations([], [{ range: model.getFullModelRange(), text: content }], () => null)
-}
-
-interface Tab {
-  path: string
-  model: monaco.editor.ITextModel
-  saved: string
-  disp: monaco.IDisposable
-  tooLarge: boolean
-  missing: boolean
-  externalChanged?: boolean
-}
-
-function base(p: string): string { return p.split(/[\\/]/).pop() ?? p }
+import { applyContent, base, isDirty, type Tab } from '../editor/tabs'
+import { useEditorDrafts } from '../editor/use-editor-drafts'
+import { useExternalFileWatch } from '../editor/use-external-file-watch'
 
 export function EditorPane({ paneId, wsId, config }: { paneId: string; wsId: string; config: EditorConfig }) {
   const hostRef = useRef<HTMLDivElement>(null)
@@ -34,6 +20,9 @@ export function EditorPane({ paneId, wsId, config }: { paneId: string; wsId: str
   const rerender = useCallback(() => force(x => x + 1), [])
   const updatePaneConfig = useStore(s => s.updatePaneConfig)
   const registerEditorPane = useStore(s => s.registerEditorPane)
+
+  const getTab = useCallback((path: string) => tabs.current.get(path), [])
+  const { persist: persistDraft, schedule: scheduleDraftPersist, cancel: cancelDraftTimer, clearTimers: clearDraftTimers } = useEditorDrafts(paneId, getTab)
 
   const orderRef = useRef(order); orderRef.current = order
   const persist = useCallback((nextOrder: string[], nextActive: string | undefined) => {
@@ -50,25 +39,6 @@ export function EditorPane({ paneId, wsId, config }: { paneId: string; wsId: str
   }, [])
 
   const loading = useRef<Set<string>>(new Set())
-  const draftTimers = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map())
-
-  // Persist or clear the draft for one tab based on its current dirty state.
-  const persistDraft = useCallback((path: string) => {
-    const t = tabs.current.get(path)
-    if (!t || t.tooLarge) return
-    const key = draftKey(paneId, path)
-    const value = t.model.getValue()
-    if (value === t.saved) api.draftDelete(key)
-    else api.draftSet(key, { content: value, baseline: t.saved })
-  }, [paneId])
-
-  // Debounced persist on edit (mirrors the workspace autosave cadence).
-  const scheduleDraftPersist = useCallback((path: string) => {
-    const timers = draftTimers.current
-    const existing = timers.get(path)
-    if (existing) clearTimeout(existing)
-    timers.set(path, setTimeout(() => { timers.delete(path); persistDraft(path) }, 500))
-  }, [persistDraft])
 
   // Clear the untitled scratch buffer (the × on its tab) and drop its persisted draft.
   const clearUntitled = useCallback(() => {
@@ -76,10 +46,10 @@ export function EditorPane({ paneId, wsId, config }: { paneId: string; wsId: str
     if (!t) return
     applyContent(t.model, '')
     api.draftDelete(draftKey(paneId, UNTITLED))
-    const dt = draftTimers.current.get(UNTITLED); if (dt) { clearTimeout(dt); draftTimers.current.delete(UNTITLED) }
+    cancelDraftTimer(UNTITLED)
     if (active === UNTITLED) { const f = orderRef.current[0]; if (f) setActiveModel(f) }
     rerender()
-  }, [active, paneId, setActiveModel, rerender])
+  }, [active, paneId, setActiveModel, rerender, cancelDraftTimer])
 
   const openTab = useCallback(async (path: string) => {
     if (tabs.current.has(path)) { setActiveModel(path); return }
@@ -107,7 +77,7 @@ export function EditorPane({ paneId, wsId, config }: { paneId: string; wsId: str
     } finally {
       loading.current.delete(path)
     }
-  }, [rerender, setActiveModel, scheduleDraftPersist])
+  }, [rerender, setActiveModel, scheduleDraftPersist, paneId])
 
   // Save the untitled scratch buffer to a new file: write it, drop its draft, clear it,
   // and open the saved file as a normal (clean) tab.
@@ -120,11 +90,11 @@ export function EditorPane({ paneId, wsId, config }: { paneId: string; wsId: str
     if (!path) return
     await api.fsWrite(path, content)
     api.draftDelete(draftKey(paneId, UNTITLED))
-    const dt = draftTimers.current.get(UNTITLED); if (dt) { clearTimeout(dt); draftTimers.current.delete(UNTITLED) }
+    cancelDraftTimer(UNTITLED)
     applyContent(t.model, '')
     await openTab(path)
     rerender()
-  }, [paneId, openTab, rerender])
+  }, [paneId, openTab, rerender, cancelDraftTimer])
 
   const saveActive = useCallback(async () => {
     if (!active) return
@@ -135,9 +105,9 @@ export function EditorPane({ paneId, wsId, config }: { paneId: string; wsId: str
     await api.fsWrite(active, value)
     t.saved = value
     api.draftDelete(draftKey(paneId, active))
-    const dt = draftTimers.current.get(active); if (dt) { clearTimeout(dt); draftTimers.current.delete(active) }
+    cancelDraftTimer(active)
     rerender()
-  }, [active, rerender, paneId, saveUntitledAs])
+  }, [active, rerender, paneId, saveUntitledAs, cancelDraftTimer])
 
   const saveActiveRef = useRef(saveActive)
   useEffect(() => { saveActiveRef.current = saveActive }, [saveActive])
@@ -151,7 +121,7 @@ export function EditorPane({ paneId, wsId, config }: { paneId: string; wsId: str
     t.disp.dispose(); t.model.dispose(); tabs.current.delete(path)
     api.fsUnwatch(draftKey(paneId, path))
     api.draftDelete(draftKey(paneId, path))
-    const dt = draftTimers.current.get(path); if (dt) { clearTimeout(dt); draftTimers.current.delete(path) }
+    cancelDraftTimer(path)
     setOrder(o => {
       const next = o.filter(p => p !== path)
       const nextActive = active === path ? next[next.length - 1] : active
@@ -161,7 +131,7 @@ export function EditorPane({ paneId, wsId, config }: { paneId: string; wsId: str
       return next
     })
     rerender()
-  }, [active, persist, setActiveModel, rerender, paneId])
+  }, [active, persist, setActiveModel, rerender, paneId, cancelDraftTimer])
 
   useEffect(() => {
     const ed = monaco.editor.create(hostRef.current!, {
@@ -181,8 +151,7 @@ export function EditorPane({ paneId, wsId, config }: { paneId: string; wsId: str
     if (config.files.length === 0) setActiveModel(UNTITLED)
     return () => {
       focusDisp.dispose(); ed.dispose()
-      for (const t of draftTimers.current.values()) clearTimeout(t)
-      draftTimers.current.clear()
+      clearDraftTimers()
       for (const t of tabs.current.values()) { api.fsUnwatch(draftKey(paneId, t.path)); api.draftDelete(draftKey(paneId, t.path)); t.disp.dispose(); t.model.dispose() }
       tabs.current.clear()
     }
@@ -194,13 +163,12 @@ export function EditorPane({ paneId, wsId, config }: { paneId: string; wsId: str
   // main process's win.on('close') -> DraftStore.flush() is the second safety net.
   useEffect(() => {
     const flush = () => {
-      for (const t of draftTimers.current.values()) clearTimeout(t)
-      draftTimers.current.clear()
+      clearDraftTimers()
       for (const path of tabs.current.keys()) persistDraft(path)
     }
     window.addEventListener('beforeunload', flush)
     return () => window.removeEventListener('beforeunload', flush)
-  }, [persistDraft])
+  }, [persistDraft, clearDraftTimers])
 
   useEffect(() => {
     for (const f of config.files) if (!tabs.current.has(f)) void openTab(f)
@@ -208,25 +176,7 @@ export function EditorPane({ paneId, wsId, config }: { paneId: string; wsId: str
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [config.files, config.activePath])
 
-  useEffect(() => {
-    const off = api.onFsChange((id, change) => {
-      const prefix = `${paneId}::`
-      if (!id.startsWith(prefix)) return
-      const path = id.slice(prefix.length)
-      const t = tabs.current.get(path)
-      if (!t) return
-      if (change.event === 'unlink') { t.missing = true; rerender(); return }
-      if (change.event !== 'change') return
-      const dirty = !t.tooLarge && !t.missing && t.model.getValue() !== t.saved
-      if (dirty) { t.externalChanged = true; rerender(); return }
-      void api.fsRead(path).then(r => {
-        if (r.tooLarge) return
-        t.saved = r.content; applyContent(t.model, r.content); t.missing = false; t.externalChanged = false; rerender()
-      }).catch(() => {})
-    })
-    return off
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [paneId])
+  useExternalFileWatch(paneId, getTab, rerender)
 
   const appTheme = useStore(s => s.quick.theme)
   const wsTheme = useStore(s => s.workspaces[wsId]?.theme)
@@ -244,7 +194,6 @@ export function EditorPane({ paneId, wsId, config }: { paneId: string; wsId: str
   }, [appTheme, wsTheme, paneTheme, paneId])
 
   const activeTab = active ? tabs.current.get(active) : undefined
-  const isDirty = (t: Tab | undefined) => !!t && !t.tooLarge && !t.missing && t.model.getValue() !== t.saved
 
   return (
     <div data-testid={`editor-${paneId}`} style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>

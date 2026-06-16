@@ -6,6 +6,7 @@ import { api } from '../api'
 import { TemplatesMenu } from './TemplatesMenu'
 import { ThemeEditor } from './ThemeEditor'
 import { EnvManager } from './EnvManager'
+import { Z } from './Modal'
 
 function tabBadge(
   ws: Workspace,
@@ -106,9 +107,9 @@ export function WorkspaceTabs() {
       {menuFor && (
         <>
           <div onClick={() => setMenuFor(null)} onContextMenu={e => { e.preventDefault(); setMenuFor(null) }}
-            style={{ position: 'fixed', inset: 0, zIndex: 40 }} />
+            style={{ position: 'fixed', inset: 0, zIndex: Z.menu }} />
           <div data-testid="ws-menu"
-            style={{ position: 'fixed', left: menuFor.x, top: menuFor.y, zIndex: 41, background: 'var(--elevated, #252526)',
+            style={{ position: 'fixed', left: menuFor.x, top: menuFor.y, zIndex: Z.menu + 1, background: 'var(--elevated, #252526)',
               color: 'var(--fg, #eee)', border: '1px solid var(--border, #444)', borderRadius: 4, padding: 4, display: 'flex', flexDirection: 'column', gap: 2, fontSize: 'var(--font-size, 13px)' }}>
             <button data-testid="ws-menu-rename" onClick={() => startRename(menuFor.id)}>Rename</button>
             <button data-testid="ws-menu-save" onClick={() => { void saveAll(); setMenuFor(null) }}>Save</button>

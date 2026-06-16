@@ -114,6 +114,21 @@ function applyCwds(ws: import('@shared/types').Workspace, cwds: Record<string, s
   return changed ? { ...ws, panes } : ws
 }
 
+/** Add a pane holding `cfg` to a workspace: the first pane when the layout is empty or no
+ *  split target is given, otherwise split `target` in `dir`. Centralizes the branch that was
+ *  copy-pasted across every "open a pane" action. */
+function placePane(ws: Workspace, cfg: PaneConfig, target: string | null, dir: MosaicDirection) {
+  return ws.layout === null || target === null
+    ? addFirstPane(ws, cfg, uuid)
+    : splitPane(ws, target, dir, cfg, uuid)
+}
+
+/** The pane that `launch`/open-in-first actions split off: the first existing pane, or null
+ *  when the workspace is empty (then `placePane` creates the first pane). */
+function firstTarget(ws: Workspace): string | null {
+  return ws.layout ? Object.keys(ws.panes)[0] : null
+}
+
 export function paneCwd(
   s: { cwds: Record<string, string>; workspaces: Record<string, import('@shared/types').Workspace> },
   paneId: string
@@ -328,9 +343,7 @@ export const useStore = create<State>((set, get) => {
       const shellId = get().newTerminalShellId ?? get().shells[0]?.id ?? 'cmd'
       const cwd = targetPaneId ? paneCwd(get(), targetPaneId) : ''
       const cfg: TerminalConfig = { kind: 'terminal', shellId, cwd }
-      const r = ws.layout === null || targetPaneId === null
-        ? addFirstPane(ws, cfg, uuid)
-        : splitPane(ws, targetPaneId, dir, cfg, uuid)
+      const r = placePane(ws, cfg, targetPaneId, dir)
       set(s => ({ workspaces: { ...s.workspaces, [wsId]: r.workspace } }))
       scheduleAutosave()
       return r.paneId
@@ -433,12 +446,9 @@ export const useStore = create<State>((set, get) => {
       const wsId = get().activeId
       if (!wsId) return
       const ws = get().workspaces[wsId]
-      const target = ws.layout ? Object.keys(ws.panes)[0] : null
       const shellId = get().newTerminalShellId ?? get().shells[0]?.id ?? 'cmd'
       const cfg: TerminalConfig = { kind: 'terminal', shellId, cwd: '', name: launch.title, launch }
-      const r = ws.layout === null || target === null
-        ? addFirstPane(ws, cfg, uuid)
-        : splitPane(ws, target, 'row', cfg, uuid)
+      const r = placePane(ws, cfg, firstTarget(ws), 'row')
       set(s => ({ workspaces: { ...s.workspaces, [wsId]: r.workspace } }))
       scheduleAutosave()
     },
@@ -458,9 +468,7 @@ export const useStore = create<State>((set, get) => {
     addEditor: (wsId, targetPaneId, dir) => {
       const ws = get().workspaces[wsId]
       const cfg: EditorConfig = { kind: 'editor', files: [] }
-      const r = ws.layout === null || targetPaneId === null
-        ? addFirstPane(ws, cfg, uuid)
-        : splitPane(ws, targetPaneId, dir, cfg, uuid)
+      const r = placePane(ws, cfg, targetPaneId, dir)
       set(s => ({ workspaces: { ...s.workspaces, [wsId]: r.workspace }, lastEditorPaneId: r.paneId }))
       void get().saveAll()
       return r.paneId
@@ -469,9 +477,7 @@ export const useStore = create<State>((set, get) => {
     addExplorer: (wsId, targetPaneId, dir, root) => {
       const ws = get().workspaces[wsId]
       const cfg: ExplorerConfig = { kind: 'explorer', root }
-      const r = ws.layout === null || targetPaneId === null
-        ? addFirstPane(ws, cfg, uuid)
-        : splitPane(ws, targetPaneId, dir, cfg, uuid)
+      const r = placePane(ws, cfg, targetPaneId, dir)
       set(s => ({ workspaces: { ...s.workspaces, [wsId]: r.workspace } }))
       void get().saveAll()
       return r.paneId
@@ -536,15 +542,12 @@ export const useStore = create<State>((set, get) => {
       const conn = get().quick.connections.find(c => c.id === connId)
       if (!conn) return
       const ws = get().workspaces[wsId]
-      const target = ws.layout ? Object.keys(ws.panes)[0] : null
       const shellId = get().newTerminalShellId ?? get().shells[0]?.id ?? 'cmd'
       const cfg: TerminalConfig = {
         kind: 'terminal', shellId, cwd: '', name: conn.name, connectionId: conn.id,
         launch: { command: 'ssh', args: buildSshArgs(conn), title: conn.name }
       }
-      const r = ws.layout === null || target === null
-        ? addFirstPane(ws, cfg, uuid)
-        : splitPane(ws, target, 'row', cfg, uuid)
+      const r = placePane(ws, cfg, firstTarget(ws), 'row')
       set(s => ({
         workspaces: { ...s.workspaces, [wsId]: r.workspace },
         quick: { ...s.quick, recentConnections: pushRecent(s.quick.recentConnections, conn.id, RECENT_CONN_CAP) }
@@ -557,12 +560,9 @@ export const useStore = create<State>((set, get) => {
       const wsId = get().activeId
       if (!wsId || !dir) return
       const ws = get().workspaces[wsId]
-      const target = ws.layout ? Object.keys(ws.panes)[0] : null
       const shellId = get().newTerminalShellId ?? get().shells[0]?.id ?? 'cmd'
       const cfg: TerminalConfig = { kind: 'terminal', shellId, cwd: dir }
-      const r = ws.layout === null || target === null
-        ? addFirstPane(ws, cfg, uuid)
-        : splitPane(ws, target, 'row', cfg, uuid)
+      const r = placePane(ws, cfg, firstTarget(ws), 'row')
       set(s => ({ workspaces: { ...s.workspaces, [wsId]: r.workspace } }))
       scheduleAutosave()
     },
@@ -579,11 +579,8 @@ export const useStore = create<State>((set, get) => {
         get().updatePaneConfig(wsId, editorId, { files, activePath: path })
         set({ lastEditorPaneId: editorId })
       } else {
-        const target = Object.keys(ws.panes)[0] ?? null
         const cfg: EditorConfig = { kind: 'editor', files: [path], activePath: path }
-        const r = target === null
-          ? addFirstPane(ws, cfg, uuid)
-          : splitPane(ws, target, 'row', cfg, uuid)
+        const r = placePane(ws, cfg, firstTarget(ws), 'row')
         set(s => ({ workspaces: { ...s.workspaces, [wsId]: r.workspace }, lastEditorPaneId: r.paneId }))
         void get().saveAll()
       }

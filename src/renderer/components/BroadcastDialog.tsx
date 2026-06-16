@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useStore } from '../store'
 import { terminalPaneIds } from '@shared/broadcast'
+import { Modal } from './Modal'
 
 /** Common control sequences sent (raw keystrokes, no Enter) to all terminals on click. */
 const QUICK_KEYS: { id: string; label: string; bytes: string }[] = [
@@ -27,10 +28,7 @@ export function BroadcastDialog() {
   const count = ws ? terminalPaneIds(ws).length : 0
   const send = () => { broadcastInput(text, mode, enter); setOpen(false); setText('') }
   return (
-    <div data-testid="broadcast-dialog" onClick={() => setOpen(false)}
-      style={{ position: 'fixed', inset: 0, background: '#0008', display: 'grid', placeItems: 'center', zIndex: 50 }}>
-      <div onClick={e => e.stopPropagation()}
-        style={{ background: 'var(--elevated, #252526)', color: 'var(--fg, #eee)', border: '1px solid var(--border, #444)', borderRadius: 6, padding: 12, width: 460, display: 'flex', flexDirection: 'column', gap: 8, fontSize: 'var(--font-size, 13px)' }}>
+    <Modal onClose={() => setOpen(false)} backdropTestId="broadcast-dialog" card={{ padding: 12, width: 460 }}>
         <div style={{ fontWeight: 600 }}>Broadcast to all terminals</div>
         <textarea data-testid="broadcast-text" value={text} onChange={e => setText(e.target.value)} rows={4}
           autoFocus onKeyDown={e => { if (e.key === 'Enter' && e.shiftKey) { e.preventDefault(); send() } }}
@@ -59,7 +57,6 @@ export function BroadcastDialog() {
             <button data-testid="broadcast-send" disabled={count === 0} onClick={send}>Send</button>
           </span>
         </div>
-      </div>
-    </div>
+    </Modal>
   )
 }

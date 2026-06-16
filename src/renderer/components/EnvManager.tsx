@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react'
-import { createPortal } from 'react-dom'
 import { v4 as uuid } from 'uuid'
 import { useStore } from '../store'
 import { api } from '../api'
 import type { EnvVaultData } from '@shared/types'
+import { Modal } from './Modal'
 
 // Encrypted env vault: create/unlock/lock, global vars, and (when opened scoped to a pane) that terminal's own vars.
 
@@ -63,12 +63,8 @@ export function EnvManager({ onClose, wsId, paneId }: { onClose: () => void; wsI
 
   const row = { display: 'flex', alignItems: 'center', gap: 8 } as const
 
-  return createPortal(
-    <div data-testid="env-manager" onClick={onClose}
-      style={{ position: 'fixed', inset: 0, background: '#0008', display: 'grid', placeItems: 'center', zIndex: 60 }}>
-      <div onClick={e => e.stopPropagation()}
-        style={{ background: 'var(--elevated, #252526)', color: 'var(--fg, #eee)', border: '1px solid var(--border, #444)',
-          borderRadius: 6, padding: 14, width: 480, maxHeight: '86vh', overflow: 'auto', display: 'flex', flexDirection: 'column', gap: 8, fontSize: 'var(--font-size, 13px)' }}>
+  return (
+    <Modal onClose={onClose} backdropTestId="env-manager" card={{ padding: 14, width: 480, maxHeight: '86vh', overflow: 'auto' }}>
         <div style={{ fontWeight: 600 }}>Environment variables</div>
 
         {!env.exists && (
@@ -144,8 +140,6 @@ export function EnvManager({ onClose, wsId, paneId }: { onClose: () => void; wsI
             <button onClick={onClose}>Close</button>
           </div>
         )}
-      </div>
-    </div>,
-    document.body
+    </Modal>
   )
 }
