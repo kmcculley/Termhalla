@@ -1,4 +1,4 @@
-import { readFile, writeFile, readdir, stat } from 'node:fs/promises'
+import { readFile, writeFile, readdir, stat, rename } from 'node:fs/promises'
 import { join } from 'node:path'
 import type { DirEntry, ReadResult, StatResult } from '@shared/types'
 
@@ -36,4 +36,10 @@ export async function readDirectory(path: string): Promise<DirEntry[]> {
 export async function statPath(path: string): Promise<StatResult> {
   const s = await stat(path)
   return { size: s.size, mtimeMs: s.mtimeMs, isDir: s.isDirectory() }
+}
+
+/** Rename/move a file or directory. Rejects (caller surfaces an error toast) if the source
+ *  is missing or the target exists — node's rename throws on a cross-device move too. */
+export async function renamePath(oldPath: string, newPath: string): Promise<void> {
+  await rename(oldPath, newPath)
 }
