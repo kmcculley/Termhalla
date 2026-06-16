@@ -73,7 +73,7 @@ export function EnvManager({ onClose, wsId, paneId }: { onClose: () => void; wsI
         {!env.exists && (
           <>
             <div>Set a passphrase to create an encrypted vault</div>
-            <input data-testid="env-passphrase" type="password" value={passphrase}
+            <input data-testid="env-passphrase" type="password" autoFocus value={passphrase}
               onChange={e => setPassphrase(e.target.value)}
               onKeyDown={e => { if (e.key === 'Enter') void create() }} />
             <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
@@ -85,7 +85,7 @@ export function EnvManager({ onClose, wsId, paneId }: { onClose: () => void; wsI
         {env.exists && !env.unlocked && (
           <>
             <div>Unlock the vault</div>
-            <input data-testid="env-passphrase" type="password" value={passphrase}
+            <input data-testid="env-passphrase" type="password" autoFocus value={passphrase}
               onChange={e => setPassphrase(e.target.value)}
               onKeyDown={e => { if (e.key === 'Enter') void unlock() }} />
             {error && <div data-testid="env-error" style={{ color: 'var(--status-needs-input, #e55)' }}>Incorrect passphrase</div>}
@@ -98,6 +98,7 @@ export function EnvManager({ onClose, wsId, paneId }: { onClose: () => void; wsI
         {env.unlocked && (
           <>
             <div style={{ fontWeight: 600, borderTop: '1px solid var(--border, #444)', paddingTop: 8 }}>Global variables</div>
+            {data === null && <div data-testid="env-loading" style={{ color: 'var(--fg-dim, #aaa)' }}>Loading…</div>}
             {Object.entries(data?.global ?? {}).map(([name, value]) => (
               <EnvRow key={name} name={name} value={value}
                 onRemove={() => { api.envRemoveGlobal(name); void refresh() }} />
