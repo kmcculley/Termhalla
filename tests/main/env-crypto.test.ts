@@ -15,4 +15,9 @@ describe('env crypto', () => {
     const bad = { ...blob, ct: Buffer.from('garbage').toString('base64') }
     expect(() => decryptJSON(bad, 'pw')).toThrow()
   })
+  it('throws on a tampered auth tag', () => {
+    const blob = encryptJSON({ x: 1 }, 'pw')
+    const bad = { ...blob, tag: Buffer.from('0'.repeat(16)).toString('base64') }
+    expect(() => decryptJSON(bad, 'pw')).toThrow()
+  })
 })

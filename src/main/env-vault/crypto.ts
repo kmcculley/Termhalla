@@ -2,8 +2,10 @@ import { randomBytes, scryptSync, createCipheriv, createDecipheriv } from 'node:
 
 export interface EncryptedBlob { v: 1; salt: string; iv: string; tag: string; ct: string }
 
+const SCRYPT_PARAMS = { N: 16384, r: 8, p: 1, maxmem: 64 * 1024 * 1024 } as const
+
 function keyFrom(passphrase: string, salt: Buffer): Buffer {
-  return scryptSync(passphrase, salt, 32)
+  return scryptSync(passphrase, salt, 32, SCRYPT_PARAMS)
 }
 
 /** AES-256-GCM encrypt JSON under a passphrase-derived (scrypt) key. */

@@ -144,7 +144,16 @@ export function registerHandlers(win: BrowserWindow): PtyManager {
   win.on('closed', () => recorder.dispose())
 
   const emitEnvState = (): void => safeSend(CH.envState, { exists: envVault.exists(), unlocked: envVault.isUnlocked() })
-  ipcMain.handle(CH.envUnlock, (_e, p: string) => { const ok = envVault.unlock(p); emitEnvState(); return ok })
+  let unlockFailures = 0
+  let unlockBackoffUntil = 0
+  ipcMain.handle(CH.envUnlock, (_e, p: string) => {
+    if (Date.now() < unlockBackoffUntil) return false
+    const ok = envVault.unlock(p)
+    if (ok) { unlockFailures = 0 }
+    else { unlockFailures++; unlockBackoffUntil = Date.now() + Math.min(1000 * 2 ** unlockFailures, 30_000) }
+    emitEnvState()
+    return ok
+  })
   ipcMain.handle(CH.envCreate, (_e, p: string) => { envVault.create(p); emitEnvState() })
   ipcMain.on(CH.envLock, () => { envVault.lock(); emitEnvState() })
   ipcMain.handle(CH.envGet, () => envVault.current())
