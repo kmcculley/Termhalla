@@ -39,7 +39,11 @@ export const CH = {
   usageMetrics: 'usage:metrics',    // main -> renderer event
   draftsLoad: 'drafts:load',
   draftsSet: 'drafts:set',
-  draftsDelete: 'drafts:delete'
+  draftsDelete: 'drafts:delete',
+  recStart: 'rec:start',
+  recStop: 'rec:stop',
+  recState: 'rec:state',
+  recReveal: 'rec:reveal',
 } as const
 
 export interface NotifyArgs { title: string; body: string }
@@ -87,4 +91,8 @@ export interface TermhallaApi {
   draftsLoad(): Promise<Record<string, EditorDraft>>
   draftSet(key: string, draft: EditorDraft): void
   draftDelete(key: string): void
+  recStart(id: string): void
+  recStop(id: string): void
+  onRecState(cb: (id: string, recording: boolean, file: string | null) => void): () => void
+  recReveal(): void
 }
