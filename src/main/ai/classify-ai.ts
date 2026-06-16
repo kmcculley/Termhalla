@@ -1,6 +1,6 @@
-import type { AiSession, ProcNode } from '@shared/types'
+import type { AiSession, AiTool, ProcNode } from '@shared/types'
 
-export interface AiToolPattern { tool: string; label: string; re: RegExp }
+export interface AiToolPattern { tool: AiTool; label: string; re: RegExp }
 
 /** Patterns are anchored on path/word boundaries and only accept EXECUTABLE extensions
  *  (.exe/.cmd/.bat/.ps1) so a doc argument like `claude.md` is NOT a false positive,

@@ -37,29 +37,31 @@ export function registerHandlers(win: BrowserWindow): PtyManager {
     try { win.webContents.send(channel, ...args) } catch { /* torn down mid-send */ }
   }
 
-  let tracker: ProcessTracker | undefined
-  let ai: AiSessionTracker | undefined
+  // `ai` only needs safeSend, so it can be constructed up front. `tracker` is in a genuine
+  // cycle (it needs pty.pidOf; pty needs engine; engine needs tracker), so it stays a `let`
+  // assigned after pty — but the closures below only run on PTY activity, long after assignment,
+  // so they reference it directly without `?.`/`!`.
+  const ai = new AiSessionTracker((id, session) => safeSend(CH.aiSession, id, session))
+  let tracker: ProcessTracker
   const engine = new StatusEngine(
-    (id, status) => { safeSend(CH.ptyStatus, id, status); tracker?.setBusy(id, status.state === 'busy') },
+    (id, status) => { safeSend(CH.ptyStatus, id, status); tracker.setBusy(id, status.state === 'busy') },
     (id, cwd) => safeSend(CH.ptyCwd, id, cwd),
     undefined,
-    (id) => ai?.commandDone(id)
+    (id) => ai.commandDone(id)
   )
   const pty = new PtyManager(
     (id, data) => { safeSend(CH.ptyData, id, data); recorder.data(id, data) },
-    (id, code) => { safeSend(CH.ptyExit, id, code); tracker?.unregister(id); ai?.unregister(id); recorder.stop(id); safeSend(CH.recState, id, false, null) },
+    (id, code) => { safeSend(CH.ptyExit, id, code); tracker.unregister(id); ai.unregister(id); recorder.stop(id); safeSend(CH.recState, id, { recording: false, file: null }) },
     engine, scriptDir
   )
   tracker = new ProcessTracker(
     (id) => pty.pidOf(id),
-    (id, info) => { safeSend(CH.ptyProcs, id, info); ai?.onProcs(id, info) }
+    (id, info) => { safeSend(CH.ptyProcs, id, info); ai.onProcs(id, info) }
   )
-  ai = new AiSessionTracker((id, session) => safeSend(CH.aiSession, id, session))
 
   const usage = new UsageTracker((id, metrics) => safeSend(CH.usageMetrics, id, metrics))
   ipcMain.on(CH.usageWatch, (_e, id: string, cwd: string) => { void usage.watch(id, cwd) })
   ipcMain.on(CH.usageUnwatch, (_e, id: string) => usage.unwatch(id))
-  win.on('closed', () => usage.dispose())
 
   const drafts = new DraftStore(userDataDir())
   void drafts.load()
@@ -77,7 +79,6 @@ export function registerHandlers(win: BrowserWindow): PtyManager {
     const t = Date.now()
     if (t - lastFocusRefresh > 5000) { lastFocusRefresh = t; void cloud.refresh() }
   })
-  win.on('closed', () => cloud.stop())
 
   ipcMain.handle(CH.listShells, () => shells)
   ipcMain.handle(CH.listWorkspaceIds, () => store.listWorkspaceIds())
@@ -88,14 +89,14 @@ export function registerHandlers(win: BrowserWindow): PtyManager {
 
   ipcMain.handle(CH.ptySpawn, (_e, a: PtySpawnArgs) => {
     const shell = shells.find(s => s.id === a.shellId) ?? shells[0]
-    tracker!.register(a.id)   // register BEFORE spawn: a failed spawn calls onExit->unregister synchronously, keeping the registry clean
+    tracker.register(a.id)   // register BEFORE spawn: a failed spawn calls onExit->unregister synchronously, keeping the registry clean
     pty.spawn(a.id, shell, a.cwd, a.cols, a.rows, a.launch, envVault.envFor(a.envId))
   })
   ipcMain.on(CH.ptyWrite, (_e, a: PtyWriteArgs) => pty.write(a.id, a.data))
   ipcMain.on(CH.ptyResize, (_e, a: PtyResizeArgs) => { pty.resize(a.id, a.cols, a.rows); recorder.resize(a.id, a.cols, a.rows) })
   // ai/tracker unregister here is synchronous; the async pty onExit fires them again but
   // both are idempotent (Map.delete returns false), so the renderer sees a single clear.
-  ipcMain.on(CH.ptyKill, (_e, id: string) => { pty.kill(id); tracker!.unregister(id); ai!.unregister(id) })
+  ipcMain.on(CH.ptyKill, (_e, id: string) => { pty.kill(id); tracker.unregister(id); ai.unregister(id) })
 
   ipcMain.on(CH.notify, (_e, a: NotifyArgs) => {
     if (!Notification.isSupported()) return
@@ -105,7 +106,6 @@ export function registerHandlers(win: BrowserWindow): PtyManager {
   })
 
   const watcher = new WatchManager((id, change) => safeSend(CH.fsChange, id, change))
-  win.on('closed', () => watcher.closeAll())
 
   ipcMain.handle(CH.fsRead, (_e, path: string) => readTextFile(path))
   ipcMain.handle(CH.fsWrite, (_e, path: string, content: string) => writeTextFile(path, content))
@@ -137,11 +137,10 @@ export function registerHandlers(win: BrowserWindow): PtyManager {
   ipcMain.on(CH.recStart, (_e, id: string) => {
     const sz = pty.sizeOf(id) ?? { cols: 80, rows: 24 }
     const file = recorder.start(id, sz.cols, sz.rows, userDataDir())
-    safeSend(CH.recState, id, true, file)
+    safeSend(CH.recState, id, { recording: true, file })
   })
-  ipcMain.on(CH.recStop, (_e, id: string) => { const f = recorder.stop(id); safeSend(CH.recState, id, false, f) })
+  ipcMain.on(CH.recStop, (_e, id: string) => { const f = recorder.stop(id); safeSend(CH.recState, id, { recording: false, file: f }) })
   ipcMain.on(CH.recReveal, () => { void shell.openPath(join(userDataDir(), 'recordings')) })
-  win.on('closed', () => recorder.dispose())
 
   const emitEnvState = (): void => safeSend(CH.envState, { exists: envVault.exists(), unlocked: envVault.isUnlocked() })
   let unlockFailures = 0
@@ -163,6 +162,17 @@ export function registerHandlers(win: BrowserWindow): PtyManager {
   ipcMain.on(CH.envRemoveTerminal, (_e, id: string, n: string) => { envVault.removeTerminal(id, n); emitEnvState() })
   // No existing initial-state push hook in this file; emit once the renderer is ready to receive it.
   win.webContents.on('did-finish-load', emitEnvState)
+
+  // Single teardown for every long-lived service. Keeping these in one place (rather than a
+  // `win.on('closed')` scattered next to each service) means adding a service only needs its
+  // stop() added here. `drafts.flush()` stays on the earlier `close` event because it must run
+  // synchronously while the window still exists.
+  win.on('closed', () => {
+    usage.dispose()
+    cloud.stop()
+    watcher.closeAll()
+    recorder.dispose()
+  })
 
   return pty
 }

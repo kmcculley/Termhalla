@@ -31,11 +31,14 @@ export function EditorPane({ paneId, wsId, config }: { paneId: string; wsId: str
   }, [wsId, paneId, config.files, config.activePath, updatePaneConfig])
   const persistRef = useRef(persist); useEffect(() => { persistRef.current = persist }, [persist])
 
-  const setActiveModel = useCallback((path: string) => {
+  // `order` overrides the order to persist: callers that just changed the tab list (open/close)
+  // pass the up-to-date array so the persisted `files` matches, instead of the by-one-render-stale
+  // `orderRef.current`. Callers that only switch the active tab omit it.
+  const setActiveModel = useCallback((path: string, order?: string[]) => {
     const t = tabs.current.get(path)
     if (t && edRef.current) edRef.current.setModel(t.model)
     setActive(path)
-    persistRef.current(orderRef.current, isUntitled(path) ? undefined : path)
+    persistRef.current(order ?? orderRef.current, isUntitled(path) ? undefined : path)
   }, [])
 
   const loading = useRef<Set<string>>(new Set())
@@ -45,7 +48,7 @@ export function EditorPane({ paneId, wsId, config }: { paneId: string; wsId: str
     const t = tabs.current.get(UNTITLED)
     if (!t) return
     applyContent(t.model, '')
-    api.draftDelete(draftKey(paneId, UNTITLED))
+    api.draftsDelete(draftKey(paneId, UNTITLED))
     cancelDraftTimer(UNTITLED)
     if (active === UNTITLED) { const f = orderRef.current[0]; if (f) setActiveModel(f) }
     rerender()
@@ -69,10 +72,11 @@ export function EditorPane({ paneId, wsId, config }: { paneId: string; wsId: str
       // Only surface the "changed on disk" bar when the restored draft actually differs from
       // disk; a stale draft equal to disk (deleted just below) shouldn't raise it.
       tabs.current.set(path, { path, model, saved, disp, tooLarge, missing, externalChanged: (resolved.dirty && resolved.externalChanged) || undefined })
-      if (draft && !resolved.dirty) api.draftDelete(key)  // stale draft equals disk
+      if (draft && !resolved.dirty) api.draftsDelete(key)  // stale draft equals disk
       api.fsWatch(key, path)
-      setOrder(o => (o.includes(path) ? o : [...o, path]))
-      setActiveModel(path)
+      const nextOrder = orderRef.current.includes(path) ? orderRef.current : [...orderRef.current, path]
+      setOrder(nextOrder)
+      setActiveModel(path, nextOrder)
       rerender()
     } finally {
       loading.current.delete(path)
@@ -89,7 +93,7 @@ export function EditorPane({ paneId, wsId, config }: { paneId: string; wsId: str
     const path = await api.saveFileDialog()
     if (!path) return
     await api.fsWrite(path, content)
-    api.draftDelete(draftKey(paneId, UNTITLED))
+    api.draftsDelete(draftKey(paneId, UNTITLED))
     cancelDraftTimer(UNTITLED)
     applyContent(t.model, '')
     await openTab(path)
@@ -104,7 +108,7 @@ export function EditorPane({ paneId, wsId, config }: { paneId: string; wsId: str
     const value = t.model.getValue()
     await api.fsWrite(active, value)
     t.saved = value
-    api.draftDelete(draftKey(paneId, active))
+    api.draftsDelete(draftKey(paneId, active))
     cancelDraftTimer(active)
     rerender()
   }, [active, rerender, paneId, saveUntitledAs, cancelDraftTimer])
@@ -112,26 +116,34 @@ export function EditorPane({ paneId, wsId, config }: { paneId: string; wsId: str
   const saveActiveRef = useRef(saveActive)
   useEffect(() => { saveActiveRef.current = saveActive }, [saveActive])
 
+  // Tear down one tab's Monaco model, watch, and persisted draft — no prompt, no order/persist
+  // bookkeeping. Shared by closeTab (user-initiated) and the config-reconciliation effect.
+  const dropTab = useCallback((path: string) => {
+    const t = tabs.current.get(path)
+    if (!t) return
+    t.disp.dispose(); t.model.dispose(); tabs.current.delete(path)
+    api.fsUnwatch(draftKey(paneId, path))
+    api.draftsDelete(draftKey(paneId, path))
+    cancelDraftTimer(path)
+  }, [paneId, cancelDraftTimer])
+
   const closeTab = useCallback((path: string) => {
     const t = tabs.current.get(path)
     if (!t) return
     if (!t.tooLarge && !t.missing && t.model.getValue() !== t.saved) {
       if (!window.confirm(`${base(path)} has unsaved changes. Close anyway?`)) return
     }
-    t.disp.dispose(); t.model.dispose(); tabs.current.delete(path)
-    api.fsUnwatch(draftKey(paneId, path))
-    api.draftDelete(draftKey(paneId, path))
-    cancelDraftTimer(path)
+    dropTab(path)
     setOrder(o => {
       const next = o.filter(p => p !== path)
       const nextActive = active === path ? next[next.length - 1] : active
-      if (nextActive) setActiveModel(nextActive)
+      if (nextActive) setActiveModel(nextActive, next)
       else { setActive(undefined); edRef.current?.setModel(null) }
       persist(next, nextActive)
       return next
     })
     rerender()
-  }, [active, persist, setActiveModel, rerender, paneId, cancelDraftTimer])
+  }, [active, persist, setActiveModel, rerender, dropTab])
 
   useEffect(() => {
     const ed = monaco.editor.create(hostRef.current!, {
@@ -152,7 +164,7 @@ export function EditorPane({ paneId, wsId, config }: { paneId: string; wsId: str
     return () => {
       focusDisp.dispose(); ed.dispose()
       clearDraftTimers()
-      for (const t of tabs.current.values()) { api.fsUnwatch(draftKey(paneId, t.path)); api.draftDelete(draftKey(paneId, t.path)); t.disp.dispose(); t.model.dispose() }
+      for (const t of tabs.current.values()) { api.fsUnwatch(draftKey(paneId, t.path)); api.draftsDelete(draftKey(paneId, t.path)); t.disp.dispose(); t.model.dispose() }
       tabs.current.clear()
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -170,6 +182,14 @@ export function EditorPane({ paneId, wsId, config }: { paneId: string; wsId: str
     return () => window.removeEventListener('beforeunload', flush)
   }, [persistDraft, clearDraftTimers])
 
+  // Ownership: this pane owns the live tab set (Monaco models in `tabs.current` + `order`).
+  // `config.files` is the *initializer* (via useState above) and an additive source: when files
+  // are added to config from elsewhere (e.g. openFileInEditor targeting this pane) we open them
+  // here. Tab *removal* is driven locally by closeTab, which persists the shrunk list straight
+  // back to config.files — so the two never drift in practice and this effect deliberately does
+  // not remove tabs. (A removal pass here would race openTab, which is async: a freshly opened
+  // path can be in `tabs.current` before the config snapshot this effect closes over reflects it,
+  // wrongly tearing the new tab down. `dropTab` is the shared teardown used by closeTab.)
   useEffect(() => {
     for (const f of config.files) if (!tabs.current.has(f)) void openTab(f)
     if (config.activePath && tabs.current.has(config.activePath)) setActiveModel(config.activePath)

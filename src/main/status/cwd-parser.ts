@@ -1,3 +1,5 @@
+import { scanOsc } from './osc-scanner'
+
 const OSC = '\x1b]'
 
 /** Convert an OSC 7 file URL body (file://host/<path>) to a Windows path, best-effort. */
@@ -32,22 +34,7 @@ export class CwdParser {
   push(chunk: string): string | null {
     this.buf += chunk
     let cwd: string | null = null
-    while (true) {
-      const start = this.buf.indexOf(OSC)
-      if (start === -1) break
-      const from = start + OSC.length
-      const bel = this.buf.indexOf('\x07', from)
-      const st = this.buf.indexOf('\x1b\\', from)
-      let end = -1, termLen = 0
-      if (bel !== -1 && (st === -1 || bel < st)) { end = bel; termLen = 1 }
-      else if (st !== -1) { end = st; termLen = 2 }
-      if (end === -1) { this.buf = this.buf.slice(start); return cwd }  // incomplete; keep
-      const c = parseOsc(this.buf.slice(from, end))
-      if (c !== null && c !== '') cwd = c
-      this.buf = this.buf.slice(end + termLen)
-    }
-    const lastEsc = this.buf.lastIndexOf('\x1b')
-    this.buf = lastEsc !== -1 && OSC.startsWith(this.buf.slice(lastEsc)) ? this.buf.slice(lastEsc) : ''
+    this.buf = scanOsc(this.buf, OSC, body => { const c = parseOsc(body); if (c !== null && c !== '') cwd = c })
     return cwd
   }
 }

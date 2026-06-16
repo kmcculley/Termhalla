@@ -171,11 +171,20 @@ export interface ProcInfo {
   tree: ProcNode[]     // DFS pre-order; render indented by `depth`
 }
 
+/** The AI coding agents Termhalla can recognize running in a terminal. */
+export type AiTool = 'claude' | 'codex'
+
 /** A detected AI coding-agent session running in a terminal. */
 export interface AiSession {
-  tool: string    // 'claude' | 'codex'
+  tool: AiTool
   label: string   // 'Claude' | 'Codex'
 }
+
+/** Recording lifecycle for one terminal, pushed on rec:state. */
+export interface RecState { recording: boolean; file: string | null }
+
+/** Env-vault availability/unlock status, pushed on env:state. */
+export interface EnvVaultState { exists: boolean; unlocked: boolean }
 
 export type CloudState = 'checking' | 'logged-in' | 'logged-out' | 'not-installed' | 'error'
 

@@ -1,4 +1,4 @@
-import type { ShellInfo, Workspace, AppState, TerminalStatus, DirEntry, ReadResult, StatResult, FsChange, TerminalLaunch, QuickStore, ProcInfo, CloudStatus, AiSession, UsageMetrics, EditorDraft, EnvVaultData } from './types'
+import type { ShellInfo, Workspace, AppState, TerminalStatus, DirEntry, ReadResult, StatResult, FsChange, TerminalLaunch, QuickStore, ProcInfo, CloudStatus, AiSession, UsageMetrics, EditorDraft, EnvVaultData, RecState, EnvVaultState } from './types'
 
 export const CH = {
   listShells: 'shells:list',
@@ -91,13 +91,13 @@ export interface TermhallaApi {
   saveQuick(data: QuickStore): Promise<void>
   homeDir(): Promise<string>
   draftsLoad(): Promise<Record<string, EditorDraft>>
-  draftSet(key: string, draft: EditorDraft): void
-  draftDelete(key: string): void
+  draftsSet(key: string, draft: EditorDraft): void
+  draftsDelete(key: string): void
   recStart(id: string): void
   recStop(id: string): void
-  onRecState(cb: (id: string, recording: boolean, file: string | null) => void): () => void
+  onRecState(cb: (id: string, state: RecState) => void): () => void
   recReveal(): void
-  onEnvState(cb: (state: { exists: boolean; unlocked: boolean }) => void): () => void
+  onEnvState(cb: (state: EnvVaultState) => void): () => void
   envUnlock(passphrase: string): Promise<boolean>
   envCreate(passphrase: string): Promise<void>
   envLock(): void

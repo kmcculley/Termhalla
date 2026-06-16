@@ -22,32 +22,23 @@ export default function App() {
     window.addEventListener('beforeunload', flush)
     return () => window.removeEventListener('beforeunload', flush)
   }, [])
+  // One subscription pass for every main->renderer push event. Each callback reads the live
+  // store imperatively via getState() (not a reactive selector), so the empty dep array is
+  // correct — the listeners are wired once on mount and torn down together on unmount.
   useEffect(() => {
-    const off = api.onPtyStatus((id, status) => useStore.getState().setStatus(id, status))
-    return off
+    const s = () => useStore.getState()
+    const offs = [
+      api.onPtyStatus((id, status) => s().setStatus(id, status)),
+      api.onPtyCwd((id, cwd) => s().setCwd(id, cwd)),
+      api.onPtyProcs((id, info) => s().setProcs(id, info)),
+      api.onCloudStatus(statuses => s().setCloud(statuses)),
+      api.onAiSession((id, ai) => s().setAiSession(id, ai)),
+      api.onUsageMetrics((id, m) => s().setUsage(id, m)),
+      api.onRecState((id, state) => s().setRecording(id, state.recording)),
+      api.onEnvState(state => s().setEnvState(state))
+    ]
+    return () => offs.forEach(off => off())
   }, [])
-  useEffect(() => {
-    const off = api.onPtyCwd((id, cwd) => useStore.getState().setCwd(id, cwd))
-    return off
-  }, [])
-  useEffect(() => {
-    const off = api.onPtyProcs((id, info) => useStore.getState().setProcs(id, info))
-    return off
-  }, [])
-  useEffect(() => {
-    const off = api.onCloudStatus((statuses) => useStore.getState().setCloud(statuses))
-    return off
-  }, [])
-  useEffect(() => {
-    const off = api.onAiSession((id, ai) => useStore.getState().setAiSession(id, ai))
-    return off
-  }, [])
-  useEffect(() => {
-    const off = api.onUsageMetrics((id, m) => useStore.getState().setUsage(id, m))
-    return off
-  }, [])
-  useEffect(() => { const off = api.onRecState((id, on) => useStore.getState().setRecording(id, on)); return off }, [])
-  useEffect(() => { const off = api.onEnvState(s => useStore.getState().setEnvState(s)); return off }, [])
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {

@@ -14,10 +14,17 @@ export const Z = {
 /** Shared scrim color for every modal backdrop. */
 const BACKDROP = '#0008'
 
+/** Elevated-surface chrome shared by every floating surface that isn't a full Modal card:
+ *  the in-tile proc/cwd popovers, the cloud-status popover, and dropdown menus. Spread it and
+ *  add positioning/padding. Single source so the surface look changes in exactly one place. */
+export const SURFACE: CSSProperties = {
+  background: 'var(--elevated, #252526)', color: 'var(--fg, #eee)',
+  border: '1px solid var(--border, #444)', borderRadius: 4
+}
+
 /** Base look of a modal card; per-dialog tweaks (width, padding, maxHeight) come via `card`. */
 const CARD_BASE: CSSProperties = {
-  background: 'var(--elevated, #252526)', color: 'var(--fg, #eee)',
-  border: '1px solid var(--border, #444)', borderRadius: 6,
+  ...SURFACE, borderRadius: 6,
   display: 'flex', flexDirection: 'column', gap: 8, fontSize: 'var(--font-size, 13px)'
 }
 

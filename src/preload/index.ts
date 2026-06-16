@@ -47,8 +47,8 @@ const api: TermhallaApi = {
   saveQuick: (data) => ipcRenderer.invoke(CH.quickSave, data),
   homeDir: () => ipcRenderer.invoke(CH.homeDir),
   draftsLoad: () => ipcRenderer.invoke(CH.draftsLoad),
-  draftSet: (key, draft) => ipcRenderer.send(CH.draftsSet, key, draft),
-  draftDelete: (key) => ipcRenderer.send(CH.draftsDelete, key),
+  draftsSet: (key, draft) => ipcRenderer.send(CH.draftsSet, key, draft),
+  draftsDelete: (key) => ipcRenderer.send(CH.draftsDelete, key),
   onPtyCwd: (cb) => {
     const h = (_e: unknown, id: string, cwd: string) => cb(id, cwd)
     ipcRenderer.on(CH.ptyCwd, h as never)
@@ -79,9 +79,17 @@ const api: TermhallaApi = {
   },
   recStart: (id) => ipcRenderer.send(CH.recStart, id),
   recStop: (id) => ipcRenderer.send(CH.recStop, id),
-  onRecState: (cb) => { const h = (_e: unknown, id: string, recording: boolean, file: string | null) => cb(id, recording, file); ipcRenderer.on(CH.recState, h as never); return () => ipcRenderer.removeListener(CH.recState, h as never) },
+  onRecState: (cb) => {
+    const h = (_e: unknown, id: string, state: import('@shared/types').RecState) => cb(id, state)
+    ipcRenderer.on(CH.recState, h as never)
+    return () => ipcRenderer.removeListener(CH.recState, h as never)
+  },
   recReveal: () => ipcRenderer.send(CH.recReveal),
-  onEnvState: (cb) => { const h = (_e: unknown, s: { exists: boolean; unlocked: boolean }) => cb(s); ipcRenderer.on(CH.envState, h as never); return () => ipcRenderer.removeListener(CH.envState, h as never) },
+  onEnvState: (cb) => {
+    const h = (_e: unknown, state: import('@shared/types').EnvVaultState) => cb(state)
+    ipcRenderer.on(CH.envState, h as never)
+    return () => ipcRenderer.removeListener(CH.envState, h as never)
+  },
   envUnlock: (p) => ipcRenderer.invoke(CH.envUnlock, p),
   envCreate: (p) => ipcRenderer.invoke(CH.envCreate, p),
   envLock: () => ipcRenderer.send(CH.envLock),

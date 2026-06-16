@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useStore } from '../store'
 import type { CloudState } from '@shared/types'
+import { Z, SURFACE } from './Modal'
 
 const GLYPH: Record<CloudState, string> = {
   'checking': '…', 'logged-in': '✓', 'logged-out': '⚠', 'not-installed': '∅', 'error': '!'
@@ -30,8 +31,7 @@ export function StatusBar() {
           </button>
           {openFor === c.id && (
             <div data-testid={`cloud-menu-${c.id}`} onClick={e => e.stopPropagation()}
-              style={{ position: 'absolute', bottom: 24, left: 0, zIndex: 20, background: 'var(--elevated, #252526)', color: 'var(--fg, #eee)',
-                border: '1px solid var(--border, #444)', borderRadius: 4, padding: 8, minWidth: 240, display: 'flex',
+              style={{ ...SURFACE, position: 'absolute', bottom: 24, left: 0, zIndex: Z.menu, padding: 8, minWidth: 240, display: 'flex',
                 flexDirection: 'column', gap: 4, fontFamily: 'Consolas, monospace' }}>
               {c.detail && Object.entries(c.detail).map(([k, v]) => (
                 <div key={k} style={{ display: 'flex', gap: 8, whiteSpace: 'nowrap' }}>

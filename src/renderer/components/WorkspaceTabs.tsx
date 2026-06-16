@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useShallow } from 'zustand/react/shallow'
 import type { Workspace, AiSession, TerminalStatus } from '@shared/types'
 import { resolveAlerts } from '@shared/alerts'
 import { useStore, aiState } from '../store'
@@ -6,7 +7,7 @@ import { api } from '../api'
 import { TemplatesMenu } from './TemplatesMenu'
 import { ThemeEditor } from './ThemeEditor'
 import { EnvManager } from './EnvManager'
-import { Z } from './Modal'
+import { Z, SURFACE } from './Modal'
 
 function tabBadge(
   ws: Workspace,
@@ -31,12 +32,29 @@ function tabBadge(
 }
 
 export function WorkspaceTabs() {
+  // Scope the subscription so the always-mounted tab bar doesn't re-render on every per-pane
+  // runtime change (cwds/procs/usage/cloud/recording all churn during terminal activity).
   const {
     order, workspaces, activeId, setActive, newWorkspace,
-    saveAll, shells, newTerminalShellId, setNewTerminalShell, statuses,
-    addTerminal, addEditor, addExplorer, aiSessions,
+    saveAll, shells, newTerminalShellId, setNewTerminalShell,
+    addTerminal, addEditor, addExplorer,
     renameWorkspace, closeWorkspace, moveWorkspace, setBroadcastOpen, broadcastOpen
-  } = useStore()
+  } = useStore(useShallow(s => ({
+    order: s.order, workspaces: s.workspaces, activeId: s.activeId, setActive: s.setActive,
+    newWorkspace: s.newWorkspace, saveAll: s.saveAll, shells: s.shells,
+    newTerminalShellId: s.newTerminalShellId, setNewTerminalShell: s.setNewTerminalShell,
+    addTerminal: s.addTerminal, addEditor: s.addEditor, addExplorer: s.addExplorer,
+    renameWorkspace: s.renameWorkspace, closeWorkspace: s.closeWorkspace,
+    moveWorkspace: s.moveWorkspace, setBroadcastOpen: s.setBroadcastOpen, broadcastOpen: s.broadcastOpen
+  })))
+  // Derive the per-workspace badge string inside the selector: statuses/aiSessions change on
+  // every line of output, but shallow-comparing the derived strings means we only re-render
+  // when a badge's *text* actually changes.
+  const badges = useStore(useShallow(s => {
+    const out: Record<string, string> = {}
+    for (const id of s.order) { const ws = s.workspaces[id]; if (ws) out[id] = tabBadge(ws, s.statuses, s.aiSessions) }
+    return out
+  }))
 
   const [renamingId, setRenamingId] = useState<string | null>(null)
   const [renameText, setRenameText] = useState('')
@@ -71,7 +89,7 @@ export function WorkspaceTabs() {
             onDoubleClick={() => startRename(id)}
             onContextMenu={e => { e.preventDefault(); setMenuFor({ id, x: e.clientX, y: e.clientY }) }}
             style={{ fontWeight: id === activeId ? 700 : 400 }}>
-            {workspaces[id].name}{tabBadge(workspaces[id], statuses, aiSessions)}
+            {workspaces[id].name}{badges[id] ?? ''}
           </button>
         )
       ))}
@@ -109,8 +127,7 @@ export function WorkspaceTabs() {
           <div onClick={() => setMenuFor(null)} onContextMenu={e => { e.preventDefault(); setMenuFor(null) }}
             style={{ position: 'fixed', inset: 0, zIndex: Z.menu }} />
           <div data-testid="ws-menu"
-            style={{ position: 'fixed', left: menuFor.x, top: menuFor.y, zIndex: Z.menu + 1, background: 'var(--elevated, #252526)',
-              color: 'var(--fg, #eee)', border: '1px solid var(--border, #444)', borderRadius: 4, padding: 4, display: 'flex', flexDirection: 'column', gap: 2, fontSize: 'var(--font-size, 13px)' }}>
+            style={{ ...SURFACE, position: 'fixed', left: menuFor.x, top: menuFor.y, zIndex: Z.menu + 1, padding: 4, display: 'flex', flexDirection: 'column', gap: 2, fontSize: 'var(--font-size, 13px)' }}>
             <button data-testid="ws-menu-rename" onClick={() => startRename(menuFor.id)}>Rename</button>
             <button data-testid="ws-menu-save" onClick={() => { void saveAll(); setMenuFor(null) }}>Save</button>
             <button data-testid="ws-menu-close" onClick={() => {

@@ -2,6 +2,7 @@ import type { TerminalConfig } from '@shared/types'
 import { resolveAlerts } from '@shared/alerts'
 import { useStore } from '../store'
 import { api } from '../api'
+import { Z, SURFACE } from './Modal'
 
 export function TerminalSettings(
   { config, onChange, onClose }: {
@@ -16,8 +17,7 @@ export function TerminalSettings(
   const setRecordByDefault = useStore(s => s.setRecordByDefault)
   return (
     <div data-testid="terminal-settings"
-      style={{ position: 'absolute', right: 4, top: 28, zIndex: 10, background: 'var(--elevated, #252526)',
-        color: 'var(--fg, #eee)', border: '1px solid var(--border, #444)', borderRadius: 4, padding: 8, width: 220 }}
+      style={{ ...SURFACE, position: 'absolute', right: 4, top: 28, zIndex: Z.popover, padding: 8, width: 220 }}
       onClick={e => e.stopPropagation()}>
       <label style={{ display: 'block', marginBottom: 6 }}>
         Name

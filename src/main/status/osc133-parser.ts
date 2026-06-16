@@ -1,3 +1,5 @@
+import { scanOsc } from './osc-scanner'
+
 export interface MarkerEvent { kind: 'A' | 'B' | 'C' | 'D'; exit?: number }
 
 const OSC = '\x1b]133;'
@@ -22,26 +24,7 @@ export class Osc133Parser {
   push(chunk: string): MarkerEvent[] {
     this.buf += chunk
     const events: MarkerEvent[] = []
-
-    while (true) {
-      const start = this.buf.indexOf(OSC)
-      if (start === -1) break
-      const from = start + OSC.length
-      const bel = this.buf.indexOf('\x07', from)
-      const st = this.buf.indexOf('\x1b\\', from)
-      let end = -1, termLen = 0
-      if (bel !== -1 && (st === -1 || bel < st)) { end = bel; termLen = 1 }
-      else if (st !== -1) { end = st; termLen = 2 }
-      if (end === -1) { this.buf = this.buf.slice(start); return events }
-      const ev = parseBody(this.buf.slice(from, end))
-      if (ev) events.push(ev)
-      this.buf = this.buf.slice(end + termLen)
-    }
-
-    const lastEsc = this.buf.lastIndexOf('\x1b')
-    this.buf = lastEsc !== -1 && OSC.startsWith(this.buf.slice(lastEsc))
-      ? this.buf.slice(lastEsc)
-      : ''
+    this.buf = scanOsc(this.buf, OSC, body => { const ev = parseBody(body); if (ev) events.push(ev) })
     return events
   }
 }

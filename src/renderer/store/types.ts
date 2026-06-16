@@ -1,0 +1,98 @@
+import type { StoreApi } from 'zustand'
+import type {
+  Workspace, ShellInfo, MosaicNode, MosaicDirection, TerminalConfig, TerminalStatus,
+  PaneConfig, EditorConfig, ExplorerConfig, QuickStore, SshConnection, ProcInfo, CloudStatus,
+  TerminalLaunch, AiSession, UsageMetrics, EditorDraft, ScheduledTask, Theme, EnvVaultState
+} from '@shared/types'
+
+export type ThemeScope =
+  | { kind: 'app' }
+  | { kind: 'workspace'; wsId: string }
+  | { kind: 'pane'; wsId: string; paneId: string }
+
+export interface State {
+  shells: ShellInfo[]
+  workspaces: Record<string, Workspace>
+  order: string[]
+  activeId: string | null
+  newTerminalShellId: string | null
+  lastEditorPaneId: string | null
+  init: () => Promise<void>
+  newWorkspace: (name: string) => string
+  renameWorkspace: (id: string, name: string) => void
+  closeWorkspace: (id: string) => void
+  moveWorkspace: (fromId: string, toId: string) => void
+  setActive: (id: string) => void
+  setLayout: (wsId: string, layout: MosaicNode | null) => void
+  addTerminal: (wsId: string, targetPaneId: string | null, dir: MosaicDirection) => string
+  closePane: (wsId: string, paneId: string) => void
+  setNewTerminalShell: (id: string) => void
+  saveAll: () => Promise<void>
+  flushQuick: () => void
+  statuses: Record<string, TerminalStatus>
+  setStatus: (id: string, status: TerminalStatus) => void
+  cwds: Record<string, string>
+  setCwd: (id: string, cwd: string) => void
+  procs: Record<string, ProcInfo>
+  setProcs: (id: string, info: ProcInfo | null) => void
+  aiSessions: Record<string, AiSession>
+  setAiSession: (id: string, ai: AiSession | null) => void
+  usage: Record<string, UsageMetrics>
+  setUsage: (id: string, metrics: UsageMetrics | null) => void
+  recording: Record<string, boolean>
+  setRecording: (id: string, on: boolean) => void
+  setRecordByDefault: (on: boolean) => void
+  drafts: Record<string, EditorDraft>
+  cloud: CloudStatus[]
+  setCloud: (statuses: CloudStatus[]) => void
+  refreshCloud: () => void
+  envVault: EnvVaultState
+  setEnvState: (s: EnvVaultState) => void
+  launchCommand: (launch: TerminalLaunch) => void
+  updatePaneConfig: (wsId: string, paneId: string, patch: Partial<Omit<EditorConfig, 'kind'> & Omit<ExplorerConfig, 'kind'> & Omit<TerminalConfig, 'kind'>>) => void
+  registerEditorPane: (paneId: string) => void
+  addEditor: (wsId: string, targetPaneId: string | null, dir: MosaicDirection) => string
+  addExplorer: (wsId: string, targetPaneId: string | null, dir: MosaicDirection, root: string) => string
+  openFileInEditor: (wsId: string, path: string) => void
+  openExplorerHere: (wsId: string, paneId: string) => void
+  schedules: Record<string, ScheduledTask>
+  addSchedule: (task: Omit<ScheduledTask, 'id'>) => string
+  cancelSchedule: (id: string) => void
+  quick: QuickStore
+  home: string
+  paletteOpen: boolean
+  broadcastOpen: boolean
+  setBroadcastOpen: (open: boolean) => void
+  broadcastInput: (text: string, mode: 'paste' | 'keys', enter: boolean) => void
+  connectionFormFor: SshConnection | 'new' | null
+  loadQuick: () => Promise<void>
+  setPaletteOpen: (open: boolean) => void
+  setConnectionForm: (target: SshConnection | 'new' | null) => void
+  saveConnection: (conn: SshConnection) => void
+  deleteConnection: (id: string) => void
+  pinDir: (dir: string) => void
+  unpinDir: (dir: string) => void
+  launchConnection: (connId: string) => void
+  launchDir: (dir: string) => void
+  saveTemplate: (name: string) => void
+  deleteTemplate: (id: string) => void
+  newWorkspaceFromTemplate: (templateId: string, name: string) => string
+  setTheme: (patch: Partial<Theme>) => void
+  resetTheme: () => void
+  setThemeScoped: (scope: ThemeScope, patch: Partial<Theme>) => void
+  resetThemeScope: (scope: ThemeScope) => void
+  saveThemePreset: (name: string) => void
+  applyThemePreset: (id: string) => void
+  deleteThemePreset: (id: string) => void
+}
+
+/** Wiring handed to every slice creator: the store's set/get plus the shared debounced-save and
+ *  pane-commit helpers that live on the composition root (store.ts). Slices read cross-slice
+ *  state through `get()` — the store is one object; the split is for code organization. */
+export interface SliceDeps {
+  set: StoreApi<State>['setState']
+  get: StoreApi<State>['getState']
+  scheduleAutosave: () => void
+  scheduleQuickSave: () => void
+  commitPane: (wsId: string, cfg: PaneConfig, target: string | null, dir: MosaicDirection, markEditor?: boolean) => string
+}

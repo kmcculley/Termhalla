@@ -17,8 +17,8 @@ export function useEditorDrafts(paneId: string, getTab: (path: string) => Tab | 
     if (!t || t.tooLarge) return
     const key = draftKey(paneId, path)
     const value = t.model.getValue()
-    if (value === t.saved) api.draftDelete(key)
-    else api.draftSet(key, { content: value, baseline: t.saved })
+    if (value === t.saved) api.draftsDelete(key)
+    else api.draftsSet(key, { content: value, baseline: t.saved })
   }, [paneId])
 
   // Debounced persist on edit (mirrors the workspace autosave cadence).
