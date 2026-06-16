@@ -66,6 +66,10 @@ body { background: var(--bg, #1e1e1e); color: var(--fg, #eee); font-family: var(
   color: var(--fg, #eee) !important;
   font-weight: 600;
 }
+/* Long pane titles truncate instead of shoving the toolbar buttons off the bar. */
+.mosaic-blueprint-theme .mosaic-window-title {
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0;
+}
 .mosaic-blueprint-theme .mosaic-window:not(.term-busy):not(.term-needs-input) .mosaic-window-toolbar button {
   color: var(--fg, #eee);
   background: rgba(255, 255, 255, 0.06);
@@ -186,12 +190,18 @@ body { background: var(--bg, #1e1e1e); color: var(--fg, #eee); font-family: var(
 
 /* Themed scrollbars for chrome scroll regions (xterm/Monaco render their own). */
 :is([data-testid="env-manager"], [data-testid="theme-editor"], [data-testid="proc-menu"],
-   [data-testid="command-palette-backdrop"], [data-testid="templates-menu"])::-webkit-scrollbar,
+   [data-testid="command-palette-backdrop"], [data-testid="templates-menu"], [data-testid^="explorer-"])::-webkit-scrollbar,
 :is([data-testid="env-manager"], [data-testid="theme-editor"], [data-testid="proc-menu"],
-   [data-testid="command-palette-backdrop"], [data-testid="templates-menu"]) *::-webkit-scrollbar { width: 10px; height: 10px; }
+   [data-testid="command-palette-backdrop"], [data-testid="templates-menu"], [data-testid^="explorer-"]) *::-webkit-scrollbar { width: 10px; height: 10px; }
 :is([data-testid="env-manager"], [data-testid="theme-editor"], [data-testid="proc-menu"],
-   [data-testid="command-palette-backdrop"], [data-testid="templates-menu"]) *::-webkit-scrollbar-thumb {
+   [data-testid="command-palette-backdrop"], [data-testid="templates-menu"], [data-testid^="explorer-"]) *::-webkit-scrollbar-thumb {
   background: var(--border, #444); border-radius: 5px;
+}
+:is([data-testid^="explorer-"])::-webkit-scrollbar-thumb { background: var(--border, #444); border-radius: 5px; }
+
+/* Visual keyboard focus ring on workspace tabs (movement logic is a later phase). */
+[data-testid="workspace-tabs"] [data-testid^="tab-"]:focus-visible {
+  outline: 2px solid var(--accent, #1e88e5); outline-offset: -2px;
 }
 
 /* Subtle entrance for modal cards / popovers. Reduced-motion users get opacity only. */
