@@ -7,6 +7,12 @@ All notable changes to Termhalla are recorded here. The format follows
 ## [Unreleased]
 
 ### Added
+- **Undock a workspace into its own window** — drag a workspace tab off the strip to tear it into
+  a real OS window you can move onto any monitor; drag it back onto the main strip, click its
+  **Dock** button, or hit the window's native ✕ to re-dock (✕ never kills the shells). The running
+  PTYs keep going through the move and the terminal scrollback is preserved (each xterm is
+  serialized and replayed into the new window). The multi-window arrangement — which workspaces are
+  undocked and where each window sits — is restored on the next launch.
 - **Terminal clipboard** — copy a mouse selection with **Ctrl+C** (falls back to `^C` interrupt
   when nothing is selected), and paste with **Ctrl+V** or **right-click** (bracketed-paste-safe,
   so multi-line pastes don't auto-run).

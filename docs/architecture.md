@@ -36,12 +36,17 @@ reasoning behind specific choices see [`decisions.md`](decisions.md).
             SHARED (src/shared/) — types, IPC contract, pure logic
 ```
 
-- **main** owns everything privileged. A `BrowserWindow` is created in
-  `src/main/index.ts`; `registerHandlers(win)` in `src/main/ipc/register.ts` is a
-  thin composition root — it builds the shared services and delegates to per-domain
-  registrars (`register-pty`/`-fs`/`-workspaces`/`-drafts`/`-cloud`/`-usage`/
-  `-recording`/`-env`/`-clipboard`), aggregating the teardown disposers (those that
-  have one) into a single `win.on('closed')`.
+- **main** owns everything privileged. `src/main/index.ts` calls `buildServices()`
+  once (the window-agnostic privileged layer), then a `WindowManager`
+  (`src/main/window-manager.ts`) creates one or more `BrowserWindow`s.
+  `registerHandlers(services, wm)` in `src/main/ipc/register.ts` is a thin
+  composition root — it registers the per-domain registrars
+  (`register-pty`/`-fs`/`-workspaces`/`-drafts`/`-cloud`/`-usage`/`-recording`/
+  `-env`/`-clipboard`) once and routes their push events through the manager:
+  pane-scoped events go to the window that owns the pane, app-global events
+  broadcast. Teardown disposers are aggregated and run when the last window closes.
+  Multiple windows exist because a workspace tab can be **undocked** into its own
+  window — see [features/window-management](features/window-management.md).
 - **preload** runs with `contextIsolation` and exposes exactly one object,
   `window.api`, implementing the `TermhallaApi` interface. The renderer has no
   other way to reach Node.
@@ -127,8 +132,7 @@ All persistent data lives under the Electron `userData` directory
 | File / dir | Contents |
 |---|---|
 | `workspaces/<id>.json` | One file per workspace (layout tree + pane configs). |
-| `app-state.json` | Open workspace ids, active workspace, `schemaVersion`. |
-| `window-state.json` | Window bounds + maximized, clamped to current displays. |
+| `app-state.json` | `windows[]` — per window: its workspace ids, active tab, bounds, `isMain`. Written by the `WindowManager`; clamped to current displays on restore. (Supersedes the legacy single-window `openWorkspaceIds`/`activeWorkspaceId` + `window-state.json`, migrated on load.) |
 | `quick.json` | App-global SSH connections + favorite/recent dirs (sanitized on read+write). |
 | `shell-integration/` | Generated per-shell init scripts injected into terminals. |
 
