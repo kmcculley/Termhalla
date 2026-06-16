@@ -1,6 +1,6 @@
 import { test, expect, _electron as electron, ElectronApplication } from '@playwright/test'
 import { execSync } from 'child_process'
-import { mkdtempSync, writeFileSync, readFileSync } from 'node:fs'
+import { mkdtempSync, writeFileSync, readFileSync, existsSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { seedWorkspace } from './seed'
@@ -143,5 +143,59 @@ test('editor still renders the correct file after a tab switch (Monaco-layout re
   await expect(win.locator('.view-lines')).toContainText('AAA', { timeout: 15_000 })
   expect(readFileSync(a, 'utf8')).toBe('AAA\n')
 
+  const pid = app.process().pid; await app.close().catch(() => {}); killTree(pid)
+})
+
+test('toast appears when saving a workspace template', async () => {
+  test.setTimeout(60_000)
+  const userData = mkdtempSync(join(tmpdir(), 'termh-pol6-'))
+  const app = await launch(userData)
+  const win = await app.firstWindow()
+  await expect(win.getByTestId('workspace-tabs')).toBeVisible({ timeout: 15_000 })
+  await win.getByTestId('templates-button').click()
+  await win.getByTestId('tpl-name').fill('My Tpl')
+  await win.getByTestId('tpl-save').click()
+  await expect(win.getByTestId('toast')).toContainText('Template saved', { timeout: 5_000 })
+  const pid = app.process().pid; await app.close().catch(() => {}); killTree(pid)
+})
+
+test('explorer context menu renames and trashes a file', async () => {
+  test.setTimeout(60_000)
+  const userData = mkdtempSync(join(tmpdir(), 'termh-pol7-'))
+  const proj = mkdtempSync(join(tmpdir(), 'termh-pol7-proj-'))
+  const f = join(proj, 'old.txt'); writeFileSync(f, 'x', 'utf8')
+  seedWorkspace(userData, [{ paneId: 'p1', config: { kind: 'explorer', root: proj } }], 'p1')
+  const app = await launch(userData)
+  const win = await app.firstWindow()
+  await expect(win.getByTestId('entry-old.txt')).toBeVisible({ timeout: 15_000 })
+
+  // rename old.txt -> new.txt
+  await win.getByTestId('entry-old.txt').click({ button: 'right' })
+  await win.getByTestId('explorer-rename').click()
+  const input = win.getByTestId('rename-old.txt')
+  await input.fill('new.txt')
+  await input.press('Enter')
+  await expect(win.getByTestId('entry-new.txt')).toBeVisible({ timeout: 10_000 })
+  expect(existsSync(join(proj, 'new.txt'))).toBe(true)
+  expect(existsSync(f)).toBe(false)
+
+  // delete new.txt (auto-accept the confirm)
+  await win.evaluate(() => { (globalThis as unknown as { confirm: () => boolean }).confirm = () => true })
+  await win.getByTestId('entry-new.txt').click({ button: 'right' })
+  await win.getByTestId('explorer-delete').click()
+  await expect(win.getByTestId('entry-new.txt')).toHaveCount(0, { timeout: 10_000 })
+  expect(existsSync(join(proj, 'new.txt'))).toBe(false)
+
+  const pid = app.process().pid; await app.close().catch(() => {}); killTree(pid)
+})
+
+test('env manager autofocuses the passphrase input', async () => {
+  test.setTimeout(60_000)
+  const userData = mkdtempSync(join(tmpdir(), 'termh-pol8-'))
+  const app = await launch(userData)
+  const win = await app.firstWindow()
+  await expect(win.getByTestId('workspace-tabs')).toBeVisible({ timeout: 15_000 })
+  await win.getByTestId('env-button').click()
+  await expect(win.getByTestId('env-passphrase')).toBeFocused({ timeout: 10_000 })
   const pid = app.process().pid; await app.close().catch(() => {}); killTree(pid)
 })
