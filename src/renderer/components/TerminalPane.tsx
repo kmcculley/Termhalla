@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react'
 import { Terminal } from '@xterm/xterm'
 import { FitAddon } from '@xterm/addon-fit'
+import { SerializeAddon } from '@xterm/addon-serialize'
 import '@xterm/xterm/css/xterm.css'
 import { api } from '../api'
 import type { TerminalConfig } from '@shared/types'
@@ -8,6 +9,7 @@ import { resolveTheme } from '@shared/theme'
 import { useStore } from '../store'
 import { useResolvedPaneTheme } from '../use-resolved-theme'
 import { clipboardKeyAction } from './terminal-clipboard'
+import { registerSerializer, unregisterSerializer } from './terminal-registry'
 
 export function TerminalPane({ paneId, wsId, config }: { paneId: string; wsId: string; config: TerminalConfig }) {
   const hostRef = useRef<HTMLDivElement>(null)
@@ -22,6 +24,11 @@ export function TerminalPane({ paneId, wsId, config }: { paneId: string; wsId: s
     })
     const fit = new FitAddon()
     term.loadAddon(fit)
+    // Serialize the screen + scrollback to ANSI on demand, so this terminal's visible content can
+    // be replayed into a new window when its workspace is torn off / re-docked (see WindowManager).
+    const serialize = new SerializeAddon()
+    term.loadAddon(serialize)
+    registerSerializer(paneId, () => serialize.serialize({ scrollback: 1000 }))
     termRef.current = term; fitRef.current = fit
     term.open(hostRef.current!)
     fit.fit()
@@ -65,6 +72,7 @@ export function TerminalPane({ paneId, wsId, config }: { paneId: string; wsId: s
     return () => {
       disposed = true
       hostRef.current?.removeEventListener('contextmenu', onContextMenu)
+      unregisterSerializer(paneId)
       ro.disconnect(); inputDisp.dispose(); offData(); offExit(); term.dispose()
       termRef.current = null; fitRef.current = null
     }
