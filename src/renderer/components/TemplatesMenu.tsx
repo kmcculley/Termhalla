@@ -19,7 +19,7 @@ export function TemplatesMenu({ onPicked, onClose }: { onPicked: (id: string) =>
           <button data-testid="tpl-save" disabled={!name.trim()}
             onClick={() => { saveTemplate(name); setName('') }}>Save current</button>
         </div>
-        {templates.length === 0 && <div style={{ opacity: 0.6 }}>No templates yet.</div>}
+        {templates.length === 0 && <div style={{ color: 'var(--fg-dim, #aaa)' }}>No templates yet.</div>}
         {templates.map(t => (
           <div key={t.id} style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
             <button data-testid={`tpl-${t.id}`} style={{ flex: 1, textAlign: 'left' }}

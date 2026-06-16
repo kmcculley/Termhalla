@@ -68,7 +68,7 @@ export function CommandPalette() {
           style={{ background: 'var(--panel, #1e1e1e)', color: 'var(--fg, #eee)', border: 'none', borderBottom: '1px solid var(--border, #444)',
             padding: '10px 12px', fontSize: 14, outline: 'none' }} />
         <div style={{ overflowY: 'auto' }}>
-          {items.length === 0 && <div style={{ padding: 12, opacity: 0.6 }}>No matches</div>}
+          {items.length === 0 && <div style={{ padding: 12, color: 'var(--fg-dim, #aaa)' }}>No matches</div>}
           {items.map((item, i) => {
             const key = item.kind === 'connection' ? `c-${item.id}`
               : item.kind === 'dir' ? `d-${item.path}` : `a-${item.action}`
@@ -82,7 +82,7 @@ export function CommandPalette() {
                 style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px',
                   cursor: 'pointer', background: i === clampedSel ? 'var(--sel-bg)' : 'transparent' }}>
                 <span style={{ flex: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{label}</span>
-                {detail && <span style={{ opacity: 0.6, fontSize: 12 }}>{detail}</span>}
+                {detail && <span style={{ color: 'var(--fg-dim, #aaa)', fontSize: 12 }}>{detail}</span>}
                 {item.kind === 'connection' && (
                   <>
                     <button data-testid={`palette-edit-${item.id}`} title="Edit"
