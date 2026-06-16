@@ -30,6 +30,11 @@ All notable changes to Termhalla are recorded here. The format follows
   preserving all pane state across switches.
 
 ### Added
+- **Environment variable manager** — a `🔑` button opens an encrypted-local vault for env vars
+  injected into terminals on spawn (global vars for every shell, plus per-terminal overrides).
+  Values are stored only as an AES-256-GCM blob (scrypt-derived key) at `userData/env-vault.json`;
+  decrypted values and the passphrase live in main-process memory only while unlocked, and
+  workspace JSON stores only an `envId`, never values.
 - **Terminal session recording** — a `⏺` button records a terminal's output to a replayable
   asciinema `.cast` file (in `userData/recordings/`); a per-terminal-settings toggle auto-records
   every new terminal.

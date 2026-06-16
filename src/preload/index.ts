@@ -81,6 +81,15 @@ const api: TermhallaApi = {
   recStop: (id) => ipcRenderer.send(CH.recStop, id),
   onRecState: (cb) => { const h = (_e: unknown, id: string, recording: boolean, file: string | null) => cb(id, recording, file); ipcRenderer.on(CH.recState, h as never); return () => ipcRenderer.removeListener(CH.recState, h as never) },
   recReveal: () => ipcRenderer.send(CH.recReveal),
+  onEnvState: (cb) => { const h = (_e: unknown, s: { exists: boolean; unlocked: boolean }) => cb(s); ipcRenderer.on(CH.envState, h as never); return () => ipcRenderer.removeListener(CH.envState, h as never) },
+  envUnlock: (p) => ipcRenderer.invoke(CH.envUnlock, p),
+  envCreate: (p) => ipcRenderer.invoke(CH.envCreate, p),
+  envLock: () => ipcRenderer.send(CH.envLock),
+  envGet: () => ipcRenderer.invoke(CH.envGet),
+  envSetGlobal: (n, v) => ipcRenderer.send(CH.envSetGlobal, n, v),
+  envRemoveGlobal: (n) => ipcRenderer.send(CH.envRemoveGlobal, n),
+  envSetTerminal: (id, n, v) => ipcRenderer.send(CH.envSetTerminal, id, n, v),
+  envRemoveTerminal: (id, n) => ipcRenderer.send(CH.envRemoveTerminal, id, n),
 }
 
 contextBridge.exposeInMainWorld('termhalla', api)

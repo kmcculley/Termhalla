@@ -1,4 +1,4 @@
-import type { ShellInfo, Workspace, AppState, TerminalStatus, DirEntry, ReadResult, StatResult, FsChange, TerminalLaunch, QuickStore, ProcInfo, CloudStatus, AiSession, UsageMetrics, EditorDraft } from './types'
+import type { ShellInfo, Workspace, AppState, TerminalStatus, DirEntry, ReadResult, StatResult, FsChange, TerminalLaunch, QuickStore, ProcInfo, CloudStatus, AiSession, UsageMetrics, EditorDraft, EnvVaultData } from './types'
 
 export const CH = {
   listShells: 'shells:list',
@@ -44,10 +44,12 @@ export const CH = {
   recStop: 'rec:stop',
   recState: 'rec:state',
   recReveal: 'rec:reveal',
+  envState: 'env:state', envUnlock: 'env:unlock', envCreate: 'env:create', envLock: 'env:lock', envGet: 'env:get',  // envState: main -> renderer event
+  envSetGlobal: 'env:setGlobal', envRemoveGlobal: 'env:removeGlobal', envSetTerminal: 'env:setTerminal', envRemoveTerminal: 'env:removeTerminal',
 } as const
 
 export interface NotifyArgs { title: string; body: string }
-export interface PtySpawnArgs { id: string; shellId: string; cwd: string; cols: number; rows: number; launch?: TerminalLaunch }
+export interface PtySpawnArgs { id: string; shellId: string; cwd: string; cols: number; rows: number; launch?: TerminalLaunch; envId?: string }
 export interface PtyWriteArgs { id: string; data: string }
 export interface PtyResizeArgs { id: string; cols: number; rows: number }
 
@@ -95,4 +97,13 @@ export interface TermhallaApi {
   recStop(id: string): void
   onRecState(cb: (id: string, recording: boolean, file: string | null) => void): () => void
   recReveal(): void
+  onEnvState(cb: (state: { exists: boolean; unlocked: boolean }) => void): () => void
+  envUnlock(passphrase: string): Promise<boolean>
+  envCreate(passphrase: string): Promise<void>
+  envLock(): void
+  envGet(): Promise<EnvVaultData | null>
+  envSetGlobal(name: string, value: string): void
+  envRemoveGlobal(name: string): void
+  envSetTerminal(envId: string, name: string, value: string): void
+  envRemoveTerminal(envId: string, name: string): void
 }
