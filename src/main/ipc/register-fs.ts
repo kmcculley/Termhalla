@@ -1,6 +1,6 @@
 import { ipcMain, dialog, shell, BrowserWindow } from 'electron'
 import { CH } from '@shared/ipc-contract'
-import { readTextFile, writeTextFile, readDirectory, statPath } from '../fs/files'
+import { readTextFile, writeTextFile, readDirectory, statPath, renamePath } from '../fs/files'
 import { WatchManager } from '../fs/watch-manager'
 import type { Send, Disposer } from './types'
 
@@ -34,6 +34,9 @@ export function registerFs(win: BrowserWindow, send: Send): Disposer {
     return r.canceled || !r.filePath ? null : r.filePath
   })
   ipcMain.handle(CH.revealPath, async (_e, path: string) => { await shell.openPath(path) })
+  ipcMain.handle(CH.fsRename, (_e, oldPath: string, newPath: string) => renamePath(oldPath, newPath))
+  ipcMain.handle(CH.fsTrash, (_e, path: string) => shell.trashItem(path))
+  ipcMain.handle(CH.fsRevealItem, (_e, path: string) => { shell.showItemInFolder(path) })
 
   return () => watcher.closeAll()
 }

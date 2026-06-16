@@ -32,6 +32,7 @@ export function ThemeEditor({ onClose, initialPaneId }: { onClose: () => void; i
   const saveThemePreset = useStore(s => s.saveThemePreset)
   const applyThemePreset = useStore(s => s.applyThemePreset)
   const deleteThemePreset = useStore(s => s.deleteThemePreset)
+  const pushToast = useStore(s => s.pushToast)
   const presets = useStore(s => s.quick.themePresets)
 
   // Opened from a pane's button → start scoped to that pane; otherwise app-wide.
@@ -104,13 +105,13 @@ export function ThemeEditor({ onClose, initialPaneId }: { onClose: () => void; i
           <input data-testid="theme-preset-name" placeholder="App preset name" value={presetName}
             onChange={e => setPresetName(e.target.value)} style={{ flex: 1 }} />
           <button data-testid="theme-save-preset" disabled={!presetName.trim()}
-            onClick={() => { saveThemePreset(presetName); setPresetName('') }}>Save app preset</button>
+            onClick={() => { saveThemePreset(presetName); pushToast('Preset saved'); setPresetName('') }}>Save app preset</button>
         </div>
         {presets.map(p => (
           <div key={p.id} style={row}>
             <button data-testid={`theme-preset-${p.id}`} style={{ flex: 1, textAlign: 'left' }}
               onClick={() => applyThemePreset(p.id)}>{p.name}</button>
-            <button data-testid={`theme-preset-del-${p.id}`} onClick={() => deleteThemePreset(p.id)}>×</button>
+            <button data-testid={`theme-preset-del-${p.id}`} onClick={() => { deleteThemePreset(p.id); pushToast('Preset deleted') }}>×</button>
           </div>
         ))}
         <div style={{ display: 'flex', justifyContent: 'flex-end' }}>

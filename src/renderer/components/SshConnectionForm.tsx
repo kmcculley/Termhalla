@@ -9,6 +9,7 @@ export function SshConnectionForm() {
   const target = useStore(s => s.connectionFormFor)
   const setForm = useStore(s => s.setConnectionForm)
   const saveConnection = useStore(s => s.saveConnection)
+  const pushToast = useStore(s => s.pushToast)
   const launchConnection = useStore(s => s.launchConnection)
 
   const editing = target && target !== 'new' ? target : null
@@ -38,6 +39,7 @@ export function SshConnectionForm() {
     if (!valid) return
     const conn = build()
     saveConnection(conn)
+    pushToast('Connection saved')
     close()
     if (connect) launchConnection(conn.id)
   }
