@@ -92,7 +92,12 @@ test('modal card has a drop shadow and --sel-bg resolves to an accent colour (no
   await win.keyboard.press('Control+KeyK')
   const card = win.getByTestId('command-palette')
   await expect(card).toBeVisible({ timeout: 10_000 })
-  const shadow = await card.evaluate(el => getComputedStyle(el).boxShadow)
+  // The tests tsconfig has no DOM lib (Node target), so reach DOM globals via globalThis,
+  // matching the cast pattern already used elsewhere in this file.
+  const shadow = await card.evaluate(el => {
+    const g = globalThis as unknown as { getComputedStyle(e: unknown): { boxShadow: string } }
+    return g.getComputedStyle(el).boxShadow
+  })
   expect(shadow).not.toBe('none')
   expect(shadow.length).toBeGreaterThan(0)
 
@@ -100,10 +105,14 @@ test('modal card has a drop shadow and --sel-bg resolves to an accent colour (no
   // should compute to a visible colour that tracks the accent — not the old literal,
   // not fully transparent.
   const selBg = await win.evaluate(() => {
-    const el = document.createElement('div')
+    const g = globalThis as unknown as {
+      document: { createElement(t: string): { style: { background: string }; remove(): void }; body: { appendChild(e: unknown): void } }
+      getComputedStyle(e: unknown): { backgroundColor: string }
+    }
+    const el = g.document.createElement('div')
     el.style.background = 'var(--sel-bg)'
-    document.body.appendChild(el)
-    const c = getComputedStyle(el).backgroundColor
+    g.document.body.appendChild(el)
+    const c = g.getComputedStyle(el).backgroundColor
     el.remove()
     return c
   })
