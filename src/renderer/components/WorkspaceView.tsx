@@ -12,6 +12,7 @@ import { ExplorerPane } from './ExplorerPane'
 import { TerminalSettings } from './TerminalSettings'
 import { ScheduleDialog } from './ScheduleDialog'
 import { ThemeEditor } from './ThemeEditor'
+import { EnvManager } from './EnvManager'
 
 /** Compact token count: 999 -> "999", 1234 -> "1.2k", 156000 -> "156k". */
 function fmtTokens(n: number): string {
@@ -46,6 +47,7 @@ export function WorkspaceView({ ws }: { ws: Workspace }) {
   const [procsMenuFor, setProcsMenuFor] = useState<string | null>(null)
   const [scheduleFor, setScheduleFor] = useState<string | null>(null)
   const [themeFor, setThemeFor] = useState<string | null>(null)
+  const [envFor, setEnvFor] = useState<string | null>(null)
 
   // Auto-dismiss the process popover 2s after it opens on a terminal with no child
   // processes. If a process appears within that window, procs changes, the effect
@@ -106,7 +108,10 @@ export function WorkspaceView({ ws }: { ws: Workspace }) {
                 <button key="rec" type="button" data-testid={`rec-${paneId}`}
                   title={recording[paneId] ? 'Stop recording' : 'Record session'}
                   style={{ color: recording[paneId] ? '#e53935' : undefined }}
-                  onClick={() => recording[paneId] ? api.recStop(paneId) : api.recStart(paneId)}>⏺</button>
+                  onClick={() => recording[paneId] ? api.recStop(paneId) : api.recStart(paneId)}>⏺</button>,
+                <button key="env" type="button" data-testid={`env-chip-${paneId}`} title="Environment variables"
+                  style={{ color: termCfg.envId ? 'var(--accent, #4ea1ff)' : undefined }}
+                  onClick={() => setEnvFor(envFor === paneId ? null : paneId)}>🔑</button>
               ] : []),
               <button key="cwd" data-testid={`cwd-${paneId}`} title="Folder actions"
                 onClick={() => setCwdMenuFor(cwdMenuFor === paneId ? null : paneId)}>📁</button>,
@@ -156,6 +161,7 @@ export function WorkspaceView({ ws }: { ws: Workspace }) {
               )}
               {scheduleFor === paneId && <ScheduleDialog paneId={paneId} onClose={() => setScheduleFor(null)} />}
               {themeFor === paneId && <ThemeEditor initialPaneId={paneId} onClose={() => setThemeFor(null)} />}
+              {envFor === paneId && <EnvManager wsId={ws.id} paneId={paneId} onClose={() => setEnvFor(null)} />}
               {cwdMenuFor === paneId && (
                 <div data-testid="cwd-menu" onClick={e => e.stopPropagation()}
                   style={{ position: 'absolute', right: 4, top: 28, zIndex: 10, background: 'var(--elevated, #252526)',

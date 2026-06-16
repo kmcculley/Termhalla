@@ -1,13 +1,11 @@
 import { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
+import { v4 as uuid } from 'uuid'
 import { useStore } from '../store'
 import { api } from '../api'
 import type { EnvVaultData } from '@shared/types'
 
-// Manages the encrypted env vault: create/unlock/lock + global variables.
-// NOTE: per-terminal var editing (api.envSetTerminal / api.envRemoveTerminal keyed
-// on a pane's config.envId) is a deferred follow-up; this modal handles global
-// vars + the create/unlock/lock flow only.
+// Encrypted env vault: create/unlock/lock, global vars, and (when opened scoped to a pane) that terminal's own vars.
 
 // A single global-variable row with a reveal (👁) toggle.
 function EnvRow({ name, value, onRemove }: { name: string; value: string; onRemove: () => void }) {
@@ -23,14 +21,20 @@ function EnvRow({ name, value, onRemove }: { name: string; value: string; onRemo
   )
 }
 
-export function EnvManager({ onClose }: { onClose: () => void }) {
+export function EnvManager({ onClose, wsId, paneId }: { onClose: () => void; wsId?: string; paneId?: string }) {
   const env = useStore(s => s.envVault)
+  const updatePaneConfig = useStore(s => s.updatePaneConfig)
+  const paneConfig = useStore(s => (wsId && paneId) ? s.workspaces[wsId]?.panes[paneId]?.config : undefined)
+  const envId = (paneConfig && paneConfig.kind === 'terminal') ? paneConfig.envId : undefined
+  const scoped = !!(wsId && paneId)
 
   const [passphrase, setPassphrase] = useState('')
   const [error, setError] = useState(false)
   const [data, setData] = useState<EnvVaultData | null>(null)
   const [newName, setNewName] = useState('')
   const [newValue, setNewValue] = useState('')
+  const [tName, setTName] = useState('')
+  const [tValue, setTValue] = useState('')
 
   const refresh = async (): Promise<void> => setData(await api.envGet())
 
@@ -48,6 +52,13 @@ export function EnvManager({ onClose }: { onClose: () => void }) {
     api.envSetGlobal(newName, newValue)
     setNewName(''); setNewValue('')
     void refresh()
+  }
+  const addTerminalVar = (): void => {
+    if (!tName.trim() || !wsId || !paneId) return
+    let id = envId
+    if (!id) { id = uuid(); updatePaneConfig(wsId, paneId, { envId: id }) }
+    api.envSetTerminal(id, tName, tValue)
+    setTName(''); setTValue(''); void refresh()
   }
 
   const row = { display: 'flex', alignItems: 'center', gap: 8 } as const
@@ -100,6 +111,27 @@ export function EnvManager({ onClose }: { onClose: () => void }) {
                 onKeyDown={e => { if (e.key === 'Enter') add() }} style={{ flex: 1 }} />
               <button data-testid="env-add" disabled={!newName.trim()} onClick={add}>Add</button>
             </div>
+            {scoped && (
+              <>
+                <div data-testid="env-term-section" style={{ fontWeight: 600, borderTop: '1px solid var(--border, #444)', paddingTop: 8 }}>This terminal</div>
+                {Object.entries((envId && data?.terminals[envId]) ? data!.terminals[envId] : {}).map(([name, value]) => (
+                  <div key={name} data-testid={`env-term-row-${name}`} style={row}>
+                    <span style={{ flex: '0 0 140px', fontFamily: 'monospace', overflow: 'hidden', textOverflow: 'ellipsis' }}>{name}</span>
+                    <input type="password" value={value} readOnly style={{ flex: 1 }} />
+                    <button data-testid={`env-term-del-${name}`} onClick={() => { if (envId) { api.envRemoveTerminal(envId, name); void refresh() } }}>×</button>
+                  </div>
+                ))}
+                <div style={row}>
+                  <input data-testid="env-term-name" placeholder="NAME" value={tName}
+                    onChange={e => setTName(e.target.value)} style={{ flex: '0 0 140px', fontFamily: 'monospace' }} />
+                  <input data-testid="env-term-value" placeholder="value" value={tValue}
+                    onChange={e => setTValue(e.target.value)}
+                    onKeyDown={e => { if (e.key === 'Enter') addTerminalVar() }} style={{ flex: 1 }} />
+                  <button data-testid="env-term-add" disabled={!tName.trim()} onClick={addTerminalVar}>Add</button>
+                </div>
+                <div style={{ opacity: 0.6, fontSize: '0.85em' }}>Applies the next time this terminal is spawned (e.g. after reopening the workspace) while the vault is unlocked.</div>
+              </>
+            )}
             <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px solid var(--border, #444)', paddingTop: 8 }}>
               <button data-testid="env-lock" onClick={() => api.envLock()}>Lock</button>
               <button onClick={onClose}>Close</button>
