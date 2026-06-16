@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { WorkspaceStore } from '../../src/main/persistence/store'
 import { createWorkspace, addFirstPane } from '@shared/workspace-model'
-import type { TerminalConfig } from '@shared/types'
+import { SCHEMA_VERSION, type TerminalConfig } from '@shared/types'
 
 const term: TerminalConfig = { kind: 'terminal', shellId: 'cmd', cwd: 'C:\\' }
 let dir: string
@@ -28,11 +28,23 @@ describe('WorkspaceStore', () => {
     rmSync(dir, { recursive: true, force: true })
   })
 
-  it('round-trips app-state', async () => {
+  it('round-trips app-state (windows[])', async () => {
     const store = new WorkspaceStore(dir)
-    const state = { schemaVersion: 1, openWorkspaceIds: ['ws-1'], activeWorkspaceId: 'ws-1' }
+    const bounds = { width: 1200, height: 800, x: 0, y: 0, maximized: false }
+    const state = { schemaVersion: SCHEMA_VERSION, windows: [{ workspaceIds: ['ws-1'], activeId: 'ws-1', bounds, isMain: true }] }
     await store.saveAppState(state)
     expect(await store.loadAppState()).toEqual(state)
+    rmSync(dir, { recursive: true, force: true })
+  })
+
+  it('migrates a legacy single-window app-state on load', async () => {
+    const store = new WorkspaceStore(dir)
+    mkdirSync(dir, { recursive: true })
+    writeFileSync(join(dir, 'app-state.json'),
+      JSON.stringify({ schemaVersion: 1, openWorkspaceIds: ['x'], activeWorkspaceId: 'x' }), 'utf8')
+    const loaded = await store.loadAppState()
+    expect(loaded?.windows).toHaveLength(1)
+    expect(loaded?.windows[0]).toMatchObject({ workspaceIds: ['x'], activeId: 'x', isMain: true })
     rmSync(dir, { recursive: true, force: true })
   })
 
@@ -52,8 +64,8 @@ describe('WorkspaceStore', () => {
 
   it('returns null for a structurally-invalid app-state', async () => {
     const store = new WorkspaceStore(dir)
-    await store.saveAppState({ schemaVersion: 1, openWorkspaceIds: [], activeWorkspaceId: null })
-    writeFileSync(join(dir, 'app-state.json'), '{"openWorkspaceIds":"oops"}', 'utf8')
+    await store.saveAppState({ schemaVersion: SCHEMA_VERSION, windows: [] })
+    writeFileSync(join(dir, 'app-state.json'), '{"noSchemaVersion":true}', 'utf8')
     await expect(store.loadAppState()).resolves.toBeNull()
     rmSync(dir, { recursive: true, force: true })
   })

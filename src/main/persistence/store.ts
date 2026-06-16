@@ -2,12 +2,8 @@ import { mkdir, readFile, writeFile, readdir } from 'node:fs/promises'
 import { join } from 'node:path'
 import type { Workspace, AppState } from '@shared/types'
 import { serializeWorkspace, deserializeWorkspace } from '@shared/workspace-model'
-
-function isAppState(d: unknown): d is AppState {
-  if (!d || typeof d !== 'object') return false
-  const o = d as Record<string, unknown>
-  return typeof o.schemaVersion === 'number' && Array.isArray(o.openWorkspaceIds)
-}
+import { migrateAppState } from '@shared/app-state-model'
+import { DEFAULT_WINDOW_STATE } from '../window-state'
 
 export class WorkspaceStore {
   constructor(private readonly baseDir: string) {}
@@ -53,8 +49,9 @@ export class WorkspaceStore {
   async loadAppState(): Promise<AppState | null> {
     try {
       const data: unknown = JSON.parse(await readFile(this.appStateFile(), 'utf8'))
-      if (!isAppState(data)) return null
-      return data
+      // Normalizes both the current windows[] shape and the legacy single-window shape
+      // (openWorkspaceIds/activeWorkspaceId) and rejects junk / future versions.
+      return migrateAppState(data, DEFAULT_WINDOW_STATE)
     } catch { return null }
   }
 }
