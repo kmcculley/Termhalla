@@ -29,6 +29,7 @@ export function TerminalPane({ paneId, wsId, config }: { paneId: string; wsId: s
       id: paneId, shellId: config.shellId, cwd: config.cwd,
       cols: term.cols, rows: term.rows, launch: config.launch
     })
+    if (useStore.getState().quick.recordByDefault) api.recStart(paneId)
 
     const offData = api.onPtyData((id, data) => { if (id === paneId) term.write(data) })
     const offExit = api.onPtyExit((id) => { if (id === paneId && !disposed) term.write('\r\n[process exited]\r\n') })
