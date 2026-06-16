@@ -3,7 +3,7 @@ import {
   createWorkspace, addFirstPane, splitPane, removePane,
   serializeWorkspace, deserializeWorkspace
 } from '@shared/workspace-model'
-import type { TerminalConfig } from '@shared/types'
+import { SCHEMA_VERSION, type TerminalConfig } from '@shared/types'
 
 const term = (cwd = 'C:\\'): TerminalConfig => ({ kind: 'terminal', shellId: 'pwsh', cwd })
 
@@ -48,7 +48,7 @@ describe('workspace-model', () => {
     let ws = addFirstPane(createWorkspace('W', () => 'ws-1'), term(), () => 'p1').workspace
     ws = splitPane(ws, 'p1', 'column', term('E:\\'), () => 'p2').workspace
     const json = serializeWorkspace(ws)
-    expect(JSON.parse(json).schemaVersion).toBe(3)
+    expect(JSON.parse(json).schemaVersion).toBe(SCHEMA_VERSION)
     expect(deserializeWorkspace(json)).toEqual(ws)
   })
 

@@ -4,6 +4,7 @@ import { useStore } from './store'
 import { ThemeProvider } from './components/ThemeProvider'
 import { themeCssVarsPartial } from '@shared/theme'
 import { WorkspaceTabs } from './components/WorkspaceTabs'
+import { FloatingHeader } from './components/FloatingHeader'
 import { WorkspaceView } from './components/WorkspaceView'
 import { BroadcastDialog } from './components/BroadcastDialog'
 import { CommandPalette } from './components/CommandPalette'
@@ -20,6 +21,7 @@ export default function App() {
   const { activeId, workspaces, order } = useStore(
     useShallow(s => ({ activeId: s.activeId, workspaces: s.workspaces, order: s.order }))
   )
+  const isMainWindow = useStore(s => s.isMainWindow)
   const connectionFormFor = useStore(s => s.connectionFormFor)
   useEffect(() => { init() }, [init])
   useEffect(() => {
@@ -40,8 +42,13 @@ export default function App() {
       api.onAiSession((id, ai) => s().setAiSession(id, ai)),
       api.onUsageMetrics((id, m) => s().setUsage(id, m)),
       api.onRecState((id, state) => s().setRecording(id, state.recording)),
-      api.onEnvState(state => s().setEnvState(state))
+      api.onEnvState(state => s().setEnvState(state)),
+      api.onWinAssignment(a => { void s().applyAssignment(a) }),
+      api.onTermSerialize(wsId => s().serializeWorkspace(wsId))
     ]
+    // Now that win:assignment is subscribed, ask main for this window's assignment (avoids losing
+    // a push that fired on did-finish-load before React mounted this listener).
+    api.winReady()
     return () => offs.forEach(off => off())
   }, [])
 
@@ -65,7 +72,7 @@ export default function App() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', background: 'var(--bg, #1e1e1e)' }}>
       <ThemeProvider />
-      <WorkspaceTabs />
+      {isMainWindow ? <WorkspaceTabs /> : <FloatingHeader />}
       <div style={{ flex: 1, position: 'relative' }} className="mosaic-blueprint-theme">
         {order.length === 0 && <div data-testid="app-title">Termhalla</div>}
         {/* Every workspace stays mounted; only the active one is shown. Switching tabs must NOT

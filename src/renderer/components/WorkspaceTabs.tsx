@@ -59,13 +59,42 @@ export function WorkspaceTabs() {
   const [renamingId, setRenamingId] = useState<string | null>(null)
   const [renameText, setRenameText] = useState('')
   const [menuFor, setMenuFor] = useState<{ id: string; x: number; y: number } | null>(null)
-  const [draggedId, setDraggedId] = useState<string | null>(null)
+  const [ghost, setGhost] = useState<{ x: number; y: number; id: string } | null>(null)
   const [templatesOpen, setTemplatesOpen] = useState(false)
   const [themeOpen, setThemeOpen] = useState(false)
   const [envOpen, setEnvOpen] = useState(false)
 
   const startRename = (id: string) => { setRenameText(workspaces[id]?.name ?? ''); setRenamingId(id); setMenuFor(null) }
   const commitRename = (id: string) => { renameWorkspace(id, renameText); setRenamingId(null) }
+
+  // Pointer-drag a tab: below a small threshold it's a click (activate); past it a ghost follows
+  // the cursor. On release, an intra-strip drop reorders; otherwise main decides undock (off the
+  // strip, into a new OS window) vs re-dock (onto another window's strip) from the screen position.
+  const beginTabDrag = (id: string) => (e: React.PointerEvent) => {
+    if (e.button !== 0) return
+    const startX = e.clientX, startY = e.clientY
+    let dragging = false
+    const onMove = (me: PointerEvent) => {
+      if (!dragging && Math.hypot(me.clientX - startX, me.clientY - startY) < 6) return
+      dragging = true
+      setGhost({ x: me.clientX, y: me.clientY, id })
+    }
+    const onUp = (ue: PointerEvent) => {
+      window.removeEventListener('pointermove', onMove)
+      window.removeEventListener('pointerup', onUp)
+      setGhost(null)
+      if (!dragging) { setActive(id); return }
+      const overTab = (ue.target as HTMLElement | null)?.closest?.('[data-tab-id]') as HTMLElement | null
+      const overId = overTab?.dataset.tabId
+      if (overId && overId !== id) { moveWorkspace(id, overId); return }
+      // Flush the workspace to disk first: the new window loads it from disk, and autosave is
+      // debounced, so without this the torn-off window can load a stale/absent file.
+      const cursor = { x: ue.screenX, y: ue.screenY }
+      void useStore.getState().saveAll().then(() => api.winDragEnd({ workspaceId: id, cursor }))
+    }
+    window.addEventListener('pointermove', onMove)
+    window.addEventListener('pointerup', onUp)
+  }
 
   return (
     <div data-testid="workspace-tabs"
@@ -79,13 +108,9 @@ export function WorkspaceTabs() {
             onBlur={() => commitRename(id)}
             style={{ width: 120 }} />
         ) : (
-          <button key={id} data-testid={`tab-${id}`}
+          <button key={id} data-testid={`tab-${id}`} data-tab-id={id}
             data-active={id === activeId}
-            draggable
-            onDragStart={() => setDraggedId(id)}
-            onDragOver={e => e.preventDefault()}
-            onDrop={() => { if (draggedId && draggedId !== id) moveWorkspace(draggedId, id); setDraggedId(null) }}
-            onClick={() => setActive(id)}
+            onPointerDown={beginTabDrag(id)}
             onDoubleClick={() => startRename(id)}
             onContextMenu={e => { e.preventDefault(); setMenuFor({ id, x: e.clientX, y: e.clientY }) }}
             style={{ fontWeight: id === activeId ? 700 : 400 }}>
@@ -139,6 +164,13 @@ export function WorkspaceTabs() {
             }}>Close</button>
           </div>
         </>
+      )}
+      {ghost && (
+        <div data-testid="tab-ghost"
+          style={{ position: 'fixed', left: ghost.x + 8, top: ghost.y + 8, zIndex: Z.menu + 2, pointerEvents: 'none',
+            padding: '2px 8px', background: 'var(--elevated, #333)', border: '1px solid var(--border, #555)', borderRadius: 4, opacity: 0.9 }}>
+          {workspaces[ghost.id]?.name}
+        </div>
       )}
       {templatesOpen && <TemplatesMenu onPicked={startRename} onClose={() => setTemplatesOpen(false)} />}
       {themeOpen && <ThemeEditor onClose={() => setThemeOpen(false)} />}

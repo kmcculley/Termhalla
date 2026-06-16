@@ -15,6 +15,12 @@ export interface State {
   workspaces: Record<string, Workspace>
   order: string[]
   activeId: string | null
+  // Multi-window: this renderer's own window id + whether it is the main window, plus the handler
+  // that applies a main-pushed assignment (which workspaces this window hosts). See window-manager.
+  windowId: string | null
+  isMainWindow: boolean
+  applyAssignment: (a: { windowId: string; isMain: boolean; workspaceIds: string[]; activeId: string | null }) => Promise<void>
+  serializeWorkspace: (wsId: string) => void
   newTerminalShellId: string | null
   lastEditorPaneId: string | null
   init: () => Promise<void>

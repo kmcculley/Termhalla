@@ -45,6 +45,7 @@ export class PtyManager {
     this.sessions.set(id, { id, proc })
   }
 
+  has(id: string): boolean { return this.sessions.has(id) }
   pidOf(id: string): number | undefined { return this.sessions.get(id)?.proc.pid }
   sizeOf(id: string): { cols: number; rows: number } | undefined {
     const p = this.sessions.get(id)?.proc

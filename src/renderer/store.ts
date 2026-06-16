@@ -10,6 +10,7 @@ import type { State, SliceDeps } from './store/types'
 import {
   placePane, firstTarget, paneCwd, applyCwds, clearPaneRuntime, teardownPanes
 } from './store/internals'
+import { readPaneSnapshot } from './components/terminal-registry'
 import { createThemeSlice } from './store/theme-slice'
 import { createRuntimeSlice } from './store/runtime-slice'
 import { createQuickSlice } from './store/quick-slice'
@@ -48,6 +49,15 @@ export const useStore = create<State>((set, get) => {
     return r.paneId
   }
 
+  /** Tell main this window's workspace list / active tab changed (add, close, reorder, switch), so
+   *  main's authoritative windows[] arrangement stays in sync. NOT called from applyAssignment —
+   *  that applies a main-pushed state, and reporting it back would echo. */
+  const reportAssignment = () => {
+    const s = get()
+    if (!s.windowId) return
+    api.winReport({ windowId: s.windowId, workspaceIds: s.order, activeId: s.activeId })
+  }
+
   const deps: SliceDeps = { set, get, scheduleAutosave, scheduleQuickSave, commitPane }
 
   return {
@@ -56,6 +66,8 @@ export const useStore = create<State>((set, get) => {
     workspaces: {},
     order: [],
     activeId: null,
+    windowId: null,
+    isMainWindow: true,   // true until a win:assignment says otherwise, so the first paint shows tabs
     newTerminalShellId: null,
     lastEditorPaneId: null,
     statuses: {},
@@ -86,24 +98,44 @@ export const useStore = create<State>((set, get) => {
       set({ shells, newTerminalShellId: shells[0]?.id ?? null })
       const [quick, home, drafts] = await Promise.all([api.loadQuick(), api.homeDir(), api.draftsLoad()])
       set({ quick, home, drafts })
-      const state = await api.loadAppState()
-      if (state && Array.isArray(state.openWorkspaceIds) && state.openWorkspaceIds.length > 0) {
-        const loaded = await Promise.all(state.openWorkspaceIds.map(id => api.loadWorkspace(id)))
-        const workspaces: Record<string, Workspace> = {}
+      // Workspaces are hydrated by applyAssignment when main pushes this window's win:assignment.
+    },
+
+    /** Apply the set of workspaces main says this window hosts: load any not yet in memory, drop
+     *  any this window no longer owns (moved away), and set the active tab. The main window seeds a
+     *  starter workspace when it has none (cold first run); a floating window never re-seeds (it
+     *  legitimately closes itself when emptied). */
+    applyAssignment: async ({ windowId, isMain, workspaceIds, activeId }) => {
+      set({ windowId, isMainWindow: isMain })
+      const missing = workspaceIds.filter(id => !get().workspaces[id])
+      const loaded = await Promise.all(missing.map(id => api.loadWorkspace(id)))
+      set(s => {
+        const workspaces = { ...s.workspaces }
         for (const ws of loaded) if (ws) workspaces[ws.id] = ws
-        const order = state.openWorkspaceIds.filter(id => workspaces[id])
-        if (order.length > 0) {
-          set({ workspaces, order, activeId: state.activeWorkspaceId ?? order[0] })
-          return
+        for (const id of Object.keys(workspaces)) if (!workspaceIds.includes(id)) delete workspaces[id]
+        const order = workspaceIds.filter(id => workspaces[id])
+        return { workspaces, order, activeId: order.length ? (activeId ?? order[0]) : null }
+      })
+      if (isMain && get().order.length === 0) get().newWorkspace('Workspace 1')
+    },
+
+    /** Answer main's serialize request: one snapshot per terminal pane, then a `__end__` sentinel. */
+    serializeWorkspace: (wsId) => {
+      const ws = get().workspaces[wsId]
+      if (ws) {
+        for (const paneId of Object.keys(ws.panes)) {
+          if (ws.panes[paneId].config.kind !== 'terminal') continue
+          api.termSnapshot({ paneId, data: readPaneSnapshot(paneId) })
         }
       }
-      get().newWorkspace('Workspace 1')
+      api.termSnapshot({ paneId: `__end__:${wsId}`, data: '' })
     },
 
     saveAll: async () => {
-      const { order, workspaces, activeId, cwds } = get()
+      const { order, workspaces, cwds } = get()
       await Promise.all(order.map(id => api.saveWorkspace(applyCwds(workspaces[id], cwds))))
-      await api.saveAppState({ schemaVersion: 1, openWorkspaceIds: order, activeWorkspaceId: activeId })
+      // The windows[] arrangement (which window hosts which workspace) is persisted by main's
+      // WindowManager, kept in sync via win:report — the renderer only owns workspace files now.
     },
 
     loadQuick: async () => {
@@ -119,6 +151,7 @@ export const useStore = create<State>((set, get) => {
       const ws = createWorkspace(name, uuid)
       set(s => ({ workspaces: { ...s.workspaces, [ws.id]: ws }, order: [...s.order, ws.id], activeId: ws.id }))
       scheduleAutosave()
+      reportAssignment()
       return ws.id
     },
 
@@ -140,16 +173,20 @@ export const useStore = create<State>((set, get) => {
         const activeId = s.activeId === id ? (order[0] ?? null) : s.activeId
         return { workspaces, order, activeId, ...clearPaneRuntime(s, paneIds), schedules: schedulesWithout(s.schedules, paneIds) }
       })
-      if (get().order.length === 0) get().newWorkspace('Workspace 1')
+      // Only the main window keeps at least one workspace; a floating window that loses its sole
+      // workspace closes instead of re-seeding a phantom one.
+      if (get().order.length === 0 && get().isMainWindow) get().newWorkspace('Workspace 1')
       scheduleAutosave()
+      reportAssignment()
     },
 
     moveWorkspace: (fromId, toId) => {
       set(s => ({ order: reorderIds(s.order, fromId, toId) }))
       scheduleAutosave()
+      reportAssignment()
     },
 
-    setActive: (id) => { set({ activeId: id }); scheduleAutosave() },
+    setActive: (id) => { set({ activeId: id }); scheduleAutosave(); reportAssignment() },
 
     setLayout: (wsId, layout) => {
       set(s => ({ workspaces: { ...s.workspaces, [wsId]: { ...s.workspaces[wsId], layout } } }))

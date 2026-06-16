@@ -90,6 +90,14 @@ related area:
   slot and using it (e.g. `UsageTracker`, `WatchManager`) claim the slot first,
   then re-check `map.get(id) !== sess` after every await so a concurrent
   watch/unwatch supersedes cleanly. Reuse this when adding watchers.
+- **Multi-window tab handoff: single-owner + serialize-before-dispose.** With undock
+  (`window-manager.ts`), a pane is rendered by exactly one window → exactly one xterm per PTY (no
+  double echo). A move serializes the source xterms *before* the source unmounts (the one sanctioned
+  unmount), and live pane-scoped events are held in a `transit` buffer until the destination's
+  idempotent `pty:spawn` adopts the running PTY and replays the snapshot + buffer. Get the order
+  wrong (dispose before snapshot, or route to the destination before it mounts) and you lose
+  scrollback or output. App-state's `windows[]` arrangement is owned by main; the renderer keeps it
+  in sync via `win:report` — don't write app-state from the renderer.
 - **Native `node-pty`** is patched (Spectre off) and must be `electron-rebuild`'d
   for Electron's ABI. See README → Native modules.
 
@@ -105,6 +113,7 @@ related area:
 | AI session detection | `src/main/ai/` | [ai-session-awareness](docs/features/ai-session-awareness.md) |
 | Claude usage metrics | `src/main/usage/` | [usage-metrics](docs/features/usage-metrics.md) |
 | SSH / favorites store | `src/main/persistence/quick-store.ts`, `src/shared/quick.ts` | [ssh-favorites](docs/features/ssh-favorites.md) |
+| Multi-window / undock | `src/main/window-manager.ts` (+ `-core.ts`), `src/main/services.ts` | [window-management](docs/features/window-management.md) |
 | Renderer store | `src/renderer/store.ts` (root) + `src/renderer/store/` (slices + helpers) | — |
 | IPC contract | `src/shared/ipc-contract.ts` | — |
 

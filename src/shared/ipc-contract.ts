@@ -47,12 +47,25 @@ export const CH = {
   envState: 'env:state', envUnlock: 'env:unlock', envCreate: 'env:create', envLock: 'env:lock', envGet: 'env:get',  // envState: main -> renderer event
   envSetGlobal: 'env:setGlobal', envRemoveGlobal: 'env:removeGlobal', envSetTerminal: 'env:setTerminal', envRemoveTerminal: 'env:removeTerminal',
   clipboardWrite: 'clipboard:write', clipboardRead: 'clipboard:read',  // renderer -> main
+  winDragEnd: 'win:dragEnd',         // renderer -> main
+  winRedock: 'win:redock',           // renderer -> main
+  winReport: 'win:report',           // renderer -> main (this window's workspace list/active changed)
+  winReady: 'win:ready',             // renderer -> main (subscribed; request my assignment)
+  winAssignment: 'win:assignment',   // main -> renderer event
+  termSerialize: 'term:serialize',   // main -> renderer event (request a snapshot)
+  termSnapshot: 'term:snapshot',     // renderer -> main (the snapshot reply)
 } as const
 
 export interface NotifyArgs { title: string; body: string }
 export interface PtySpawnArgs { id: string; shellId: string; cwd: string; cols: number; rows: number; launch?: TerminalLaunch; envId?: string }
 export interface PtyWriteArgs { id: string; data: string }
 export interface PtyResizeArgs { id: string; cols: number; rows: number }
+
+export interface WinDragEndArgs { workspaceId: string; cursor: { x: number; y: number } }
+export interface WinRedockArgs { workspaceId: string; targetWindowId: string }
+export interface WinReportArgs { windowId: string; workspaceIds: string[]; activeId: string | null }
+export interface WinAssignment { windowId: string; isMain: boolean; workspaceIds: string[]; activeId: string | null }
+export interface TermSnapshotArgs { paneId: string; data: string }
 
 export interface TermhallaApi {
   listShells(): Promise<ShellInfo[]>
@@ -109,4 +122,11 @@ export interface TermhallaApi {
   envRemoveTerminal(envId: string, name: string): void
   clipboardWrite(text: string): void
   clipboardRead(): Promise<string>
+  winDragEnd(args: WinDragEndArgs): void
+  winRedock(args: WinRedockArgs): void
+  winReport(args: WinReportArgs): void
+  winReady(): void
+  onWinAssignment(cb: (a: WinAssignment) => void): () => void
+  onTermSerialize(cb: (workspaceId: string) => void): () => void
+  termSnapshot(args: TermSnapshotArgs): void
 }
