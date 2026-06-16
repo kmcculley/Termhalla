@@ -40,7 +40,7 @@ export function ScheduleDialog({ paneId, onClose }: { paneId: string; onClose: (
     <Modal onClose={onClose} backdropTestId="schedule-dialog" card={{ padding: 12, width: 480 }}>
         <div style={{ fontWeight: 600 }}>Schedule command for this terminal</div>
         <textarea data-testid="schedule-text" value={text} onChange={e => setText(e.target.value)} rows={3} autoFocus
-          style={{ fontFamily: 'Consolas, monospace', fontSize: 13 }} />
+          style={{ fontFamily: 'var(--mono)', fontSize: 13 }} />
         <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
           <label>Send as:&nbsp;
             <select data-testid="schedule-mode" value={mode} onChange={e => setMode(e.target.value as 'paste' | 'keys')}>
@@ -72,7 +72,7 @@ export function ScheduleDialog({ paneId, onClose }: { paneId: string; onClose: (
           <div style={{ borderTop: '1px solid var(--border, #444)', paddingTop: 6, display: 'flex', flexDirection: 'column', gap: 2 }}>
             {tasks.map(t => (
               <div key={t.id} data-testid={`schedule-task-${t.id}`} style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-                <span style={{ flex: 1, fontFamily: 'Consolas, monospace', fontSize: 12, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                <span style={{ flex: 1, fontFamily: 'var(--mono)', fontSize: 12, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                   {t.label} — {t.text.split('\n')[0]}
                 </span>
                 <button data-testid={`schedule-cancel-${t.id}`} onClick={() => cancelSchedule(t.id)}>×</button>

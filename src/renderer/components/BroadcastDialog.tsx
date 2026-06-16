@@ -32,7 +32,7 @@ export function BroadcastDialog() {
         <div style={{ fontWeight: 600 }}>Broadcast to all terminals</div>
         <textarea data-testid="broadcast-text" value={text} onChange={e => setText(e.target.value)} rows={4}
           autoFocus onKeyDown={e => { if (e.key === 'Enter' && e.shiftKey) { e.preventDefault(); send() } }}
-          style={{ fontFamily: 'Consolas, monospace', fontSize: 13 }} />
+          style={{ fontFamily: 'var(--mono)', fontSize: 13 }} />
         <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', alignItems: 'center' }}>
           <span style={{ opacity: 0.7 }}>Quick keys:</span>
           {QUICK_KEYS.map(k => (

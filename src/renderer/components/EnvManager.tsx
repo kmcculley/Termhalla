@@ -13,7 +13,7 @@ function EnvRow({ name, value, onRemove }: { name: string; value: string; onRemo
   const row = { display: 'flex', alignItems: 'center', gap: 8 } as const
   return (
     <div data-testid={`env-row-${name}`} style={row}>
-      <span style={{ flex: '0 0 140px', fontFamily: 'monospace', overflow: 'hidden', textOverflow: 'ellipsis' }}>{name}</span>
+      <span style={{ flex: '0 0 140px', fontFamily: 'var(--mono)', overflow: 'hidden', textOverflow: 'ellipsis' }}>{name}</span>
       <input type={show ? 'text' : 'password'} value={value} readOnly style={{ flex: 1 }} />
       <button title="Reveal" onClick={() => setShow(s => !s)}>👁</button>
       <button data-testid={`env-del-${name}`} onClick={onRemove}>×</button>
@@ -101,7 +101,7 @@ export function EnvManager({ onClose, wsId, paneId }: { onClose: () => void; wsI
             ))}
             <div style={row}>
               <input data-testid="env-name" placeholder="NAME" value={newName}
-                onChange={e => setNewName(e.target.value)} style={{ flex: '0 0 140px', fontFamily: 'monospace' }} />
+                onChange={e => setNewName(e.target.value)} style={{ flex: '0 0 140px', fontFamily: 'var(--mono)' }} />
               <input data-testid="env-value" placeholder="value" value={newValue}
                 onChange={e => setNewValue(e.target.value)}
                 onKeyDown={e => { if (e.key === 'Enter') add() }} style={{ flex: 1 }} />
@@ -112,14 +112,14 @@ export function EnvManager({ onClose, wsId, paneId }: { onClose: () => void; wsI
                 <div data-testid="env-term-section" style={{ fontWeight: 600, borderTop: '1px solid var(--border, #444)', paddingTop: 8 }}>This terminal</div>
                 {Object.entries((envId && data?.terminals[envId]) ? data!.terminals[envId] : {}).map(([name, value]) => (
                   <div key={name} data-testid={`env-term-row-${name}`} style={row}>
-                    <span style={{ flex: '0 0 140px', fontFamily: 'monospace', overflow: 'hidden', textOverflow: 'ellipsis' }}>{name}</span>
+                    <span style={{ flex: '0 0 140px', fontFamily: 'var(--mono)', overflow: 'hidden', textOverflow: 'ellipsis' }}>{name}</span>
                     <input type="password" value={value} readOnly style={{ flex: 1 }} />
                     <button data-testid={`env-term-del-${name}`} onClick={() => { if (envId) { api.envRemoveTerminal(envId, name); void refresh() } }}>×</button>
                   </div>
                 ))}
                 <div style={row}>
                   <input data-testid="env-term-name" placeholder="NAME" value={tName}
-                    onChange={e => setTName(e.target.value)} style={{ flex: '0 0 140px', fontFamily: 'monospace' }} />
+                    onChange={e => setTName(e.target.value)} style={{ flex: '0 0 140px', fontFamily: 'var(--mono)' }} />
                   <input data-testid="env-term-value" placeholder="value" value={tValue}
                     onChange={e => setTValue(e.target.value)}
                     onKeyDown={e => { if (e.key === 'Enter') addTerminalVar() }} style={{ flex: 1 }} />

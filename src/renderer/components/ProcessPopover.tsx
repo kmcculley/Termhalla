@@ -30,7 +30,7 @@ export function ProcessPopover(
   return (
     <div data-testid="proc-menu" onClick={e => e.stopPropagation()}
       style={{ ...SURFACE, position: 'absolute', left: 4, top: 28, zIndex: Z.popover, padding: 6, maxWidth: 460,
-        maxHeight: 240, overflow: 'auto', fontSize: 12, fontFamily: 'Consolas, monospace' }}>
+        maxHeight: 240, overflow: 'auto', fontSize: 12, fontFamily: 'var(--mono)' }}>
       {aiSession && usage && (
         <div data-testid={`usage-${paneId}`}
           style={{ borderBottom: '1px solid var(--border, #444)', paddingBottom: 4, marginBottom: 4 }}>

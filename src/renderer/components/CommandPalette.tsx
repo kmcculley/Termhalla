@@ -61,7 +61,7 @@ export function CommandPalette() {
     <Modal onClose={close} align="top" z={Z.palette}
       backdropTestId="command-palette-backdrop" cardTestId="command-palette"
       cardProps={{ role: 'dialog', 'aria-modal': true, 'aria-label': 'Command palette' }}
-      card={{ width: 560, maxHeight: '60vh', gap: 0, boxShadow: '0 8px 32px rgba(0,0,0,0.5)' }}>
+      card={{ width: 560, maxHeight: '60vh', gap: 0 }}>
         <input data-testid="palette-input" autoFocus value={query}
           onChange={e => setQuery(e.target.value)} onKeyDown={onKeyDown}
           placeholder="Connect to… or jump to a directory"
@@ -80,7 +80,7 @@ export function CommandPalette() {
               <div key={key} data-testid={`palette-item-${i}`}
                 onMouseEnter={() => setSel(i)} onClick={() => activate(item)}
                 style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px',
-                  cursor: 'pointer', background: i === clampedSel ? '#094771' : 'transparent' }}>
+                  cursor: 'pointer', background: i === clampedSel ? 'var(--sel-bg)' : 'transparent' }}>
                 <span style={{ flex: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{label}</span>
                 {detail && <span style={{ opacity: 0.6, fontSize: 12 }}>{detail}</span>}
                 {item.kind === 'connection' && (

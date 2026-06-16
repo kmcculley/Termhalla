@@ -19,7 +19,7 @@ export function StatusBar() {
   return (
     <div data-testid="status-bar"
       style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '2px 10px', background: 'var(--panel, #1e1e1e)',
-        borderTop: '1px solid var(--border, #333)', fontSize: 12, color: '#bbb', minHeight: 22 }}>
+        borderTop: '1px solid var(--border, #333)', fontSize: 12, color: 'var(--fg-dim, #aaa)', minHeight: 22 }}>
       {cloud.length === 0 && <span style={{ opacity: 0.5 }}>cloud status…</span>}
       {cloud.map(c => (
         <div key={c.id} style={{ position: 'relative' }}>
@@ -32,7 +32,7 @@ export function StatusBar() {
           {openFor === c.id && (
             <div data-testid={`cloud-menu-${c.id}`} onClick={e => e.stopPropagation()}
               style={{ ...SURFACE, position: 'absolute', bottom: 24, left: 0, zIndex: Z.menu, padding: 8, minWidth: 240, display: 'flex',
-                flexDirection: 'column', gap: 4, fontFamily: 'Consolas, monospace' }}>
+                flexDirection: 'column', gap: 4, fontFamily: 'var(--mono)' }}>
               {c.detail && Object.entries(c.detail).map(([k, v]) => (
                 <div key={k} style={{ display: 'flex', gap: 8, whiteSpace: 'nowrap' }}>
                   <span style={{ opacity: 0.6, minWidth: 92 }}>{k}</span>

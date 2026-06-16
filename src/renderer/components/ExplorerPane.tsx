@@ -75,7 +75,7 @@ export function ExplorerPane({ paneId, wsId, config }: { paneId: string; wsId: s
   }
 
   return (
-    <div data-testid={`explorer-${paneId}`} style={{ height: '100%', overflow: 'auto', background: 'var(--elevated, #252526)', fontFamily: 'Consolas, monospace', fontSize: 13 }}>
+    <div data-testid={`explorer-${paneId}`} style={{ height: '100%', overflow: 'auto', background: 'var(--elevated, #252526)', fontFamily: 'var(--mono)', fontSize: 13 }}>
       <div style={{ padding: '4px 6px', color: '#999' }}>{base(config.root)}</div>
       {renderDir(config.root, 0)}
     </div>
