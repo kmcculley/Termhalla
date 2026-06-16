@@ -76,6 +76,8 @@ const api: TermhallaApi = {
   envRemoveGlobal: (n) => ipcRenderer.send(CH.envRemoveGlobal, n),
   envSetTerminal: (id, n, v) => ipcRenderer.send(CH.envSetTerminal, id, n, v),
   envRemoveTerminal: (id, n) => ipcRenderer.send(CH.envRemoveTerminal, id, n),
+  clipboardWrite: (text) => ipcRenderer.send(CH.clipboardWrite, text),
+  clipboardRead: () => ipcRenderer.invoke(CH.clipboardRead),
 }
 
 contextBridge.exposeInMainWorld('termhalla', api)

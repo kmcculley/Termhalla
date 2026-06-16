@@ -17,6 +17,7 @@ import { registerCloud } from './register-cloud'
 import { registerUsage } from './register-usage'
 import { registerRecording } from './register-recording'
 import { registerEnv } from './register-env'
+import { registerClipboard } from './register-clipboard'
 
 /** Composition root: build the shared services, then hand each subsystem to its own registrar.
  *  Adding a feature means extending the relevant register-*.ts (or adding a new one here), not
@@ -43,6 +44,7 @@ export function registerHandlers(win: BrowserWindow): PtyManager {
   const pty = registerPty(win, { shells, recorder, envVault, scriptDir, send })
   registerWorkspaces({ store, quick, shells })
   registerEnv(win, envVault, send)
+  registerClipboard()
   registerDrafts(win, dir)
 
   // Disposers for the long-lived services, aggregated into one teardown. `drafts.flush()` stays

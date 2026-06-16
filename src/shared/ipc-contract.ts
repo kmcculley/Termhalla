@@ -46,6 +46,7 @@ export const CH = {
   recReveal: 'rec:reveal',
   envState: 'env:state', envUnlock: 'env:unlock', envCreate: 'env:create', envLock: 'env:lock', envGet: 'env:get',  // envState: main -> renderer event
   envSetGlobal: 'env:setGlobal', envRemoveGlobal: 'env:removeGlobal', envSetTerminal: 'env:setTerminal', envRemoveTerminal: 'env:removeTerminal',
+  clipboardWrite: 'clipboard:write', clipboardRead: 'clipboard:read',  // renderer -> main
 } as const
 
 export interface NotifyArgs { title: string; body: string }
@@ -106,4 +107,6 @@ export interface TermhallaApi {
   envRemoveGlobal(name: string): void
   envSetTerminal(envId: string, name: string, value: string): void
   envRemoveTerminal(envId: string, name: string): void
+  clipboardWrite(text: string): void
+  clipboardRead(): Promise<string>
 }
