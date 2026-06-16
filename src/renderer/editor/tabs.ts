@@ -1,4 +1,5 @@
 import { monaco } from './monaco-setup'
+export { basename as base } from '@shared/paths'
 
 /** One open file (or the untitled scratch buffer) backing a tab in an EditorPane. */
 export interface Tab {
@@ -15,9 +16,6 @@ export interface Tab {
 export function applyContent(model: monaco.editor.ITextModel, content: string): void {
   model.pushEditOperations([], [{ range: model.getFullModelRange(), text: content }], () => null)
 }
-
-/** Basename of a path (handles both separators). */
-export function base(p: string): string { return p.split(/[\\/]/).pop() ?? p }
 
 /** Is the tab dirty (editable, present, and diverged from its saved text)? */
 export function isDirty(t: Tab | undefined): boolean {

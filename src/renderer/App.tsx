@@ -1,4 +1,5 @@
 import { useEffect } from 'react'
+import { useShallow } from 'zustand/react/shallow'
 import { useStore } from './store'
 import { ThemeProvider } from './components/ThemeProvider'
 import { themeCssVarsPartial } from '@shared/theme'
@@ -14,7 +15,11 @@ import { api } from './api'
 
 export default function App() {
   const init = useStore(s => s.init)
-  const { activeId, workspaces, order } = useStore()
+  // Scope the subscription: a bare useStore() re-renders the root (and every workspace host)
+  // on ANY store change — cwd/proc/usage/status churn included. Only these three drive App.
+  const { activeId, workspaces, order } = useStore(
+    useShallow(s => ({ activeId: s.activeId, workspaces: s.workspaces, order: s.order }))
+  )
   const connectionFormFor = useStore(s => s.connectionFormFor)
   useEffect(() => { init() }, [init])
   useEffect(() => {

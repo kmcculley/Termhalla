@@ -29,6 +29,10 @@ describe('pushRecent', () => {
     expect(pushRecent(['a', 'b', 'c'], 'd', 3)).toEqual(['d', 'a', 'b'])
     expect(pushRecent(['a', 'b', 'c'], 'c', 3)).toEqual(['c', 'a', 'b'])
   })
+  it('de-dupes with a custom equality predicate', () => {
+    const ci = (a: string, b: string) => a.toLowerCase() === b.toLowerCase()
+    expect(pushRecent(['A', 'b'], 'a', 5, ci)).toEqual(['a', 'b'])
+  })
 })
 
 describe('nextRecentDirs', () => {

@@ -2,9 +2,8 @@ import { useEffect, useRef, useState, useCallback } from 'react'
 import { api } from '../api'
 import { useStore } from '../store'
 import { applyDirChange } from './explorer-tree'
+import { basename as base } from '@shared/paths'
 import type { DirEntry, ExplorerConfig } from '@shared/types'
-
-function base(p: string): string { return p.split(/[\\/]/).filter(Boolean).pop() ?? p }
 
 export function ExplorerPane({ paneId, wsId, config }: { paneId: string; wsId: string; config: ExplorerConfig }) {
   const openFileInEditor = useStore(s => s.openFileInEditor)

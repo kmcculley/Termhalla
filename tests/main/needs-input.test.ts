@@ -1,12 +1,35 @@
 import { describe, it, expect } from 'vitest'
 import {
-  computeNeedsInput, looksLikePrompt, stripAnsi, isPureControl,
+  computeIdleFallback, computeNeedsInput, looksLikePrompt, stripAnsi, isPureControl,
   DEFAULT_NEEDS_INPUT_PATTERNS, type NeedsInputConfig
 } from '../../src/main/status/needs-input'
 
 const cfg = (over: Partial<NeedsInputConfig> = {}): NeedsInputConfig => ({
   enabled: true, quietMs: 10000, patterns: DEFAULT_NEEDS_INPUT_PATTERNS,
   heuristicIdleMs: 1500, heuristicIdleHardMs: 5000, ...over
+})
+
+describe('computeIdleFallback', () => {
+  it('stays busy before the soft idle threshold', () => {
+    expect(computeIdleFallback(1000, 'PS C:\\> ', false, cfg())).toBe(false)
+  })
+  it('fast path: no markers + recognized prompt past the soft threshold -> idle', () => {
+    expect(computeIdleFallback(2000, 'PS C:\\> ', false, cfg())).toBe(true)
+  })
+  it('never pre-empts a genuine input prompt (stays busy -> needs-input handles it)', () => {
+    expect(computeIdleFallback(6000, 'Overwrite? [y/N] ', false, cfg())).toBe(false)
+  })
+  it('slow path: sustained silence at a prompt with markers latched -> idle (nested shell)', () => {
+    expect(computeIdleFallback(2000, 'C:\\>', true, cfg())).toBe(false)
+    expect(computeIdleFallback(6000, 'C:\\>', true, cfg())).toBe(true)
+  })
+  it('slow path: sustained silence with no markers and an unrecognized prompt -> idle', () => {
+    expect(computeIdleFallback(2000, 'no prompt char', false, cfg())).toBe(false)
+    expect(computeIdleFallback(6000, 'no prompt char', false, cfg())).toBe(true)
+  })
+  it('keeps an integration command busy when its output is not a prompt', () => {
+    expect(computeIdleFallback(8000, 'still compiling...', true, cfg())).toBe(false)
+  })
 })
 
 describe('computeNeedsInput', () => {

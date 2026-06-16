@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest'
-import { mkdtempSync, rmSync } from 'node:fs'
+import { mkdtempSync, rmSync, mkdirSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { WorkspaceStore } from '../../src/main/persistence/store'
@@ -39,6 +39,22 @@ describe('WorkspaceStore', () => {
   it('returns null for a missing workspace', async () => {
     const store = new WorkspaceStore(dir)
     expect(await store.loadWorkspace('nope')).toBeNull()
+    rmSync(dir, { recursive: true, force: true })
+  })
+
+  it('degrades a corrupt workspace file to null instead of throwing', async () => {
+    const store = new WorkspaceStore(dir)
+    mkdirSync(join(dir, 'workspaces'), { recursive: true })
+    writeFileSync(join(dir, 'workspaces', 'bad.json'), '{ not valid json', 'utf8')
+    await expect(store.loadWorkspace('bad')).resolves.toBeNull()
+    rmSync(dir, { recursive: true, force: true })
+  })
+
+  it('returns null for a structurally-invalid app-state', async () => {
+    const store = new WorkspaceStore(dir)
+    await store.saveAppState({ schemaVersion: 1, openWorkspaceIds: [], activeWorkspaceId: null })
+    writeFileSync(join(dir, 'app-state.json'), '{"openWorkspaceIds":"oops"}', 'utf8')
+    await expect(store.loadAppState()).resolves.toBeNull()
     rmSync(dir, { recursive: true, force: true })
   })
 })

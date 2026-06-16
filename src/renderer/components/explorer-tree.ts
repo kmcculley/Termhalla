@@ -1,9 +1,5 @@
 import type { DirEntry, FsChange } from '@shared/types'
-
-function baseName(p: string): string {
-  const m = /[\\/]([^\\/]+)[\\/]?$/.exec(p)
-  return m ? m[1] : p
-}
+import { basename as baseName } from '@shared/paths'
 
 function sort(list: DirEntry[]): DirEntry[] {
   return [...list].sort((a, b) =>

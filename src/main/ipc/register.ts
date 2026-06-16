@@ -1,178 +1,60 @@
-import { ipcMain, Notification, dialog, shell, type BrowserWindow } from 'electron'
+import { type BrowserWindow } from 'electron'
 import { join } from 'node:path'
-import { CH, type PtySpawnArgs, type PtyWriteArgs, type PtyResizeArgs, type NotifyArgs } from '@shared/ipc-contract'
-import type { Workspace, AppState } from '@shared/types'
 import { detectShells } from '../pty/shells'
-import { PtyManager } from '../pty/pty-manager'
-import { StatusEngine } from '../status/status-engine'
+import type { PtyManager } from '../pty/pty-manager'
 import { writeIntegrationScripts } from '../status/integration-scripts'
 import { WorkspaceStore } from '../persistence/store'
 import { QuickStore } from '../persistence/quick-store'
 import { userDataDir } from '../persistence/paths'
-import { readTextFile, writeTextFile, readDirectory, statPath } from '../fs/files'
-import { WatchManager } from '../fs/watch-manager'
-import { ProcessTracker } from '../proc/process-tracker'
-import { CloudStatusService } from '../cloud/cloud-status-service'
-import { AiSessionTracker } from '../ai/ai-session-tracker'
-import { UsageTracker } from '../usage/usage-tracker'
-import { DraftStore } from '../persistence/draft-store'
 import { Recorder } from '../recording/recorder'
 import { EnvVault } from '../env-vault/env-vault'
+import type { Disposer } from './types'
+import { registerPty } from './register-pty'
+import { registerFs } from './register-fs'
+import { registerWorkspaces } from './register-workspaces'
+import { registerDrafts } from './register-drafts'
+import { registerCloud } from './register-cloud'
+import { registerUsage } from './register-usage'
+import { registerRecording } from './register-recording'
+import { registerEnv } from './register-env'
 
+/** Composition root: build the shared services, then hand each subsystem to its own registrar.
+ *  Adding a feature means extending the relevant register-*.ts (or adding a new one here), not
+ *  growing one monolith. Returns the PtyManager so the window can kill PTYs on close. */
 export function registerHandlers(win: BrowserWindow): PtyManager {
-  const store = new WorkspaceStore(userDataDir())
-  const quick = new QuickStore(userDataDir())
+  const dir = userDataDir()
+  const store = new WorkspaceStore(dir)
+  const quick = new QuickStore(dir)
   const shells = detectShells()
   const recorder = new Recorder()
-  const envVault = new EnvVault(userDataDir())
+  const envVault = new EnvVault(dir)
 
-  const scriptDir = join(userDataDir(), 'shell-integration')
+  const scriptDir = join(dir, 'shell-integration')
   writeIntegrationScripts(scriptDir)
 
-  // Main->renderer events can still fire during teardown (e.g. pty exit events
-  // after the window/webContents is destroyed on app close). Guard every send so
-  // it never throws "Object has been destroyed".
-  const safeSend = (channel: string, ...args: unknown[]): void => {
+  // Main->renderer events can still fire during teardown (e.g. pty exit events after the
+  // window/webContents is destroyed on app close). Guard every send so it never throws
+  // "Object has been destroyed".
+  const send = (channel: string, ...args: unknown[]): void => {
     if (win.isDestroyed() || win.webContents.isDestroyed()) return
     try { win.webContents.send(channel, ...args) } catch { /* torn down mid-send */ }
   }
 
-  // `ai` only needs safeSend, so it can be constructed up front. `tracker` is in a genuine
-  // cycle (it needs pty.pidOf; pty needs engine; engine needs tracker), so it stays a `let`
-  // assigned after pty — but the closures below only run on PTY activity, long after assignment,
-  // so they reference it directly without `?.`/`!`.
-  const ai = new AiSessionTracker((id, session) => safeSend(CH.aiSession, id, session))
-  let tracker: ProcessTracker
-  const engine = new StatusEngine(
-    (id, status) => { safeSend(CH.ptyStatus, id, status); tracker.setBusy(id, status.state === 'busy') },
-    (id, cwd) => safeSend(CH.ptyCwd, id, cwd),
-    undefined,
-    (id) => ai.commandDone(id)
-  )
-  const pty = new PtyManager(
-    (id, data) => { safeSend(CH.ptyData, id, data); recorder.data(id, data) },
-    (id, code) => { safeSend(CH.ptyExit, id, code); tracker.unregister(id); ai.unregister(id); recorder.stop(id); safeSend(CH.recState, id, { recording: false, file: null }) },
-    engine, scriptDir
-  )
-  tracker = new ProcessTracker(
-    (id) => pty.pidOf(id),
-    (id, info) => { safeSend(CH.ptyProcs, id, info); ai.onProcs(id, info) }
-  )
+  const pty = registerPty(win, { shells, recorder, envVault, scriptDir, send })
+  registerWorkspaces({ store, quick, shells })
+  registerEnv(win, envVault, send)
+  registerDrafts(win, dir)
 
-  const usage = new UsageTracker((id, metrics) => safeSend(CH.usageMetrics, id, metrics))
-  ipcMain.on(CH.usageWatch, (_e, id: string, cwd: string) => { void usage.watch(id, cwd) })
-  ipcMain.on(CH.usageUnwatch, (_e, id: string) => usage.unwatch(id))
-
-  const drafts = new DraftStore(userDataDir())
-  void drafts.load()
-  ipcMain.handle(CH.draftsLoad, () => drafts.load())
-  ipcMain.on(CH.draftsSet, (_e, key: string, draft: import('@shared/types').EditorDraft) => drafts.set(key, draft))
-  ipcMain.on(CH.draftsDelete, (_e, key: string) => drafts.delete(key))
-  win.on('close', () => drafts.flush())
-
-  const cloud = new CloudStatusService((statuses) => safeSend(CH.cloudStatus, statuses))
-  cloud.start()
-  ipcMain.handle(CH.cloudRefresh, () => cloud.refresh())
-
-  let lastFocusRefresh = 0
-  win.on('focus', () => {
-    const t = Date.now()
-    if (t - lastFocusRefresh > 5000) { lastFocusRefresh = t; void cloud.refresh() }
-  })
-
-  ipcMain.handle(CH.listShells, () => shells)
-  ipcMain.handle(CH.listWorkspaceIds, () => store.listWorkspaceIds())
-  ipcMain.handle(CH.loadWorkspace, (_e, id: string) => store.loadWorkspace(id))
-  ipcMain.handle(CH.saveWorkspace, (_e, ws: Workspace) => store.saveWorkspace(ws))
-  ipcMain.handle(CH.loadAppState, () => store.loadAppState())
-  ipcMain.handle(CH.saveAppState, (_e, s: AppState) => store.saveAppState(s))
-
-  ipcMain.handle(CH.ptySpawn, (_e, a: PtySpawnArgs) => {
-    const shell = shells.find(s => s.id === a.shellId) ?? shells[0]
-    tracker.register(a.id)   // register BEFORE spawn: a failed spawn calls onExit->unregister synchronously, keeping the registry clean
-    pty.spawn(a.id, shell, a.cwd, a.cols, a.rows, a.launch, envVault.envFor(a.envId))
-  })
-  ipcMain.on(CH.ptyWrite, (_e, a: PtyWriteArgs) => pty.write(a.id, a.data))
-  ipcMain.on(CH.ptyResize, (_e, a: PtyResizeArgs) => { pty.resize(a.id, a.cols, a.rows); recorder.resize(a.id, a.cols, a.rows) })
-  // ai/tracker unregister here is synchronous; the async pty onExit fires them again but
-  // both are idempotent (Map.delete returns false), so the renderer sees a single clear.
-  ipcMain.on(CH.ptyKill, (_e, id: string) => { pty.kill(id); tracker.unregister(id); ai.unregister(id) })
-
-  ipcMain.on(CH.notify, (_e, a: NotifyArgs) => {
-    if (!Notification.isSupported()) return
-    const n = new Notification({ title: a.title, body: a.body })
-    n.on('click', () => { win.show(); win.focus() })
-    n.show()
-  })
-
-  const watcher = new WatchManager((id, change) => safeSend(CH.fsChange, id, change))
-
-  ipcMain.handle(CH.fsRead, (_e, path: string) => readTextFile(path))
-  ipcMain.handle(CH.fsWrite, (_e, path: string, content: string) => writeTextFile(path, content))
-  ipcMain.handle(CH.fsReadDir, (_e, path: string) => readDirectory(path))
-  ipcMain.handle(CH.fsStat, (_e, path: string) => statPath(path))
-  ipcMain.on(CH.fsWatch, (_e, id: string, path: string) => watcher.watch(id, path))
-  ipcMain.on(CH.fsUnwatch, (_e, id: string) => watcher.unwatch(id))
-
-  ipcMain.handle(CH.dialogOpenFolder, async () => {
-    const r = await dialog.showOpenDialog(win, { properties: ['openDirectory'] })
-    return r.canceled || r.filePaths.length === 0 ? null : r.filePaths[0]
-  })
-  ipcMain.handle(CH.dialogOpenFile, async () => {
-    const r = await dialog.showOpenDialog(win, { properties: ['openFile'] })
-    return r.canceled || r.filePaths.length === 0 ? null : r.filePaths[0]
-  })
-  ipcMain.handle(CH.dialogSaveFile, async () => {
-    // Test hook: hermetic e2e can't drive a native dialog (mirrors TERMHALLA_CLAUDE_HOME).
-    if (process.env.TERMHALLA_SAVE_PATH) return process.env.TERMHALLA_SAVE_PATH
-    const r = await dialog.showSaveDialog(win, {})
-    return r.canceled || !r.filePath ? null : r.filePath
-  })
-  ipcMain.handle(CH.revealPath, async (_e, path: string) => { await shell.openPath(path) })
-
-  ipcMain.handle(CH.quickLoad, () => quick.load())
-  ipcMain.handle(CH.quickSave, (_e, data: import('@shared/types').QuickStore) => quick.save(data))
-  ipcMain.handle(CH.homeDir, () => process.env.USERPROFILE ?? process.env.HOME ?? '')
-
-  ipcMain.on(CH.recStart, (_e, id: string) => {
-    const sz = pty.sizeOf(id) ?? { cols: 80, rows: 24 }
-    const file = recorder.start(id, sz.cols, sz.rows, userDataDir())
-    safeSend(CH.recState, id, { recording: true, file })
-  })
-  ipcMain.on(CH.recStop, (_e, id: string) => { const f = recorder.stop(id); safeSend(CH.recState, id, { recording: false, file: f }) })
-  ipcMain.on(CH.recReveal, () => { void shell.openPath(join(userDataDir(), 'recordings')) })
-
-  const emitEnvState = (): void => safeSend(CH.envState, { exists: envVault.exists(), unlocked: envVault.isUnlocked() })
-  let unlockFailures = 0
-  let unlockBackoffUntil = 0
-  ipcMain.handle(CH.envUnlock, (_e, p: string) => {
-    if (Date.now() < unlockBackoffUntil) return false
-    const ok = envVault.unlock(p)
-    if (ok) { unlockFailures = 0 }
-    else { unlockFailures++; unlockBackoffUntil = Date.now() + Math.min(1000 * 2 ** unlockFailures, 30_000) }
-    emitEnvState()
-    return ok
-  })
-  ipcMain.handle(CH.envCreate, (_e, p: string) => { envVault.create(p); emitEnvState() })
-  ipcMain.on(CH.envLock, () => { envVault.lock(); emitEnvState() })
-  ipcMain.handle(CH.envGet, () => envVault.current())
-  ipcMain.on(CH.envSetGlobal, (_e, n: string, v: string) => { envVault.setGlobal(n, v); emitEnvState() })
-  ipcMain.on(CH.envRemoveGlobal, (_e, n: string) => { envVault.removeGlobal(n); emitEnvState() })
-  ipcMain.on(CH.envSetTerminal, (_e, id: string, n: string, v: string) => { envVault.setTerminal(id, n, v); emitEnvState() })
-  ipcMain.on(CH.envRemoveTerminal, (_e, id: string, n: string) => { envVault.removeTerminal(id, n); emitEnvState() })
-  // No existing initial-state push hook in this file; emit once the renderer is ready to receive it.
-  win.webContents.on('did-finish-load', emitEnvState)
-
-  // Single teardown for every long-lived service. Keeping these in one place (rather than a
-  // `win.on('closed')` scattered next to each service) means adding a service only needs its
-  // stop() added here. `drafts.flush()` stays on the earlier `close` event because it must run
-  // synchronously while the window still exists.
-  win.on('closed', () => {
-    usage.dispose()
-    cloud.stop()
-    watcher.closeAll()
-    recorder.dispose()
-  })
+  // Disposers for the long-lived services, aggregated into one teardown. `drafts.flush()` stays
+  // on the earlier `close` event (inside registerDrafts) because it must run synchronously while
+  // the window still exists.
+  const disposers: Disposer[] = [
+    registerFs(win, send),
+    registerCloud(win, send),
+    registerUsage(send),
+    registerRecording({ pty, recorder, userDataDir: dir, send })
+  ]
+  win.on('closed', () => { for (const dispose of disposers) dispose() })
 
   return pty
 }

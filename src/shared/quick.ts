@@ -10,9 +10,12 @@ export function buildSshArgs(c: SshConnection): string[] {
   return args
 }
 
-/** MRU: move/insert `value` at the front, de-dupe (strict equality), cap length. */
-export function pushRecent<T>(list: T[], value: T, cap: number): T[] {
-  return [value, ...list.filter(v => v !== value)].slice(0, cap)
+/** MRU: move/insert `value` at the front, de-dupe (strict equality by default, or a custom
+ *  predicate), cap length. */
+export function pushRecent<T>(
+  list: T[], value: T, cap: number, eq: (a: T, b: T) => boolean = (a, b) => a === b
+): T[] {
+  return [value, ...list.filter(v => !eq(v, value))].slice(0, cap)
 }
 
 export const RECENT_DIR_CAP = 20
@@ -28,8 +31,7 @@ export function nextRecentDirs(
 ): string[] {
   if (!dir) return recent
   if (home && normDir(dir) === normDir(home)) return recent
-  const filtered = recent.filter(d => normDir(d) !== normDir(dir))
-  return [dir, ...filtered].slice(0, cap)
+  return pushRecent(recent, dir, cap, (a, b) => normDir(a) === normDir(b))
 }
 
 export type PaletteItem =

@@ -1,6 +1,6 @@
 import type { TerminalStatus, TermState } from '@shared/types'
 import {
-  computeNeedsInput, isPureControl, looksLikePrompt, stripAnsi, tailMatchesInputPrompt, type NeedsInputConfig
+  computeIdleFallback, computeNeedsInput, isPureControl, stripAnsi, type NeedsInputConfig
 } from './needs-input'
 
 export class StatusTracker {
@@ -46,18 +46,8 @@ export class StatusTracker {
 
   tick(now: number): TerminalStatus {
     const quietMs = now - this.lastOutputAt
-    // Heuristic idle. Never pre-empt a genuine input prompt (that becomes needs-input).
-    if (this.state === 'busy' && quietMs >= this.cfg.heuristicIdleMs
-        && !tailMatchesInputPrompt(this.tail, this.cfg.patterns)) {
-      const prompt = looksLikePrompt(this.tail)
-      if (!this.hasMarkers && prompt) {
-        this.set('idle', now)                                  // no-integration: quiet + recognized prompt (fast)
-      } else if (quietMs >= this.cfg.heuristicIdleHardMs && (prompt || !this.hasMarkers)) {
-        // After sustained silence, fall back to idle when EITHER: we sit at a prompt
-        // (integration markers stopped — e.g. a nested shell like `cmd` inside pwsh),
-        // OR there were never any markers and the prompt was simply not recognized.
-        this.set('idle', now)
-      }
+    if (this.state === 'busy' && computeIdleFallback(quietMs, this.tail, this.hasMarkers, this.cfg)) {
+      this.set('idle', now)
     }
     if (this.state === 'busy' && computeNeedsInput(quietMs, this.tail, this.cfg)) {
       this.set('needs-input', now)

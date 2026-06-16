@@ -6,6 +6,7 @@ import { api } from '../api'
 import type { TerminalConfig } from '@shared/types'
 import { resolveTheme } from '@shared/theme'
 import { useStore } from '../store'
+import { useResolvedPaneTheme } from '../use-resolved-theme'
 
 export function TerminalPane({ paneId, wsId, config }: { paneId: string; wsId: string; config: TerminalConfig }) {
   const hostRef = useRef<HTMLDivElement>(null)
@@ -56,18 +57,15 @@ export function TerminalPane({ paneId, wsId, config }: { paneId: string; wsId: s
   // SSH terminal re-spawns if its target changes, without re-running on unrelated renders.
   }, [paneId, config.shellId, config.cwd, config.launch?.command, JSON.stringify(config.launch?.args)])
 
-  const appTheme = useStore(s => s.quick.theme)
-  const wsTheme = useStore(s => s.workspaces[wsId]?.theme)
-  const paneTheme = config.theme
+  const theme = useResolvedPaneTheme(wsId, config.theme)
   useEffect(() => {
     const term = termRef.current
     if (!term) return
-    const t = resolveTheme(appTheme, wsTheme, paneTheme)
-    term.options.theme = { background: t.termBg, foreground: t.termFg }
-    term.options.fontFamily = t.termFontFamily
-    term.options.fontSize = t.termFontSize
+    term.options.theme = { background: theme.termBg, foreground: theme.termFg }
+    term.options.fontFamily = theme.termFontFamily
+    term.options.fontSize = theme.termFontSize
     fitRef.current?.fit()
-  }, [appTheme, wsTheme, paneTheme])
+  }, [theme])
 
   return <div data-testid={`terminal-${paneId}`} ref={hostRef} style={{ width: '100%', height: '100%' }} />
 }

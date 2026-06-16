@@ -3,6 +3,12 @@ import { join } from 'node:path'
 import type { Workspace, AppState } from '@shared/types'
 import { serializeWorkspace, deserializeWorkspace } from '@shared/workspace-model'
 
+function isAppState(d: unknown): d is AppState {
+  if (!d || typeof d !== 'object') return false
+  const o = d as Record<string, unknown>
+  return typeof o.schemaVersion === 'number' && Array.isArray(o.openWorkspaceIds)
+}
+
 export class WorkspaceStore {
   constructor(private readonly baseDir: string) {}
 
@@ -16,10 +22,19 @@ export class WorkspaceStore {
   }
 
   async loadWorkspace(id: string): Promise<Workspace | null> {
-    try { return deserializeWorkspace(await readFile(this.wsFile(id), 'utf8')) }
+    let raw: string
+    try { raw = await readFile(this.wsFile(id), 'utf8') }
     catch (e: unknown) {
       if ((e as NodeJS.ErrnoException).code === 'ENOENT') return null
-      throw e
+      console.warn(`[workspace] failed to read ${id}:`, e)
+      return null
+    }
+    // A corrupt/invalid file degrades to null (like quick/draft/app-state) instead of
+    // rejecting the ws:load IPC call — one bad workspace must not wedge the renderer.
+    try { return deserializeWorkspace(raw) }
+    catch (e: unknown) {
+      console.warn(`[workspace] ignoring corrupt workspace ${id}:`, e)
+      return null
     }
   }
 
@@ -36,7 +51,10 @@ export class WorkspaceStore {
   }
 
   async loadAppState(): Promise<AppState | null> {
-    try { return JSON.parse(await readFile(this.appStateFile(), 'utf8')) as AppState }
-    catch { return null }
+    try {
+      const data: unknown = JSON.parse(await readFile(this.appStateFile(), 'utf8'))
+      if (!isAppState(data)) return null
+      return data
+    } catch { return null }
   }
 }

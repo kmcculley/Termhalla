@@ -63,3 +63,25 @@ export function computeNeedsInput(quietMs: number, tail: string, cfg: NeedsInput
 export function looksLikePrompt(tail: string): boolean {
   return /[>$#%]\s*$/.test(lastLine(tail))
 }
+
+/**
+ * Heuristic idle decision for a *busy* terminal: should sustained silence be treated as
+ * "command finished" (idle)? Pure so it can be reasoned about and tested in isolation —
+ * this logic is load-bearing (a misread silently wedges a terminal in "busy").
+ *
+ * Never pre-empts a genuine input prompt (that path becomes needs-input). Otherwise:
+ *  - Fast path: no integration markers and we sit at a recognizable shell prompt.
+ *  - Slow path: after sustained silence (hard threshold), idle when EITHER we sit at a
+ *    prompt (markers stopped — e.g. a nested shell like `cmd` inside pwsh) OR there were
+ *    never any markers and the prompt simply went unrecognized.
+ */
+export function computeIdleFallback(
+  quietMs: number, tail: string, hasMarkers: boolean, cfg: NeedsInputConfig
+): boolean {
+  if (quietMs < cfg.heuristicIdleMs) return false
+  if (tailMatchesInputPrompt(tail, cfg.patterns)) return false
+  const atRecognizedPrompt = looksLikePrompt(tail)
+  if (!hasMarkers && atRecognizedPrompt) return true
+  const sustainedSilence = quietMs >= cfg.heuristicIdleHardMs
+  return sustainedSilence && (atRecognizedPrompt || !hasMarkers)
+}
