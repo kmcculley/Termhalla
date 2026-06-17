@@ -34,10 +34,15 @@ export function nextRecentDirs(
   return pushRecent(recent, dir, cap, (a, b) => normDir(a) === normDir(b))
 }
 
+export type PaletteAction =
+  | 'new-connection' | 'pin-cwd'
+  | 'new-terminal' | 'new-editor' | 'new-explorer'
+  | 'new-workspace' | 'broadcast' | 'save-all' | 'refresh-cloud'
+
 export type PaletteItem =
   | { kind: 'connection'; id: string; label: string; detail: string; search: string }
   | { kind: 'dir'; path: string; favorite: boolean; search: string }
-  | { kind: 'action'; action: 'new-connection' | 'pin-cwd'; label: string; search: string }
+  | { kind: 'action'; action: PaletteAction; label: string; search: string }
 
 /** Build the merged, ordered palette list: connections (recent-first), favorite dirs,
  *  recent dirs (minus favorites), then the New-connection and (cwd-gated) Pin actions. */
@@ -69,6 +74,22 @@ export function buildPaletteItems(q: QuickStore, currentCwd: string): PaletteIte
       search: `pin current directory ${currentCwd.toLowerCase()}` })
   }
   return items
+}
+
+/** The command-menu items, appended to the palette ONLY when the query is non-empty
+ *  (so the default connect/jump view stays uncluttered). Pure + order-stable. */
+export function buildCommandItems(): PaletteItem[] {
+  const cmd = (action: PaletteAction, label: string, search: string): PaletteItem =>
+    ({ kind: 'action', action, label, search })
+  return [
+    cmd('new-terminal', 'New terminal', 'new terminal pane shell'),
+    cmd('new-editor', 'New editor', 'new editor pane file'),
+    cmd('new-explorer', 'New explorer…', 'new explorer pane folder directory'),
+    cmd('new-workspace', 'New workspace', 'new workspace tab'),
+    cmd('broadcast', 'Broadcast to all terminals', 'broadcast send all terminals'),
+    cmd('save-all', 'Save all workspaces', 'save all workspaces'),
+    cmd('refresh-cloud', 'Refresh cloud status', 'refresh cloud status')
+  ]
 }
 
 /** Case-insensitive substring filter; an empty/whitespace query returns the list unchanged. */
