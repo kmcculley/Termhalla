@@ -76,7 +76,7 @@ describe('computeNeedsInput', () => {
 
 describe('looksLikePrompt', () => {
   it('recognises a typical shell prompt tail', () => {
-    expect(looksLikePrompt('PS C:\\Users\\kevin> ')).toBe(true)
+    expect(looksLikePrompt('PS C:\\Users\\dev> ')).toBe(true)
     expect(looksLikePrompt('user@host:~$ ')).toBe(true)
   })
   it('rejects ordinary output', () => {

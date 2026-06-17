@@ -2,6 +2,7 @@ import { app, BrowserWindow } from 'electron'
 import { buildServices } from './services'
 import { WindowManager } from './window-manager'
 import { registerHandlers } from './ipc/register'
+import { initAutoUpdate } from './updater'
 
 async function start(): Promise<void> {
   const services = buildServices()
@@ -13,6 +14,9 @@ async function start(): Promise<void> {
   wm.prepare(state)
   const pty = registerHandlers(services, wm)
   wm.start()
+
+  // Background check against the generic update feed (packaged builds only).
+  initAutoUpdate()
 
   // Snapshot the full multi-window arrangement before windows start closing, so a quit doesn't
   // shrink the saved state window-by-window.

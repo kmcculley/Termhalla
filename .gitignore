@@ -6,3 +6,5 @@ release/
 *.log
 test-results/
 playwright-report/
+# Generated icon candidates (regenerable via design/gen_icons.py; chosen icon kept in build/)
+design/icon-candidates/

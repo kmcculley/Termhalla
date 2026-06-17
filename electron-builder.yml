@@ -1,0 +1,37 @@
+# electron-builder packaging config. Build pipeline:
+#   electron-vite build   -> compiles main/preload/renderer into out/
+#   electron-builder --win -> rebuilds native deps for Electron's ABI, packs out/
+#                             into an asar, and produces an NSIS installer in dist/
+#
+# Native modules (node-pty) are patched (Spectre off, see patches/) by patch-package
+# on `npm install`; electron-builder recompiles that already-patched source for the
+# Electron ABI during pack. The .node binary is kept OUT of the asar via asarUnpack
+# below so it can be require()'d at runtime.
+appId: com.localhostworks.termhalla
+productName: Termhalla
+# Build resources (icon.ico, etc.) live here once added; Electron's default icon is
+# used until then.
+directories:
+  buildResources: build
+  output: dist
+files:
+  - out/**/*
+  - package.json
+# node-pty ships a prebuilt/recompiled .node; native binaries cannot be loaded from
+# inside an asar archive, so unpack the whole module to app.asar.unpacked/.
+asarUnpack:
+  - "**/node_modules/node-pty/**"
+win:
+  target: nsis
+  # Unsigned: internal distribution. Windows SmartScreen shows an "unknown publisher"
+  # prompt on first run — expected. Add certificateFile/certificatePassword here to sign.
+nsis:
+  oneClick: false # show the wizard so the install dir is selectable
+  perMachine: false # per-user install -> no UAC elevation prompt
+  allowToChangeInstallationDirectory: true
+# Generic HTTP update feed. electron-builder writes these coordinates into the bundled
+# app-update.yml; electron-updater reads it to find latest.yml + the installer delta.
+# CHANGE this url to wherever you host the feed before the first real release.
+publish:
+  provider: generic
+  url: https://updates.localhostworks.dev/termhalla
