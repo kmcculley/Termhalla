@@ -179,9 +179,11 @@ export class WindowManager {
     // nothing is delivered to the destination before its xterm mounts and nothing is lost.
     const buf = this.transit.get(paneId)
     if (buf) { buf.push({ channel, args }); return }
-    const winId = this.paneOwner.get(paneId)
-    // An unowned pane (sender vanished between spawn and route) defaults to the main window.
-    this.safeSend(winId ? this.wins.get(winId) : this.mainWindow(), channel, ...args)
+    // An unowned pane (sender vanished between spawn and route) defaults to the main window. Resolve
+    // the id without mainWindow()'s `!` assertion: a late pty:data chunk can arrive during shutdown
+    // after the window list is already main-less, and safeSend() no-ops on an undefined window.
+    const winId = this.paneOwner.get(paneId) ?? this.core.windows.find(w => w.isMain)?.id
+    this.safeSend(winId ? this.wins.get(winId) : undefined, channel, ...args)
   }
 
   broadcast(channel: string, ...args: unknown[]): void {
