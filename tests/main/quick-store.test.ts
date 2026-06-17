@@ -31,6 +31,20 @@ describe('QuickStore', () => {
     rmSync(dir, { recursive: true, force: true })
   })
 
+  it('round-trips and normalizes the keybindings map', async () => {
+    const store = new QuickStore(dir)
+    const data = {
+      connections: [], recentConnections: [], favoriteDirs: [], recentDirs: [],
+      templates: [], themePresets: [], recordByDefault: false,
+      keybindings: { 'new-terminal': 'mod+shift+n', 'close-workspace': 'none', 'bad': 42 as unknown as string }
+    }
+    await store.save(data)
+    const loaded = await store.load()
+    // Non-string values are dropped; string values survive.
+    expect(loaded.keybindings).toEqual({ 'new-terminal': 'mod+shift+n', 'close-workspace': 'none' })
+    rmSync(dir, { recursive: true, force: true })
+  })
+
   it('falls back to empty on a corrupt (malformed JSON) file', async () => {
     writeFileSync(join(dir, 'quick.json'), '{ "connections": [INVALID', 'utf8')
     const store = new QuickStore(dir)
