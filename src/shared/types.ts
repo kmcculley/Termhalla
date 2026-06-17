@@ -91,6 +91,7 @@ export interface TerminalConfig {
   connectionId?: string     // links back to the saved SshConnection, for display
   envId?: string            // links to a per-terminal env-vault entry; injected on spawn
   theme?: Partial<Theme>
+  runCommands?: RunCommand[]   // pane-scoped saved run commands
 }
 
 export interface EditorConfig {
@@ -137,6 +138,7 @@ export interface Workspace {
   layout: MosaicNode | null         // null = no panes yet
   panes: Record<string, PaneNode>   // paneId -> pane
   theme?: Partial<Theme>
+  runCommands?: RunCommand[]   // workspace-scoped saved run commands (shown on every terminal)
 }
 
 /** One OS window: which workspaces it hosts (tab order), its active tab, and its bounds. */
@@ -238,7 +240,15 @@ export interface UsageMetrics {
 /** Decrypted env-vault contents surfaced to the renderer while unlocked. */
 export interface EnvVaultData { global: Record<string, string>; terminals: Record<string, Record<string, string>> }
 
-export const SCHEMA_VERSION = 4
+export const SCHEMA_VERSION = 5
+
+/** A saved, named command a user can run on click in a terminal. Persisted (pane- or
+ *  workspace-scoped). Runtime sending reuses encodeBroadcast(command, 'keys', true). */
+export interface RunCommand {
+  id: string
+  label: string
+  command: string
+}
 
 export type ScheduleTrigger =
   | { kind: 'delay'; ms: number }
