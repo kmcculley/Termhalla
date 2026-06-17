@@ -10,6 +10,7 @@ import type { State, SliceDeps } from './store/types'
 import {
   placePane, firstTarget, paneCwd, applyCwds, clearPaneRuntime, teardownPanes
 } from './store/internals'
+import { defaultShellId, dispatchAddPane } from './store/pane-ops'
 import { readPaneSnapshot } from './components/terminal-registry'
 import { createThemeSlice } from './store/theme-slice'
 import { createRuntimeSlice } from './store/runtime-slice'
@@ -199,10 +200,12 @@ export const useStore = create<State>((set, get) => {
 
     // ---- core: pane management ----
     addTerminal: (wsId, targetPaneId, dir) => {
-      const shellId = get().newTerminalShellId ?? get().shells[0]?.id ?? 'cmd'
+      const shellId = defaultShellId(get())
       const cwd = targetPaneId ? paneCwd(get(), targetPaneId) : ''
       return commitPane(wsId, { kind: 'terminal', shellId, cwd }, targetPaneId, dir)
     },
+
+    addPaneOfKind: (wsId, kind) => dispatchAddPane(get(), wsId, kind, () => api.openFolder()),
 
     closePane: (wsId, paneId) => {
       const ws = removePane(get().workspaces[wsId], paneId)
@@ -253,7 +256,7 @@ export const useStore = create<State>((set, get) => {
       const wsId = get().activeId
       if (!wsId) return
       const ws = get().workspaces[wsId]
-      const shellId = get().newTerminalShellId ?? get().shells[0]?.id ?? 'cmd'
+      const shellId = defaultShellId(get())
       commitPane(wsId, { kind: 'terminal', shellId, cwd: '', name: launch.title, launch }, firstTarget(ws), 'row')
     },
 

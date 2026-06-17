@@ -1,7 +1,7 @@
 import { v4 as uuid } from 'uuid'
 import { buildSshArgs, pushRecent, RECENT_CONN_CAP } from '@shared/quick'
 import { templateFromWorkspace, workspaceFromTemplate } from '@shared/workspace-model'
-import { firstTarget } from './internals'
+import { firstTarget, defaultShellId } from './pane-ops'
 import type { State, SliceDeps } from './types'
 
 type QuickSlice = Pick<State,
@@ -72,7 +72,7 @@ export function createQuickSlice({ set, get, scheduleAutosave, scheduleQuickSave
       const conn = get().quick.connections.find(c => c.id === connId)
       if (!conn) return
       const ws = get().workspaces[wsId]
-      const shellId = get().newTerminalShellId ?? get().shells[0]?.id ?? 'cmd'
+      const shellId = defaultShellId(get())
       commitPane(wsId, {
         kind: 'terminal', shellId, cwd: '', name: conn.name, connectionId: conn.id,
         launch: { command: 'ssh', args: buildSshArgs(conn), title: conn.name }
@@ -85,7 +85,7 @@ export function createQuickSlice({ set, get, scheduleAutosave, scheduleQuickSave
       const wsId = get().activeId
       if (!wsId || !dir) return
       const ws = get().workspaces[wsId]
-      const shellId = get().newTerminalShellId ?? get().shells[0]?.id ?? 'cmd'
+      const shellId = defaultShellId(get())
       commitPane(wsId, { kind: 'terminal', shellId, cwd: dir }, firstTarget(ws), 'row')
     },
 

@@ -122,9 +122,11 @@ export interface TermhallaApi {
   envCreate(passphrase: string): Promise<void>
   envLock(): void
   envGet(): Promise<EnvVaultData | null>
-  envSetGlobal(name: string, value: string): void
+  // setGlobal/setTerminal use invoke (not fire-and-forget send) so a failed disk write rejects and
+  // the UI can avoid toasting a false "added".
+  envSetGlobal(name: string, value: string): Promise<void>
   envRemoveGlobal(name: string): void
-  envSetTerminal(envId: string, name: string, value: string): void
+  envSetTerminal(envId: string, name: string, value: string): Promise<void>
   envRemoveTerminal(envId: string, name: string): void
   clipboardWrite(text: string): void
   clipboardRead(): Promise<string>

@@ -6,6 +6,7 @@ import { api } from '../api'
 import { useStore } from '../store'
 import type { EditorConfig } from '@shared/types'
 import { applyContent, base, type Tab } from './tabs'
+import { runOp } from '../op'
 import { useEditorDrafts } from './use-editor-drafts'
 import { useExternalFileWatch } from './use-external-file-watch'
 import { useResolvedPaneTheme } from '../use-resolved-theme'
@@ -110,7 +111,9 @@ export function useEditorTabs(paneId: string, wsId: string, config: EditorConfig
     if (!content) return  // nothing to save (Ctrl+S on an empty scratch buffer)
     const path = await api.saveFileDialog()
     if (!path) return
-    await api.fsWrite(path, content)
+    // Only drop the draft / clear the scratch buffer if the write actually succeeded — otherwise
+    // a failed save would lose the buffer's content with no recovery draft.
+    if (!await runOp(() => api.fsWrite(path, content), useStore.getState().pushToast, 'Save failed')) return
     api.draftsDelete(draftKey(paneId, UNTITLED))
     cancelDraftTimer(UNTITLED)
     applyContent(t.model, '')
@@ -124,7 +127,9 @@ export function useEditorTabs(paneId: string, wsId: string, config: EditorConfig
     const t = tabs.current.get(active)
     if (!t || t.tooLarge) return
     const value = t.model.getValue()
-    await api.fsWrite(active, value)
+    // Mark the buffer clean / drop its draft only on a successful write — a failed save must keep
+    // the buffer dirty and its recovery draft intact rather than silently lose the edits.
+    if (!await runOp(() => api.fsWrite(active, value), useStore.getState().pushToast, 'Save failed')) return
     t.saved = value
     api.draftsDelete(draftKey(paneId, active))
     cancelDraftTimer(active)

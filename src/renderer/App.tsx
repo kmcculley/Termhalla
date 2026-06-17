@@ -68,10 +68,8 @@ export default function App() {
         case 'toggle-palette': s.setPaletteOpen(!s.paletteOpen); break
         case 'toggle-broadcast': s.setBroadcastOpen(!s.broadcastOpen); break
         case 'new-terminal': {
-          if (!activeId) break
-          const ws = s.workspaces[activeId]
-          const target = ws?.layout ? Object.keys(ws.panes)[0] : null
-          s.addTerminal(activeId, target, 'row'); break
+          if (activeId) void s.addPaneOfKind(activeId, 'terminal')
+          break
         }
         case 'close-workspace': {
           if (!activeId) break

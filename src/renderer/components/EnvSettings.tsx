@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { v4 as uuid } from 'uuid'
 import { useStore } from '../store'
 import { api } from '../api'
+import { runOp } from '../op'
 import type { EnvVaultData } from '@shared/types'
 
 // Encrypted env vault settings section: create/unlock/lock, global vars, and (when scoped to
@@ -42,24 +43,27 @@ export function EnvSettings({ wsId, paneId }: { wsId?: string; paneId?: string }
   // Load values whenever the vault becomes unlocked.
   useEffect(() => { if (env.unlocked) void refresh() }, [env.unlocked])
 
-  const create = async (): Promise<void> => { await api.envCreate(passphrase); pushToast('Vault created'); setPassphrase('') }
+  const create = async (): Promise<void> => {
+    if (!await runOp(() => api.envCreate(passphrase), pushToast, "Couldn't create vault")) return
+    pushToast('Vault created'); setPassphrase('')
+  }
   const unlock = async (): Promise<void> => {
     const ok = await api.envUnlock(passphrase)
     if (!ok) { setError(true); return }
     setError(false); setPassphrase('')
   }
-  const add = (): void => {
+  const add = async (): Promise<void> => {
     if (!newName.trim()) return
-    api.envSetGlobal(newName, newValue)
+    if (!await runOp(() => api.envSetGlobal(newName, newValue), pushToast, "Couldn't add variable")) return
     pushToast('Variable added')
     setNewName(''); setNewValue('')
     void refresh()
   }
-  const addTerminalVar = (): void => {
+  const addTerminalVar = async (): Promise<void> => {
     if (!tName.trim() || !wsId || !paneId) return
     let id = envId
     if (!id) { id = uuid(); updatePaneConfig(wsId, paneId, { envId: id }) }
-    api.envSetTerminal(id, tName, tValue)
+    if (!await runOp(() => api.envSetTerminal(id!, tName, tValue), pushToast, "Couldn't add variable")) return
     pushToast('Variable added')
     setTName(''); setTValue(''); void refresh()
   }
@@ -108,8 +112,8 @@ export function EnvSettings({ wsId, paneId }: { wsId?: string; paneId?: string }
                 onChange={e => setNewName(e.target.value)} style={{ flex: '0 0 140px', fontFamily: 'var(--mono)' }} />
               <input data-testid="env-value" placeholder="value" value={newValue}
                 onChange={e => setNewValue(e.target.value)}
-                onKeyDown={e => { if (e.key === 'Enter') add() }} style={{ flex: 1 }} />
-              <button data-testid="env-add" disabled={!newName.trim()} onClick={add}>Add</button>
+                onKeyDown={e => { if (e.key === 'Enter') void add() }} style={{ flex: 1 }} />
+              <button data-testid="env-add" disabled={!newName.trim()} onClick={() => void add()}>Add</button>
             </div>
             {scoped && (
               <>
@@ -126,8 +130,8 @@ export function EnvSettings({ wsId, paneId }: { wsId?: string; paneId?: string }
                     onChange={e => setTName(e.target.value)} style={{ flex: '0 0 140px', fontFamily: 'var(--mono)' }} />
                   <input data-testid="env-term-value" placeholder="value" value={tValue}
                     onChange={e => setTValue(e.target.value)}
-                    onKeyDown={e => { if (e.key === 'Enter') addTerminalVar() }} style={{ flex: 1 }} />
-                  <button data-testid="env-term-add" disabled={!tName.trim()} onClick={addTerminalVar}>Add</button>
+                    onKeyDown={e => { if (e.key === 'Enter') void addTerminalVar() }} style={{ flex: 1 }} />
+                  <button data-testid="env-term-add" disabled={!tName.trim()} onClick={() => void addTerminalVar()}>Add</button>
                 </div>
                 <div style={{ color: 'var(--fg-dim, #aaa)', fontSize: '0.85em' }}>Applies the next time this terminal is spawned (e.g. after reopening the workspace) while the vault is unlocked.</div>
               </>

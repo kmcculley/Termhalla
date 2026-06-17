@@ -1,7 +1,8 @@
 import { useState } from 'react'
-import { useStore, type ThemeScope } from '../store'
-import { mergeTheme, resolveTheme, themeCssVarsPartial } from '@shared/theme'
+import { useStore } from '../store'
+import { themeCssVarsPartial } from '@shared/theme'
 import type { Theme } from '@shared/types'
+import { panePidOf, selectionToScope, resolvedForSelection } from './theme-scope'
 
 const COLORS: { key: keyof Theme; label: string }[] = [
   { key: 'windowBg', label: 'Window background' },
@@ -40,18 +41,10 @@ export function ThemeSettings({ paneId }: { paneId?: string }) {
   const [sel, setSel] = useState(paneId ? `pane:${paneId}` : 'app') // 'app' | 'workspace' | `pane:<paneId>`
   const [presetName, setPresetName] = useState('')
 
-  const panePid = sel.startsWith('pane:') ? sel.slice(5) : null
-  const pane = panePid && ws ? ws.panes[panePid] : null
-
-  // Resolved theme shown for the selected scope.
-  const t: Theme = sel === 'app' ? mergeTheme(quickTheme)
-    : sel === 'workspace' ? resolveTheme(quickTheme, ws?.theme, undefined)
-      : resolveTheme(quickTheme, ws?.theme, pane?.config.theme)
-
-  const scopeOf = (): ThemeScope =>
-    sel === 'app' ? { kind: 'app' }
-      : sel === 'workspace' ? { kind: 'workspace', wsId: activeId! }
-        : { kind: 'pane', wsId: activeId!, paneId: panePid! }
+  const panePid = panePidOf(sel)
+  // Resolved theme shown for the selected scope, and the structured cascade scope to write to.
+  const t: Theme = resolvedForSelection(sel, quickTheme, ws)
+  const scopeOf = () => selectionToScope(sel, activeId!)
 
   // Element to live-preview on (CSS-var cascade target).
   const scopeTarget = (): HTMLElement | null =>

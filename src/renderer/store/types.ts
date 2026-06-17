@@ -4,6 +4,7 @@ import type {
   PaneConfig, EditorConfig, ExplorerConfig, QuickStore, SshConnection, ProcInfo, CloudStatus,
   TerminalLaunch, AiSession, UsageMetrics, EditorDraft, ScheduledTask, Theme, EnvVaultState
 } from '@shared/types'
+import type { PaneKind } from './pane-ops'
 
 export type ThemeScope =
   | { kind: 'app' }
@@ -37,6 +38,7 @@ export interface State {
   setActive: (id: string) => void
   setLayout: (wsId: string, layout: MosaicNode | null) => void
   addTerminal: (wsId: string, targetPaneId: string | null, dir: MosaicDirection) => string
+  addPaneOfKind: (wsId: string, kind: PaneKind) => Promise<void>
   closePane: (wsId: string, paneId: string) => void
   setNewTerminalShell: (id: string) => void
   saveAll: () => Promise<void>

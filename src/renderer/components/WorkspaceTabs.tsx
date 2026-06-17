@@ -3,7 +3,8 @@ import { useShallow } from 'zustand/react/shallow'
 import type { Workspace, AiSession, TerminalStatus } from '@shared/types'
 import { resolveAlerts } from '@shared/alerts'
 import { useStore, aiState } from '../store'
-import { api } from '../api'
+import type { PaneKind } from '../store/pane-ops'
+import { useTabDrag } from './use-tab-drag'
 import { TemplatesMenu } from './TemplatesMenu'
 import { Z, SURFACE } from './Modal'
 
@@ -34,14 +35,13 @@ export function WorkspaceTabs() {
   // runtime change (cwds/procs/usage/cloud/recording all churn during terminal activity).
   const {
     order, workspaces, activeId, setActive, newWorkspace,
-    saveAll, shells, newTerminalShellId, setNewTerminalShell,
-    addTerminal, addEditor, addExplorer,
+    saveAll, shells, newTerminalShellId, setNewTerminalShell, addPaneOfKind,
     renameWorkspace, closeWorkspace, moveWorkspace, setBroadcastOpen, broadcastOpen, openSettings
   } = useStore(useShallow(s => ({
     order: s.order, workspaces: s.workspaces, activeId: s.activeId, setActive: s.setActive,
     newWorkspace: s.newWorkspace, saveAll: s.saveAll, shells: s.shells,
     newTerminalShellId: s.newTerminalShellId, setNewTerminalShell: s.setNewTerminalShell,
-    addTerminal: s.addTerminal, addEditor: s.addEditor, addExplorer: s.addExplorer,
+    addPaneOfKind: s.addPaneOfKind,
     renameWorkspace: s.renameWorkspace, closeWorkspace: s.closeWorkspace,
     moveWorkspace: s.moveWorkspace, setBroadcastOpen: s.setBroadcastOpen, broadcastOpen: s.broadcastOpen,
     openSettings: s.openSettings
@@ -59,8 +59,8 @@ export function WorkspaceTabs() {
   const [renamingId, setRenamingId] = useState<string | null>(null)
   const [renameText, setRenameText] = useState('')
   const [menuFor, setMenuFor] = useState<{ id: string; x: number; y: number } | null>(null)
-  const [ghost, setGhost] = useState<{ x: number; y: number; id: string } | null>(null)
   const [templatesOpen, setTemplatesOpen] = useState(false)
+  const { ghost, beginTabDrag } = useTabDrag(setActive, moveWorkspace)
 
   const startRename = (id: string) => { setRenameText(workspaces[id]?.name ?? ''); setRenamingId(id); setMenuFor(null) }
   const commitRename = (id: string) => { renameWorkspace(id, renameText); setRenamingId(null) }
@@ -76,35 +76,6 @@ export function WorkspaceTabs() {
     else return
     e.preventDefault()
     if (next) { setActive(next); tabRefs.current.get(next)?.focus() }
-  }
-
-  // Pointer-drag a tab: below a small threshold it's a click (activate); past it a ghost follows
-  // the cursor. On release, an intra-strip drop reorders; otherwise main decides undock (off the
-  // strip, into a new OS window) vs re-dock (onto another window's strip) from the screen position.
-  const beginTabDrag = (id: string) => (e: React.PointerEvent) => {
-    if (e.button !== 0) return
-    const startX = e.clientX, startY = e.clientY
-    let dragging = false
-    const onMove = (me: PointerEvent) => {
-      if (!dragging && Math.hypot(me.clientX - startX, me.clientY - startY) < 6) return
-      dragging = true
-      setGhost({ x: me.clientX, y: me.clientY, id })
-    }
-    const onUp = (ue: PointerEvent) => {
-      window.removeEventListener('pointermove', onMove)
-      window.removeEventListener('pointerup', onUp)
-      setGhost(null)
-      if (!dragging) { setActive(id); return }
-      const overTab = (ue.target as HTMLElement | null)?.closest?.('[data-tab-id]') as HTMLElement | null
-      const overId = overTab?.dataset.tabId
-      if (overId && overId !== id) { moveWorkspace(id, overId); return }
-      // Flush the workspace to disk first: the new window loads it from disk, and autosave is
-      // debounced, so without this the torn-off window can load a stale/absent file.
-      const cursor = { x: ue.screenX, y: ue.screenY }
-      void useStore.getState().saveAll().then(() => api.winDragEnd({ workspaceId: id, cursor }))
-    }
-    window.addEventListener('pointermove', onMove)
-    window.addEventListener('pointerup', onUp)
   }
 
   return (
@@ -141,14 +112,9 @@ export function WorkspaceTabs() {
         onChange={e => setNewTerminalShell(e.target.value)}>
         {shells.map(s => <option key={s.id} value={s.id}>{s.label}</option>)}
       </select>
-      <select data-testid="add-pane" value="" onChange={async e => {
-        const kind = e.target.value; e.currentTarget.value = ''
-        if (!activeId) return
-        const ws = workspaces[activeId]
-        const target = ws.layout ? Object.keys(ws.panes)[0] : null
-        if (kind === 'terminal') addTerminal(activeId, target, 'row')
-        else if (kind === 'editor') addEditor(activeId, target, 'row')
-        else if (kind === 'explorer') { const r = await api.openFolder(); if (r) addExplorer(activeId, target, 'row', r) }
+      <select data-testid="add-pane" value="" onChange={e => {
+        const kind = e.target.value as PaneKind; e.currentTarget.value = ''
+        if (activeId) void addPaneOfKind(activeId, kind)
       }}>
         <option value="" disabled>＋ pane…</option>
         <option value="terminal">Terminal</option>

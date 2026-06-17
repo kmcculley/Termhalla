@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useStore, paneCwd } from '../store'
-import { api } from '../api'
 import { buildPaletteItems, buildCommandItems, filterPaletteItems, type PaletteItem } from '@shared/quick'
 import { Modal, Z } from './Modal'
 
@@ -17,9 +16,7 @@ export function CommandPalette() {
   const unpinDir = useStore(s => s.unpinDir)
   const deleteConnection = useStore(s => s.deleteConnection)
   const setConnectionForm = useStore(s => s.setConnectionForm)
-  const addTerminal = useStore(s => s.addTerminal)
-  const addEditor = useStore(s => s.addEditor)
-  const addExplorer = useStore(s => s.addExplorer)
+  const addPaneOfKind = useStore(s => s.addPaneOfKind)
   const newWorkspace = useStore(s => s.newWorkspace)
   const setBroadcastOpen = useStore(s => s.setBroadcastOpen)
   const saveAll = useStore(s => s.saveAll)
@@ -62,11 +59,9 @@ export function CommandPalette() {
     if (item.action === 'pin-cwd') { pinDir(currentCwd); return /* keep open to show the new ★ */ }
     // Commands below need an active workspace.
     if (!activeId) return
-    const ws = workspaces[activeId]
-    const target = ws?.layout ? Object.keys(ws.panes)[0] : null
-    if (item.action === 'new-terminal') addTerminal(activeId, target, 'row')
-    else if (item.action === 'new-editor') addEditor(activeId, target, 'row')
-    else if (item.action === 'new-explorer') { void api.openFolder().then(r => { if (r) addExplorer(activeId, target, 'row', r) }) }
+    if (item.action === 'new-terminal') void addPaneOfKind(activeId, 'terminal')
+    else if (item.action === 'new-editor') void addPaneOfKind(activeId, 'editor')
+    else if (item.action === 'new-explorer') void addPaneOfKind(activeId, 'explorer')
     else if (item.action === 'new-workspace') newWorkspace(`Workspace ${order.length + 1}`)
     else if (item.action === 'broadcast') setBroadcastOpen(true)
     else if (item.action === 'save-all') { void saveAll(); pushToast('Workspaces saved') }

@@ -12,9 +12,9 @@ export function registerEnv(win: BrowserWindow, envVault: EnvVault, send: Send):
   ipcMain.handle(CH.envCreate, (_e, p: string) => { envVault.create(p); emitEnvState() })
   ipcMain.on(CH.envLock, () => { envVault.lock(); emitEnvState() })
   ipcMain.handle(CH.envGet, () => envVault.current())
-  ipcMain.on(CH.envSetGlobal, (_e, n: string, v: string) => { envVault.setGlobal(n, v); emitEnvState() })
+  ipcMain.handle(CH.envSetGlobal, (_e, n: string, v: string) => { envVault.setGlobal(n, v); emitEnvState() })
   ipcMain.on(CH.envRemoveGlobal, (_e, n: string) => { envVault.removeGlobal(n); emitEnvState() })
-  ipcMain.on(CH.envSetTerminal, (_e, id: string, n: string, v: string) => { envVault.setTerminal(id, n, v); emitEnvState() })
+  ipcMain.handle(CH.envSetTerminal, (_e, id: string, n: string, v: string) => { envVault.setTerminal(id, n, v); emitEnvState() })
   ipcMain.on(CH.envRemoveTerminal, (_e, id: string, n: string) => { envVault.removeTerminal(id, n); emitEnvState() })
   // No existing initial-state push hook in this file; emit once the renderer is ready to receive it.
   win.webContents.on('did-finish-load', emitEnvState)

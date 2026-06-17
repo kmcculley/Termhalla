@@ -53,11 +53,9 @@ export function placePane(ws: Workspace, cfg: PaneConfig, target: string | null,
     : splitPane(ws, target, dir, cfg, uuid)
 }
 
-/** The pane that `launch`/open-in-first actions split off: the first existing pane, or null
- *  when the workspace is empty (then `placePane` creates the first pane). */
-export function firstTarget(ws: Workspace): string | null {
-  return ws.layout ? Object.keys(ws.panes)[0] : null
-}
+// `firstTarget` lives in the api-free `pane-ops` module (so it's unit-testable); re-exported here
+// because existing call sites import it from `./internals`.
+export { firstTarget } from './pane-ops'
 
 export function paneCwd(
   s: { cwds: Record<string, string>; workspaces: Record<string, Workspace> },
