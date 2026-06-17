@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { movePane } from '@shared/workspace-model'
+import { movePane, carryTheme } from '@shared/workspace-model'
 import type { Workspace, PaneNode } from '@shared/types'
 
 const term = (id: string): PaneNode => ({ paneId: id, config: { kind: 'terminal', shellId: 'pwsh', cwd: '' } })
@@ -34,5 +34,21 @@ describe('movePane', () => {
     const r = movePane(from, to, 'zzz')
     expect(r.from).toBe(from)
     expect(r.to).toBe(to)
+  })
+})
+
+describe('carryTheme', () => {
+  it('clones the source workspace theme override onto the target', () => {
+    const source = { ...ws('A', 'a', [term('a')]), theme: { termBg: '#123456' } }
+    const target = ws('B', null, [])
+    const r = carryTheme(target, source)
+    expect(r.theme).toEqual({ termBg: '#123456' })
+    expect(r.theme).not.toBe(source.theme)   // deep-cloned, not shared
+  })
+
+  it('returns the target unchanged when the source has no theme', () => {
+    const source = ws('A', 'a', [term('a')])
+    const target = ws('B', null, [])
+    expect(carryTheme(target, source)).toBe(target)
   })
 })

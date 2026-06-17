@@ -8,7 +8,7 @@ export function TerminalAlertsSettings({ wsId, paneId }: { wsId?: string; paneId
   const cfg = useStore(s => (wsId && paneId) ? s.workspaces[wsId]?.panes[paneId]?.config : undefined)
   const updatePaneConfig = useStore(s => s.updatePaneConfig)
   if (!wsId || !paneId || !cfg || cfg.kind !== 'terminal') {
-    return <div data-testid="settings-terminal" style={{ color: 'var(--fg-dim, #aaa)' }}>Open from a terminal’s ⚙ to edit its name and alerts.</div>
+    return <div data-testid="settings-terminal" style={{ color: 'var(--fg-dim, #aaa)' }}>Right-click a terminal’s title bar → Settings to edit its name and alerts.</div>
   }
   const term = cfg as TerminalConfig
   const a = resolveAlerts(term.alerts)

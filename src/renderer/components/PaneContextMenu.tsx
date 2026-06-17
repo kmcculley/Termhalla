@@ -18,8 +18,12 @@ export function PaneContextMenu(
   const closePane = useStore(s => s.closePane)
   const moveToWorkspace = useStore(s => s.movePaneToWorkspace)
   const moveToNew = useStore(s => s.movePaneToNewWorkspace)
+  const kind = useStore(s => s.workspaces[wsId]?.panes[paneId]?.config.kind)
   const [view, setView] = useState<'root' | 'move'>('root')
 
+  // Terminals open the terminal section (name + alerts + env); editors/explorers have no terminal
+  // settings, so open Appearance — the section that applies to every pane kind.
+  const settingsSection = kind === 'terminal' ? 'terminal' as const : 'appearance' as const
   const others = order.filter(id => id !== wsId)
   const menuStyle = { ...SURFACE, position: 'fixed' as const, left: x, top: y, zIndex: Z.menu + 1, padding: 4, display: 'flex', flexDirection: 'column' as const, gap: 2, minWidth: 160, fontSize: 'var(--font-size, 13px)' }
 
@@ -38,7 +42,7 @@ export function PaneContextMenu(
             <button data-testid="pane-menu-rename" onClick={() => { onClose(); onRename() }}>Rename</button>
             <button data-testid="pane-menu-move" onClick={() => setView('move')}>Move to workspace ▸</button>
             <button data-testid="pane-menu-settings"
-              onClick={() => { openSettings({ section: 'terminal', paneId }); onClose() }}>Settings</button>
+              onClick={() => { openSettings({ section: settingsSection, paneId }); onClose() }}>Settings</button>
             <button data-testid="pane-menu-close" onClick={() => { closePane(wsId, paneId); onClose() }}>Close</button>
           </>
         ) : (

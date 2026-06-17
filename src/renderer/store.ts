@@ -2,7 +2,7 @@ import { create } from 'zustand'
 import { v4 as uuid } from 'uuid'
 import type { Workspace, PaneConfig, EditorConfig } from '@shared/types'
 import { EMPTY_QUICK } from '@shared/types'
-import { createWorkspace, removePane, reorderIds, movePane } from '@shared/workspace-model'
+import { createWorkspace, removePane, reorderIds, movePane, carryTheme } from '@shared/workspace-model'
 import { encodeBroadcast, terminalPaneIds } from '@shared/broadcast'
 import { schedulesWithout } from '@shared/schedule'
 import { api } from './api'
@@ -242,7 +242,7 @@ export const useStore = create<State>((set, get) => {
       const from = get().workspaces[fromWsId]
       if (!from?.panes[paneId]) return
       const newId = get().newWorkspace(`Workspace ${get().order.length + 1}`)
-      if (from.theme) set(s => ({ workspaces: { ...s.workspaces, [newId]: { ...s.workspaces[newId], theme: { ...from.theme } } } }))
+      set(s => ({ workspaces: { ...s.workspaces, [newId]: carryTheme(s.workspaces[newId], from) } }))
       get().movePaneToWorkspace(paneId, fromWsId, newId)
     },
 

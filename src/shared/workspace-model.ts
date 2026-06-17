@@ -72,6 +72,13 @@ export function movePane(from: Workspace, to: Workspace, paneId: string): { from
   return { from: nextFrom, to: nextTo }
 }
 
+/** Copy `source`'s workspace-level theme override onto `target` (deep-cloned), so a pane moved into
+ *  a freshly created `target` renders the same as it did in `source`. Returns `target` unchanged
+ *  when `source` has no override. */
+export function carryTheme(target: Workspace, source: Workspace): Workspace {
+  return source.theme ? { ...target, theme: { ...source.theme } } : target
+}
+
 export function serializeWorkspace(ws: Workspace): string {
   return JSON.stringify({ schemaVersion: SCHEMA_VERSION, workspace: ws }, null, 2)
 }

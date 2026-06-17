@@ -97,14 +97,27 @@ to their previous layout positions.
 
 **Terminals.** The PTY keeps running throughout. Before the source workspace
 unmounts the pane, the xterm instance is serialized into a renderer-side stash
-(`src/renderer/components/terminal-registry.ts`). In transit the pane is buffered
-via `src/renderer/components/pane-transit.ts`. The destination workspace issues
-an idempotent `pty:spawn` which adopts the already-running PTY, then replays the
-snapshot and any buffered output — so scrollback is fully preserved.
+(`stashSnapshot` in `src/renderer/components/terminal-registry.ts`). The
+destination workspace mounts a fresh `TerminalPane` which writes the stashed
+scrollback (`consumeSnapshot`) and issues an idempotent `pty:spawn` that adopts
+the already-running PTY (`pty.has`) instead of respawning — so scrollback and the
+live process are fully preserved.
+
+> No main-side output buffer is needed for a same-window move (unlike the
+> cross-*window* undock handoff, which does buffer): the source unmount and the
+> destination mount happen in a single synchronous React commit, so no `pty:data`
+> can be dispatched to the renderer in the gap. Don't "restore" a transit buffer
+> here as if it were a missing piece.
 
 **Editors.** Any unsaved edits are flushed to a recovery draft before the pane
-leaves the source workspace. The draft is not deleted; the editor reopens in the
-destination workspace and picks it up, so no content is lost.
+leaves the source workspace. While the pane is in transit (tracked by
+`src/renderer/components/pane-transit.ts`) the unmount *flushes* the draft instead
+of deleting it; the editor reopens in the destination workspace and picks it up,
+so no content is lost.
+
+**New workspace.** Moving to **New Workspace** clones the source workspace's
+theme override onto the new one (`carryTheme` in `src/shared/workspace-model.ts`)
+so the pane renders identically in its new home.
 
 **New Workspace.** When **New Workspace** is chosen, the new workspace is created
 with the source workspace's theme override already applied, so the pane's visual
