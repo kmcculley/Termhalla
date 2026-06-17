@@ -7,6 +7,7 @@ export type Shortcut =
   | { type: 'prev-workspace' }
   | { type: 'jump-workspace'; index: number }
   | { type: 'open-settings' }
+  | { type: 'toggle-maximize-pane' }
 
 interface KeyEvent { key: string; ctrlKey: boolean; metaKey: boolean; shiftKey: boolean }
 
@@ -23,6 +24,7 @@ export function matchShortcut(e: KeyEvent): Shortcut | null {
   if (k === 'w' && e.shiftKey) return { type: 'close-workspace' }
   if (k === ',') return { type: 'open-settings' }
   if (k === 'tab') return { type: e.shiftKey ? 'prev-workspace' : 'next-workspace' }
+  if (k === 'm' && e.shiftKey) return { type: 'toggle-maximize-pane' }
   if (!e.shiftKey && k.length === 1 && k >= '1' && k <= '9') return { type: 'jump-workspace', index: Number(k) - 1 }
   return null
 }
