@@ -88,7 +88,7 @@ export function EnvSettings({ wsId, paneId }: { wsId?: string; paneId?: string }
             <input data-testid="env-passphrase" type="password" autoFocus value={passphrase}
               onChange={e => setPassphrase(e.target.value)}
               onKeyDown={e => { if (e.key === 'Enter') void unlock() }} />
-            {error && <div data-testid="env-error" style={{ color: 'var(--status-needs-input, #e55)' }}>Incorrect passphrase</div>}
+            {error && <div data-testid="env-error" style={{ color: '#ff6b6b' }}>Incorrect passphrase</div>}
             <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
               <button data-testid="env-unlock" disabled={!passphrase} onClick={() => void unlock()}>Unlock</button>
             </div>

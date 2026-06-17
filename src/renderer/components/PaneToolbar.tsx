@@ -30,7 +30,7 @@ export function PaneToolbar(
             onClick={() => toggle('schedule')}>⏱</button>
           <button type="button" data-testid={`rec-${paneId}`}
             title={recording ? 'Stop recording' : 'Record session'}
-            style={{ color: recording ? '#e53935' : undefined }}
+            style={{ color: recording ? '#ff6b6b' : undefined }}
             onClick={() => recording ? api.recStop(paneId) : api.recStart(paneId)}>⏺</button>
           <button type="button" data-testid={`env-chip-${paneId}`} title="Environment variables"
             style={{ color: envActive ? 'var(--accent, #4ea1ff)' : undefined }}
