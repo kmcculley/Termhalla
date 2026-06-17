@@ -63,8 +63,8 @@ test('a y/N prompt triggers needs-input and a tab badge', async ({ app }) => {
 test('per-terminal settings: rename + mute the status border', async ({ app }) => {
   const win = await app.firstWindow()
   await openTerminal(win)
-  const gear = win.locator('[data-testid^="gear-"]').first()
-  await gear.click()
+  await win.locator('[data-testid^="titlebar-"]').first().click({ button: 'right', position: { x: 30, y: 13 } })
+  await win.getByTestId('pane-menu-settings').click()
   await win.getByTestId('setting-name').fill('build')
   await win.getByTestId('setting-border').uncheck()
   await win.getByTestId('settings-close').click()
