@@ -54,7 +54,7 @@ npm run dev                  # launch the app with hot reload
 | `npm run test:watch` | Vitest in watch mode. |
 | `npm run e2e` | Run the Playwright-for-Electron end-to-end suite. |
 | `npm run package` | Build and pack a Windows NSIS installer into `dist/` (no publish). |
-| `npm run release` | Same, then publish the installer + update feed (`--publish always`). |
+| `npm run release` | Same, then publish the installer + `latest.yml` to GitHub Releases (`--publish always`). Normally done by CI on a tag push. |
 
 ### Native modules
 
@@ -78,10 +78,24 @@ the asar (`asarUnpack`) so the native binary loads at runtime.
   under `win:` to sign.
 - **App icon** lives at `build/icon.ico` (multi-res, auto-discovered). Regenerate icon
   candidates with `python design/gen_icons.py` (drives a ComfyUI instance).
-- **Auto-update** uses `electron-updater` against the generic HTTP feed configured under
-  `publish:` in `electron-builder.yml`. **Change the placeholder `url` to your real host
-  before the first `npm run release`** — `release` uploads the installer + `latest.yml`
-  there, and installed apps poll it on launch (packaged builds only; a no-op in dev).
+- **Auto-update** uses `electron-updater` against **GitHub Releases** (the `github`
+  provider under `publish:` in `electron-builder.yml`). Installed apps poll the public
+  repo's Releases on launch and install on restart (packaged builds only; a no-op in
+  dev). No runtime token is needed because the repo is public.
+
+### Releases (GitHub Actions)
+
+Releases are built by GitHub Actions, not locally. To cut one:
+
+1. Bump `version` in `package.json` and commit.
+2. `git tag vX.Y.Z && git push origin vX.Y.Z` (the tag must match `package.json`'s
+   version — the workflow fails fast on a mismatch).
+
+The **Release** workflow (`.github/workflows/release.yml`) builds the Windows installer
+and publishes it plus `latest.yml` to a GitHub Release for the tag; installed apps
+auto-update from there on next launch. The **CI** workflow (`.github/workflows/ci.yml`)
+runs `typecheck` + unit tests on every push/PR. `npm run package` still builds an
+installer locally for testing.
 
 ## Testing philosophy
 
