@@ -1,7 +1,8 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useStore } from '../store'
 import type { CloudState, CloudStatus } from '@shared/types'
 import { Z, SURFACE } from './Modal'
+import { resolveBindings, formatChord, COMMANDS, TIP_COMMANDS, nextTipIndex } from '@shared/keybindings'
 
 const GLYPH: Record<CloudState, string> = {
   'checking': '…', 'logged-in': '✓', 'logged-out': '⚠', 'not-installed': '∅', 'error': '!'
@@ -22,6 +23,17 @@ export function StatusBar() {
   const refreshCloud = useStore(s => s.refreshCloud)
   const launchCommand = useStore(s => s.launchCommand)
   const [openFor, setOpenFor] = useState<string | null>(null)
+  const overrides = useStore(s => s.quick.keybindings)
+  const [tipIdx, setTipIdx] = useState(0)
+  useEffect(() => {
+    const t = setInterval(() => setTipIdx(i => nextTipIndex(i, TIP_COMMANDS.length)), 7000)
+    return () => clearInterval(t)
+  }, [])
+  const resolved = resolveBindings(overrides)
+  const tipId = TIP_COMMANDS[tipIdx % TIP_COMMANDS.length]
+  const tipCmd = COMMANDS.find(c => c.id === tipId)
+  const tipChord = resolved[tipId]
+  const tipText = tipCmd && tipChord ? `Press ${formatChord(tipChord)} to ${tipCmd.tip ?? tipCmd.label.toLowerCase()}` : null
 
   return (
     <div data-testid="status-bar"
@@ -59,6 +71,8 @@ export function StatusBar() {
           )}
         </div>
       ))}
+      <div style={{ flex: 1 }} />
+      {tipText && <span data-testid="statusbar-tip" style={{ whiteSpace: 'nowrap', opacity: 0.85 }}>{tipText}</span>}
     </div>
   )
 }
