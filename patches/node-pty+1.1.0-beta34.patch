@@ -1,7 +1,7 @@
-diff --git a/binding.gyp b/binding.gyp
-index 1234567..abcdefg 100644
---- a/binding.gyp
-+++ b/binding.gyp
+diff --git a/node_modules/node-pty/binding.gyp b/node_modules/node-pty/binding.gyp
+index f21c7df..0860e73 100644
+--- a/node_modules/node-pty/binding.gyp
++++ b/node_modules/node-pty/binding.gyp
 @@ -6,7 +6,7 @@
      'conditions': [
        ['OS=="win"', {
@@ -11,14 +11,11 @@ index 1234567..abcdefg 100644
          },
          'msvs_settings': {
              'VCCLCompilerTool': {
-diff --git a/deps/winpty/src/winpty.gyp b/deps/winpty/src/winpty.gyp
-index 1234567..abcdefg 100644
---- a/deps/winpty/src/winpty.gyp
-+++ b/deps/winpty/src/winpty.gyp
+diff --git a/node_modules/node-pty/deps/winpty/src/winpty.gyp b/node_modules/node-pty/deps/winpty/src/winpty.gyp
+index 1ac5758..9a3553e 100644
+--- a/node_modules/node-pty/deps/winpty/src/winpty.gyp
++++ b/node_modules/node-pty/deps/winpty/src/winpty.gyp
 @@ -41,7 +41,7 @@
-             'libraries' : [
-                 '-ladvapi32',
-                 '-lshell32',
                  '-luser32',
              ],
              'msvs_configuration_attributes': {
@@ -26,9 +23,8 @@ index 1234567..abcdefg 100644
 +                'SpectreMitigation': 'false'
              },
              'msvs_settings': {
+                 # Specify this setting here to override a setting from somewhere
 @@ -143,7 +143,7 @@
-             'libraries' : [
-                 '-ladvapi32',
                  '-luser32',
              ],
              'msvs_configuration_attributes': {
@@ -36,3 +32,4 @@ index 1234567..abcdefg 100644
 +                'SpectreMitigation': 'false'
              },
              'msvs_settings': {
+                 # Specify this setting here to override a setting from somewhere
