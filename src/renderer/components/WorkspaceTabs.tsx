@@ -38,14 +38,15 @@ export function WorkspaceTabs() {
     order, workspaces, activeId, setActive, newWorkspace,
     saveAll, shells, newTerminalShellId, setNewTerminalShell,
     addTerminal, addEditor, addExplorer,
-    renameWorkspace, closeWorkspace, moveWorkspace, setBroadcastOpen, broadcastOpen
+    renameWorkspace, closeWorkspace, moveWorkspace, setBroadcastOpen, broadcastOpen, openSettings
   } = useStore(useShallow(s => ({
     order: s.order, workspaces: s.workspaces, activeId: s.activeId, setActive: s.setActive,
     newWorkspace: s.newWorkspace, saveAll: s.saveAll, shells: s.shells,
     newTerminalShellId: s.newTerminalShellId, setNewTerminalShell: s.setNewTerminalShell,
     addTerminal: s.addTerminal, addEditor: s.addEditor, addExplorer: s.addExplorer,
     renameWorkspace: s.renameWorkspace, closeWorkspace: s.closeWorkspace,
-    moveWorkspace: s.moveWorkspace, setBroadcastOpen: s.setBroadcastOpen, broadcastOpen: s.broadcastOpen
+    moveWorkspace: s.moveWorkspace, setBroadcastOpen: s.setBroadcastOpen, broadcastOpen: s.broadcastOpen,
+    openSettings: s.openSettings
   })))
   // Derive the per-workspace badge string inside the selector: statuses/aiSessions change on
   // every line of output, but shallow-comparing the derived strings means we only re-render
@@ -162,6 +163,7 @@ export function WorkspaceTabs() {
         onClick={() => setBroadcastOpen(!broadcastOpen)}>⇉</button>
       <button data-testid="theme-button" title="Theme" onClick={() => setThemeOpen(true)}>🎨</button>
       <button data-testid="env-button" title="Environment variables" onClick={() => setEnvOpen(true)}>🔑</button>
+      <button data-testid="settings-button" title="Settings (Ctrl+,)" onClick={() => openSettings({ section: 'general' })}>⚙</button>
       <button data-testid="save-workspace" onClick={() => saveAll()}>Save</button>
 
       {menuFor && (

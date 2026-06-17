@@ -13,6 +13,7 @@ import { StatusBar } from './components/StatusBar'
 import { UsageWatcher } from './components/UsageWatcher'
 import { Scheduler } from './components/Scheduler'
 import { Toasts } from './components/Toasts'
+import { SettingsPanel } from './components/SettingsPanel'
 import { matchShortcut } from '@shared/keymap'
 import { api } from './api'
 
@@ -118,6 +119,7 @@ export default function App() {
       <UsageWatcher />
       <Scheduler />
       <Toasts />
+      <SettingsPanel />
       <BroadcastDialog />
       <CommandPalette />
       <SshConnectionForm key={connectionFormFor === null ? 'none' : connectionFormFor === 'new' ? 'new' : connectionFormFor.id} />
