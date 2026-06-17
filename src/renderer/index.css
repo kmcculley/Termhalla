@@ -218,3 +218,14 @@ body { background: var(--bg, #1e1e1e); color: var(--fg, #eee); font-family: var(
 @media (prefers-reduced-motion: reduce) {
   .ui-pop-in { animation: none; }
 }
+
+/* Pane maximize: the flagged tile fills the workspace; siblings stay MOUNTED (xterm scrollback and
+   Monaco models alive) but hidden — same visibility:hidden pattern as inactive workspaces, so no
+   FitAddon/PTY-grid thrash. !important overrides react-mosaic's inline tile geometry; the maximized
+   pane gets one legitimate resize. data-max is set imperatively by PaneTile. */
+.ws-max .mosaic-tile { visibility: hidden; pointer-events: none; }
+.ws-max .mosaic-split { visibility: hidden; pointer-events: none; }
+.ws-max .mosaic-tile[data-max="1"] {
+  visibility: visible; pointer-events: auto;
+  inset: 0 !important; width: 100% !important; height: 100% !important; z-index: 3;
+}
