@@ -5,6 +5,7 @@ import type { SettingsSection } from '../store/types'
 import { GeneralSettings } from './GeneralSettings'
 import { ThemeSettings } from './ThemeSettings'
 import { EnvSettings } from './EnvSettings'
+import { TerminalAlertsSettings } from './TerminalAlertsSettings'
 
 const SECTIONS: { id: SettingsSection; label: string }[] = [
   { id: 'general', label: 'General' },
@@ -41,7 +42,7 @@ export function SettingsPanel() {
         {section === 'general' && <GeneralSettings />}
         {section === 'appearance' && <ThemeSettings paneId={settings.paneId} />}
         {section === 'environment' && <EnvSettings wsId={settings.paneId ? activeId ?? undefined : undefined} paneId={settings.paneId} />}
-        {section === 'terminal' && <div data-testid="settings-placeholder" style={{ color: 'var(--fg-dim, #aaa)' }}>Moved here in the next step…</div>}
+        {section === 'terminal' && <TerminalAlertsSettings wsId={settings.paneId ? activeId ?? undefined : undefined} paneId={settings.paneId} />}
       </div>
     </Modal>
   )
