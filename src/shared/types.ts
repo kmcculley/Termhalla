@@ -96,12 +96,14 @@ export interface EditorConfig {
   kind: 'editor'
   files: string[]
   activePath?: string
+  name?: string
   theme?: Partial<Theme>
 }
 
 export interface ExplorerConfig {
   kind: 'explorer'
   root: string
+  name?: string
   theme?: Partial<Theme>
 }
 
