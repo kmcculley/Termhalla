@@ -6,14 +6,6 @@ type RunQuery = () => Promise<CimRow[]>
 
 const CLEARED = '∅' // sentinel signature meaning "emitted null"
 
-/** Parse a proc-poll interval override (ms) from an env value, falling back to 1000.
- *  e2e sets this high to stop the busy-gated CIM poll from spawning a powershell.exe
- *  every second and starving concurrent node-pty spawns. Rejects non-positive/garbage. */
-export function procPollIntervalMs(raw: string | undefined, fallback = 1000): number {
-  const n = raw ? Number(raw) : NaN
-  return Number.isFinite(n) && n > 0 ? n : fallback
-}
-
 /** Polls the OS process table (only while a session is busy) and emits each busy
  *  terminal's foreground/tree. Idle sessions get a single null (chip falls back to shell name). */
 export class ProcessTracker {
