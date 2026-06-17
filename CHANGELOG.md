@@ -7,6 +7,16 @@ All notable changes to Termhalla are recorded here. The format follows
 ## [Unreleased]
 
 ### Added
+- **Keyboard navigation + command menu (UI polish phase 3).** The command palette
+  (Ctrl+K) now also runs commands — type to reveal **New terminal/editor/explorer**,
+  **New workspace**, **Broadcast**, **Save all**, **Refresh cloud status** (the
+  default connect/jump view is unchanged until you type). New global shortcuts:
+  **Ctrl+Shift+T** new terminal, **Ctrl+Shift+W** close workspace,
+  **Ctrl+Tab / Ctrl+Shift+Tab** cycle workspaces, **Ctrl+1…9** jump to a workspace.
+  The workspace-tab strip is now arrow-key navigable (Left/Right, Home/End) with
+  proper `tablist`/`tab` roles, and the broadcast dialog + palette results expose
+  correct ARIA roles. Shortcuts use terminal-safe chords and only intercept keys
+  they match, so the shell still receives everything else.
 - **In-app toasts + file-explorer context menu (UI polish phase 2).** Discrete actions that
   used to succeed silently (saving a workspace template or theme preset, saving an SSH
   favorite, scheduling a command, adding an env var) now confirm with a bottom-right toast.
