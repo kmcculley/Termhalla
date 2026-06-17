@@ -18,7 +18,7 @@ const BACKDROP = '#0008'
  *  the in-tile proc/cwd popovers, the cloud-status popover, and dropdown menus. Spread it and
  *  add positioning/padding. Single source so the surface look changes in exactly one place. */
 export const SURFACE: CSSProperties = {
-  background: 'var(--elevated, #252526)', color: 'var(--fg, #eee)',
+  background: 'var(--elevated, #252526)', color: 'var(--fg-on-elevated, var(--fg, #eee))',
   border: '1px solid var(--border, #444)', borderRadius: 4,
   boxShadow: 'var(--shadow-pop)'
 }
