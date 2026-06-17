@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { DEFAULT_THEME, mergeTheme, themeCssVars } from '../../src/shared/theme'
 import { resolveTheme, themeCssVarsPartial } from '../../src/shared/theme'
+import { readableOn } from '../../src/shared/contrast'
 
 describe('mergeTheme', () => {
   it('returns defaults for undefined', () => {
@@ -23,6 +24,10 @@ describe('themeCssVars', () => {
     expect(v['--term-font-size']).toBe(`${DEFAULT_THEME.termFontSize}px`)
     expect(v['--accent']).toBe(DEFAULT_THEME.accent)
   })
+  it('derives --fg-on-elevated from the elevated background luminance', () => {
+    const v = themeCssVars(DEFAULT_THEME)
+    expect(v['--fg-on-elevated']).toBe(readableOn(DEFAULT_THEME.elevatedBg))
+  })
 })
 
 describe('resolveTheme', () => {
@@ -42,5 +47,11 @@ describe('themeCssVarsPartial', () => {
   it('maps only present tokens (px on sizes)', () => {
     const v = themeCssVarsPartial({ panelBg: '#abcdef', fontSize: 18 })
     expect(v).toEqual({ '--panel': '#abcdef', '--font-size': '18px' })
+  })
+  it('recomputes --fg-on-elevated only when elevatedBg is overridden', () => {
+    expect(themeCssVarsPartial({ panelBg: '#abcdef' })['--fg-on-elevated']).toBeUndefined()
+    const light = themeCssVarsPartial({ elevatedBg: '#f5f5f5' })
+    expect(light['--elevated']).toBe('#f5f5f5')
+    expect(light['--fg-on-elevated']).toBe(readableOn('#f5f5f5'))
   })
 })
