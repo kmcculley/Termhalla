@@ -37,6 +37,8 @@ export function SettingsPanel() {
             {s.label}
           </button>
         ))}
+        <div style={{ flex: 1 }} />
+        <button data-testid="settings-close" onClick={close}>Close</button>
       </div>
       <div style={{ flex: 1, padding: 14, overflow: 'auto' }}>
         {section === 'general' && <GeneralSettings />}

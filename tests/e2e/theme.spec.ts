@@ -44,8 +44,9 @@ test('customizes the theme, persists it across relaunch, and supports presets', 
   let win = await app.firstWindow()
   await expect(win.getByTestId('workspace-tabs')).toBeVisible({ timeout: 15_000 })
 
-  await win.getByTestId('theme-button').click()
-  await expect(win.getByTestId('theme-editor')).toBeVisible()
+  await win.getByTestId('settings-button').click()
+  await win.getByTestId('settings-nav-appearance').click()
+  await expect(win.getByTestId('settings-appearance')).toBeVisible()
 
   // Change the window background to a distinctive color → the CSS var updates live.
   await setColor(win, 'theme-windowBg', '#7733aa')
@@ -59,8 +60,8 @@ test('customizes the theme, persists it across relaunch, and supports presets', 
   await win.locator('[data-testid^="theme-preset-"]', { hasText: 'Purple' }).click()
   await expect.poll(() => cssVar(win, '--bg'), { timeout: 10_000 }).toBe('#7733aa')
 
-  // Close the editor (its overlay intercepts clicks) and let the debounced quick.json save flush.
-  await win.getByTestId('theme-editor').click({ position: { x: 5, y: 5 } })
+  // Close the panel and let the debounced quick.json save flush.
+  await win.getByTestId('settings-close').click()
   await win.waitForTimeout(1500)
   let pid = app.process().pid; await app.close().catch(() => {}); killTree(pid)
 

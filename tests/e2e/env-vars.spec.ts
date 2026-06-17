@@ -16,9 +16,10 @@ test('sets a global env var and a new terminal sees it', async () => {
   })
   const win = await app.firstWindow()
 
-  // Open the env manager and create a fresh encrypted vault (unlocked in-session).
-  await win.getByTestId('env-button').click()
-  await expect(win.getByTestId('env-manager')).toBeVisible()
+  // Open the env settings section and create a fresh encrypted vault (unlocked in-session).
+  await win.getByTestId('settings-button').click()
+  await win.getByTestId('settings-nav-environment').click()
+  await expect(win.getByTestId('settings-environment')).toBeVisible()
   await win.getByTestId('env-passphrase').fill('pw')
   await win.getByTestId('env-create').click()
 
@@ -28,9 +29,9 @@ test('sets a global env var and a new terminal sees it', async () => {
   await win.getByTestId('env-add').click()
   await expect(win.getByTestId('env-row-FOO')).toBeVisible({ timeout: 10_000 })
 
-  // Close the manager (use the explicit Close button, not the overlay).
-  await win.getByRole('button', { name: 'Close' }).click()
-  await expect(win.getByTestId('env-manager')).toBeHidden()
+  // Close the settings panel (explicit Close button, not the overlay).
+  await win.getByTestId('settings-close').click()
+  await expect(win.getByTestId('settings-panel')).toBeHidden()
 
   // Spawn a PowerShell terminal — global vars are injected at spawn time.
   await win.getByTestId('shell-picker').selectOption('powershell')
