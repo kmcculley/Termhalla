@@ -4,6 +4,7 @@ import { Modal } from './Modal'
 import type { SettingsSection } from '../store/types'
 import { GeneralSettings } from './GeneralSettings'
 import { ThemeSettings } from './ThemeSettings'
+import { EnvSettings } from './EnvSettings'
 
 const SECTIONS: { id: SettingsSection; label: string }[] = [
   { id: 'general', label: 'General' },
@@ -15,6 +16,7 @@ const SECTIONS: { id: SettingsSection; label: string }[] = [
 export function SettingsPanel() {
   const settings = useStore(s => s.settings)
   const close = useStore(s => s.closeSettings)
+  const activeId = useStore(s => s.activeId)
   const [section, setSection] = useState<SettingsSection>('general')
   // Re-seed the section each time the panel is (re)opened with a new target.
   const [seededFor, setSeededFor] = useState<object | null>(null)
@@ -38,7 +40,8 @@ export function SettingsPanel() {
       <div style={{ flex: 1, padding: 14, overflow: 'auto' }}>
         {section === 'general' && <GeneralSettings />}
         {section === 'appearance' && <ThemeSettings paneId={settings.paneId} />}
-        {(section === 'environment' || section === 'terminal') && <div data-testid="settings-placeholder" style={{ color: 'var(--fg-dim, #aaa)' }}>Moved here in the next step…</div>}
+        {section === 'environment' && <EnvSettings wsId={settings.paneId ? activeId ?? undefined : undefined} paneId={settings.paneId} />}
+        {section === 'terminal' && <div data-testid="settings-placeholder" style={{ color: 'var(--fg-dim, #aaa)' }}>Moved here in the next step…</div>}
       </div>
     </Modal>
   )
