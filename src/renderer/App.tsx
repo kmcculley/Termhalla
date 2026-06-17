@@ -82,6 +82,7 @@ export default function App() {
         case 'next-workspace': if (order.length) s.setActive(order[(idx + 1 + order.length) % order.length]); break
         case 'prev-workspace': if (order.length) s.setActive(order[(idx - 1 + order.length) % order.length]); break
         case 'jump-workspace': if (order[sc.index]) s.setActive(order[sc.index]); break
+        case 'open-settings': s.openSettings({ section: 'general' }); break
       }
     }
     window.addEventListener('keydown', onKey)
