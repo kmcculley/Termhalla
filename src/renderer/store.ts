@@ -18,6 +18,7 @@ import { createThemeSlice } from './store/theme-slice'
 import { createRuntimeSlice } from './store/runtime-slice'
 import { createQuickSlice } from './store/quick-slice'
 import { createScheduleSlice } from './store/schedule-slice'
+import { createRunCommandsSlice } from './store/run-commands-slice'
 import { createToastsSlice } from './store/toasts-slice'
 import { createSettingsSlice } from './store/settings-slice'
 import { createKeybindingsSlice } from './store/keybindings-slice'
@@ -104,6 +105,7 @@ export const useStore = create<State>((set, get) => {
     ...createRuntimeSlice(deps),
     ...createQuickSlice(deps),
     ...createScheduleSlice(deps),
+    ...createRunCommandsSlice(deps),
     ...createToastsSlice(deps),
     ...createSettingsSlice(deps),
     ...createKeybindingsSlice(deps),
