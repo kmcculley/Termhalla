@@ -24,6 +24,8 @@ test('broadcast: Shift+Enter sends, and quick-key buttons are present', async ()
 
   await win.getByTestId('broadcast-button').click()
   await expect(win.getByTestId('broadcast-key-ctrl-c')).toBeEnabled()
+  // a11y: the dialog card exposes a dialog role + label
+  await expect(win.locator('[aria-label="Broadcast to all terminals"][role="dialog"]')).toHaveCount(1)
   await win.getByTestId('broadcast-text').fill('echo pol-shift-7788')
   await win.getByTestId('broadcast-text').press('Shift+Enter')
 
