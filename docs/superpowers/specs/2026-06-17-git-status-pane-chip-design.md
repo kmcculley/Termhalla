@@ -68,7 +68,8 @@ pty:cwd (existing) ──▶ GitStatusService.setCwd(paneId, cwd, sshTarget?)
 // src/shared/types.ts
 export interface GitStatus {
   root: string            // absolute repo root
-  branch: string          // 'main' | '(detached)' | short sha when detached
+  branch: string          // branch name, or short sha when detached
+  detached: boolean       // true when HEAD is detached (UI shows the ⎇ glyph)
   upstream: string | null // e.g. 'origin/main', or null when no upstream
   ahead: number
   behind: number
@@ -144,9 +145,10 @@ Clicking toggles `GitPopover`. Uses the existing `toggle('git')` menu-state mach
 
 ### Popover (`GitPopover.tsx`)
 
-Same pattern as `ProcessPopover`: absolutely positioned, `onClick` stops propagation, and
-**`createPortal` to `<body>`** (mosaic-tile overlay gotcha — a `position: fixed`/absolute
-child of a tile mis-positions and intercepts no clicks otherwise). Content:
+Same pattern as `ProcessPopover`/`CwdMenu`: a `position: absolute` child of the
+`position: relative` tile, `onClick` stops propagation, closed by toggling the chip again. (No
+portal — the mosaic-tile portal gotcha applies to `position: fixed` overlays like
+`PaneContextMenu`/`Modal`, not these toolbar-anchored popovers.) Content:
 
 - branch (and detached sha if applicable)
 - upstream + `↑ahead ↓behind` (omit if no upstream)
