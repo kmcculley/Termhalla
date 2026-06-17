@@ -28,7 +28,8 @@ export function BroadcastDialog() {
   const count = ws ? terminalPaneIds(ws).length : 0
   const send = () => { broadcastInput(text, mode, enter); setOpen(false); setText('') }
   return (
-    <Modal onClose={() => setOpen(false)} backdropTestId="broadcast-dialog" card={{ padding: 12, width: 460 }}>
+    <Modal onClose={() => setOpen(false)} backdropTestId="broadcast-dialog" card={{ padding: 12, width: 460 }}
+      cardProps={{ role: 'dialog', 'aria-modal': true, 'aria-label': 'Broadcast to all terminals' }}>
         <div style={{ fontWeight: 600 }}>Broadcast to all terminals</div>
         <textarea data-testid="broadcast-text" value={text} onChange={e => setText(e.target.value)} rows={4}
           autoFocus onKeyDown={e => { if (e.key === 'Enter' && e.shiftKey) { e.preventDefault(); send() } }}

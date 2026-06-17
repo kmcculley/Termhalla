@@ -1,7 +1,7 @@
 # UI Polish — Phase 3: Keyboard & a11y + command palette
 
 **Date:** 2026-06-16
-**Status:** Design — pending review
+**Status:** Implemented
 **Part of:** UI polish + QoL initiative (Phase 3 of 4). Phases 1 (tokens) and 2
 (feedback) are merged. Phase 4 = unified Settings panel.
 

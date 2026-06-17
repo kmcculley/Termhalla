@@ -13,6 +13,7 @@ import { StatusBar } from './components/StatusBar'
 import { UsageWatcher } from './components/UsageWatcher'
 import { Scheduler } from './components/Scheduler'
 import { Toasts } from './components/Toasts'
+import { matchShortcut } from '@shared/keymap'
 import { api } from './api'
 
 export default function App() {
@@ -55,15 +56,32 @@ export default function App() {
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if ((e.ctrlKey || e.metaKey) && (e.key === 'k' || e.key === 'K')) {
-        e.preventDefault()
-        const s = useStore.getState()
-        s.setPaletteOpen(!s.paletteOpen)
-      }
-      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'Enter') {
-        e.preventDefault()
-        const s = useStore.getState()
-        s.setBroadcastOpen(!s.broadcastOpen)
+      const sc = matchShortcut(e)
+      if (!sc) return
+      e.preventDefault()
+      const s = useStore.getState()
+      const activeId = s.activeId
+      const order = s.order
+      const idx = activeId ? order.indexOf(activeId) : -1
+      switch (sc.type) {
+        case 'toggle-palette': s.setPaletteOpen(!s.paletteOpen); break
+        case 'toggle-broadcast': s.setBroadcastOpen(!s.broadcastOpen); break
+        case 'new-terminal': {
+          if (!activeId) break
+          const ws = s.workspaces[activeId]
+          const target = ws?.layout ? Object.keys(ws.panes)[0] : null
+          s.addTerminal(activeId, target, 'row'); break
+        }
+        case 'close-workspace': {
+          if (!activeId) break
+          const ws = s.workspaces[activeId]
+          const ok = !ws || Object.keys(ws.panes).length === 0 ||
+            window.confirm(`Close workspace "${ws.name}"? Its terminals will be closed.`)
+          if (ok) s.closeWorkspace(activeId); break
+        }
+        case 'next-workspace': if (order.length) s.setActive(order[(idx + 1 + order.length) % order.length]); break
+        case 'prev-workspace': if (order.length) s.setActive(order[(idx - 1 + order.length) % order.length]); break
+        case 'jump-workspace': if (order[sc.index]) s.setActive(order[sc.index]); break
       }
     }
     window.addEventListener('keydown', onKey)

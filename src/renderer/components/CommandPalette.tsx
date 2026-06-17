@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useStore, paneCwd } from '../store'
-import { buildPaletteItems, filterPaletteItems, type PaletteItem } from '@shared/quick'
+import { api } from '../api'
+import { buildPaletteItems, buildCommandItems, filterPaletteItems, type PaletteItem } from '@shared/quick'
 import { Modal, Z } from './Modal'
 
 export function CommandPalette() {
@@ -16,6 +17,15 @@ export function CommandPalette() {
   const unpinDir = useStore(s => s.unpinDir)
   const deleteConnection = useStore(s => s.deleteConnection)
   const setConnectionForm = useStore(s => s.setConnectionForm)
+  const addTerminal = useStore(s => s.addTerminal)
+  const addEditor = useStore(s => s.addEditor)
+  const addExplorer = useStore(s => s.addExplorer)
+  const newWorkspace = useStore(s => s.newWorkspace)
+  const setBroadcastOpen = useStore(s => s.setBroadcastOpen)
+  const saveAll = useStore(s => s.saveAll)
+  const refreshCloud = useStore(s => s.refreshCloud)
+  const pushToast = useStore(s => s.pushToast)
+  const order = useStore(s => s.order)
 
   const [query, setQuery] = useState('')
   const [sel, setSel] = useState(0)
@@ -29,10 +39,11 @@ export function CommandPalette() {
     return termId ? paneCwd({ cwds, workspaces }, termId) : ''
   }, [activeId, workspaces, cwds])
 
-  const items = useMemo(
-    () => filterPaletteItems(buildPaletteItems(quick, currentCwd), query),
-    [quick, currentCwd, query]
-  )
+  const items = useMemo(() => {
+    const base = buildPaletteItems(quick, currentCwd)
+    const all = query.trim() ? [...base, ...buildCommandItems()] : base
+    return filterPaletteItems(all, query)
+  }, [quick, currentCwd, query])
 
   const clampedSel = items.length ? Math.min(sel, items.length - 1) : 0
 
@@ -44,10 +55,22 @@ export function CommandPalette() {
   const close = () => setOpen(false)
 
   const activate = (item: PaletteItem) => {
-    if (item.kind === 'connection') { launchConnection(item.id); close() }
-    else if (item.kind === 'dir') { launchDir(item.path); close() }
-    else if (item.action === 'new-connection') { setConnectionForm('new'); setOpen(false) }
-    else if (item.action === 'pin-cwd') { pinDir(currentCwd) /* keep open to show the new ★ */ }
+    if (item.kind === 'connection') { launchConnection(item.id); close(); return }
+    if (item.kind === 'dir') { launchDir(item.path); close(); return }
+    if (item.action === 'new-connection') { setConnectionForm('new'); setOpen(false); return }
+    if (item.action === 'pin-cwd') { pinDir(currentCwd); return /* keep open to show the new ★ */ }
+    // Commands below need an active workspace.
+    if (!activeId) return
+    const ws = workspaces[activeId]
+    const target = ws?.layout ? Object.keys(ws.panes)[0] : null
+    if (item.action === 'new-terminal') addTerminal(activeId, target, 'row')
+    else if (item.action === 'new-editor') addEditor(activeId, target, 'row')
+    else if (item.action === 'new-explorer') { void api.openFolder().then(r => { if (r) addExplorer(activeId, target, 'row', r) }) }
+    else if (item.action === 'new-workspace') newWorkspace(`Workspace ${order.length + 1}`)
+    else if (item.action === 'broadcast') setBroadcastOpen(true)
+    else if (item.action === 'save-all') { void saveAll(); pushToast('Workspaces saved') }
+    else if (item.action === 'refresh-cloud') refreshCloud()
+    close()
   }
 
   const onKeyDown = (e: React.KeyboardEvent) => {
@@ -67,7 +90,7 @@ export function CommandPalette() {
           placeholder="Connect to… or jump to a directory"
           style={{ background: 'var(--panel, #1e1e1e)', color: 'var(--fg, #eee)', border: 'none', borderBottom: '1px solid var(--border, #444)',
             padding: '10px 12px', fontSize: 14, outline: 'none' }} />
-        <div style={{ overflowY: 'auto' }}>
+        <div style={{ overflowY: 'auto' }} role="listbox" aria-label="Results">
           {items.length === 0 && <div style={{ padding: 12, color: 'var(--fg-dim, #aaa)' }}>No matches</div>}
           {items.map((item, i) => {
             const key = item.kind === 'connection' ? `c-${item.id}`
@@ -77,7 +100,7 @@ export function CommandPalette() {
               : item.label
             const detail = item.kind === 'connection' ? item.detail : ''
             return (
-              <div key={key} data-testid={`palette-item-${i}`}
+              <div key={key} data-testid={`palette-item-${i}`} role="option" aria-selected={i === clampedSel}
                 onMouseEnter={() => setSel(i)} onClick={() => activate(item)}
                 style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px',
                   cursor: 'pointer', background: i === clampedSel ? 'var(--sel-bg)' : 'transparent' }}>
