@@ -4,6 +4,12 @@
 
 **Status:** Shipped · **Spec:** [design](../superpowers/specs/2026-06-15-termhalla-ui-theming-design.md) · **Plan:** [plan](../superpowers/plans/2026-06-15-termhalla-ui-theming.md)
 
+> **UI polish phase 4 update:** the theme editor is no longer a standalone modal. Its
+> body now renders as the **Appearance** section of the unified `SettingsPanel`
+> (`src/renderer/components/ThemeSettings.tsx`), opened via `openSettings({ section:
+> 'appearance', paneId })` from the tab-bar ⚙ or a pane's 🎨. All scope/preset behavior
+> and `theme-*` testids are unchanged.
+
 ## What it does
 
 The `🎨` button in the workspace tab bar opens the **Theme** editor. Pick colors for the window background, toolbars/panels, menus & dialogs, borders, text, dim text, accent (active/selection), the busy/needs-input **alert** colors, and the terminal background/foreground; set the UI font & size and the terminal font & size. Changes apply **live**. Save an **App preset**, switch presets, or **Reset this scope**. Everything persists across restarts.

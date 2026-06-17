@@ -13,6 +13,7 @@ import { StatusBar } from './components/StatusBar'
 import { UsageWatcher } from './components/UsageWatcher'
 import { Scheduler } from './components/Scheduler'
 import { Toasts } from './components/Toasts'
+import { SettingsPanel } from './components/SettingsPanel'
 import { matchShortcut } from '@shared/keymap'
 import { api } from './api'
 
@@ -82,6 +83,7 @@ export default function App() {
         case 'next-workspace': if (order.length) s.setActive(order[(idx + 1 + order.length) % order.length]); break
         case 'prev-workspace': if (order.length) s.setActive(order[(idx - 1 + order.length) % order.length]); break
         case 'jump-workspace': if (order[sc.index]) s.setActive(order[sc.index]); break
+        case 'open-settings': s.openSettings({ section: 'general' }); break
       }
     }
     window.addEventListener('keydown', onKey)
@@ -117,6 +119,7 @@ export default function App() {
       <UsageWatcher />
       <Scheduler />
       <Toasts />
+      <SettingsPanel />
       <BroadcastDialog />
       <CommandPalette />
       <SshConnectionForm key={connectionFormFor === null ? 'none' : connectionFormFor === 'new' ? 'new' : connectionFormFor.id} />

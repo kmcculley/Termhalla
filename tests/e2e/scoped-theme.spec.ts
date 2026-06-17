@@ -45,8 +45,9 @@ test('scoped theming: app vs per-pane override, persisted', async () => {
   await win.getByTestId('add-first-terminal').click()
   await expect(win.locator('[data-testid^="terminal-"]')).toHaveCount(1, { timeout: 15_000 })
 
-  await win.getByTestId('theme-button').click()
-  await expect(win.getByTestId('theme-editor')).toBeVisible()
+  await win.getByTestId('settings-button').click()
+  await win.getByTestId('settings-nav-appearance').click()
+  await expect(win.getByTestId('settings-appearance')).toBeVisible()
 
   // App scope: window background updates :root --bg.
   await setColor(win, 'theme-windowBg', '#7733aa')
@@ -60,7 +61,7 @@ test('scoped theming: app vs per-pane override, persisted', async () => {
   expect(await rootVar(win, '--term-bg')).not.toBe('#22aa55')
 
   // Close, let autosave flush, relaunch.
-  await win.getByTestId('theme-editor').click({ position: { x: 5, y: 5 } })
+  await win.getByTestId('settings-close').click()
   await win.waitForTimeout(1500)
   let pid = app.process().pid; await app.close().catch(() => {}); killTree(pid)
 
@@ -81,9 +82,9 @@ test('a pane theme button opens the editor scoped to that pane', async () => {
   await win.getByTestId('add-first-terminal').click()
   await expect(win.locator('[data-testid^="terminal-"]')).toHaveCount(1, { timeout: 15_000 })
 
-  // Open the theme editor from THIS pane's 🎨 button → starts scoped to the pane.
+  // Open the theme settings from THIS pane's 🎨 button → starts scoped to the pane.
   await win.locator('[data-testid^="theme-chip-"]').first().click()
-  await expect(win.getByTestId('theme-editor')).toBeVisible()
+  await expect(win.getByTestId('settings-appearance')).toBeVisible()
   expect(await win.getByTestId('theme-scope').inputValue()).toMatch(/^pane:/)
 
   // Editing applies to that pane only.

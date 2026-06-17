@@ -2,7 +2,6 @@ import { useState } from 'react'
 import { useStore, type ThemeScope } from '../store'
 import { mergeTheme, resolveTheme, themeCssVarsPartial } from '@shared/theme'
 import type { Theme } from '@shared/types'
-import { Modal } from './Modal'
 
 const COLORS: { key: keyof Theme; label: string }[] = [
   { key: 'windowBg', label: 'Window background' },
@@ -23,7 +22,9 @@ function varFor(key: keyof Theme, value: string | number): [string, string] {
   return Object.entries(themeCssVarsPartial({ [key]: value } as Partial<Theme>))[0] as [string, string]
 }
 
-export function ThemeEditor({ onClose, initialPaneId }: { onClose: () => void; initialPaneId?: string }) {
+/** Appearance settings section: theme colors/fonts scoped to app / workspace / pane,
+ *  plus named app presets. Live-previews onto the cascade target as you drag. */
+export function ThemeSettings({ paneId }: { paneId?: string }) {
   const activeId = useStore(s => s.activeId)
   const ws = useStore(s => (s.activeId ? s.workspaces[s.activeId] : null))
   const quickTheme = useStore(s => s.quick.theme)
@@ -36,11 +37,11 @@ export function ThemeEditor({ onClose, initialPaneId }: { onClose: () => void; i
   const presets = useStore(s => s.quick.themePresets)
 
   // Opened from a pane's button → start scoped to that pane; otherwise app-wide.
-  const [sel, setSel] = useState(initialPaneId ? `pane:${initialPaneId}` : 'app') // 'app' | 'workspace' | `pane:<paneId>`
+  const [sel, setSel] = useState(paneId ? `pane:${paneId}` : 'app') // 'app' | 'workspace' | `pane:<paneId>`
   const [presetName, setPresetName] = useState('')
 
-  const paneId = sel.startsWith('pane:') ? sel.slice(5) : null
-  const pane = paneId && ws ? ws.panes[paneId] : null
+  const panePid = sel.startsWith('pane:') ? sel.slice(5) : null
+  const pane = panePid && ws ? ws.panes[panePid] : null
 
   // Resolved theme shown for the selected scope.
   const t: Theme = sel === 'app' ? mergeTheme(quickTheme)
@@ -50,13 +51,13 @@ export function ThemeEditor({ onClose, initialPaneId }: { onClose: () => void; i
   const scopeOf = (): ThemeScope =>
     sel === 'app' ? { kind: 'app' }
       : sel === 'workspace' ? { kind: 'workspace', wsId: activeId! }
-        : { kind: 'pane', wsId: activeId!, paneId: paneId! }
+        : { kind: 'pane', wsId: activeId!, paneId: panePid! }
 
   // Element to live-preview on (CSS-var cascade target).
   const scopeTarget = (): HTMLElement | null =>
     sel === 'app' ? document.documentElement
       : sel === 'workspace' ? document.querySelector(`[data-testid="workspace-host"][data-ws="${activeId}"]`)
-        : document.querySelector(`[data-testid="tile-${paneId}"]`)
+        : document.querySelector(`[data-testid="tile-${panePid}"]`)
 
   const live = (key: keyof Theme, value: string) => { const [k, v] = varFor(key, value); scopeTarget()?.style.setProperty(k, v) }
   const commit = (key: keyof Theme, value: string | number) => setThemeScoped(scopeOf(), { [key]: value } as Partial<Theme>)
@@ -64,7 +65,7 @@ export function ThemeEditor({ onClose, initialPaneId }: { onClose: () => void; i
   const row = { display: 'flex', alignItems: 'center', gap: 8, justifyContent: 'space-between' } as const
 
   return (
-    <Modal onClose={onClose} backdropTestId="theme-editor" card={{ padding: 14, width: 440, maxHeight: '86vh', overflow: 'auto' }}>
+    <div data-testid="settings-appearance" style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
         <div style={{ fontWeight: 600 }}>Theme</div>
         <label style={row}><span>Scope</span>
           <select data-testid="theme-scope" value={sel} onChange={e => setSel(e.target.value)} style={{ flex: 1, marginLeft: 8 }}>
@@ -114,9 +115,6 @@ export function ThemeEditor({ onClose, initialPaneId }: { onClose: () => void; i
             <button data-testid={`theme-preset-del-${p.id}`} onClick={() => { deleteThemePreset(p.id); pushToast('Preset deleted') }}>×</button>
           </div>
         ))}
-        <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-          <button onClick={onClose}>Close</button>
-        </div>
-    </Modal>
+    </div>
   )
 }

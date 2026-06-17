@@ -18,6 +18,7 @@ export function PaneToolbar(
 ) {
   const addTerminal = useStore(s => s.addTerminal)
   const closePane = useStore(s => s.closePane)
+  const openSettings = useStore(s => s.openSettings)
   return (
     <>
       {isTerminal && (
@@ -33,12 +34,12 @@ export function PaneToolbar(
             onClick={() => recording ? api.recStop(paneId) : api.recStart(paneId)}>⏺</button>
           <button type="button" data-testid={`env-chip-${paneId}`} title="Environment variables"
             style={{ color: envActive ? 'var(--accent, #4ea1ff)' : undefined }}
-            onClick={() => toggle('env')}>🔑</button>
+            onClick={() => openSettings({ section: 'environment', paneId })}>🔑</button>
         </>
       )}
       <button data-testid={`cwd-${paneId}`} title="Folder actions" onClick={() => toggle('cwd')}>📁</button>
-      <button data-testid={`gear-${paneId}`} title="Terminal settings" onClick={() => toggle('settings')}>⚙</button>
-      <button data-testid={`theme-chip-${paneId}`} title="Theme this pane" onClick={() => toggle('theme')}>🎨</button>
+      <button data-testid={`gear-${paneId}`} title="Terminal settings" onClick={() => openSettings({ section: 'terminal', paneId })}>⚙</button>
+      <button data-testid={`theme-chip-${paneId}`} title="Theme this pane" onClick={() => openSettings({ section: 'appearance', paneId })}>🎨</button>
       <button data-testid={`split-${paneId}`} title="Split right" onClick={() => addTerminal(wsId, paneId, 'row')}>⬌</button>
       <button data-testid={`split-col-${paneId}`} title="Split down" onClick={() => addTerminal(wsId, paneId, 'column')}>⬍</button>
       <button data-testid={`close-${paneId}`} onClick={() => closePane(wsId, paneId)}>✕</button>

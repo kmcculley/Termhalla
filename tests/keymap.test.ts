@@ -27,6 +27,9 @@ describe('matchShortcut', () => {
   it('Ctrl+3 jumps to 0-based index 2', () => {
     expect(matchShortcut(ev({ key: '3', ctrlKey: true }))).toEqual({ type: 'jump-workspace', index: 2 })
   })
+  it('Ctrl+comma opens settings', () => {
+    expect(matchShortcut(ev({ key: ',', ctrlKey: true }))).toEqual({ type: 'open-settings' })
+  })
   it('plain Tab and unmodified keys do not match', () => {
     expect(matchShortcut(ev({ key: 'Tab' }))).toBeNull()
     expect(matchShortcut(ev({ key: 't', ctrlKey: true }))).toBeNull() // no shift

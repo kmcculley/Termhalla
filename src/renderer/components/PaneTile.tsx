@@ -6,16 +6,14 @@ import { useStore, paneCwd } from '../store'
 import { TerminalPane } from './TerminalPane'
 import { EditorPane } from './EditorPane'
 import { ExplorerPane } from './ExplorerPane'
-import { TerminalSettings } from './TerminalSettings'
 import { ScheduleDialog } from './ScheduleDialog'
-import { ThemeEditor } from './ThemeEditor'
-import { EnvManager } from './EnvManager'
 import { PaneToolbar } from './PaneToolbar'
 import { ProcessPopover } from './ProcessPopover'
 import { CwdMenu } from './CwdMenu'
 
-/** Which single in-tile overlay (if any) is open. One pane shows at most one at a time. */
-export type PaneMenu = 'proc' | 'cwd' | 'settings' | 'schedule' | 'theme' | 'env'
+/** Which single in-tile overlay (if any) is open. One pane shows at most one at a time.
+ *  (Theme/env/terminal settings now live in the unified Settings panel.) */
+export type PaneMenu = 'proc' | 'cwd' | 'schedule'
 
 /** Short, compact names for the idle process chip. */
 const SHELL_CHIP_LABEL: Record<string, string> = {
@@ -35,7 +33,6 @@ export function PaneTile({ wsId, paneId, path }: { wsId: string; paneId: string;
   const recording = useStore(s => !!s.recording[paneId])
   const cwd = useStore(s => paneCwd(s, paneId))
   const shells = useStore(s => s.shells)
-  const updatePaneConfig = useStore(s => s.updatePaneConfig)
   const [menu, setMenu] = useState<PaneMenu | null>(null)
   const toggle = (m: PaneMenu) => setMenu(cur => (cur === m ? null : m))
   const close = () => setMenu(null)
@@ -65,17 +62,10 @@ export function PaneTile({ wsId, paneId, path }: { wsId: string; paneId: string;
       <div className="term-tile" data-status={state}
         data-testid={`tile-${paneId}`} data-cwd={cwd}
         style={{ ...themeCssVarsPartial(pane?.config.theme ?? {}), position: 'relative', height: '100%' }}>
-        {menu === 'settings' && pane && termCfg && (
-          <TerminalSettings config={termCfg}
-            onChange={patch => updatePaneConfig(wsId, paneId, patch)}
-            onClose={close} />
-        )}
         {menu === 'proc' && (
           <ProcessPopover paneId={paneId} procInfo={procInfo} aiSession={aiSession} usage={usage} onClose={close} />
         )}
         {menu === 'schedule' && <ScheduleDialog paneId={paneId} onClose={close} />}
-        {menu === 'theme' && <ThemeEditor initialPaneId={paneId} onClose={close} />}
-        {menu === 'env' && <EnvManager wsId={wsId} paneId={paneId} onClose={close} />}
         {menu === 'cwd' && <CwdMenu wsId={wsId} paneId={paneId} cwd={cwd} onClose={close} />}
         {pane?.config.kind === 'terminal' && termCfg && <TerminalPane paneId={paneId} wsId={wsId} config={termCfg} />}
         {pane?.config.kind === 'editor' && <EditorPane paneId={paneId} wsId={wsId} config={pane.config} />}

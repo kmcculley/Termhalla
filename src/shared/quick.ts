@@ -37,7 +37,7 @@ export function nextRecentDirs(
 export type PaletteAction =
   | 'new-connection' | 'pin-cwd'
   | 'new-terminal' | 'new-editor' | 'new-explorer'
-  | 'new-workspace' | 'broadcast' | 'save-all' | 'refresh-cloud'
+  | 'new-workspace' | 'broadcast' | 'save-all' | 'refresh-cloud' | 'settings'
 
 export type PaletteItem =
   | { kind: 'connection'; id: string; label: string; detail: string; search: string }
@@ -88,7 +88,8 @@ export function buildCommandItems(): PaletteItem[] {
     cmd('new-workspace', 'New workspace', 'new workspace tab'),
     cmd('broadcast', 'Broadcast to all terminals', 'broadcast send all terminals'),
     cmd('save-all', 'Save all workspaces', 'save all workspaces'),
-    cmd('refresh-cloud', 'Refresh cloud status', 'refresh cloud status')
+    cmd('refresh-cloud', 'Refresh cloud status', 'refresh cloud status'),
+    cmd('settings', 'Settings', 'settings preferences options theme environment')
   ]
 }
 

@@ -3,9 +3,9 @@ import { v4 as uuid } from 'uuid'
 import { useStore } from '../store'
 import { api } from '../api'
 import type { EnvVaultData } from '@shared/types'
-import { Modal } from './Modal'
 
-// Encrypted env vault: create/unlock/lock, global vars, and (when opened scoped to a pane) that terminal's own vars.
+// Encrypted env vault settings section: create/unlock/lock, global vars, and (when scoped to
+// a pane) that terminal's own vars. Extracted from the former EnvManager modal.
 
 // A single global-variable row with a reveal (👁) toggle.
 function EnvRow({ name, value, onRemove }: { name: string; value: string; onRemove: () => void }) {
@@ -21,7 +21,7 @@ function EnvRow({ name, value, onRemove }: { name: string; value: string; onRemo
   )
 }
 
-export function EnvManager({ onClose, wsId, paneId }: { onClose: () => void; wsId?: string; paneId?: string }) {
+export function EnvSettings({ wsId, paneId }: { wsId?: string; paneId?: string }) {
   const env = useStore(s => s.envVault)
   const updatePaneConfig = useStore(s => s.updatePaneConfig)
   const pushToast = useStore(s => s.pushToast)
@@ -67,7 +67,7 @@ export function EnvManager({ onClose, wsId, paneId }: { onClose: () => void; wsI
   const row = { display: 'flex', alignItems: 'center', gap: 8 } as const
 
   return (
-    <Modal onClose={onClose} backdropTestId="env-manager" card={{ padding: 14, width: 480, maxHeight: '86vh', overflow: 'auto' }}>
+    <div data-testid="settings-environment" style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
         <div style={{ fontWeight: 600 }}>Environment variables</div>
 
         {!env.exists && (
@@ -129,21 +129,14 @@ export function EnvManager({ onClose, wsId, paneId }: { onClose: () => void; wsI
                     onKeyDown={e => { if (e.key === 'Enter') addTerminalVar() }} style={{ flex: 1 }} />
                   <button data-testid="env-term-add" disabled={!tName.trim()} onClick={addTerminalVar}>Add</button>
                 </div>
-                <div style={{ opacity: 0.6, fontSize: '0.85em' }}>Applies the next time this terminal is spawned (e.g. after reopening the workspace) while the vault is unlocked.</div>
+                <div style={{ color: 'var(--fg-dim, #aaa)', fontSize: '0.85em' }}>Applies the next time this terminal is spawned (e.g. after reopening the workspace) while the vault is unlocked.</div>
               </>
             )}
-            <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px solid var(--border, #444)', paddingTop: 8 }}>
+            <div style={{ display: 'flex', borderTop: '1px solid var(--border, #444)', paddingTop: 8 }}>
               <button data-testid="env-lock" onClick={() => api.envLock()}>Lock</button>
-              <button onClick={onClose}>Close</button>
             </div>
           </>
         )}
-
-        {!env.unlocked && (
-          <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-            <button onClick={onClose}>Close</button>
-          </div>
-        )}
-    </Modal>
+    </div>
   )
 }

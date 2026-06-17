@@ -16,24 +16,25 @@ test('a per-terminal var is written under the pane and persists', async () => {
   })
   const win = await app.firstWindow()
 
-  // Create a fresh encrypted vault (unlocked in-session) via the global manager.
-  await win.getByTestId('env-button').click()
-  await expect(win.getByTestId('env-manager')).toBeVisible()
+  // Create a fresh encrypted vault (unlocked in-session) via the global settings.
+  await win.getByTestId('settings-button').click()
+  await win.getByTestId('settings-nav-environment').click()
+  await expect(win.getByTestId('settings-environment')).toBeVisible()
   await win.getByTestId('env-passphrase').fill('pw')
   await win.getByTestId('env-create').click()
 
-  // Close the global manager.
-  await win.getByRole('button', { name: 'Close' }).click()
-  await expect(win.getByTestId('env-manager')).toBeHidden()
+  // Close the settings panel.
+  await win.getByTestId('settings-close').click()
+  await expect(win.getByTestId('settings-panel')).toBeHidden()
 
   // Spawn a PowerShell terminal.
   await win.getByTestId('shell-picker').selectOption('powershell')
   await win.getByTestId('add-first-terminal').click()
   await expect(win.locator('[data-testid^="terminal-"]')).toBeVisible({ timeout: 15_000 })
 
-  // Open the pane-scoped env manager via the pane's 🔑 chip.
+  // Open the pane-scoped env settings via the pane's 🔑 chip.
   await win.locator('[data-testid^="env-chip-"]').first().click()
-  await expect(win.getByTestId('env-manager')).toBeVisible()
+  await expect(win.getByTestId('settings-environment')).toBeVisible()
   await expect(win.getByTestId('env-term-section')).toBeVisible({ timeout: 10_000 })
 
   // Add a per-terminal var; the row appearing confirms it persisted under the pane's envId.
@@ -42,13 +43,13 @@ test('a per-terminal var is written under the pane and persists', async () => {
   await win.getByTestId('env-term-add').click()
   await expect(win.getByTestId('env-term-row-BAR')).toBeVisible({ timeout: 10_000 })
 
-  // Close the manager.
-  await win.getByRole('button', { name: 'Close' }).click()
-  await expect(win.getByTestId('env-manager')).toBeHidden()
+  // Close the panel.
+  await win.getByTestId('settings-close').click()
+  await expect(win.getByTestId('settings-panel')).toBeHidden()
 
   // Reopen the pane's env — the var must still be there (re-read from the vault via env:get).
   await win.locator('[data-testid^="env-chip-"]').first().click()
-  await expect(win.getByTestId('env-manager')).toBeVisible()
+  await expect(win.getByTestId('settings-environment')).toBeVisible()
   await expect(win.getByTestId('env-term-row-BAR')).toBeVisible({ timeout: 10_000 })
 
   const pid = app.process().pid; await app.close().catch(() => {}); killTree(pid)
