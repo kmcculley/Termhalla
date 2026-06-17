@@ -13,6 +13,9 @@ export type ThemeScope =
 export type ToastKind = 'success' | 'error' | 'info'
 export interface Toast { id: string; kind: ToastKind; text: string }
 
+export type SettingsSection = 'general' | 'appearance' | 'environment' | 'terminal'
+export interface SettingsTarget { section: SettingsSection; paneId?: string }
+
 export interface State {
   shells: ShellInfo[]
   workspaces: Record<string, Workspace>
@@ -96,6 +99,9 @@ export interface State {
   toasts: Toast[]
   pushToast: (text: string, kind?: ToastKind) => string
   dismissToast: (id: string) => void
+  settings: SettingsTarget | null
+  openSettings: (t: SettingsTarget) => void
+  closeSettings: () => void
 }
 
 /** Wiring handed to every slice creator: the store's set/get plus the shared debounced-save and
