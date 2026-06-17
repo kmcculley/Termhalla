@@ -164,7 +164,7 @@ angle brackets are invalid in Windows paths and the app only opens absolute path
 can never collide with a file tab's key.
 **Rationale:** `saved=''` makes "any non-empty content" automatically dirty/persisted via
 the unchanged draft logic — minimal, low-risk reuse. The sentinel was originally proposed
-as NUL-prefixed (` untitled`, invalid on all platforms); the angle-bracket form was
+as NUL-prefixed (`untitled`, invalid on all platforms); the angle-bracket form was
 chosen as a clean-ASCII equivalent that avoids a raw NUL byte in source. (Trade-off: `<`/`>`
 are valid in POSIX paths, so on a future non-Windows port a file literally named
 `<untitled>` could theoretically collide — acceptable for this Windows-first app.)
@@ -321,3 +321,42 @@ MSVC Spectre-mitigated libs we don't install.
 **Rationale:** Lets the module build and load without the Spectre toolset.
 **Consequences:** First-time setup needs the rebuild; clear
 `NoDefaultCurrentDirectoryInExePath` if a `.bat`-invoking build fails.
+
+### [2026-06-16] e2e spawn flakiness: absorb with retries+headroom, NOT by slowing the CIM poll
+
+**Context:** The launch-heavy e2e suite intermittently hangs a terminal-spawning spec (broadcast,
+cwd, ssh-quick, workspace-templates) for the full 60 s timeout under whole-suite CPU contention,
+and the run was being silently guillotined ("did not run") by a too-tight `globalTimeout`. A
+plausible root cause was the busy-gated process poll: `queryProcesses` spawns a `powershell.exe`
+(`Get-CimInstance Win32_Process`) **every second** per busy terminal, contending with node-pty
+ConPTY spawns.
+**Decision:** **Tried and reverted** slowing the CIM poll in e2e (a `TERMHALLA_PROC_POLL_MS` env
+override, ~off suite-wide, fast only for the proc-asserting specs). It did **not** fix the spawn
+hangs (broadcast/cwd still flaked) and it **broke `usage.spec`** — a third proc-derived spec I'd
+missed (Claude context % flows through the same poll) — whose wasted retries ballooned the run and
+worsened load. The shipped fix is config-only: `retries: 1→2` and `globalTimeout: 600s→1200s`.
+**Rationale:** The hangs are node-pty ConPTY spawn under load, not the poll; the poll was a red
+herring. Retries absorb the probabilistic flakiness (all flaky specs recover) and the headroom stops
+the guillotine. The full suite then ran green: 52 passed + 3 flaky-recovered, 0 failed, 14 min.
+**Consequences:** Don't re-attempt the proc-poll-slowdown path. If a *new* proc-dependent spec is
+added it inherits the normal 1 s poll (no override to forget). The spawn flakiness is inherent to
+Windows ConPTY under load — retries are the accepted mitigation, not a 100% guarantee.
+
+### [2026-06-16] Alert-bar text colour is luminance-derived, not fixed white
+
+**Context:** Readability audit (WCAG ratios over the real token pairs) found one hard failure:
+white title text on the needs-input **orange** (`#ff8f00`) bar at **2.29:1**; the busy blue bar was
+a marginal 3.68:1. The alert colours are user-themable, so any fix hardcoding white (or a darker
+colour) only addresses the defaults.
+**Decision:** Derive the bar's title colour from the bar colour's luminance — `readableOn()` in the
+new pure `@shared/contrast.ts` (WCAG crossover L > 0.179 → dark `#182026` else white), emitted as
+`--on-busy`/`--on-needs` from **both** `themeCssVars` (app) and `themeCssVarsPartial` (overrides) so
+it recomputes at every theme scope. `index.css` points the alert-title rules at those vars. Keep the
+bright alert *colours* unchanged. A `theme-contrast` unit guard pins the default palette to AA.
+**Rationale:** Adaptive text fixes orange (→ 7.2:1) and busy (→ 4.48:1, bold-title AA) and stays
+correct for any custom alert colour — strictly better than darkening the colours (which mutes the
+alert and only fixes defaults). Emitting from the existing var functions means zero component wiring.
+**Consequences:** The busy blue is an inherently mid-luminance colour where neither black nor white
+reaches 4.5:1 for *small* text; 4.48:1 is the best achievable without darkening the colour, accepted
+because the title is bold (AA-large). A user picking a mid-luminance alert colour gets the same
+best-effort. The guard test fails the build if a future token edit regresses contrast.
