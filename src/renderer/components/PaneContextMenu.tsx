@@ -1,4 +1,6 @@
 import { useState } from 'react'
+import { createPortal } from 'react-dom'
+import { useShallow } from 'zustand/react/shallow'
 import { useStore } from '../store'
 import { Z, SURFACE } from './Modal'
 
@@ -9,7 +11,9 @@ export function PaneContextMenu(
   { wsId: string; paneId: string; x: number; y: number; onRename: () => void; onClose: () => void }
 ) {
   const order = useStore(s => s.order)
-  const names = useStore(s => Object.fromEntries(s.order.map(id => [id, s.workspaces[id]?.name ?? id])))
+  // useShallow: this selector derives a fresh object each call; under zustand v5's default Object.is
+  // equality that would re-fire on every render and blow the update depth (React error #185).
+  const names = useStore(useShallow(s => Object.fromEntries(s.order.map(id => [id, s.workspaces[id]?.name ?? id]))))
   const openSettings = useStore(s => s.openSettings)
   const closePane = useStore(s => s.closePane)
   const moveToWorkspace = useStore(s => s.movePaneToWorkspace)
@@ -19,7 +23,12 @@ export function PaneContextMenu(
   const others = order.filter(id => id !== wsId)
   const menuStyle = { ...SURFACE, position: 'fixed' as const, left: x, top: y, zIndex: Z.menu + 1, padding: 4, display: 'flex', flexDirection: 'column' as const, gap: 2, minWidth: 160, fontSize: 'var(--font-size, 13px)' }
 
-  return (
+  // Portal to <body>: this menu opens from a pane's title bar, which lives inside a react-mosaic
+  // tile whose transform establishes a containing block — a `position: fixed` child would be
+  // positioned/clipped relative to that tile (and stack under the toolbar) instead of the viewport.
+  // Portalling escapes it so the clientX/clientY coords and z-index resolve against the page (same
+  // reason Modal portals). See Modal.tsx.
+  return createPortal(
     <>
       <div onClick={onClose} onContextMenu={e => { e.preventDefault(); onClose() }}
         style={{ position: 'fixed', inset: 0, zIndex: Z.menu }} />
@@ -43,6 +52,7 @@ export function PaneContextMenu(
           </>
         )}
       </div>
-    </>
+    </>,
+    document.body
   )
 }
