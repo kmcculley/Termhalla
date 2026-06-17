@@ -1,0 +1,5 @@
+# patch-package parses unified diffs only with LF line endings. Without this,
+# Windows CI runners (core.autocrlf=true) check these files out as CRLF and the
+# postinstall `patch-package` step fails to parse the patch ("could not be parsed").
+patches/** text eol=lf
+*.patch text eol=lf
