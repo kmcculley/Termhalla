@@ -94,7 +94,7 @@ is now element-wise `sameOrder`; several magic numbers named (`CLOUD_FOCUS_REFRE
 preload casts, `VaultData`/`EnvVaultData` duplicate, window-state dynamic import +
 debounce, `WorkspaceView` mosaic cast, etc.) stay deferred below.
 
-## Fourth review (2026-06-17 #4) — Major resolved
+## Fourth review (2026-06-17 #4) — Major + Minor resolved
 
 A fourth `/review-quality` pass over `src/` found 0 Critical, 6 Major, 13 Minor.
 All **6 Major** were resolved on `main` (`6e4039f`, `e7173dd`) — TDD where the
@@ -123,13 +123,32 @@ existing e2e suite for the UI wiring. See [decisions.md](../decisions.md) (the
 - **[Major] `WorkspaceTabs` doing too much** → pointer-drag/undock orchestration
   extracted to a `useTabDrag` hook.
 
-The 13 Minor findings (dead exports in `paths.ts`/`window-state.ts`,
-`parseClaudeUsage` window-policy split, `detectShells` cmd-fallback literal,
-`computeIdleFallback` boolean-trap flags, `deserializeWorkspace` raw `JSON.parse`
-[also tracked under review #2], `normalizeQuick` theme cast, scattered timing
-constants, `tabBadge`/`StatusBar` inline assembly, `ScheduleDialog` 6-state clump,
-`EnvSettings` row duplication, `SettingsPanel` render-phase setState) stay
-deferred.
+All **13 Minor** findings were then swept on `main` (`283ce0f`) as
+behavior-preserving changes (pure extractions TDD-covered, +13 new unit tests;
+383 unit + all touched e2e green):
+
+- **Dead code** — removed unused `paths.ts` exports (`workspacesDir`/`appStatePath`/
+  `windowStatePath`) and `window-state.ts` `loadWindowState`/`saveWindowState`.
+- **`parseClaudeUsage` window policy** → extracted `computeContextWindow`.
+- **`computeIdleFallback` 4 positional booleans** → trailing AI flags grouped into
+  an options object.
+- **`deserializeWorkspace` raw `JSON.parse`** → wrapped into a clear "not valid
+  JSON" error. *(Also closes the review-#2 item below.)*
+- **`normalizeQuick` triple theme cast** → extracted `normalizeTheme`.
+- **`detectShells` duplicated cmd literal** → shared `CMD_FALLBACK`.
+- **Scattered magic timing/size numbers** → named constants (shared
+  `AUTOSAVE_DEBOUNCE_MS`, `NEW_WINDOW_SIZE`, `TOAST_DISMISS_MS`,
+  `NO_CHILDREN_AUTO_CLOSE_MS`, `MONACO_THEME_DEFER_MS`, `HANDOFF_SCROLLBACK_LINES`).
+- **`tabBadge`/`StatusBar` inline assembly** → tested `components/tab-badge.ts`
+  (`workspaceBadgeState` + `formatBadge`) and a `StatusBar` `accountLabel` helper;
+  `aiState` moved to the api-free `pane-ops` module.
+- **`ScheduleDialog` 6-state clump** → three `Duration` objects + a `DurationInput`.
+- **`EnvSettings` row duplication** → `EnvRow` reused for the per-terminal rows.
+- **`SettingsPanel` render-phase setState** → kept (the sanctioned React pattern)
+  with a sharpened comment.
+- Also: `withoutWorkspace` shared by undock/redock, `cancelPersist` shared by
+  schedule/persistState, `pickOne` dialog factory, and the "dispose disposer"
+  doc-comment wording.
 
 ## Still deferred
 
@@ -156,8 +175,9 @@ deferred.
   (in `descendantsOf` and `pickForeground`); build once and pass `byParent` down.
 - **`buildPaletteItems` favorite dedup is case-sensitive** while `nextRecentDirs`
   dedups via `normDir` — on Windows a dir can appear as both favorite and recent.
-- **`deserializeWorkspace` lets a raw `JSON.parse` `SyntaxError` escape** instead
-  of the friendly domain error; wrap the parse.
+- ~~**`deserializeWorkspace` lets a raw `JSON.parse` `SyntaxError` escape.**~~
+  **Resolved** (review #4, `283ce0f`): the parse is wrapped into a friendly
+  "Invalid workspace file: not valid JSON" error.
 - **`workspace-model.migrate` is identity for all versions** with no v1/v2 cases
   though `SCHEMA_VERSION` is 3 — document the no-op or add explicit cases.
 - ~~**`preload` listeners use `as never`** to satisfy `ipcRenderer.on`; type with
@@ -165,9 +185,9 @@ deferred.
   `pushChannel<A>()` factory that attaches a single `IpcRendererEvent`-typed listener and fans
   out to subscribers (no casts). This also fixed a `MaxListenersExceededWarning` at 11+ open
   terminals (each pane previously added its own `pty:data`/`pty:exit` listener).
-- **`ThemeProvider`'s 150 ms Monaco-theme delay is a magic timing hack;**
-  `status-tracker`'s `400` tail length and `ScheduleDialog`'s `dV/dU/...` paired
-  state names are unnamed/opaque.
+- **`status-tracker`'s `400` tail length** is an unnamed magic number.
+  (`ThemeProvider`'s 150 ms delay → `MONACO_THEME_DEFER_MS` and `ScheduleDialog`'s
+  `dV/dU/...` → `Duration` objects were resolved in review #4, `283ce0f`.)
 - **Type design:** `CloudState` folds the transient `'checking'` into the same
   union as stable states; `Partial<Theme>` is reused unnamed across configs
   (introduce a `ThemeOverride` alias). (`AiTool` already named in review #2.)
