@@ -5,8 +5,6 @@ import { resolveAlerts } from '@shared/alerts'
 import { useStore, aiState } from '../store'
 import { api } from '../api'
 import { TemplatesMenu } from './TemplatesMenu'
-import { ThemeEditor } from './ThemeEditor'
-import { EnvManager } from './EnvManager'
 import { Z, SURFACE } from './Modal'
 
 function tabBadge(
@@ -63,8 +61,6 @@ export function WorkspaceTabs() {
   const [menuFor, setMenuFor] = useState<{ id: string; x: number; y: number } | null>(null)
   const [ghost, setGhost] = useState<{ x: number; y: number; id: string } | null>(null)
   const [templatesOpen, setTemplatesOpen] = useState(false)
-  const [themeOpen, setThemeOpen] = useState(false)
-  const [envOpen, setEnvOpen] = useState(false)
 
   const startRename = (id: string) => { setRenameText(workspaces[id]?.name ?? ''); setRenamingId(id); setMenuFor(null) }
   const commitRename = (id: string) => { renameWorkspace(id, renameText); setRenamingId(null) }
@@ -161,8 +157,6 @@ export function WorkspaceTabs() {
       </select>
       <button data-testid="broadcast-button" title="Broadcast to all terminals (Ctrl+Shift+Enter)"
         onClick={() => setBroadcastOpen(!broadcastOpen)}>⇉</button>
-      <button data-testid="theme-button" title="Theme" onClick={() => setThemeOpen(true)}>🎨</button>
-      <button data-testid="env-button" title="Environment variables" onClick={() => setEnvOpen(true)}>🔑</button>
       <button data-testid="settings-button" title="Settings (Ctrl+,)" onClick={() => openSettings({ section: 'general' })}>⚙</button>
       <button data-testid="save-workspace" onClick={() => saveAll()}>Save</button>
 
@@ -192,8 +186,6 @@ export function WorkspaceTabs() {
         </div>
       )}
       {templatesOpen && <TemplatesMenu onPicked={startRename} onClose={() => setTemplatesOpen(false)} />}
-      {themeOpen && <ThemeEditor onClose={() => setThemeOpen(false)} />}
-      {envOpen && <EnvManager onClose={() => setEnvOpen(false)} />}
     </div>
   )
 }
