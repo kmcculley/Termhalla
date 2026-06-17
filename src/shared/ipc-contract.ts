@@ -1,4 +1,4 @@
-import type { ShellInfo, Workspace, AppState, TerminalStatus, DirEntry, ReadResult, StatResult, FsChange, TerminalLaunch, QuickStore, ProcInfo, CloudStatus, AiSession, UsageMetrics, EditorDraft, EnvVaultData, RecState, EnvVaultState } from './types'
+import type { ShellInfo, Workspace, AppState, TerminalStatus, DirEntry, ReadResult, StatResult, FsChange, TerminalLaunch, QuickStore, ProcInfo, CloudStatus, AiSession, UsageMetrics, EditorDraft, EnvVaultData, RecState, EnvVaultState, GitStatus } from './types'
 
 export const CH = {
   listShells: 'shells:list',
@@ -34,6 +34,7 @@ export const CH = {
   quickSave: 'quick:save',
   homeDir: 'app:homeDir',
   ptyProcs: 'pty:procs',           // main -> renderer event
+  gitStatus: 'git:status',         // main -> renderer event
   cloudStatus: 'cloud:status',     // main -> renderer event
   cloudRefresh: 'cloud:refresh',
   aiSession: 'ai:session',         // main -> renderer event
@@ -97,6 +98,7 @@ export interface TermhallaApi {
   saveFileDialog(): Promise<string | null>
   onPtyCwd(cb: (id: string, cwd: string) => void): () => void
   onPtyProcs(cb: (id: string, info: ProcInfo | null) => void): () => void
+  onGitStatus(cb: (id: string, status: GitStatus | null) => void): () => void
   onCloudStatus(cb: (statuses: CloudStatus[]) => void): () => void
   cloudRefresh(): Promise<void>
   onAiSession(cb: (id: string, ai: AiSession | null) => void): () => void

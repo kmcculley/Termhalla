@@ -11,6 +11,7 @@ import { registerUsage } from './register-usage'
 import { registerRecording } from './register-recording'
 import { registerEnv } from './register-env'
 import { registerClipboard } from './register-clipboard'
+import { registerGit } from './register-git'
 
 /** Composition root: register every IPC handler ONCE against the build-once service layer. Push
  *  events go through `send`, which routes pane-scoped channels (their first arg is a paneId) to the
@@ -27,10 +28,14 @@ export function registerHandlers(services: Services, wm: WindowManager): PtyMana
   }
 
   const win = wm.mainWindow()
+  const { service: git, dispose: disposeGit } = registerGit(send)
   const pty = registerPty(win, {
     shells, recorder, envVault, scriptDir, send,
     claimPane: (id, sender) => wm.claimPane(id, sender),
-    replayInto: (id) => wm.replayInto(id)
+    replayInto: (id) => wm.replayInto(id),
+    onCwd: (id, cwd) => { void git.setCwd(id, cwd) },
+    onCommandDone: (id) => git.onCommandDone(id),
+    onPaneGone: (id) => git.removePane(id)
   })
   registerWorkspaces({ store, quick, shells })
   registerEnv(win, envVault, send)
@@ -41,7 +46,8 @@ export function registerHandlers(services: Services, wm: WindowManager): PtyMana
     registerFs(win, send),
     registerCloud(win, send),
     registerUsage(send),
-    registerRecording({ pty, recorder, userDataDir: dir, send })
+    registerRecording({ pty, recorder, userDataDir: dir, send }),
+    disposeGit
   ]
   wm.onAllWindowsClosed(() => { for (const dispose of disposers) dispose() })
 

@@ -29,7 +29,7 @@ const NEW_WINDOW_SIZE = { width: 900, height: 640 }
 /** Channels whose first argument is a paneId and therefore route to the owning window. Everything
  *  else (cloud:status, env:state, fs:change, …) is app-global and broadcasts to every window. */
 const PANE_SCOPED = new Set<string>([
-  CH.ptyData, CH.ptyExit, CH.ptyStatus, CH.ptyCwd, CH.ptyProcs,
+  CH.ptyData, CH.ptyExit, CH.ptyStatus, CH.ptyCwd, CH.ptyProcs, CH.gitStatus,
   CH.aiSession, CH.usageMetrics, CH.recState, CH.termSerialize
 ])
 
