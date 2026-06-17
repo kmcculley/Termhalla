@@ -82,6 +82,11 @@ export default function App() {
         case 'prev-workspace': if (order.length) s.setActive(order[(idx - 1 + order.length) % order.length]); break
         case 'jump-workspace': if (order[sc.index]) s.setActive(order[sc.index]); break
         case 'open-settings': s.openSettings({ section: 'general' }); break
+        case 'toggle-maximize-pane': {
+          const pane = s.focusedPaneId
+          if (pane && activeId && s.workspaces[activeId]?.panes[pane]) s.toggleMaximize(activeId, pane)
+          break
+        }
       }
     }
     window.addEventListener('keydown', onKey)

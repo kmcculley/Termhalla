@@ -32,8 +32,10 @@ test('a per-terminal var is written under the pane and persists', async () => {
   await win.getByTestId('add-first-terminal').click()
   await expect(win.locator('[data-testid^="terminal-"]')).toBeVisible({ timeout: 15_000 })
 
-  // Open the pane-scoped env settings via the pane's 🔑 chip.
-  await win.locator('[data-testid^="env-chip-"]').first().click()
+  // Open the pane-scoped env settings via the pane's right-click Settings menu.
+  await win.locator('[data-testid^="titlebar-"]').first().click({ button: 'right', position: { x: 30, y: 13 } })
+  await win.getByTestId('pane-menu-settings').click()
+  await win.getByTestId('settings-nav-environment').click()
   await expect(win.getByTestId('settings-environment')).toBeVisible()
   await expect(win.getByTestId('env-term-section')).toBeVisible({ timeout: 10_000 })
 
@@ -48,7 +50,9 @@ test('a per-terminal var is written under the pane and persists', async () => {
   await expect(win.getByTestId('settings-panel')).toBeHidden()
 
   // Reopen the pane's env — the var must still be there (re-read from the vault via env:get).
-  await win.locator('[data-testid^="env-chip-"]').first().click()
+  await win.locator('[data-testid^="titlebar-"]').first().click({ button: 'right', position: { x: 30, y: 13 } })
+  await win.getByTestId('pane-menu-settings').click()
+  await win.getByTestId('settings-nav-environment').click()
   await expect(win.getByTestId('settings-environment')).toBeVisible()
   await expect(win.getByTestId('env-term-row-BAR')).toBeVisible({ timeout: 10_000 })
 

@@ -10,6 +10,7 @@ export function WorkspaceView({ ws }: { ws: Workspace }) {
   const addTerminal = useStore(s => s.addTerminal)
   const addEditor = useStore(s => s.addEditor)
   const addExplorer = useStore(s => s.addExplorer)
+  const maximized = useStore(s => !!s.maximized[ws.id])
 
   if (ws.layout === null) {
     return (
@@ -24,10 +25,13 @@ export function WorkspaceView({ ws }: { ws: Workspace }) {
   }
 
   return (
-    <Mosaic<string>
-      value={ws.layout as ModelNode & string}
-      onChange={(node) => setLayout(ws.id, (node as ModelNode) ?? null)}
-      renderTile={(paneId, path) => <PaneTile wsId={ws.id} paneId={paneId} path={path} />}
-    />
+    <div className={maximized ? 'ws-mosaic ws-max' : 'ws-mosaic'} data-testid={`ws-mosaic-${ws.id}`}
+      style={{ position: 'relative', height: '100%' }}>
+      <Mosaic<string>
+        value={ws.layout as ModelNode & string}
+        onChange={(node) => setLayout(ws.id, (node as ModelNode) ?? null)}
+        renderTile={(paneId, path) => <PaneTile wsId={ws.id} paneId={paneId} path={path} />}
+      />
+    </div>
   )
 }

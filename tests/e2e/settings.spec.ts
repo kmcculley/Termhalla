@@ -39,7 +39,7 @@ test('record-by-default toggle persists across reopen', async () => {
   const pid = app.process().pid; await app.close().catch(() => {}); killTree(pid)
 })
 
-test('a pane theme button opens Appearance scoped to that pane', async () => {
+test('the pane Settings menu opens Appearance scoped to that pane', async () => {
   test.setTimeout(60_000)
   const userData = mkdtempSync(join(tmpdir(), 'termh-set3-'))
   const proj = mkdtempSync(join(tmpdir(), 'termh-set3-proj-'))
@@ -48,8 +48,10 @@ test('a pane theme button opens Appearance scoped to that pane', async () => {
   const app = await launch(userData)
   const win = await app.firstWindow()
   await expect(win.locator('.monaco-editor')).toBeVisible({ timeout: 20_000 })
-  await win.getByTestId('theme-chip-p1').click()
+  await win.getByTestId('titlebar-p1').click({ button: 'right', position: { x: 30, y: 13 } })
+  await win.getByTestId('pane-menu-settings').click()
   await expect(win.getByTestId('settings-panel')).toBeVisible()
+  await win.getByTestId('settings-nav-appearance').click()
   await expect(win.getByTestId('theme-scope')).toBeVisible()
   const v = await win.getByTestId('theme-scope').inputValue()
   expect(v.startsWith('pane:')).toBe(true)

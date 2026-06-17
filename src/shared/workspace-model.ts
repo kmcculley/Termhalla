@@ -58,6 +58,27 @@ export function removePane(ws: Workspace, paneId: string): Workspace {
   return { ...ws, layout, panes }
 }
 
+/** Move a pane (with its config + any per-pane theme) from one workspace to another, returning
+ *  both updated workspaces. The pane is removed from `from`'s layout and added to `to` — as the
+ *  sole pane when `to` is empty, otherwise split to the right of `to`'s current layout. No-op
+ *  (returns the same objects) when `from` doesn't hold the pane. The pane id is unchanged, so its
+ *  live PTY (kept in main) is re-adopted by the destination's idempotent pty:spawn. */
+export function movePane(from: Workspace, to: Workspace, paneId: string): { from: Workspace; to: Workspace } {
+  const pane = from.panes[paneId]
+  if (!pane) return { from, to }
+  const nextFrom = removePane(from, paneId)
+  const layout: MosaicNode = to.layout === null ? paneId : { direction: 'row', first: to.layout, second: paneId }
+  const nextTo: Workspace = { ...to, layout, panes: { ...to.panes, [paneId]: pane } }
+  return { from: nextFrom, to: nextTo }
+}
+
+/** Copy `source`'s workspace-level theme override onto `target` (deep-cloned), so a pane moved into
+ *  a freshly created `target` renders the same as it did in `source`. Returns `target` unchanged
+ *  when `source` has no override. */
+export function carryTheme(target: Workspace, source: Workspace): Workspace {
+  return source.theme ? { ...target, theme: { ...source.theme } } : target
+}
+
 export function serializeWorkspace(ws: Workspace): string {
   return JSON.stringify({ schemaVersion: SCHEMA_VERSION, workspace: ws }, null, 2)
 }

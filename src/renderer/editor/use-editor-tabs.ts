@@ -10,6 +10,7 @@ import { runOp } from '../op'
 import { useEditorDrafts } from './use-editor-drafts'
 import { useExternalFileWatch } from './use-external-file-watch'
 import { useResolvedPaneTheme } from '../use-resolved-theme'
+import { isPaneInTransit, endPaneTransit } from '../components/pane-transit'
 
 /** The tab/model state + actions a rendered EditorPane needs. The Monaco editor instance,
  *  the tab→model map, draft persistence, save logic, the untitled scratch buffer, external-file
@@ -188,8 +189,17 @@ export function useEditorTabs(paneId: string, wsId: string, config: EditorConfig
     return () => {
       focusDisp.dispose(); ed.dispose()
       clearDraftTimers()
-      for (const t of tabs.current.values()) { api.fsUnwatch(draftKey(paneId, t.path)); api.draftsDelete(draftKey(paneId, t.path)); t.disp.dispose(); t.model.dispose() }
+      const moving = isPaneInTransit(paneId)
+      for (const t of tabs.current.values()) {
+        api.fsUnwatch(draftKey(paneId, t.path))
+        // A move unmounts then remounts this pane: flush the draft so the remount restores unsaved
+        // edits. A real close deletes it (no stale draft for a gone pane).
+        if (moving) persistDraft(t.path)
+        else api.draftsDelete(draftKey(paneId, t.path))
+        t.disp.dispose(); t.model.dispose()
+      }
       tabs.current.clear()
+      if (moving) endPaneTransit(paneId)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [paneId])

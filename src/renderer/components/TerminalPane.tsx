@@ -9,7 +9,7 @@ import { resolveTheme } from '@shared/theme'
 import { useStore } from '../store'
 import { useResolvedPaneTheme } from '../use-resolved-theme'
 import { clipboardKeyAction } from './terminal-clipboard'
-import { registerSerializer, unregisterSerializer } from './terminal-registry'
+import { registerSerializer, unregisterSerializer, consumeSnapshot } from './terminal-registry'
 
 /** Scrollback lines captured when serializing a terminal for a window-handoff replay. */
 const HANDOFF_SCROLLBACK_LINES = 1000
@@ -35,6 +35,12 @@ export function TerminalPane({ paneId, wsId, config }: { paneId: string; wsId: s
     termRef.current = term; fitRef.current = fit
     term.open(hostRef.current!)
     fit.fit()
+
+    // A cross-workspace move stashed this pane's prior scrollback; write it before spawn so it lands
+    // ahead of any live output. For a fresh terminal this is '' (no-op). The PTY itself is re-adopted
+    // by main (pty:spawn sees pty.has) — this only restores the renderer-side buffer.
+    const restored = consumeSnapshot(paneId)
+    if (restored) term.write(restored)
 
     let disposed = false
     api.ptySpawn({

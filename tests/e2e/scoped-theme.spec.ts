@@ -74,7 +74,7 @@ test('scoped theming: app vs per-pane override, persisted', async () => {
   pid = app.process().pid; await app.close().catch(() => {}); killTree(pid)
 })
 
-test('a pane theme button opens the editor scoped to that pane', async () => {
+test('the pane Settings menu opens Appearance scoped to that pane', async () => {
   test.setTimeout(60_000)
   const userData = mkdtempSync(join(tmpdir(), 'termh-panetheme-'))
   const app = await launch(userData)
@@ -82,8 +82,10 @@ test('a pane theme button opens the editor scoped to that pane', async () => {
   await win.getByTestId('add-first-terminal').click()
   await expect(win.locator('[data-testid^="terminal-"]')).toHaveCount(1, { timeout: 15_000 })
 
-  // Open the theme settings from THIS pane's 🎨 button → starts scoped to the pane.
-  await win.locator('[data-testid^="theme-chip-"]').first().click()
+  // Open Appearance from THIS pane's right-click Settings menu → starts scoped to the pane.
+  await win.locator('[data-testid^="titlebar-"]').first().click({ button: 'right', position: { x: 30, y: 13 } })
+  await win.getByTestId('pane-menu-settings').click()
+  await win.getByTestId('settings-nav-appearance').click()
   await expect(win.getByTestId('settings-appearance')).toBeVisible()
   expect(await win.getByTestId('theme-scope').inputValue()).toMatch(/^pane:/)
 

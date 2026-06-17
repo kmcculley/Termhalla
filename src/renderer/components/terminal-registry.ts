@@ -11,3 +11,14 @@ export function unregisterSerializer(paneId: string): void { serializers.delete(
 
 /** The pane's current snapshot, or '' if it has no live terminal (not yet mounted / not a terminal). */
 export function readPaneSnapshot(paneId: string): string { return serializers.get(paneId)?.() ?? '' }
+
+/** Scrollback handed off when a pane moves between workspaces in the same window. The source
+ *  TerminalPane's serialized ANSI is stashed here just before the layout move unmounts it, then
+ *  consumed (once) by the destination TerminalPane on mount so the move keeps full scrollback. */
+const pendingRestore = new Map<string, string>()
+export function stashSnapshot(paneId: string, data: string): void { pendingRestore.set(paneId, data) }
+export function consumeSnapshot(paneId: string): string {
+  const d = pendingRestore.get(paneId)
+  pendingRestore.delete(paneId)
+  return d ?? ''
+}

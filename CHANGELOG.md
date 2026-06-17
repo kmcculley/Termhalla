@@ -7,6 +7,24 @@ All notable changes to Termhalla are recorded here. The format follows
 ## [Unreleased]
 
 ### Added
+- **Pane title-bar actions — right-click menu, maximize, and cross-workspace move.**
+  Right-clicking a pane's title bar opens a context menu with four items: **Rename**
+  (edits the title inline and persists it as an optional `name` on the pane config),
+  **Move to workspace ▸** (lists the other workspaces the current window hosts, plus
+  **New Workspace**), **Settings** (opens the unified Settings panel scoped to that
+  pane), and **Close**. A **Maximize** toggle button (🗖 / 🗗) was added to every
+  title bar; **Ctrl+Shift+M** toggles it from the keyboard. Maximizing fills the
+  workspace with the current pane — siblings are hidden via CSS `visibility: hidden`
+  so their xterm scrollback and Monaco models survive. The dedicated env (🔑),
+  settings gear (⚙), and style (🎨) title-bar buttons were removed; those functions
+  are now reached through the **Settings** menu item. Moving a terminal to another
+  workspace preserves the live PTY (re-adopted by the idempotent `pty:spawn`) and its
+  scrollback (the xterm instance is serialized into a renderer-side stash and replayed
+  on remount). Moving an editor flushes its recovery draft so unsaved edits survive
+  the transition. Moving to a **New Workspace** carries the source workspace's theme
+  override so the pane renders identically in its new home. The context menu is
+  portaled to `<body>` (like Modal) so it is never clipped by a mosaic tile's
+  stacking context.
 - **Windows packaging, auto-update, and an app icon.** `npm run package` builds a
   per-user NSIS installer (via electron-builder) and `npm run release` also publishes
   it; the build rebuilds `node-pty` for Electron's ABI and unpacks it from the asar so
