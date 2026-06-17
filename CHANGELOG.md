@@ -7,6 +7,13 @@ All notable changes to Termhalla are recorded here. The format follows
 ## [Unreleased]
 
 ### Added
+- **GitHub Actions CI & releases.** Push/PR runs typecheck + unit tests on
+  `windows-latest`; pushing a `v*` tag builds the NSIS installer and publishes it to
+  GitHub Releases. The auto-updater now reads GitHub Releases (was a placeholder generic
+  feed).
+- **Help → Check for Updates.** A new application menu adds Help → "Check for Updates…"
+  (with up-to-date / downloading / restart-now feedback) and "About Termhalla", plus a
+  View submenu (reload, DevTools, zoom, fullscreen).
 - **Rebindable keyboard shortcuts — Settings → Keybindings.** All app-level
   shortcuts (command palette, new terminal, maximize pane, broadcast, settings,
   next/previous workspace, close workspace) are now listed in a new

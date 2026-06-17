@@ -34,11 +34,27 @@ hand off to [electron-builder](https://www.electron.build/).
 
 ## Auto-update feed
 
-`publish:` is a **generic** HTTP provider — electron-updater fetches `latest.yml` + the
-installer delta from a plain static host (no GitHub token / private-repo dance). The
-configured `url` is a **placeholder (`https://updates.localhostworks.dev/termhalla`) and
-must point at a real host before the first `npm run release`.** The release uploads
-`latest.yml` + the `.exe` there; installed apps poll it on launch and install on restart.
+`publish:` is the **GitHub** provider — `electron-updater` fetches `latest.yml` + the
+installer delta from the public repo's **Releases** (no token at runtime, since the repo
+is public). electron-builder bakes `owner`/`repo` into the bundled `app-update.yml`.
+`releaseType: release` means a tag push publishes a full (non-draft) release, so installed
+apps poll Releases on launch and install on restart.
+
+## CI & releases (GitHub Actions)
+
+- **`.github/workflows/ci.yml`** — on push to `main` / any PR, runs `npm ci` →
+  `npm run typecheck` → `npm test` on `windows-latest` (Node 22). No e2e on CI
+  (it's `workers: 1` and flaky on hosted runners — kept local).
+- **`.github/workflows/release.yml`** — on a `v*` tag push, verifies the tag matches
+  `package.json` version, then runs `electron-builder --win --publish always` with the
+  built-in `GITHUB_TOKEN`, uploading the installer + `latest.yml` + `.blockmap` to the
+  tag's Release.
+
+**Cutting a release:** bump `version` in `package.json`, commit, then
+`git tag vX.Y.Z && git push origin vX.Y.Z`. The workflow builds and publishes; installed
+apps pick it up on next launch. (To review release notes before going live, switch
+`releaseType: release` → `draft` in `electron-builder.yml` — electron-updater ignores
+drafts until you publish them.)
 
 ## Gotchas
 

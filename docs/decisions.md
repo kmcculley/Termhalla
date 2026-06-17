@@ -404,6 +404,12 @@ module — thread the IPC call in as a function argument and call it from the th
 
 ### [2026-06-17] Packaging: electron-builder + NSIS + generic auto-update feed
 
+> **Superseded in part (2026-06-17):** the repo went public; the auto-update feed moved
+> from the generic HTTP placeholder to the GitHub provider, and build/release moved to
+> GitHub Actions. See *"CI/build/releases on GitHub Actions; auto-update from GitHub
+> Releases"* at the end of this file. The electron-builder / NSIS / unsigned / asarUnpack
+> decisions below still stand.
+
 **Context:** Termhalla had no distribution path — `electron-vite` built to `out/` but nothing turned
 that into an installer. Target audience is currently internal (single dev), Windows-only, and wants
 auto-updates without standing up signing infra or a private update server.
@@ -448,3 +454,27 @@ transform containing block (a real bug caught in review — the menu rendered un
 A pre-existing `WindowManager.routeToPane` crash (asserted a main window during teardown) was hardened
 in passing. `maximized`/`focusedPaneId` are transient and never serialized (`serializeWorkspace` only
 writes `{id,name,layout,panes,theme}`).
+
+### [2026-06-17] CI/build/releases on GitHub Actions; auto-update from GitHub Releases
+
+**Context:** The repo went public, so build/release no longer needs to run on the local
+machine, and the private-repo token concern that motivated the generic feed is gone.
+**Decision:** Two workflows run on `windows-latest` (the only supported target; native
+node-pty rebuilds there): **CI** (`typecheck` + unit tests on push/PR — e2e stays local,
+it's `workers: 1` and flaky on hosted runners) and **Release** (on a `v*` tag →
+`electron-builder --win --publish always`). The updater's `publish:` switched from the
+placeholder generic feed to the **`github`** provider (`releaseType: release`), so
+`electron-updater` reads the public repo's Releases with no runtime token. A workflow
+guard fails the release if the tag and `package.json` version disagree. The Help menu's
+"Check for Updates…" drives an interactive check whose dialog copy is decided by a pure
+`update-ui.ts` mapper (unit-tested), keeping the Electron shell thin.
+**Rationale:** Public Releases is the lowest-friction feed now that no token is needed;
+GitHub Actions reuses the existing npm build/native-rebuild steps with no new
+infrastructure. The tag↔version guard prevents a `latest.yml`/installer version skew that
+would silently wedge the updater. Splitting the dialog decision into a pure module keeps
+the testable logic out of the impure Electron/dialog shell, matching the repo's
+pure-core/thin-shell convention.
+**Consequences:** Cutting a release is now: bump `package.json` version, commit, tag
+`vX.Y.Z`, push the tag. Auto-update works from the *second* release onward (an installed
+build needs a newer `latest.yml`). Builds remain unsigned (SmartScreen prompt accepted).
+To review notes before going live, switch `releaseType: release` → `draft`.
