@@ -31,9 +31,12 @@ jobs:
             exit 1
           fi
 
-      # electron-builder builds out/, rebuilds node-pty for Electron's ABI, packs the NSIS
-      # installer, and uploads it + latest.yml + .blockmap to the tag's GitHub Release.
+      # npm run release = `electron-vite build` (compiles out/) && `electron-builder --win
+      # --publish always`. electron-builder rebuilds node-pty for Electron's ABI, packs the
+      # NSIS installer, and uploads it + latest.yml + .blockmap to the tag's GitHub Release.
+      # Calling electron-builder alone would skip the electron-vite build and ship an asar
+      # missing out/main/index.js.
       - name: Build and publish
-        run: npx electron-builder --win --publish always
+        run: npm run release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

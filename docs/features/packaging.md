@@ -46,9 +46,9 @@ apps poll Releases on launch and install on restart.
   `npm run typecheck` → `npm test` on `windows-latest` (Node 22). No e2e on CI
   (it's `workers: 1` and flaky on hosted runners — kept local).
 - **`.github/workflows/release.yml`** — on a `v*` tag push, verifies the tag matches
-  `package.json` version, then runs `electron-builder --win --publish always` with the
-  built-in `GITHUB_TOKEN`, uploading the installer + `latest.yml` + `.blockmap` to the
-  tag's Release.
+  `package.json` version, then runs `npm run release` (`electron-vite build` +
+  `electron-builder --win --publish always`) with the built-in `GITHUB_TOKEN`, uploading
+  the installer + `latest.yml` + `.blockmap` to the tag's Release.
 
 **Cutting a release:** bump `version` in `package.json`, commit, then
 `git tag vX.Y.Z && git push origin vX.Y.Z`. The workflow builds and publishes; installed
