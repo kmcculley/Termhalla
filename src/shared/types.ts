@@ -181,6 +181,21 @@ export interface ProcInfo {
   tree: ProcNode[]     // DFS pre-order; render indented by `depth`
 }
 
+/** Live git status for a pane's repo root. Runtime-only (not persisted). `branch` holds the
+ *  short commit sha when `detached` is true. `dirty` = staged + unstaged + untracked > 0. */
+export interface GitStatus {
+  root: string
+  branch: string
+  detached: boolean
+  upstream: string | null
+  ahead: number
+  behind: number
+  staged: number
+  unstaged: number
+  untracked: number
+  dirty: boolean
+}
+
 /** The AI coding agents Termhalla can recognize running in a terminal. */
 export type AiTool = 'claude' | 'codex'
 
