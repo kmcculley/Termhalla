@@ -1,0 +1,39 @@
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write # create the Release and upload installer + latest.yml
+
+jobs:
+  release:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+
+      # Guard: a v0.2.0 tag must ship a latest.yml that says 0.2.0, or the updater's
+      # version comparison silently breaks. Fail fast on a mismatch.
+      - name: Verify tag matches package.json version
+        shell: bash
+        run: |
+          PKG=$(node -p "require('./package.json').version")
+          TAG="${GITHUB_REF_NAME#v}"
+          echo "package.json=$PKG tag=$TAG"
+          if [ "$PKG" != "$TAG" ]; then
+            echo "::error::Tag v$TAG does not match package.json version $PKG"
+            exit 1
+          fi
+
+      # electron-builder builds out/, rebuilds node-pty for Electron's ABI, packs the NSIS
+      # installer, and uploads it + latest.yml + .blockmap to the tag's GitHub Release.
+      - name: Build and publish
+        run: npx electron-builder --win --publish always
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
