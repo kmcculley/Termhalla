@@ -4,6 +4,12 @@
 
 **Status:** Shipped · **Spec:** [design](../superpowers/specs/2026-06-15-termhalla-env-vars-design.md) · **Plan:** [plan](../superpowers/plans/2026-06-15-termhalla-env-vars.md)
 
+> **UI polish phase 4 update:** the env manager is no longer a standalone modal. Its body
+> now renders as the **Environment** section of the unified `SettingsPanel`
+> (`src/renderer/components/EnvSettings.tsx`), opened via `openSettings({ section:
+> 'environment', paneId })` from the tab-bar ⚙ (global vault) or a pane's 🔑 (that
+> terminal's vars). The vault unlock/create flow and all `env-*` testids are unchanged.
+
 ## What it does
 
 A **🔑** button in the tab bar opens the **Environment variables** manager. The vault holds:

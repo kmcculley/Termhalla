@@ -1,7 +1,7 @@
 # UI Polish — Phase 4: Unified Settings panel
 
 **Date:** 2026-06-16
-**Status:** Design — pending review
+**Status:** Implemented
 **Part of:** UI polish + QoL initiative (Phase 4 of 4, final). Phases 1–3 merged.
 
 ## Goal

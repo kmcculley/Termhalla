@@ -55,6 +55,14 @@ All notable changes to Termhalla are recorded here. The format follows
   count. Also removes the per-subscriber `as never` casts.
 
 ### Changed
+- **Unified Settings panel (UI polish phase 4).** Theme, environment variables, and
+  terminal preferences now live in one Settings window (sidebar: General / Appearance /
+  Environment / Terminal) instead of three separate surfaces. Open it from the tab-bar
+  **⚙**, **Ctrl+,**, or the command palette; a pane's 🎨/🔑/⚙ open the same panel
+  focused on the right section with that pane preselected. The standalone theme/env
+  modals and the in-tile terminal-settings popover are gone; the global
+  "record-by-default" + recordings-folder controls (previously buried in a per-pane
+  popover) now live under General with the default-shell preference.
 - **UI polish (phase 1) — design-token foundation (no behavior change).** Hardcoded colors and
   fonts scattered through the renderer (`#094771` palette selection, the `#5a4a00`/`#bbb` editor
   bars, eight `Consolas, monospace` literals, a spread of ad-hoc `opacity` dim-text values) now
