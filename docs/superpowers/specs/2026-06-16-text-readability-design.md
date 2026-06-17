@@ -1,7 +1,7 @@
 # Text Readability — contrast pass
 
 **Date:** 2026-06-16
-**Status:** Design — pending review
+**Status:** Implemented
 
 ## Goal
 

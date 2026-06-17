@@ -1,4 +1,5 @@
 import type { Theme } from './types'
+import { readableOn } from './contrast'
 
 export const DEFAULT_THEME: Theme = {
   windowBg: '#1e1e1e',
@@ -35,6 +36,9 @@ export function themeCssVars(t: Theme): Record<string, string> {
     '--accent': t.accent,
     '--status-busy': t.statusBusy,
     '--status-needs': t.statusNeedsInput,
+    // Derived readable text colors for the saturated alert bars (luminance-adaptive).
+    '--on-busy': readableOn(t.statusBusy),
+    '--on-needs': readableOn(t.statusNeedsInput),
     '--font': t.fontFamily,
     '--font-size': `${t.fontSize}px`,
     '--term-bg': t.termBg,
@@ -65,5 +69,9 @@ export function themeCssVarsPartial(partial: Partial<Theme>): Record<string, str
     if (v === undefined) continue
     out[VAR_OF[k]] = SIZE_KEYS.has(k) ? `${v}px` : String(v)
   }
+  // Recompute the readable alert-text color for whichever alert color this scope overrides,
+  // so per-workspace/pane alert-color overrides stay legible.
+  if (partial.statusBusy !== undefined) out['--on-busy'] = readableOn(partial.statusBusy)
+  if (partial.statusNeedsInput !== undefined) out['--on-needs'] = readableOn(partial.statusNeedsInput)
   return out
 }

@@ -47,6 +47,14 @@ test('a y/N prompt triggers needs-input and a tab badge', async ({ app }) => {
   await win.keyboard.press('Enter')
   await expect(win.locator('[data-status="needs-input"]')).toHaveCount(1, { timeout: 20_000 })
   await expect(win.locator('[data-testid^="tab-"]').first()).toContainText('🔔', { timeout: 5_000 })
+  // Readability: the orange needs-input bar uses the dark adaptive title color (#182026),
+  // not white (which was 2.29:1 on #ff8f00).
+  const titleColor = await win.locator('.mosaic-window.term-needs-input .mosaic-window-title').first()
+    .evaluate(el => {
+      const g = globalThis as unknown as { getComputedStyle(e: unknown): { color: string } }
+      return g.getComputedStyle(el).color
+    })
+  expect(titleColor).toBe('rgb(24, 32, 38)')
   await win.keyboard.type('n')
   await win.keyboard.press('Enter')
   await expect(win.locator('[data-status="needs-input"]')).toHaveCount(0, { timeout: 10_000 })

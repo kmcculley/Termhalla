@@ -10,6 +10,12 @@
 > 'appearance', paneId })` from the tab-bar ⚙ or a pane's 🎨. All scope/preset behavior
 > and `theme-*` testids are unchanged.
 
+> **Readability:** the busy/needs-input alert-bar title text is *derived*, not fixed white —
+> `readableOn()` in `@shared/contrast.ts` picks black-or-white from the alert colour's
+> luminance, emitted as `--on-busy`/`--on-needs` from `themeCssVars`/`themeCssVarsPartial` so
+> it recomputes at every scope, keeping a custom `statusBusy`/`statusNeedsInput` legible.
+> `tests/theme-contrast.test.ts` guards the default palette at WCAG AA.
+
 ## What it does
 
 The `🎨` button in the workspace tab bar opens the **Theme** editor. Pick colors for the window background, toolbars/panels, menus & dialogs, borders, text, dim text, accent (active/selection), the busy/needs-input **alert** colors, and the terminal background/foreground; set the UI font & size and the terminal font & size. Changes apply **live**. Save an **App preset**, switch presets, or **Reset this scope**. Everything persists across restarts.

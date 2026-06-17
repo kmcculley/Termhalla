@@ -31,9 +31,14 @@ body { background: var(--bg, #1e1e1e); color: var(--fg, #eee); font-family: var(
   color: #182026 !important;
   border-radius: 3px;
 }
-.mosaic-blueprint-theme .mosaic-window.term-busy .mosaic-window-title,
+/* Alert-bar titles take a luminance-adaptive text color (dark on the bright bars) instead
+   of forcing white — fixes white-on-orange and stays readable for any custom alert color.
+   The dark drop-shadow is dropped since the text is now dark-on-bright. */
+.mosaic-blueprint-theme .mosaic-window.term-busy .mosaic-window-title {
+  color: var(--on-busy, #fff) !important;
+}
 .mosaic-blueprint-theme .mosaic-window.term-needs-input .mosaic-window-title {
-  color: #fff !important; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
+  color: var(--on-needs, #fff) !important;
 }
 .mosaic-window.term-busy .mosaic-window-toolbar {
   animation: term-bar-busy 1.4s ease-in-out infinite;

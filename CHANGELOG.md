@@ -37,6 +37,13 @@ All notable changes to Termhalla are recorded here. The format follows
   `🔑` button (layered over globals).
 
 ### Fixed
+- **Text readability (WCAG AA).** The needs-input (orange) and busy (blue) alert bars now
+  pick black-or-white title text from the bar colour's luminance instead of forcing white —
+  fixing white-on-orange (2.29:1 → 7.2:1) and keeping it correct for any custom alert colour
+  (a derived `--on-busy`/`--on-needs` var computed at every theme scope). The recording and
+  env-error reds were brightened to clear 4.5:1, and a `--status-needs-input` typo in the
+  env-error colour (a non-existent var that silently fell back) was fixed. A unit guard pins
+  the default theme's text/background pairs to AA so future token edits can't regress them.
 - **AI agent (Claude/Codex) working-vs-awaiting status is now accurate.** An agent runs as one long
   shell command (no command-done marker until it exits) sitting at its own TUI prompt, which the
   generic idle heuristic can't read — so it used to show **active forever**, even when idle at the
