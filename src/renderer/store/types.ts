@@ -4,6 +4,7 @@ import type {
   PaneConfig, EditorConfig, ExplorerConfig, QuickStore, SshConnection, ProcInfo, CloudStatus,
   TerminalLaunch, AiSession, UsageMetrics, EditorDraft, ScheduledTask, Theme, EnvVaultState
 } from '@shared/types'
+import type { Chord, CommandId } from '@shared/keybindings'
 import type { PaneKind } from './pane-ops'
 
 export type ThemeScope =
@@ -14,7 +15,7 @@ export type ThemeScope =
 export type ToastKind = 'success' | 'error' | 'info'
 export interface Toast { id: string; kind: ToastKind; text: string }
 
-export type SettingsSection = 'general' | 'appearance' | 'environment' | 'terminal'
+export type SettingsSection = 'general' | 'appearance' | 'environment' | 'terminal' | 'keybindings'
 export interface SettingsTarget { section: SettingsSection; paneId?: string }
 
 export interface State {
@@ -107,6 +108,10 @@ export interface State {
   toasts: Toast[]
   pushToast: (text: string, kind?: ToastKind) => string
   dismissToast: (id: string) => void
+  setBinding: (id: CommandId, chord: Chord) => void
+  unbindCommand: (id: CommandId) => void
+  resetBinding: (id: CommandId) => void
+  resetAllBindings: () => void
   settings: SettingsTarget | null
   openSettings: (t: SettingsTarget) => void
   closeSettings: () => void

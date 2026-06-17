@@ -133,7 +133,7 @@ All persistent data lives under the Electron `userData` directory
 |---|---|
 | `workspaces/<id>.json` | One file per workspace (layout tree + pane configs). |
 | `app-state.json` | `windows[]` — per window: its workspace ids, active tab, bounds, `isMain`. Written by the `WindowManager`; clamped to current displays on restore. (Supersedes the legacy single-window `openWorkspaceIds`/`activeWorkspaceId` + `window-state.json`, migrated on load.) |
-| `quick.json` | App-global SSH connections + favorite/recent dirs (sanitized on read+write). |
+| `quick.json` | App-global SSH connections, favorite/recent dirs, theme presets, and `keybindings` map (CommandId → chord override string; `'none'` = explicitly unbound). Sanitized on read+write by `normalizeQuick`. |
 | `shell-integration/` | Generated per-shell init scripts injected into terminals. |
 
 Pane configs are a discriminated union (`PaneConfig` = terminal | editor |

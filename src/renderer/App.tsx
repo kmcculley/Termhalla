@@ -14,7 +14,7 @@ import { UsageWatcher } from './components/UsageWatcher'
 import { Scheduler } from './components/Scheduler'
 import { Toasts } from './components/Toasts'
 import { SettingsPanel } from './components/SettingsPanel'
-import { matchShortcut } from '@shared/keymap'
+import { matchShortcut, resolveBindings } from '@shared/keymap'
 import { api } from './api'
 
 export default function App() {
@@ -57,10 +57,10 @@ export default function App() {
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      const sc = matchShortcut(e)
+      const s = useStore.getState()
+      const sc = matchShortcut(e, resolveBindings(s.quick.keybindings))
       if (!sc) return
       e.preventDefault()
-      const s = useStore.getState()
       const activeId = s.activeId
       const order = s.order
       const idx = activeId ? order.indexOf(activeId) : -1

@@ -7,6 +7,30 @@ All notable changes to Termhalla are recorded here. The format follows
 ## [Unreleased]
 
 ### Added
+- **Rebindable keyboard shortcuts — Settings → Keybindings.** All app-level
+  shortcuts (command palette, new terminal, maximize pane, broadcast, settings,
+  next/previous workspace, close workspace) are now listed in a new
+  **Settings → Keybindings** section. Click a row to capture a new chord; the
+  UI rejects chords without Ctrl and warns on conflicts (with a confirm to
+  proceed). Bindings are persisted to `quick.json` as a `keybindings` map
+  (CommandId → chord string; `'none'` to explicitly unbind a command); only
+  diffs from defaults are stored. **Ctrl+1–9** workspace-jump chords are always
+  reserved and cannot be shadowed by a rebind. Individual bindings and the whole
+  table can be reset to defaults from the same panel.
+- **Rotating keyboard-shortcut tips in the status bar.** The bottom-right of
+  the status bar now shows a rotating tip — "Press Ctrl+K to open the command
+  palette", etc. — cycling through the five most useful shortcuts every 7 s.
+  Tips automatically reflect the user's current bindings, including any
+  custom chords set in the Keybindings panel.
+- **Adaptive `--fg-on-elevated` contrast token.** Menus, modals, and the
+  Settings panel are now readable on any theme. The new `--fg-on-elevated` CSS
+  token is derived by `readableOn(elevatedBg)` (the same luminance-adaptive
+  helper used for the alert bars), so a light-theme elevated surface gets dark
+  text and a dark-theme surface keeps light text — fixing light-on-light
+  dropdown menus and dark-on-dark Settings panel nav links. Recomputed at every
+  theme scope that overrides `elevatedBg`.
+
+### Added
 - **Pane title-bar actions — right-click menu, maximize, and cross-workspace move.**
   Right-clicking a pane's title bar opens a context menu with four items: **Rename**
   (edits the title inline and persists it as an optional `name` on the pane config),

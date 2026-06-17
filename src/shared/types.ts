@@ -73,6 +73,7 @@ export interface QuickStore {
   theme?: Partial<Theme>
   themePresets: { id: string; name: string; theme: Theme }[]
   recordByDefault?: boolean
+  keybindings?: Record<string, string>   // CommandId -> chordKey ("mod+shift+t") | 'none' (unbound)
 }
 
 export const EMPTY_QUICK: QuickStore = {

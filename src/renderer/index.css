@@ -97,6 +97,7 @@ body { background: var(--bg, #1e1e1e); color: var(--fg, #eee); font-family: var(
   .mosaic-window-toolbar,
   [data-testid="env-manager"],
   [data-testid="theme-editor"],
+  [data-testid="settings-panel"],
   [data-testid="broadcast-dialog"],
   [data-testid="schedule-dialog"],
   [data-testid="connection-form-backdrop"],
@@ -109,7 +110,7 @@ body { background: var(--bg, #1e1e1e); color: var(--fg, #eee); font-family: var(
   [data-testid^="cloud-menu-"]
 ) :is(button, select) {
   font: inherit;
-  color: var(--fg, #eee);
+  color: var(--fg-on-elevated, var(--fg, #eee));
   background: rgba(255, 255, 255, 0.06);
   border: 1px solid var(--border, #444);
   border-radius: 4px;
@@ -120,8 +121,9 @@ body { background: var(--bg, #1e1e1e); color: var(--fg, #eee); font-family: var(
 :is(
   [data-testid="workspace-tabs"], [data-testid="status-bar"], [data-testid="empty-workspace"],
   .mosaic-window-toolbar, [data-testid="env-manager"], [data-testid="theme-editor"],
-  [data-testid="broadcast-dialog"], [data-testid="schedule-dialog"], [data-testid="connection-form-backdrop"],
-  [data-testid="command-palette-backdrop"], [data-testid="terminal-settings"], [data-testid="templates-menu"],
+  [data-testid="settings-panel"], [data-testid="broadcast-dialog"], [data-testid="schedule-dialog"],
+  [data-testid="connection-form-backdrop"], [data-testid="command-palette-backdrop"],
+  [data-testid="terminal-settings"], [data-testid="templates-menu"],
   [data-testid="ws-menu"], [data-testid="proc-menu"], [data-testid="cwd-menu"], [data-testid^="cloud-menu-"]
 ) :is(button, select):hover:not(:disabled) {
   background: rgba(255, 255, 255, 0.13);
@@ -130,8 +132,9 @@ body { background: var(--bg, #1e1e1e); color: var(--fg, #eee); font-family: var(
 :is(
   [data-testid="workspace-tabs"], [data-testid="status-bar"], [data-testid="empty-workspace"],
   .mosaic-window-toolbar, [data-testid="env-manager"], [data-testid="theme-editor"],
-  [data-testid="broadcast-dialog"], [data-testid="schedule-dialog"], [data-testid="connection-form-backdrop"],
-  [data-testid="command-palette-backdrop"], [data-testid="terminal-settings"], [data-testid="templates-menu"],
+  [data-testid="settings-panel"], [data-testid="broadcast-dialog"], [data-testid="schedule-dialog"],
+  [data-testid="connection-form-backdrop"], [data-testid="command-palette-backdrop"],
+  [data-testid="terminal-settings"], [data-testid="templates-menu"],
   [data-testid="ws-menu"], [data-testid="proc-menu"], [data-testid="cwd-menu"], [data-testid^="cloud-menu-"]
 ) :is(button, select):active:not(:disabled) {
   background: rgba(255, 255, 255, 0.18);
@@ -139,8 +142,9 @@ body { background: var(--bg, #1e1e1e); color: var(--fg, #eee); font-family: var(
 :is(
   [data-testid="workspace-tabs"], [data-testid="status-bar"], [data-testid="empty-workspace"],
   .mosaic-window-toolbar, [data-testid="env-manager"], [data-testid="theme-editor"],
-  [data-testid="broadcast-dialog"], [data-testid="schedule-dialog"], [data-testid="connection-form-backdrop"],
-  [data-testid="command-palette-backdrop"], [data-testid="terminal-settings"], [data-testid="templates-menu"],
+  [data-testid="settings-panel"], [data-testid="broadcast-dialog"], [data-testid="schedule-dialog"],
+  [data-testid="connection-form-backdrop"], [data-testid="command-palette-backdrop"],
+  [data-testid="terminal-settings"], [data-testid="templates-menu"],
   [data-testid="ws-menu"], [data-testid="proc-menu"], [data-testid="cwd-menu"], [data-testid^="cloud-menu-"]
 ) :is(button, select):disabled {
   opacity: 0.4;
@@ -165,6 +169,7 @@ body { background: var(--bg, #1e1e1e); color: var(--fg, #eee); font-family: var(
 :is(
   [data-testid="workspace-tabs"], [data-testid="status-bar"], [data-testid="empty-workspace"],
   .mosaic-window-toolbar, [data-testid="env-manager"], [data-testid="theme-editor"],
+  [data-testid="settings-panel"],
   [data-testid="broadcast-dialog"], [data-testid="schedule-dialog"], [data-testid="connection-form-backdrop"],
   [data-testid="command-palette-backdrop"], [data-testid="terminal-settings"], [data-testid="templates-menu"],
   [data-testid="ws-menu"], [data-testid="proc-menu"], [data-testid="cwd-menu"], [data-testid^="cloud-menu-"]

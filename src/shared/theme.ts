@@ -39,6 +39,9 @@ export function themeCssVars(t: Theme): Record<string, string> {
     // Derived readable text colors for the saturated alert bars (luminance-adaptive).
     '--on-busy': readableOn(t.statusBusy),
     '--on-needs': readableOn(t.statusNeedsInput),
+    // Readable text for elevated surfaces (menus, modals, Settings) — luminance-adaptive so a
+    // light theme's light elevated bg gets dark text instead of staying light-on-light.
+    '--fg-on-elevated': readableOn(t.elevatedBg),
     '--font': t.fontFamily,
     '--font-size': `${t.fontSize}px`,
     '--term-bg': t.termBg,
@@ -73,5 +76,6 @@ export function themeCssVarsPartial(partial: Partial<Theme>): Record<string, str
   // so per-workspace/pane alert-color overrides stay legible.
   if (partial.statusBusy !== undefined) out['--on-busy'] = readableOn(partial.statusBusy)
   if (partial.statusNeedsInput !== undefined) out['--on-needs'] = readableOn(partial.statusNeedsInput)
+  if (partial.elevatedBg !== undefined) out['--fg-on-elevated'] = readableOn(partial.elevatedBg)
   return out
 }
