@@ -117,7 +117,7 @@ The renderer keeps one zustand store, composed by a thin root
 (`theme-slice`, `runtime-slice`, `quick-slice`, `schedule-slice`, with shared pure
 helpers in `internals.ts` and the `State` type in `types.ts`). It holds the
 workspaces plus per-pane runtime maps keyed by paneId: `statuses`, `cwds`,
-`procs`, `aiSessions`, `usage`, `recording`. Push events update these maps;
+`procs`, `aiSessions`, `usage`, `recording`, `gitStatus`. Push events update these maps;
 `clearPaneRuntime` (paired with `teardownPanes` for the main-side PTY/usage/rec
 stop) drops every map together and is the single cleanup site used by both
 `closePane` and `closeWorkspace` — cleanup parity matters, a missed map is a slow

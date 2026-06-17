@@ -6,6 +6,18 @@ All notable changes to Termhalla are recorded here. The format follows
 
 ## [Unreleased]
 
+### Added
+- **Git status on the pane chip.** Each terminal pane whose cwd is inside a git
+  working tree now shows a compact git indicator in its toolbar: the current branch
+  name plus a `●` dirty dot when there are staged, unstaged, or untracked changes.
+  Detached HEAD is shown with a `⎇` glyph and the short commit sha. Clicking the
+  chip opens a read-only detail popover with the upstream ref, ahead/behind counts,
+  and staged/unstaged/untracked file counts. Non-repo, SSH/remote, and error panes
+  degrade silently to no chip. The status is kept live by a ref-counted chokidar
+  watch on `.git/HEAD`, `index`, and `refs/` (catches commits, staging, and
+  checkouts) plus a command-idle re-probe (catches unstaged working-tree edits).
+  Runtime-only — not persisted.
+
 ## [0.1.1] - 2026-06-17
 
 ### Added
