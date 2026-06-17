@@ -320,7 +320,13 @@ MSVC Spectre-mitigated libs we don't install.
 `electron-rebuild` for the Electron ABI.
 **Rationale:** Lets the module build and load without the Spectre toolset.
 **Consequences:** First-time setup needs the rebuild; clear
-`NoDefaultCurrentDirectoryInExePath` if a `.bat`-invoking build fails.
+`NoDefaultCurrentDirectoryInExePath` if a `.bat`-invoking build fails. The patch must
+be a real `patch-package`-generated diff — a hand-edited one with wrong hunk line
+counts fails to *parse* and breaks `npm ci` postinstall (this surfaced only on a fresh
+GitHub Actions checkout, never locally where node-pty was already built). Regenerate
+with `npx patch-package node-pty --include '\.gyp$'`, never hand-edit hunk headers.
+`.gitattributes` pins `patches/** text eol=lf` so Windows CI (core.autocrlf=true)
+doesn't check the patch out as CRLF, which would also break parsing.
 
 ### [2026-06-16] e2e spawn flakiness: absorb with retries+headroom, NOT by slowing the CIM poll
 

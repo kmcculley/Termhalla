@@ -121,7 +121,11 @@ related area:
   (the keep-mounted pattern — `display:none` would thrash xterm). Swapping `ws.layout` to maximize would
   unmount siblings and dispose their scrollback/TUIs — don't.
 - **Native `node-pty`** is patched (Spectre off) and must be `electron-rebuild`'d
-  for Electron's ABI. See README → Native modules.
+  for Electron's ABI. See README → Native modules. The patch must be a real
+  `patch-package`-generated diff (regenerate with `npx patch-package node-pty --include
+  '\.gyp$'`) — a hand-edited one with wrong hunk counts fails to *parse* and breaks
+  `npm ci` postinstall on a fresh checkout (e.g. CI) even though local builds, which
+  already have node-pty built, never re-run it. `.gitattributes` pins patches to LF.
 
 ## Where things live
 
