@@ -20,6 +20,10 @@ export function registerPty(
     // re-spawns into a new window) adopt the live pty by replaying its snapshot instead of respawning.
     claimPane?: (paneId: string, sender: WebContents) => void
     replayInto?: (paneId: string) => void
+    // Git status hooks: forward the cwd + command-done + pane-gone signals the engine already emits.
+    onCwd?: (paneId: string, cwd: string) => void
+    onCommandDone?: (paneId: string) => void
+    onPaneGone?: (paneId: string) => void
   }
 ): PtyManager {
   const { shells, recorder, envVault, scriptDir, send } = deps
@@ -38,13 +42,13 @@ export function registerPty(
   let tracker: ProcessTracker
   const engine = new StatusEngine(
     (id, status) => { send(CH.ptyStatus, id, status); tracker.setBusy(id, status.state === 'busy') },
-    (id, cwd) => send(CH.ptyCwd, id, cwd),
+    (id, cwd) => { send(CH.ptyCwd, id, cwd); deps.onCwd?.(id, cwd) },
     undefined,
-    (id) => ai.commandDone(id)
+    (id) => { ai.commandDone(id); deps.onCommandDone?.(id) }
   )
   const pty = new PtyManager(
     (id, data) => { send(CH.ptyData, id, data); recorder.data(id, data) },
-    (id, code) => { send(CH.ptyExit, id, code); tracker.unregister(id); ai.unregister(id); recorder.stop(id); send(CH.recState, id, { recording: false, file: null }) },
+    (id, code) => { send(CH.ptyExit, id, code); tracker.unregister(id); ai.unregister(id); recorder.stop(id); send(CH.recState, id, { recording: false, file: null }); deps.onPaneGone?.(id) },
     engine, scriptDir
   )
   tracker = new ProcessTracker(
@@ -63,7 +67,7 @@ export function registerPty(
   ipcMain.on(CH.ptyResize, (_e, a: PtyResizeArgs) => { pty.resize(a.id, a.cols, a.rows); recorder.resize(a.id, a.cols, a.rows) })
   // ai/tracker unregister here is synchronous; the async pty onExit fires them again but
   // both are idempotent (Map.delete returns false), so the renderer sees a single clear.
-  ipcMain.on(CH.ptyKill, (_e, id: string) => { pty.kill(id); tracker.unregister(id); ai.unregister(id) })
+  ipcMain.on(CH.ptyKill, (_e, id: string) => { pty.kill(id); tracker.unregister(id); ai.unregister(id); deps.onPaneGone?.(id) })
 
   ipcMain.on(CH.notify, (e, a: NotifyArgs) => {
     if (!Notification.isSupported()) return

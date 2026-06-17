@@ -1,16 +1,18 @@
 import { useStore } from '../store'
 import { api } from '../api'
+import type { GitStatus } from '@shared/types'
 import type { PaneMenu } from './PaneTile'
 
 /** The MosaicWindow toolbar for one pane: the process/usage chip, per-terminal action buttons, the
  *  folder menu, split controls, a maximize toggle, and close. Env/terminal/appearance settings moved
  *  to the title-bar right-click menu (see PaneContextMenu). */
 export function PaneToolbar(
-  { wsId, paneId, isTerminal, chipText, recording, toggle }: {
+  { wsId, paneId, isTerminal, chipText, gitStatus, recording, toggle }: {
     wsId: string
     paneId: string
     isTerminal: boolean
     chipText: string
+    gitStatus: GitStatus | undefined
     recording: boolean
     toggle: (menu: PaneMenu) => void
   }
@@ -32,6 +34,13 @@ export function PaneToolbar(
             title={recording ? 'Stop recording' : 'Record session'}
             style={{ color: recording ? '#ff6b6b' : undefined }}
             onClick={() => recording ? api.recStop(paneId) : api.recStart(paneId)}>⏺</button>
+          {gitStatus && (
+            <button type="button" data-testid={`git-chip-${paneId}`} title="Git status"
+              style={{ maxWidth: 140, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+              onClick={() => toggle('git')}>
+              {gitStatus.detached ? '⎇ ' : ''}{gitStatus.branch}{gitStatus.dirty ? ' ●' : ''}
+            </button>
+          )}
         </>
       )}
       <button data-testid={`cwd-${paneId}`} title="Folder actions" onClick={() => toggle('cwd')}>📁</button>

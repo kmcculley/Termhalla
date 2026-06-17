@@ -137,6 +137,7 @@ related area:
 | Process tree | `src/main/proc/` | [child-process-tracking](docs/features/child-process-tracking.md) |
 | Cloud CLI status | `src/main/cloud/` | [cloud-status](docs/features/cloud-status.md) |
 | AI session detection | `src/main/ai/` | [ai-session-awareness](docs/features/ai-session-awareness.md) |
+| Git status on pane chip | `src/main/git/` | [git-status](docs/features/git-status.md) |
 | Claude usage metrics | `src/main/usage/` | [usage-metrics](docs/features/usage-metrics.md) |
 | SSH / favorites store | `src/main/persistence/quick-store.ts`, `src/shared/quick.ts` | [ssh-favorites](docs/features/ssh-favorites.md) |
 | Multi-window / undock | `src/main/window-manager.ts` (+ `-core.ts`), `src/main/services.ts` | [window-management](docs/features/window-management.md) |

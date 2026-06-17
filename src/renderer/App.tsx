@@ -41,6 +41,7 @@ export default function App() {
       api.onPtyStatus((id, status) => s().setStatus(id, status)),
       api.onPtyCwd((id, cwd) => s().setCwd(id, cwd)),
       api.onPtyProcs((id, info) => s().setProcs(id, info)),
+      api.onGitStatus((id, g) => s().setGitStatus(id, g)),
       api.onCloudStatus(statuses => s().setCloud(statuses)),
       api.onAiSession((id, ai) => s().setAiSession(id, ai)),
       api.onUsageMetrics((id, m) => s().setUsage(id, m)),

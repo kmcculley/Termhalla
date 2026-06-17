@@ -85,6 +85,7 @@ export const useStore = create<State>((set, get) => {
     statuses: {},
     cwds: {},
     procs: {},
+    gitStatus: {},
     aiSessions: {},
     usage: {},
     recording: {},

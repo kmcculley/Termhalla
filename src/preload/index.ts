@@ -60,6 +60,7 @@ const api: TermhallaApi = {
   draftsDelete: (key) => ipcRenderer.send(CH.draftsDelete, key),
   onPtyCwd: pushChannel<[string, string]>(CH.ptyCwd),
   onPtyProcs: pushChannel<[string, import('@shared/types').ProcInfo | null]>(CH.ptyProcs),
+  onGitStatus: pushChannel<[string, import('@shared/types').GitStatus | null]>(CH.gitStatus),
   onCloudStatus: pushChannel<[import('@shared/types').CloudStatus[]]>(CH.cloudStatus),
   cloudRefresh: () => ipcRenderer.invoke(CH.cloudRefresh),
   onAiSession: pushChannel<[string, import('@shared/types').AiSession | null]>(CH.aiSession),
