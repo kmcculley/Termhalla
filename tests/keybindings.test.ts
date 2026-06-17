@@ -23,6 +23,7 @@ describe('formatChord', () => {
     expect(formatChord(ch(true, true, 't'))).toBe('Ctrl+Shift+T')
     expect(formatChord(ch(true, false, 'enter'))).toBe('Ctrl+Enter')
     expect(formatChord(ch(true, false, ','))).toBe('Ctrl+,')
+    expect(formatChord(ch(true, false, 'f2'))).toBe('Ctrl+F2') // multi-char key capitalized
   })
 })
 
@@ -70,6 +71,7 @@ describe('isValidRebind', () => {
     expect(isValidRebind(ch(false, true, 'n'))).toBe(false)
     expect(isValidRebind(ch(true, false, '3'))).toBe(false)
     expect(isValidRebind(ch(true, false, 'control'))).toBe(false)
+    expect(isValidRebind(ch(true, true, '+'))).toBe(false) // '+' collides with chordKey separator
   })
 })
 

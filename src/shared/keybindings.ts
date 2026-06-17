@@ -66,9 +66,12 @@ const KEY_LABEL: Record<string, string> = {
   arrowup: '↑', arrowdown: '↓', arrowleft: '←', arrowright: '→'
 }
 
-/** Human display, e.g. "Ctrl+Shift+T". `mod` shows as Ctrl (Windows/Linux primary target). */
+/** Human display, e.g. "Ctrl+Shift+T". `mod` shows as Ctrl (Windows/Linux primary target).
+ *  Multi-char keys not in KEY_LABEL (e.g. function keys) are capitalized (F1 → "F1"). */
 export function formatChord(ch: Chord): string {
-  const key = KEY_LABEL[ch.key] ?? (ch.key.length === 1 ? ch.key.toUpperCase() : ch.key)
+  const key = KEY_LABEL[ch.key] ?? (ch.key.length === 1
+    ? ch.key.toUpperCase()
+    : ch.key.charAt(0).toUpperCase() + ch.key.slice(1))
   return [ch.mod ? 'Ctrl' : '', ch.shift ? 'Shift' : '', key].filter(Boolean).join('+')
 }
 
@@ -117,12 +120,14 @@ export function findConflict(bindings: Partial<Record<CommandId, Chord>>, chord:
   return null
 }
 
-/** A chord is a legal rebind iff it includes Ctrl/⌘, has a real (non-modifier) key, and is not a
- *  reserved Ctrl+1..9 digit. */
+/** A chord is a legal rebind iff it includes Ctrl/⌘, has a real (non-modifier) key, is not a
+ *  reserved Ctrl+1..9 digit, and is not the '+' key (which collides with the chordKey separator
+ *  and would fail to round-trip through persistence). */
 export function isValidRebind(ch: Chord): boolean {
   if (!ch.mod) return false
   if (!ch.key || ['control', 'meta', 'shift', 'alt'].includes(ch.key)) return false
   if (/^[1-9]$/.test(ch.key)) return false
+  if (ch.key === '+') return false
   return true
 }
 
