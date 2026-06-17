@@ -3,6 +3,7 @@ import { useStore } from '../store'
 import { Modal } from './Modal'
 import type { SettingsSection } from '../store/types'
 import { GeneralSettings } from './GeneralSettings'
+import { ThemeSettings } from './ThemeSettings'
 
 const SECTIONS: { id: SettingsSection; label: string }[] = [
   { id: 'general', label: 'General' },
@@ -36,7 +37,8 @@ export function SettingsPanel() {
       </div>
       <div style={{ flex: 1, padding: 14, overflow: 'auto' }}>
         {section === 'general' && <GeneralSettings />}
-        {section !== 'general' && <div data-testid="settings-placeholder" style={{ color: 'var(--fg-dim, #aaa)' }}>Moved here in the next step…</div>}
+        {section === 'appearance' && <ThemeSettings paneId={settings.paneId} />}
+        {(section === 'environment' || section === 'terminal') && <div data-testid="settings-placeholder" style={{ color: 'var(--fg-dim, #aaa)' }}>Moved here in the next step…</div>}
       </div>
     </Modal>
   )
