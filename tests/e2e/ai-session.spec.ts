@@ -23,7 +23,10 @@ test('detects a Claude session and clears it when the command ends', async () =>
     'set /p x=\r\n', 'utf8')
 
   const app: ElectronApplication = await electron.launch({
-    args: ['out/main/index.js', '--no-sandbox', '--disable-gpu', `--user-data-dir=${userData}`]
+    args: ['out/main/index.js', '--no-sandbox', '--disable-gpu', `--user-data-dir=${userData}`],
+    // AI-session detection scans the proc tree, so this spec needs the fast 1s CIM poll
+    // (the suite default slows it to ~off — see playwright.config.ts).
+    env: { ...process.env, TERMHALLA_PROC_POLL_MS: '1000' }
   })
   const win = await app.firstWindow()
   await win.getByTestId('shell-picker').selectOption('powershell')
@@ -70,7 +73,10 @@ test('AI session resumes to busy on its next turn after going idle (the "idle no
     'set /p x=\r\n', 'utf8')
 
   const app: ElectronApplication = await electron.launch({
-    args: ['out/main/index.js', '--no-sandbox', '--disable-gpu', `--user-data-dir=${userData}`]
+    args: ['out/main/index.js', '--no-sandbox', '--disable-gpu', `--user-data-dir=${userData}`],
+    // AI-session detection scans the proc tree, so this spec needs the fast 1s CIM poll
+    // (the suite default slows it to ~off — see playwright.config.ts).
+    env: { ...process.env, TERMHALLA_PROC_POLL_MS: '1000' }
   })
   const win = await app.firstWindow()
   await win.getByTestId('shell-picker').selectOption('powershell')

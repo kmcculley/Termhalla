@@ -3,7 +3,8 @@ import { CH, type PtySpawnArgs, type PtyWriteArgs, type PtyResizeArgs, type Noti
 import type { ShellInfo } from '@shared/types'
 import { PtyManager } from '../pty/pty-manager'
 import { StatusEngine } from '../status/status-engine'
-import { ProcessTracker } from '../proc/process-tracker'
+import { ProcessTracker, procPollIntervalMs } from '../proc/process-tracker'
+import { queryProcesses } from '../proc/cim-query'
 import { AiSessionTracker } from '../ai/ai-session-tracker'
 import type { EnvVault } from '../env-vault/env-vault'
 import type { Recorder } from '../recording/recorder'
@@ -49,7 +50,9 @@ export function registerPty(
   )
   tracker = new ProcessTracker(
     (id) => pty.pidOf(id),
-    (id, info) => { send(CH.ptyProcs, id, info); ai.onProcs(id, info) }
+    (id, info) => { send(CH.ptyProcs, id, info); ai.onProcs(id, info) },
+    queryProcesses,
+    procPollIntervalMs(process.env.TERMHALLA_PROC_POLL_MS)
   )
 
   ipcMain.handle(CH.ptySpawn, (e, a: PtySpawnArgs) => {

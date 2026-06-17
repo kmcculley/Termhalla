@@ -12,7 +12,10 @@ test('shows the foreground process on the chip and in the tree popover', async (
   test.setTimeout(60_000)
   const userData = mkdtempSync(join(tmpdir(), 'termh-procs-'))
   const app: ElectronApplication = await electron.launch({
-    args: ['out/main/index.js', '--no-sandbox', '--disable-gpu', `--user-data-dir=${userData}`]
+    args: ['out/main/index.js', '--no-sandbox', '--disable-gpu', `--user-data-dir=${userData}`],
+    // This spec asserts the foreground process chip, so it needs the fast 1s CIM poll
+    // (the suite default slows it to ~off — see playwright.config.ts).
+    env: { ...process.env, TERMHALLA_PROC_POLL_MS: '1000' }
   })
   const win = await app.firstWindow()
   await win.getByTestId('shell-picker').selectOption('powershell')
