@@ -7,6 +7,13 @@ All notable changes to Termhalla are recorded here. The format follows
 ## [Unreleased]
 
 ### Added
+- **Windows packaging, auto-update, and an app icon.** `npm run package` builds a
+  per-user NSIS installer (via electron-builder) and `npm run release` also publishes
+  it; the build rebuilds `node-pty` for Electron's ABI and unpacks it from the asar so
+  the native binary loads at runtime. Packaged apps check a generic HTTP update feed on
+  launch (electron-updater; a no-op in dev). The app now ships a custom icon
+  (`build/icon.ico`). Configure the publish `url` in `electron-builder.yml` before the
+  first release. See [docs/features/packaging.md](docs/features/packaging.md).
 - **Keyboard navigation + command menu (UI polish phase 3).** The command palette
   (Ctrl+K) now also runs commands — type to reveal **New terminal/editor/explorer**,
   **New workspace**, **Broadcast**, **Save all**, **Refresh cloud status** (the

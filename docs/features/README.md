@@ -26,6 +26,8 @@ see [../decisions.md](../decisions.md).
   sessions and surface them (E).
 - [Claude Usage Metrics](usage-metrics.md) — live context-% and token breakdown for
   a Claude session (F).
+- [Packaging & Distribution](packaging.md) — Windows NSIS installer, app icon, and
+  background auto-update.
 
 ## Conventions in these docs
 

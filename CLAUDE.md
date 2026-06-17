@@ -12,6 +12,8 @@ npm run build        # build to out/  (required before npm run e2e)
 npm run typecheck    # tsc for renderer + node configs
 npm test             # vitest unit tests (fast, headless)
 npm run e2e          # Playwright-for-Electron (launches the real app)
+npm run package      # build + pack a Windows NSIS installer into dist/ (no publish)
+npm run release      # package, then publish installer + update feed (--publish always)
 ```
 
 - **`npm run e2e` runs against `out/`** — always `npm run build` first (or after
@@ -120,6 +122,7 @@ related area:
 | Multi-window / undock | `src/main/window-manager.ts` (+ `-core.ts`), `src/main/services.ts` | [window-management](docs/features/window-management.md) |
 | Renderer store | `src/renderer/store.ts` (root) + `src/renderer/store/` (slices + helpers) | — |
 | IPC contract | `src/shared/ipc-contract.ts` | — |
+| Packaging / auto-update | `electron-builder.yml`, `src/main/updater.ts`, `build/icon.ico` | [packaging](docs/features/packaging.md) |
 
 ## Process / workflow
 

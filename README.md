@@ -53,6 +53,8 @@ npm run dev                  # launch the app with hot reload
 | `npm test` | Run the unit test suite (vitest, headless). |
 | `npm run test:watch` | Vitest in watch mode. |
 | `npm run e2e` | Run the Playwright-for-Electron end-to-end suite. |
+| `npm run package` | Build and pack a Windows NSIS installer into `dist/` (no publish). |
+| `npm run release` | Same, then publish the installer + update feed (`--publish always`). |
 
 ### Native modules
 
@@ -63,6 +65,23 @@ npm run dev                  # launch the app with hot reload
 - Then run `npx electron-rebuild` to rebuild it for the installed Electron version.
 - If the rebuild fails invoking a `.bat`, clear the `NoDefaultCurrentDirectoryInExePath`
   environment variable first — a sandbox can set it and break `.bat`-invoking builds.
+
+### Packaging & distribution
+
+`npm run package` produces a per-user Windows NSIS installer in `dist/` via
+[electron-builder](https://www.electron.build/) (config: `electron-builder.yml`).
+The build rebuilds `node-pty` for Electron's ABI automatically, then keeps it out of
+the asar (`asarUnpack`) so the native binary loads at runtime.
+
+- **Unsigned by default** — internal distribution clicks through Windows SmartScreen.
+  Add `certificateFile`/`certificatePassword` (or rely on a cert in the Windows store)
+  under `win:` to sign.
+- **App icon** lives at `build/icon.ico` (multi-res, auto-discovered). Regenerate icon
+  candidates with `python design/gen_icons.py` (drives a ComfyUI instance).
+- **Auto-update** uses `electron-updater` against the generic HTTP feed configured under
+  `publish:` in `electron-builder.yml`. **Change the placeholder `url` to your real host
+  before the first `npm run release`** — `release` uploads the installer + `latest.yml`
+  there, and installed apps poll it on launch (packaged builds only; a no-op in dev).
 
 ## Testing philosophy
 

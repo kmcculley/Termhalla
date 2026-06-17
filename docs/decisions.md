@@ -401,3 +401,23 @@ the `addPaneOfKind` store action passes `() => api.openFolder()`). `firstTarget`
 on the renderer side. Dependency injection keeps the helpers free of `window`, so they run headless.
 **Consequences:** When extracting renderer logic to unit-test it, don't import `../api` in that
 module — thread the IPC call in as a function argument and call it from the thin store action.
+
+### [2026-06-17] Packaging: electron-builder + NSIS + generic auto-update feed
+
+**Context:** Termhalla had no distribution path — `electron-vite` built to `out/` but nothing turned
+that into an installer. Target audience is currently internal (single dev), Windows-only, and wants
+auto-updates without standing up signing infra or a private update server.
+**Decision:** Package with **electron-builder** (not Electron Forge), per-user **NSIS** installer,
+**unsigned**, auto-update via **electron-updater** against a **generic HTTP feed** (not GitHub
+Releases). `node-pty` is `asarUnpack`'d. App icon is `build/icon.ico`, auto-discovered.
+**Rationale:** electron-builder slots alongside the existing `electron-vite` build and native-rebuild
+workflow with one config file, and has first-class `electron-updater` integration — Forge would mean
+reworking the build pipeline for a weaker update story. A *generic* feed sidesteps the private-repo
+token dance a single internal user would otherwise hit with GitHub Releases. Unsigned is acceptable
+internally (click through SmartScreen); a cert can be added later under `win:`. Native `.node` files
+can't be `require`'d from inside an asar, so node-pty must be unpacked or the packaged app crashes on
+first PTY spawn — the one packaging failure mode that dev never exercises.
+**Consequences:** The publish `url` in `electron-builder.yml` is a placeholder and must point at a
+real host before the first `npm run release`. Packaging must run after `npm install` (so patch-package
+applies the Spectre patch) and with `NoDefaultCurrentDirectoryInExePath` cleared (native rebuild
+invokes `.bat`s). Going public later means adding signing/notarization, not changing tools.
