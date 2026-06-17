@@ -30,11 +30,11 @@ export function applyCwds(ws: Workspace, cwds: Record<string, string>): Workspac
  *  all keyed by pane id; clearing them in one helper (rather than duplicating the deletes in
  *  closePane and closeWorkspace, where they had already drifted) means a new per-pane map only
  *  needs to be added in one place. */
-export function clearPaneRuntime(s: State, paneIds: string[]): Pick<State, 'statuses' | 'cwds' | 'procs' | 'aiSessions' | 'usage' | 'recording'> {
+export function clearPaneRuntime(s: State, paneIds: string[]): Pick<State, 'statuses' | 'cwds' | 'procs' | 'aiSessions' | 'usage' | 'recording' | 'gitStatus'> {
   const statuses = { ...s.statuses }, cwds = { ...s.cwds }, procs = { ...s.procs }
-  const aiSessions = { ...s.aiSessions }, usage = { ...s.usage }, recording = { ...s.recording }
-  for (const pid of paneIds) { delete statuses[pid]; delete cwds[pid]; delete procs[pid]; delete aiSessions[pid]; delete usage[pid]; delete recording[pid] }
-  return { statuses, cwds, procs, aiSessions, usage, recording }
+  const aiSessions = { ...s.aiSessions }, usage = { ...s.usage }, recording = { ...s.recording }, gitStatus = { ...s.gitStatus }
+  for (const pid of paneIds) { delete statuses[pid]; delete cwds[pid]; delete procs[pid]; delete aiSessions[pid]; delete usage[pid]; delete recording[pid]; delete gitStatus[pid] }
+  return { statuses, cwds, procs, aiSessions, usage, recording, gitStatus }
 }
 
 /** Stop the main-side resources for the given panes: PTY, usage watch, recording. All three

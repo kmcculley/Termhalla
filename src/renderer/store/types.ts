@@ -2,7 +2,7 @@ import type { StoreApi } from 'zustand'
 import type {
   Workspace, ShellInfo, MosaicNode, MosaicDirection, TerminalConfig, TerminalStatus,
   PaneConfig, EditorConfig, ExplorerConfig, QuickStore, SshConnection, ProcInfo, CloudStatus,
-  TerminalLaunch, AiSession, UsageMetrics, EditorDraft, ScheduledTask, Theme, EnvVaultState
+  TerminalLaunch, AiSession, UsageMetrics, EditorDraft, ScheduledTask, Theme, EnvVaultState, GitStatus
 } from '@shared/types'
 import type { Chord, CommandId } from '@shared/keybindings'
 import type { PaneKind } from './pane-ops'
@@ -56,6 +56,8 @@ export interface State {
   setCwd: (id: string, cwd: string) => void
   procs: Record<string, ProcInfo>
   setProcs: (id: string, info: ProcInfo | null) => void
+  gitStatus: Record<string, GitStatus>
+  setGitStatus: (id: string, status: GitStatus | null) => void
   aiSessions: Record<string, AiSession>
   setAiSession: (id: string, ai: AiSession | null) => void
   usage: Record<string, UsageMetrics>

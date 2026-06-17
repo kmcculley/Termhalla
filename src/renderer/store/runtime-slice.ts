@@ -5,7 +5,7 @@ import { findPaneConfig } from './internals'
 import type { State, SliceDeps } from './types'
 
 type RuntimeSlice = Pick<State,
-  'setStatus' | 'setCwd' | 'setProcs' | 'setAiSession' | 'setUsage' | 'setRecording' |
+  'setStatus' | 'setCwd' | 'setProcs' | 'setGitStatus' | 'setAiSession' | 'setUsage' | 'setRecording' |
   'setCloud' | 'refreshCloud' | 'setEnvState'>
 
 /** Per-pane runtime pushed from main (status / cwd / child procs / AI session / usage /
@@ -52,6 +52,13 @@ export function createRuntimeSlice({ set, get, scheduleAutosave, scheduleQuickSa
       if (info) procs[id] = info
       else delete procs[id]
       return { procs }
+    }),
+
+    setGitStatus: (id, status) => set(s => {
+      const gitStatus = { ...s.gitStatus }
+      if (status) gitStatus[id] = status
+      else delete gitStatus[id]
+      return { gitStatus }
     }),
 
     setAiSession: (id, ai) => set(s => {
