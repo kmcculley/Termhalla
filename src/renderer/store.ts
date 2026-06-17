@@ -2,7 +2,7 @@ import { create } from 'zustand'
 import { v4 as uuid } from 'uuid'
 import type { Workspace, PaneConfig, EditorConfig } from '@shared/types'
 import { EMPTY_QUICK } from '@shared/types'
-import { createWorkspace, removePane, reorderIds } from '@shared/workspace-model'
+import { createWorkspace, removePane, reorderIds, movePane } from '@shared/workspace-model'
 import { encodeBroadcast, terminalPaneIds } from '@shared/broadcast'
 import { schedulesWithout } from '@shared/schedule'
 import { api } from './api'
@@ -11,7 +11,8 @@ import {
   placePane, firstTarget, paneCwd, applyCwds, clearPaneRuntime, teardownPanes
 } from './store/internals'
 import { defaultShellId, dispatchAddPane } from './store/pane-ops'
-import { readPaneSnapshot } from './components/terminal-registry'
+import { readPaneSnapshot, stashSnapshot } from './components/terminal-registry'
+import { beginPaneTransit } from './components/pane-transit'
 import { AUTOSAVE_DEBOUNCE_MS } from './timing'
 import { createThemeSlice } from './store/theme-slice'
 import { createRuntimeSlice } from './store/runtime-slice'
@@ -46,9 +47,13 @@ export const useStore = create<State>((set, get) => {
   const commitPane = (wsId: string, cfg: PaneConfig, target: string | null, dir: import('@shared/types').MosaicDirection, markEditor = false): string => {
     const ws = get().workspaces[wsId]
     const r = placePane(ws, cfg, target, dir)
-    set(s => markEditor
-      ? { workspaces: { ...s.workspaces, [wsId]: r.workspace }, lastEditorPaneId: r.paneId }
-      : { workspaces: { ...s.workspaces, [wsId]: r.workspace } })
+    set(s => {
+      const maximized = { ...s.maximized }
+      delete maximized[wsId]
+      return markEditor
+        ? { workspaces: { ...s.workspaces, [wsId]: r.workspace }, maximized, lastEditorPaneId: r.paneId }
+        : { workspaces: { ...s.workspaces, [wsId]: r.workspace }, maximized }
+    })
     scheduleAutosave()
     return r.paneId
   }
@@ -74,6 +79,8 @@ export const useStore = create<State>((set, get) => {
     isMainWindow: true,   // true until a win:assignment says otherwise, so the first paint shows tabs
     newTerminalShellId: null,
     lastEditorPaneId: null,
+    maximized: {},
+    focusedPaneId: null,
     statuses: {},
     cwds: {},
     procs: {},
@@ -199,6 +206,46 @@ export const useStore = create<State>((set, get) => {
       scheduleAutosave()
     },
 
+    toggleMaximize: (wsId, paneId) => set(s => {
+      const maximized = { ...s.maximized }
+      if (maximized[wsId] === paneId) delete maximized[wsId]
+      else maximized[wsId] = paneId
+      return { maximized }
+    }),
+
+    setFocusedPane: (paneId) => set({ focusedPaneId: paneId }),
+
+    /** Move a pane to another workspace THIS window already hosts, following it with the active tab.
+     *  Terminals keep scrollback (snapshot stash) + their running PTY (re-adopted by pty:spawn);
+     *  editors keep unsaved edits (in-transit draft flush). Never tears down the PTY. */
+    movePaneToWorkspace: (paneId, fromWsId, toWsId) => {
+      const s = get()
+      const from = s.workspaces[fromWsId]
+      const to = s.workspaces[toWsId]
+      if (!from || !to || fromWsId === toWsId || !from.panes[paneId]) return
+      const kind = from.panes[paneId].config.kind
+      if (kind === 'terminal') { const snap = readPaneSnapshot(paneId); if (snap) stashSnapshot(paneId, snap) }
+      if (kind === 'editor') beginPaneTransit(paneId)
+      const moved = movePane(from, to, paneId)
+      set(st => {
+        const maximized = { ...st.maximized }
+        if (maximized[fromWsId] === paneId) delete maximized[fromWsId]
+        return { workspaces: { ...st.workspaces, [fromWsId]: moved.from, [toWsId]: moved.to }, activeId: toWsId, maximized }
+      })
+      scheduleAutosave()
+      reportAssignment()
+    },
+
+    /** Move a pane into a brand-new workspace, carrying the source workspace's theme override so the
+     *  pane renders the same in its new home. */
+    movePaneToNewWorkspace: (paneId, fromWsId) => {
+      const from = get().workspaces[fromWsId]
+      if (!from?.panes[paneId]) return
+      const newId = get().newWorkspace(`Workspace ${get().order.length + 1}`)
+      if (from.theme) set(s => ({ workspaces: { ...s.workspaces, [newId]: { ...s.workspaces[newId], theme: { ...from.theme } } } }))
+      get().movePaneToWorkspace(paneId, fromWsId, newId)
+    },
+
     // ---- core: pane management ----
     addTerminal: (wsId, targetPaneId, dir) => {
       const shellId = defaultShellId(get())
@@ -211,7 +258,11 @@ export const useStore = create<State>((set, get) => {
     closePane: (wsId, paneId) => {
       const ws = removePane(get().workspaces[wsId], paneId)
       teardownPanes([paneId])
-      set(s => ({ workspaces: { ...s.workspaces, [wsId]: ws }, ...clearPaneRuntime(s, [paneId]), schedules: schedulesWithout(s.schedules, [paneId]) }))
+      set(s => {
+        const maximized = { ...s.maximized }
+        if (maximized[wsId] === paneId) delete maximized[wsId]
+        return { workspaces: { ...s.workspaces, [wsId]: ws }, maximized, ...clearPaneRuntime(s, [paneId]), schedules: schedulesWithout(s.schedules, [paneId]) }
+      })
       scheduleAutosave()
     },
 

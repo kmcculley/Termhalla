@@ -36,6 +36,12 @@ export interface State {
   closeWorkspace: (id: string) => void
   moveWorkspace: (fromId: string, toId: string) => void
   setActive: (id: string) => void
+  maximized: Record<string, string>   // wsId -> the paneId currently maximized in that workspace
+  focusedPaneId: string | null
+  toggleMaximize: (wsId: string, paneId: string) => void
+  setFocusedPane: (paneId: string) => void
+  movePaneToWorkspace: (paneId: string, fromWsId: string, toWsId: string) => void
+  movePaneToNewWorkspace: (paneId: string, fromWsId: string) => void
   setLayout: (wsId: string, layout: MosaicNode | null) => void
   addTerminal: (wsId: string, targetPaneId: string | null, dir: MosaicDirection) => string
   addPaneOfKind: (wsId: string, kind: PaneKind) => Promise<void>
