@@ -1,6 +1,7 @@
 import { useCallback, useRef } from 'react'
 import { api } from '../api'
 import { draftKey } from '@shared/editor-draft'
+import { AUTOSAVE_DEBOUNCE_MS } from '../timing'
 import type { Tab } from './tabs'
 
 /** Owns hot-exit draft persistence for one editor pane: one debounced timer per path.
@@ -21,11 +22,11 @@ export function useEditorDrafts(paneId: string, getTab: (path: string) => Tab | 
     else api.draftsSet(key, { content: value, baseline: t.saved })
   }, [paneId])
 
-  // Debounced persist on edit (mirrors the workspace autosave cadence).
+  // Debounced persist on edit (shares the workspace autosave cadence).
   const schedule = useCallback((path: string) => {
     const existing = timers.current.get(path)
     if (existing) clearTimeout(existing)
-    timers.current.set(path, setTimeout(() => { timers.current.delete(path); persist(path) }, 500))
+    timers.current.set(path, setTimeout(() => { timers.current.delete(path); persist(path) }, AUTOSAVE_DEBOUNCE_MS))
   }, [persist])
 
   // Drop a single path's pending timer (on save/close — its draft is handled explicitly).

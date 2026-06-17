@@ -19,8 +19,11 @@ export function SettingsPanel() {
   const close = useStore(s => s.closeSettings)
   const activeId = useStore(s => s.activeId)
   const [section, setSection] = useState<SettingsSection>('general')
-  // Re-seed the section each time the panel is (re)opened with a new target.
   const [seededFor, setSeededFor] = useState<object | null>(null)
+  // Snap to the requested section when the panel is re-targeted *while already open* (e.g. a pane's
+  // 🎨 button while Settings shows General). React's sanctioned "adjust state during render" pattern
+  // (no effect, no extra paint): each openSettings yields a fresh `settings` object, so an identity
+  // change means a new open. (A fully closed→open cycle remounts and resets via useState anyway.)
   if (settings && settings !== seededFor) { setSection(settings.section); setSeededFor(settings) }
   if (!settings) return null
 

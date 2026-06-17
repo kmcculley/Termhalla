@@ -23,6 +23,9 @@ const TRANSIT_GC_MS = 10_000
 /** Debounce for persisting window bounds during a resize/move drag (which fires continuously). */
 const PERSIST_DEBOUNCE_MS = 300
 
+/** Default size for a freshly torn-off (undocked) window before the user moves/resizes it. */
+const NEW_WINDOW_SIZE = { width: 900, height: 640 }
+
 /** Channels whose first argument is a paneId and therefore route to the owning window. Everything
  *  else (cloud:status, env:state, fs:change, …) is app-global and broadcasts to every window. */
 const PANE_SCOPED = new Set<string>([
@@ -275,7 +278,7 @@ export class WindowManager {
       this.core = undock(this.core, workspaceId, newWindowId)
       const displays = screen.getAllDisplays().map(d => d.workArea)
       const bounds = clampWindowState(
-        { width: 900, height: 640, x: cursor?.x, y: cursor?.y, maximized: false }, displays)
+        { ...NEW_WINDOW_SIZE, x: cursor?.x, y: cursor?.y, maximized: false }, displays)
       const win = this.createBrowserWindow(newWindowId, bounds)
       this.load(win)
     } else {
@@ -342,13 +345,17 @@ export class WindowManager {
 
   /** Debounced persist for the high-frequency resize/move path (avoids rewriting the whole
    *  app-state JSON dozens of times per second during a window drag). */
+  private cancelPersist(): void {
+    if (this.persistTimer) { clearTimeout(this.persistTimer); this.persistTimer = null }
+  }
+
   private schedulePersist(): void {
-    if (this.persistTimer) clearTimeout(this.persistTimer)
-    this.persistTimer = setTimeout(() => { this.persistTimer = null; this.persistState() }, PERSIST_DEBOUNCE_MS)
+    this.cancelPersist()
+    this.persistTimer = setTimeout(() => this.persistState(), PERSIST_DEBOUNCE_MS)
   }
 
   private persistState(): void {
-    if (this.persistTimer) { clearTimeout(this.persistTimer); this.persistTimer = null }
+    this.cancelPersist()  // a direct call supersedes any pending debounced one
     const windows = this.core.windows.map(w => {
       const win = this.wins.get(w.id)
       const b = win && !win.isDestroyed() ? win.getBounds() : undefined

@@ -19,14 +19,13 @@ export function registerFs(win: BrowserWindow, send: Send): Disposer {
   ipcMain.on(CH.fsWatch, (_e, id: string, path: string) => watcher.watch(id, path))
   ipcMain.on(CH.fsUnwatch, (_e, id: string) => watcher.unwatch(id))
 
-  ipcMain.handle(CH.dialogOpenFolder, async (e) => {
-    const r = await dialog.showOpenDialog(senderWin(e), { properties: ['openDirectory'] })
+  // Open-dialog handler differing only in what it picks; returns the single path or null.
+  const pickOne = (property: 'openDirectory' | 'openFile') => async (e: { sender: Electron.WebContents }) => {
+    const r = await dialog.showOpenDialog(senderWin(e), { properties: [property] })
     return r.canceled || r.filePaths.length === 0 ? null : r.filePaths[0]
-  })
-  ipcMain.handle(CH.dialogOpenFile, async (e) => {
-    const r = await dialog.showOpenDialog(senderWin(e), { properties: ['openFile'] })
-    return r.canceled || r.filePaths.length === 0 ? null : r.filePaths[0]
-  })
+  }
+  ipcMain.handle(CH.dialogOpenFolder, pickOne('openDirectory'))
+  ipcMain.handle(CH.dialogOpenFile, pickOne('openFile'))
   ipcMain.handle(CH.dialogSaveFile, async (e) => {
     // Test hook: hermetic e2e can't drive a native dialog (mirrors TERMHALLA_CLAUDE_HOME).
     if (process.env.TERMHALLA_SAVE_PATH) return process.env.TERMHALLA_SAVE_PATH

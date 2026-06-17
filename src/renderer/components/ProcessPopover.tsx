@@ -3,6 +3,9 @@ import type { ProcInfo, AiSession, UsageMetrics } from '@shared/types'
 import { Z, SURFACE } from './Modal'
 import { INDENT_PX } from '../ui-tokens'
 
+/** Auto-dismiss delay for a popover opened on a terminal that has no child processes yet. */
+const NO_CHILDREN_AUTO_CLOSE_MS = 2000
+
 /** Compact token count: 999 -> "999", 1234 -> "1.2k", 156000 -> "156k". */
 function fmtTokens(n: number): string {
   if (n < 1000) return String(n)
@@ -24,7 +27,7 @@ export function ProcessPopover(
 ) {
   useEffect(() => {
     if (procInfo && procInfo.tree.length > 0) return
-    const t = setTimeout(onClose, 2000)
+    const t = setTimeout(onClose, NO_CHILDREN_AUTO_CLOSE_MS)
     return () => clearTimeout(t)
   }, [procInfo, onClose])
 

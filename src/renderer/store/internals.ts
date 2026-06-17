@@ -1,5 +1,5 @@
 import { v4 as uuid } from 'uuid'
-import type { Workspace, PaneConfig, MosaicDirection, Theme, AiSession, TerminalStatus } from '@shared/types'
+import type { Workspace, PaneConfig, MosaicDirection, Theme } from '@shared/types'
 import { resolveTheme } from '@shared/theme'
 import { addFirstPane, splitPane } from '@shared/workspace-model'
 import { api } from '../api'
@@ -74,11 +74,6 @@ export function resolvedPaneTheme(s: { quick: { theme?: Partial<Theme> }; worksp
   return resolveTheme(s.quick.theme, ws?.theme, ws?.panes[paneId]?.config.theme)
 }
 
-/** Display state for an AI session pane: 'working' when busy, 'awaiting' when quiet, null if not an AI session. */
-export function aiState(
-  s: { aiSessions: Record<string, AiSession>; statuses: Record<string, TerminalStatus> },
-  paneId: string
-): 'working' | 'awaiting' | null {
-  if (!s.aiSessions[paneId]) return null
-  return s.statuses[paneId]?.state === 'busy' ? 'working' : 'awaiting'
-}
+// aiState lives in the api-free `pane-ops` module (so the tab-badge helper can import it without
+// pulling in `../api`); re-exported here because store.ts re-exports it from `./internals`.
+export { aiState } from './pane-ops'

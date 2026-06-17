@@ -19,14 +19,18 @@ export function windowOf(state: CoreState, workspaceId: string): string | null {
   return state.windows.find(w => w.workspaceIds.includes(workspaceId))?.id ?? null
 }
 
+/** Remove `workspaceId` from `w`, re-selecting its first remaining tab (or none) if it was active.
+ *  The source-window update shared by undock and redock. */
+function withoutWorkspace(w: CoreWindow, workspaceId: string): CoreWindow {
+  const workspaceIds = w.workspaceIds.filter(id => id !== workspaceId)
+  const activeId = w.activeId === workspaceId ? (workspaceIds[0] ?? null) : w.activeId
+  return { ...w, workspaceIds, activeId }
+}
+
 /** Drop `workspaceId` into a brand-new window `newWindowId`. */
 export function undock(state: CoreState, workspaceId: string, newWindowId: string): CoreState {
-  const windows = state.windows.map(w => {
-    if (!w.workspaceIds.includes(workspaceId)) return w
-    const workspaceIds = w.workspaceIds.filter(id => id !== workspaceId)
-    const activeId = w.activeId === workspaceId ? (workspaceIds[0] ?? null) : w.activeId
-    return { ...w, workspaceIds, activeId }
-  })
+  const windows = state.windows.map(w =>
+    w.workspaceIds.includes(workspaceId) ? withoutWorkspace(w, workspaceId) : w)
   windows.push({ id: newWindowId, isMain: false, workspaceIds: [workspaceId], activeId: workspaceId })
   return { windows }
 }
@@ -38,11 +42,7 @@ export function redock(
 ): { state: CoreState; closedWindowId: string | null } {
   const sourceId = windowOf(state, workspaceId)
   let windows = state.windows.map(w => {
-    if (w.id === sourceId) {
-      const workspaceIds = w.workspaceIds.filter(id => id !== workspaceId)
-      const activeId = w.activeId === workspaceId ? (workspaceIds[0] ?? null) : w.activeId
-      return { ...w, workspaceIds, activeId }
-    }
+    if (w.id === sourceId) return withoutWorkspace(w, workspaceId)
     if (w.id === targetWindowId) {
       return { ...w, workspaceIds: [...w.workspaceIds, workspaceId], activeId: workspaceId }
     }

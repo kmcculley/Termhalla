@@ -9,10 +9,13 @@ const ACCENT: Record<Toast['kind'], string> = {
   info: 'var(--border, #444)'
 }
 
+/** How long a toast stays before auto-dismissing. */
+const TOAST_DISMISS_MS = 4000
+
 function ToastItem({ toast }: { toast: Toast }) {
   const dismiss = useStore(s => s.dismissToast)
   useEffect(() => {
-    const t = setTimeout(() => dismiss(toast.id), 4000)
+    const t = setTimeout(() => dismiss(toast.id), TOAST_DISMISS_MS)
     return () => clearTimeout(t)
   }, [toast.id, dismiss])
   return (

@@ -12,6 +12,7 @@ import {
 } from './store/internals'
 import { defaultShellId, dispatchAddPane } from './store/pane-ops'
 import { readPaneSnapshot } from './components/terminal-registry'
+import { AUTOSAVE_DEBOUNCE_MS } from './timing'
 import { createThemeSlice } from './store/theme-slice'
 import { createRuntimeSlice } from './store/runtime-slice'
 import { createQuickSlice } from './store/quick-slice'
@@ -33,8 +34,8 @@ function makeDebounce(fn: () => void, ms: number) {
 }
 
 export const useStore = create<State>((set, get) => {
-  const autosave = makeDebounce(() => { void get().saveAll() }, 500)
-  const quickSave = makeDebounce(() => { void api.saveQuick(get().quick) }, 500)
+  const autosave = makeDebounce(() => { void get().saveAll() }, AUTOSAVE_DEBOUNCE_MS)
+  const quickSave = makeDebounce(() => { void api.saveQuick(get().quick) }, AUTOSAVE_DEBOUNCE_MS)
   const scheduleAutosave = autosave.schedule
   const scheduleQuickSave = quickSave.schedule
 

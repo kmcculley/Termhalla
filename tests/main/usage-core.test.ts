@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { encodeProjectDir, pickNewestTranscript } from '../../src/main/usage/project-dir'
-import { windowFor, parseClaudeUsage } from '../../src/main/usage/parse-usage'
+import { windowFor, computeContextWindow, parseClaudeUsage } from '../../src/main/usage/parse-usage'
 
 describe('encodeProjectDir', () => {
   it('replaces every non-alphanumeric char with a dash (Claude project-dir rule)', () => {
@@ -33,6 +33,16 @@ describe('windowFor', () => {
     // settings model alias, e.g. "opus[1m]".
     expect(windowFor('claude-opus-4-8')).toBe(200000)
     expect(windowFor('claude-opus-4-8', 'opus[1m]')).toBe(1000000)
+  })
+})
+
+describe('computeContextWindow', () => {
+  it('uses the model/alias window when the observed context fits', () => {
+    expect(computeContextWindow('claude-opus-4', '', 50000)).toBe(200000)
+    expect(computeContextWindow('claude-opus-4', 'opus[1m]', 50000)).toBe(1000000)
+  })
+  it('auto-bumps to 1M when observed context exceeds the default window', () => {
+    expect(computeContextWindow('claude-opus-4', '', 250000)).toBe(1000000)
   })
 })
 

@@ -9,7 +9,7 @@ import type { Send, Disposer } from './types'
 const DEFAULT_REC_SIZE = { cols: 80, rows: 24 }
 
 /** Asciinema-style session recording. `recorder` is shared with the PTY stack (it taps pty data
- *  + resize), so its lifecycle is owned here via the returned dispose disposer. */
+ *  + resize), so its lifecycle is owned here via the returned disposer. */
 export function registerRecording(
   deps: { pty: PtyManager; recorder: Recorder; userDataDir: string; send: Send }
 ): Disposer {

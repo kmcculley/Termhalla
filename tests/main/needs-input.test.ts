@@ -34,20 +34,20 @@ describe('computeIdleFallback', () => {
   describe('AI session (aiActive)', () => {
     const aiTail = 'Claude Code ready\r\n? for shortcuts'  // TUI tail: markers latched, not a shell prompt
     it('idles after sustained silence despite markers and a non-prompt tail', () => {
-      expect(computeIdleFallback(2000, aiTail, true, cfg(), true)).toBe(false)  // < hard threshold -> still working
-      expect(computeIdleFallback(6000, aiTail, true, cfg(), true)).toBe(true)   // sustained silence -> awaiting
+      expect(computeIdleFallback(2000, aiTail, true, cfg(), { aiActive: true })).toBe(false)  // < hard threshold -> still working
+      expect(computeIdleFallback(6000, aiTail, true, cfg(), { aiActive: true })).toBe(true)   // sustained silence -> awaiting
     })
     it('does NOT idle the same case when aiActive is false (the bug it fixes)', () => {
-      expect(computeIdleFallback(6000, aiTail, true, cfg(), false)).toBe(false)
+      expect(computeIdleFallback(6000, aiTail, true, cfg(), { aiActive: false })).toBe(false)
     })
     it('still defers a genuine input prompt to needs-input (no idle)', () => {
-      expect(computeIdleFallback(12000, 'Continue? [y/N] ', true, cfg(), true)).toBe(false)
+      expect(computeIdleFallback(12000, 'Continue? [y/N] ', true, cfg(), { aiActive: true })).toBe(false)
     })
     it('stays busy when the agent working indicator was seen recently, despite silence', () => {
       // aiActive, sustained silence, but aiWorkingRecent=true -> NOT idle (working blocked on a tool).
-      expect(computeIdleFallback(9000, aiTail, true, cfg(), true, true)).toBe(false)
+      expect(computeIdleFallback(9000, aiTail, true, cfg(), { aiActive: true, aiWorkingRecent: true })).toBe(false)
       // once the indicator goes stale (aiWorkingRecent=false), silence -> idle (awaiting).
-      expect(computeIdleFallback(9000, aiTail, true, cfg(), true, false)).toBe(true)
+      expect(computeIdleFallback(9000, aiTail, true, cfg(), { aiActive: true, aiWorkingRecent: false })).toBe(true)
     })
   })
 })

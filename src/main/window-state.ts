@@ -1,4 +1,3 @@
-import { readFile, writeFile } from 'node:fs/promises'
 import type { WindowState } from '@shared/types'
 
 export const DEFAULT_WINDOW_STATE: WindowState = {
@@ -24,16 +23,4 @@ export function clampWindowState(
     x: Math.round(d.x + (d.width - state.width) / 2),
     y: Math.round(d.y + (d.height - state.height) / 2)
   }
-}
-
-export async function loadWindowState(): Promise<WindowState | undefined> {
-  try {
-    const { windowStatePath } = await import('./persistence/paths')
-    return JSON.parse(await readFile(windowStatePath(), 'utf8')) as WindowState
-  } catch { return undefined }
-}
-
-export async function saveWindowState(state: WindowState): Promise<void> {
-  const { windowStatePath } = await import('./persistence/paths')
-  await writeFile(windowStatePath(), JSON.stringify(state), 'utf8')
 }

@@ -6,7 +6,7 @@ import type { Send, Disposer } from './types'
 /** How long after a window focus we suppress a duplicate cloud-status refresh. */
 const CLOUD_FOCUS_REFRESH_MS = 5000
 
-/** Cloud CLI status polling + a focus-triggered refresh (debounced). Returns a stop disposer. */
+/** Cloud CLI status polling + a focus-triggered refresh (debounced). Returns a disposer that stops polling. */
 export function registerCloud(win: BrowserWindow, send: Send): Disposer {
   const cloud = new CloudStatusService((statuses) => send(CH.cloudStatus, statuses))
   cloud.start()

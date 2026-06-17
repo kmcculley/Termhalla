@@ -3,6 +3,10 @@ import { useStore } from '../store'
 import { mergeTheme, themeCssVars } from '@shared/theme'
 import { monaco } from '../editor/monaco-setup'
 
+/** Defer the Monaco theme define/apply a tick past the CSS-var write so Monaco (which may still be
+ *  initializing) is ready and reads the freshly-set colors. */
+const MONACO_THEME_DEFER_MS = 150
+
 export function ThemeProvider() {
   const quickTheme = useStore(s => s.quick.theme)
   useEffect(() => {
@@ -15,7 +19,7 @@ export function ThemeProvider() {
           colors: { 'editor.background': theme.windowBg, 'editor.foreground': theme.text } })
         monaco.editor.setTheme('termhalla')
       } catch { /* invalid color / not ready */ }
-    }, 150)
+    }, MONACO_THEME_DEFER_MS)
     return () => clearTimeout(id)
   }, [quickTheme])
   return null

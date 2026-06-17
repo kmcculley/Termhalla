@@ -1,4 +1,4 @@
-import type { ShellInfo, Workspace, MosaicDirection } from '@shared/types'
+import type { ShellInfo, Workspace, MosaicDirection, AiSession, TerminalStatus } from '@shared/types'
 
 export type PaneKind = 'terminal' | 'editor' | 'explorer'
 
@@ -42,4 +42,14 @@ export async function dispatchAddPane(
     const root = await openFolder()
     if (root) s.addExplorer(wsId, target, 'row', root)
   }
+}
+
+/** Display state for an AI session pane: 'working' when busy, 'awaiting' when quiet, null if not
+ *  an AI session. */
+export function aiState(
+  s: { aiSessions: Record<string, AiSession>; statuses: Record<string, TerminalStatus> },
+  paneId: string
+): 'working' | 'awaiting' | null {
+  if (!s.aiSessions[paneId]) return null
+  return s.statuses[paneId]?.state === 'busy' ? 'working' : 'awaiting'
 }

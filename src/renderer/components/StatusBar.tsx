@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useStore } from '../store'
-import type { CloudState } from '@shared/types'
+import type { CloudState, CloudStatus } from '@shared/types'
 import { Z, SURFACE } from './Modal'
 
 const GLYPH: Record<CloudState, string> = {
@@ -8,6 +8,13 @@ const GLYPH: Record<CloudState, string> = {
 }
 const COLOR: Record<CloudState, string> = {
   'checking': '#888', 'logged-in': '#7ec97e', 'logged-out': '#d6a14a', 'not-installed': '#666', 'error': '#d6694a'
+}
+
+/** Trailing label after the provider name: the account when known, else the state in parens
+ *  (suppressed for a plain logged-in provider). */
+function accountLabel(c: CloudStatus): string {
+  if (c.account) return `: ${c.account}`
+  return c.state === 'logged-in' ? '' : ` (${c.state})`
 }
 
 export function StatusBar() {
@@ -27,7 +34,7 @@ export function StatusBar() {
             onClick={() => setOpenFor(openFor === c.id ? null : c.id)}
             style={{ background: 'transparent', border: 'none', cursor: 'pointer', font: 'inherit',
               color: COLOR[c.state], padding: 0, whiteSpace: 'nowrap' }}>
-            {GLYPH[c.state]} {c.label}{c.account ? `: ${c.account}` : c.state === 'logged-in' ? '' : ` (${c.state})`}
+            {GLYPH[c.state]} {c.label}{accountLabel(c)}
           </button>
           {openFor === c.id && (
             <div data-testid={`cloud-menu-${c.id}`} onClick={e => e.stopPropagation()}

@@ -56,6 +56,10 @@ describe('workspace-model', () => {
     expect(() => deserializeWorkspace('{"nope":true}')).toThrow()
   })
 
+  it('reports a clear error for non-JSON input (not a raw SyntaxError)', () => {
+    expect(() => deserializeWorkspace('not json at all')).toThrow('Invalid workspace file: not valid JSON')
+  })
+
   it('splits a non-root leaf deep in a nested tree', () => {
     let ws = addFirstPane(createWorkspace('W', () => 'ws-1'), term(), () => 'p1').workspace
     ws = splitPane(ws, 'p1', 'row', term(), () => 'p2').workspace      // layout: {row, p1, p2}

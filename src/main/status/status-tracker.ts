@@ -69,7 +69,7 @@ export class StatusTracker {
   tick(now: number): TerminalStatus {
     const quietMs = now - this.lastOutputAt
     const aiWorkingRecent = now - this.lastWorkingAt < AGENT_WORKING_GRACE_MS
-    if (this.state === 'busy' && computeIdleFallback(quietMs, this.tail, this.hasMarkers, this.cfg, this.aiActive, aiWorkingRecent)) {
+    if (this.state === 'busy' && computeIdleFallback(quietMs, this.tail, this.hasMarkers, this.cfg, { aiActive: this.aiActive, aiWorkingRecent })) {
       this.set('idle', now)
     }
     if (this.state === 'busy' && computeNeedsInput(quietMs, this.tail, this.cfg)) {

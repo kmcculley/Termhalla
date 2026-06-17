@@ -85,8 +85,9 @@ export function looksLikePrompt(tail: string): boolean {
  */
 export function computeIdleFallback(
   quietMs: number, tail: string, hasMarkers: boolean, cfg: NeedsInputConfig,
-  aiActive = false, aiWorkingRecent = false
+  ai: { aiActive?: boolean; aiWorkingRecent?: boolean } = {}
 ): boolean {
+  const { aiActive = false, aiWorkingRecent = false } = ai
   if (quietMs < cfg.heuristicIdleMs) return false
   if (tailMatchesInputPrompt(tail, cfg.patterns)) return false
   const atRecognizedPrompt = looksLikePrompt(tail)

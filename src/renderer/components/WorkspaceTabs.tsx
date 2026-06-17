@@ -1,34 +1,11 @@
 import { useRef, useState } from 'react'
 import { useShallow } from 'zustand/react/shallow'
-import type { Workspace, AiSession, TerminalStatus } from '@shared/types'
-import { resolveAlerts } from '@shared/alerts'
-import { useStore, aiState } from '../store'
+import { useStore } from '../store'
 import type { PaneKind } from '../store/pane-ops'
+import { tabBadge } from './tab-badge'
 import { useTabDrag } from './use-tab-drag'
 import { TemplatesMenu } from './TemplatesMenu'
 import { Z, SURFACE } from './Modal'
-
-function tabBadge(
-  ws: Workspace,
-  statuses: Record<string, TerminalStatus>,
-  aiSessions: Record<string, AiSession>
-): string {
-  let needs = 0, busy = false, ai = false, aiAwaiting = false
-  for (const paneId of Object.keys(ws.panes)) {
-    const cfg = ws.panes[paneId].config
-    if (cfg.kind !== 'terminal') continue
-    const as = aiState({ aiSessions, statuses }, paneId)
-    if (as) { ai = true; if (as === 'awaiting') aiAwaiting = true }
-    if (!resolveAlerts(cfg.alerts).tabBadge) continue
-    const st = statuses[paneId]?.state
-    if (st === 'needs-input') needs++
-    else if (st === 'busy') busy = true
-  }
-  const aiPart = ai ? (aiAwaiting ? ' ✨⏳' : ' ✨') : ''
-  if (needs > 0) return `${aiPart} 🔔${needs}`
-  if (busy) return `${aiPart} •`
-  return aiPart
-}
 
 export function WorkspaceTabs() {
   // Scope the subscription so the always-mounted tab bar doesn't re-render on every per-pane

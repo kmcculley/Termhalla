@@ -6,6 +6,22 @@ import { Modal } from './Modal'
 
 const numStyle = { width: 56 }
 
+type TimeUnit = 'sec' | 'min'
+interface Duration { value: number; unit: TimeUnit }
+
+/** A number + sec/min unit pair — the shared shape behind the delay / every / jitter inputs. */
+function DurationInput({ value, onChange, tid, min }: { value: Duration; onChange: (d: Duration) => void; tid: string; min: number }) {
+  return (
+    <>
+      <input data-testid={`${tid}-value`} type="number" min={min} value={value.value}
+        onChange={e => onChange({ ...value, value: +e.target.value })} style={numStyle} />
+      <select data-testid={`${tid}-unit`} value={value.unit} onChange={e => onChange({ ...value, unit: e.target.value as TimeUnit })}>
+        <option value="sec">sec</option><option value="min">min</option>
+      </select>
+    </>
+  )
+}
+
 export function ScheduleDialog({ paneId, onClose }: { paneId: string; onClose: () => void }) {
   const addSchedule = useStore(s => s.addSchedule)
   const cancelSchedule = useStore(s => s.cancelSchedule)
@@ -16,14 +32,14 @@ export function ScheduleDialog({ paneId, onClose }: { paneId: string; onClose: (
   const [mode, setMode] = useState<'paste' | 'keys'>('keys')
   const [enter, setEnter] = useState(true)
   const [kind, setKind] = useState<'delay' | 'idle' | 'recurring'>('delay')
-  const [dV, setDV] = useState(5); const [dU, setDU] = useState<'sec' | 'min'>('sec')
-  const [eV, setEV] = useState(30); const [eU, setEU] = useState<'sec' | 'min'>('sec')
-  const [jV, setJV] = useState(5); const [jU, setJU] = useState<'sec' | 'min'>('sec')
+  const [delay, setDelay] = useState<Duration>({ value: 5, unit: 'sec' })
+  const [every, setEvery] = useState<Duration>({ value: 30, unit: 'sec' })
+  const [jitter, setJitter] = useState<Duration>({ value: 5, unit: 'sec' })
 
   const build = (): ScheduleTrigger =>
     kind === 'idle' ? { kind: 'idle' }
-      : kind === 'delay' ? { kind: 'delay', ms: Math.max(1000, toMs(dV, dU)) }
-        : { kind: 'recurring', everyMs: Math.max(1000, toMs(eV, eU)), jitterMs: Math.max(0, toMs(jV, jU)) }
+      : kind === 'delay' ? { kind: 'delay', ms: Math.max(1000, toMs(delay.value, delay.unit)) }
+        : { kind: 'recurring', everyMs: Math.max(1000, toMs(every.value, every.unit)), jitterMs: Math.max(0, toMs(jitter.value, jitter.unit)) }
 
   const add = () => {
     const trigger = build()
@@ -31,12 +47,6 @@ export function ScheduleDialog({ paneId, onClose }: { paneId: string; onClose: (
     pushToast('Command scheduled')
     setText('')
   }
-
-  const unit = (v: 'sec' | 'min', set: (u: 'sec' | 'min') => void, tid: string) => (
-    <select data-testid={tid} value={v} onChange={e => set(e.target.value as 'sec' | 'min')}>
-      <option value="sec">sec</option><option value="min">min</option>
-    </select>
-  )
 
   return (
     <Modal onClose={onClose} backdropTestId="schedule-dialog" card={{ padding: 12, width: 480 }}>
@@ -57,15 +67,10 @@ export function ScheduleDialog({ paneId, onClose }: { paneId: string; onClose: (
             <option value="idle">When idle</option>
             <option value="recurring">Recurring</option>
           </select>
-          {kind === 'delay' && <>
-            <input data-testid="schedule-delay-value" type="number" min={1} value={dV} onChange={e => setDV(+e.target.value)} style={numStyle} />
-            {unit(dU, setDU, 'schedule-delay-unit')}
-          </>}
+          {kind === 'delay' && <DurationInput tid="schedule-delay" min={1} value={delay} onChange={setDelay} />}
           {kind === 'recurring' && <>
-            every <input data-testid="schedule-every-value" type="number" min={1} value={eV} onChange={e => setEV(+e.target.value)} style={numStyle} />
-            {unit(eU, setEU, 'schedule-every-unit')}
-            ± <input data-testid="schedule-jitter-value" type="number" min={0} value={jV} onChange={e => setJV(+e.target.value)} style={numStyle} />
-            {unit(jU, setJU, 'schedule-jitter-unit')}
+            every <DurationInput tid="schedule-every" min={1} value={every} onChange={setEvery} />
+            ± <DurationInput tid="schedule-jitter" min={0} value={jitter} onChange={setJitter} />
           </>}
           <span style={{ flex: 1 }} />
           <button data-testid="schedule-add" disabled={!text.trim()} onClick={add}>Schedule</button>

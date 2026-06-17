@@ -10,6 +10,14 @@ export function windowFor(model: string, alias = ''): number {
   return /\[1m\]/i.test(model) || /\[1m\]/i.test(alias) ? LARGE_WINDOW : DEFAULT_WINDOW
 }
 
+/** The context window to score against: the model/alias window, auto-bumped to the large window
+ *  when the observed `contextTokens` already exceed it — a >200k context can only be a >200k
+ *  window, even when the alias is unknown, so we never report >100%. */
+export function computeContextWindow(model: string, alias: string, contextTokens: number): number {
+  const w = windowFor(model, alias)
+  return contextTokens > w ? LARGE_WINDOW : w
+}
+
 const num = (v: unknown): number => (typeof v === 'number' && Number.isFinite(v) ? v : 0)
 
 /** Sum token usage across assistant turns; the last turn's input side is the current context.
@@ -28,10 +36,7 @@ export function parseClaudeUsage(jsonl: string, alias = ''): UsageMetrics {
     contextTokens = it + cr + cc
     if (typeof obj.message?.model === 'string') model = obj.message.model
   }
-  // Auto-bump to the large window if observed context exceeds the default — a >200k context
-  // can only be a >200k window, even when the alias is unknown (never report >100%).
-  let contextWindow = windowFor(model, alias)
-  if (contextTokens > contextWindow) contextWindow = LARGE_WINDOW
+  const contextWindow = computeContextWindow(model, alias, contextTokens)
   const contextPct = contextWindow > 0 ? Math.round((contextTokens / contextWindow) * 100) : 0
   return { input, output, cacheRead, cacheCreation, contextTokens, contextWindow, contextPct }
 }

@@ -8,16 +8,17 @@ import type { EnvVaultData } from '@shared/types'
 // Encrypted env vault settings section: create/unlock/lock, global vars, and (when scoped to
 // a pane) that terminal's own vars. Extracted from the former EnvManager modal.
 
-// A single global-variable row with a reveal (👁) toggle.
-function EnvRow({ name, value, onRemove }: { name: string; value: string; onRemove: () => void }) {
+// A single variable row with a reveal (👁) toggle. `testid` namespaces it so the same row serves
+// both the global ("env") and per-terminal ("env-term") sections.
+function EnvRow({ name, value, onRemove, testid }: { name: string; value: string; onRemove: () => void; testid: string }) {
   const [show, setShow] = useState(false)
   const row = { display: 'flex', alignItems: 'center', gap: 8 } as const
   return (
-    <div data-testid={`env-row-${name}`} style={row}>
+    <div data-testid={`${testid}-row-${name}`} style={row}>
       <span style={{ flex: '0 0 140px', fontFamily: 'var(--mono)', overflow: 'hidden', textOverflow: 'ellipsis' }}>{name}</span>
       <input type={show ? 'text' : 'password'} value={value} readOnly style={{ flex: 1 }} />
       <button title="Reveal" onClick={() => setShow(s => !s)}>👁</button>
-      <button data-testid={`env-del-${name}`} onClick={onRemove}>×</button>
+      <button data-testid={`${testid}-del-${name}`} onClick={onRemove}>×</button>
     </div>
   )
 }
@@ -104,7 +105,7 @@ export function EnvSettings({ wsId, paneId }: { wsId?: string; paneId?: string }
             <div style={{ fontWeight: 600, borderTop: '1px solid var(--border, #444)', paddingTop: 8 }}>Global variables</div>
             {data === null && <div data-testid="env-loading" style={{ color: 'var(--fg-dim, #aaa)' }}>Loading…</div>}
             {Object.entries(data?.global ?? {}).map(([name, value]) => (
-              <EnvRow key={name} name={name} value={value}
+              <EnvRow key={name} testid="env" name={name} value={value}
                 onRemove={() => { api.envRemoveGlobal(name); void refresh() }} />
             ))}
             <div style={row}>
@@ -119,11 +120,8 @@ export function EnvSettings({ wsId, paneId }: { wsId?: string; paneId?: string }
               <>
                 <div data-testid="env-term-section" style={{ fontWeight: 600, borderTop: '1px solid var(--border, #444)', paddingTop: 8 }}>This terminal</div>
                 {Object.entries((envId && data?.terminals[envId]) ? data!.terminals[envId] : {}).map(([name, value]) => (
-                  <div key={name} data-testid={`env-term-row-${name}`} style={row}>
-                    <span style={{ flex: '0 0 140px', fontFamily: 'var(--mono)', overflow: 'hidden', textOverflow: 'ellipsis' }}>{name}</span>
-                    <input type="password" value={value} readOnly style={{ flex: 1 }} />
-                    <button data-testid={`env-term-del-${name}`} onClick={() => { if (envId) { api.envRemoveTerminal(envId, name); void refresh() } }}>×</button>
-                  </div>
+                  <EnvRow key={name} testid="env-term" name={name} value={value}
+                    onRemove={() => { if (envId) { api.envRemoveTerminal(envId, name); void refresh() } }} />
                 ))}
                 <div style={row}>
                   <input data-testid="env-term-name" placeholder="NAME" value={tName}

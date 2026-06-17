@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest'
 import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { QuickStore } from '../../src/main/persistence/quick-store'
+import { QuickStore, normalizeTheme } from '../../src/main/persistence/quick-store'
 import { EMPTY_QUICK } from '@shared/types'
 
 let dir: string
@@ -36,5 +36,17 @@ describe('QuickStore', () => {
     const store = new QuickStore(dir)
     expect(await store.load()).toEqual(EMPTY_QUICK)
     rmSync(dir, { recursive: true, force: true })
+  })
+})
+
+describe('normalizeTheme', () => {
+  it('keeps a theme object', () => {
+    expect(normalizeTheme({ text: '#111' })).toEqual({ text: '#111' })
+  })
+  it('drops an absent / non-object / array theme', () => {
+    expect(normalizeTheme(undefined)).toBeUndefined()
+    expect(normalizeTheme('nope')).toBeUndefined()
+    expect(normalizeTheme(['x'])).toBeUndefined()
+    expect(normalizeTheme(null)).toBeUndefined()
   })
 })

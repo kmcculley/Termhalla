@@ -1,6 +1,12 @@
 import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
-import { EMPTY_QUICK, type QuickStore as QuickData } from '@shared/types'
+import { EMPTY_QUICK, type QuickStore as QuickData, type Theme } from '@shared/types'
+
+/** A theme override is kept only if it is a plain object; anything else (absent, primitive, array)
+ *  normalizes to undefined (= no override). */
+export function normalizeTheme(theme: unknown): Partial<Theme> | undefined {
+  return theme && typeof theme === 'object' && !Array.isArray(theme) ? theme as Partial<Theme> : undefined
+}
 
 /** Coerce an untrusted/partial value into a well-formed QuickStore (each field a valid array).
  *  Used on both read (corrupt/partial file) and write (untrusted renderer payload). */
@@ -12,8 +18,7 @@ function normalizeQuick(value: unknown): QuickData {
     favoriteDirs: Array.isArray(v.favoriteDirs) ? v.favoriteDirs : [],
     recentDirs: Array.isArray(v.recentDirs) ? v.recentDirs : [],
     templates: Array.isArray(v.templates) ? v.templates : [],
-    theme: (value as { theme?: unknown })?.theme && typeof (value as { theme?: unknown }).theme === 'object'
-      ? (value as { theme?: object }).theme as Partial<import('@shared/types').Theme> : undefined,
+    theme: normalizeTheme(v.theme),
     themePresets: Array.isArray(v.themePresets) ? v.themePresets : [],
     recordByDefault: typeof v.recordByDefault === 'boolean' ? v.recordByDefault : false,
   }

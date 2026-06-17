@@ -63,7 +63,9 @@ export function serializeWorkspace(ws: Workspace): string {
 }
 
 export function deserializeWorkspace(json: string): Workspace {
-  const data = JSON.parse(json)
+  let data: { schemaVersion?: unknown; workspace?: Workspace }
+  try { data = JSON.parse(json) }
+  catch { throw new Error('Invalid workspace file: not valid JSON') }
   if (typeof data?.schemaVersion !== 'number' || !data.workspace) {
     throw new Error('Invalid workspace file: missing schemaVersion/workspace')
   }

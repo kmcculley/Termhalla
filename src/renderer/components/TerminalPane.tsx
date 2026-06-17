@@ -11,6 +11,9 @@ import { useResolvedPaneTheme } from '../use-resolved-theme'
 import { clipboardKeyAction } from './terminal-clipboard'
 import { registerSerializer, unregisterSerializer } from './terminal-registry'
 
+/** Scrollback lines captured when serializing a terminal for a window-handoff replay. */
+const HANDOFF_SCROLLBACK_LINES = 1000
+
 export function TerminalPane({ paneId, wsId, config }: { paneId: string; wsId: string; config: TerminalConfig }) {
   const hostRef = useRef<HTMLDivElement>(null)
   const termRef = useRef<Terminal | null>(null)
@@ -28,7 +31,7 @@ export function TerminalPane({ paneId, wsId, config }: { paneId: string; wsId: s
     // be replayed into a new window when its workspace is torn off / re-docked (see WindowManager).
     const serialize = new SerializeAddon()
     term.loadAddon(serialize)
-    registerSerializer(paneId, () => serialize.serialize({ scrollback: 1000 }))
+    registerSerializer(paneId, () => serialize.serialize({ scrollback: HANDOFF_SCROLLBACK_LINES }))
     termRef.current = term; fitRef.current = fit
     term.open(hostRef.current!)
     fit.fit()
