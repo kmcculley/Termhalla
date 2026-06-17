@@ -1,5 +1,5 @@
 import { describe, it, expect, afterEach } from 'vitest'
-import { mkdtempSync, rmSync } from 'node:fs'
+import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { EnvVault, parseVaultData, UNLOCK_BACKOFF_BASE_MS } from '../../src/main/env-vault/env-vault'
@@ -30,6 +30,15 @@ describe('EnvVault', () => {
   it('envFor is empty while locked', () => {
     const v = new EnvVault(tmp())
     expect(v.envFor()).toEqual({})
+  })
+  it('propagates a write failure instead of silently swallowing it', () => {
+    // Point the vault at a path that is a file, not a directory, so the persist mkdir/write throws.
+    // A swallowed error would let create() return normally and the UI would toast a false success.
+    const dir = tmp()
+    const occupied = join(dir, 'occupied')
+    writeFileSync(occupied, 'x')
+    const v = new EnvVault(occupied)
+    expect(() => v.create('pw')).toThrow()
   })
   it('rejects a correct passphrase while inside the failure backoff window', () => {
     const dir = tmp()

@@ -99,10 +99,13 @@ export class EnvVault {
     if (!this.data) return {}
     return { ...this.data.global, ...(envId ? this.data.terminals[envId] ?? {} : {}) }
   }
+  /** Throws if the encrypted write fails. Callers that report success to the user (create/setGlobal/
+   *  setTerminal, wired as `invoke`) must let it propagate so the UI can avoid a false "saved";
+   *  best-effort callers (the remove handlers) swallow it at the IPC boundary instead. */
   private persist(): void {
     if (!this.data || this.passphrase === null) return
     const payload = { version: VAULT_VERSION, ...this.data }
-    try { mkdirSync(this.baseDir, { recursive: true }); writeFileSync(this.file(), JSON.stringify(encryptJSON(payload, this.passphrase))) }
-    catch { /* best-effort */ }
+    mkdirSync(this.baseDir, { recursive: true })
+    writeFileSync(this.file(), JSON.stringify(encryptJSON(payload, this.passphrase)))
   }
 }
