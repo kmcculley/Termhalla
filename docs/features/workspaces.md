@@ -57,6 +57,63 @@ Workspaces are saved to disk and restored on the next launch: layout tree, per-p
 - **Paste:** **Ctrl+V** or **right-click**. Paste goes through `term.paste()`, which honors bracketed-paste mode, so pasting multi-line text into a shell or a TUI (e.g. Claude) does not auto-execute each line. It flows out through the existing `onData → ptyWrite` path.
 - Clipboard access lives in the **main** process (Electron `clipboard`) behind the `clipboard:read` / `clipboard:write` IPC channels (`ipc/register-clipboard.ts`); the renderer never touches the OS clipboard directly.
 
+## Pane title-bar actions
+
+### Right-click context menu
+
+Right-clicking any pane's title bar opens a context menu (portaled to `<body>` so
+it is never clipped by the mosaic tile's stacking context — `src/renderer/components/PaneContextMenu.tsx`).
+The menu has four items:
+
+| Item | Behaviour |
+|---|---|
+| **Rename** | Switches the title to an inline text field. The value is saved as an optional `name` field on the pane config (all three pane kinds — terminal, editor, explorer — support it). |
+| **Move to workspace ▸** | Sub-menu listing the other workspaces the current window hosts, plus **New Workspace**. See [Cross-workspace move](#cross-workspace-move) below. |
+| **Settings** | Opens the unified Settings panel (`src/renderer/components/WorkspaceView.tsx`) with that pane pre-selected, covering the same surfaces previously reached by the dedicated 🎨/🔑/⚙ title-bar buttons (which were removed). |
+| **Close** | Removes the pane from the layout (same as the existing × button). |
+
+`src/renderer/components/PaneToolbar.tsx` renders the title bar; `src/renderer/components/PaneTile.tsx` wires the right-click handler.
+
+### Maximize
+
+A **Maximize** toggle button (🗖 when normal, 🗗 when maximized) sits in every
+pane's title bar. The keyboard shortcut **Ctrl+Shift+M** toggles it for the focused
+pane.
+
+Maximizing a pane fills the workspace with that pane alone. The siblings are **not**
+unmounted — they are hidden with `visibility: hidden` (the same strategy used for
+inactive workspaces; see [Keep-workspaces-mounted lifecycle](#behaviors--edge-cases)).
+This preserves xterm scrollback, live TUI state, and open Monaco models for all
+sibling panes while the maximized pane takes the full space.
+
+The store action is `toggleMaximize(wsId, paneId)` in `src/renderer/store.ts`.
+Restoring (clicking the button again or pressing Ctrl+Shift+M) returns all siblings
+to their previous layout positions.
+
+### Cross-workspace move
+
+**Move to workspace ▸** moves a live pane to another workspace in the same window
+(or to a brand-new workspace) without interrupting the running process.
+
+**Terminals.** The PTY keeps running throughout. Before the source workspace
+unmounts the pane, the xterm instance is serialized into a renderer-side stash
+(`src/renderer/components/terminal-registry.ts`). In transit the pane is buffered
+via `src/renderer/components/pane-transit.ts`. The destination workspace issues
+an idempotent `pty:spawn` which adopts the already-running PTY, then replays the
+snapshot and any buffered output — so scrollback is fully preserved.
+
+**Editors.** Any unsaved edits are flushed to a recovery draft before the pane
+leaves the source workspace. The draft is not deleted; the editor reopens in the
+destination workspace and picks it up, so no content is lost.
+
+**New Workspace.** When **New Workspace** is chosen, the new workspace is created
+with the source workspace's theme override already applied, so the pane's visual
+appearance is unchanged after the move.
+
+The pure layout operation is `movePane(from, to, paneId)` in
+`src/shared/workspace-model.ts`; the store actions are `movePaneToWorkspace` and
+`movePaneToNewWorkspace` in `src/renderer/store.ts`.
+
 ## Testing
 
 Vitest (in `tests/`):
