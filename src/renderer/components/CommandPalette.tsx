@@ -25,6 +25,7 @@ export function CommandPalette() {
   const saveAll = useStore(s => s.saveAll)
   const refreshCloud = useStore(s => s.refreshCloud)
   const pushToast = useStore(s => s.pushToast)
+  const openSettings = useStore(s => s.openSettings)
   const order = useStore(s => s.order)
 
   const [query, setQuery] = useState('')
@@ -70,6 +71,7 @@ export function CommandPalette() {
     else if (item.action === 'broadcast') setBroadcastOpen(true)
     else if (item.action === 'save-all') { void saveAll(); pushToast('Workspaces saved') }
     else if (item.action === 'refresh-cloud') refreshCloud()
+    else if (item.action === 'settings') openSettings({ section: 'general' })
     close()
   }
 
