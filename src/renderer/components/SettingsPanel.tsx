@@ -6,12 +6,14 @@ import { GeneralSettings } from './GeneralSettings'
 import { ThemeSettings } from './ThemeSettings'
 import { EnvSettings } from './EnvSettings'
 import { TerminalAlertsSettings } from './TerminalAlertsSettings'
+import { KeybindingsSettings } from './KeybindingsSettings'
 
 const SECTIONS: { id: SettingsSection; label: string }[] = [
   { id: 'general', label: 'General' },
   { id: 'appearance', label: 'Appearance' },
   { id: 'environment', label: 'Environment' },
-  { id: 'terminal', label: 'Terminal' }
+  { id: 'terminal', label: 'Terminal' },
+  { id: 'keybindings', label: 'Keybindings' }
 ]
 
 export function SettingsPanel() {
@@ -48,6 +50,7 @@ export function SettingsPanel() {
         {section === 'appearance' && <ThemeSettings paneId={settings.paneId} />}
         {section === 'environment' && <EnvSettings wsId={settings.paneId ? activeId ?? undefined : undefined} paneId={settings.paneId} />}
         {section === 'terminal' && <TerminalAlertsSettings wsId={settings.paneId ? activeId ?? undefined : undefined} paneId={settings.paneId} />}
+        {section === 'keybindings' && <KeybindingsSettings />}
       </div>
     </Modal>
   )
