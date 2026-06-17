@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { useShallow } from 'zustand/react/shallow'
 import type { Workspace, AiSession, TerminalStatus } from '@shared/types'
 import { resolveAlerts } from '@shared/alerts'
@@ -56,6 +56,7 @@ export function WorkspaceTabs() {
     return out
   }))
 
+  const tabRefs = useRef<Map<string, HTMLButtonElement>>(new Map())
   const [renamingId, setRenamingId] = useState<string | null>(null)
   const [renameText, setRenameText] = useState('')
   const [menuFor, setMenuFor] = useState<{ id: string; x: number; y: number } | null>(null)
@@ -66,6 +67,19 @@ export function WorkspaceTabs() {
 
   const startRename = (id: string) => { setRenameText(workspaces[id]?.name ?? ''); setRenamingId(id); setMenuFor(null) }
   const commitRename = (id: string) => { renameWorkspace(id, renameText); setRenamingId(null) }
+
+  // Roving-tabindex arrow nav within the tablist (ArrowLeft/Right wrap; Home/End jump).
+  const onTabKey = (id: string) => (e: React.KeyboardEvent) => {
+    const i = order.indexOf(id)
+    let next: string | undefined
+    if (e.key === 'ArrowRight') next = order[(i + 1) % order.length]
+    else if (e.key === 'ArrowLeft') next = order[(i - 1 + order.length) % order.length]
+    else if (e.key === 'Home') next = order[0]
+    else if (e.key === 'End') next = order[order.length - 1]
+    else return
+    e.preventDefault()
+    if (next) { setActive(next); tabRefs.current.get(next)?.focus() }
+  }
 
   // Pointer-drag a tab: below a small threshold it's a click (activate); past it a ghost follows
   // the cursor. On release, an intra-strip drop reorders; otherwise main decides undock (off the
@@ -97,7 +111,7 @@ export function WorkspaceTabs() {
   }
 
   return (
-    <div data-testid="workspace-tabs"
+    <div data-testid="workspace-tabs" role="tablist" aria-label="Workspaces"
       style={{ display: 'flex', gap: 4, padding: 4, background: 'var(--panel, #1e1e1e)', alignItems: 'center', fontSize: 'var(--font-size, 13px)' }}>
       {order.map(id => (
         renamingId === id ? (
@@ -110,6 +124,9 @@ export function WorkspaceTabs() {
         ) : (
           <button key={id} data-testid={`tab-${id}`} data-tab-id={id}
             data-active={id === activeId}
+            role="tab" aria-selected={id === activeId} tabIndex={id === activeId ? 0 : -1}
+            ref={el => { if (el) tabRefs.current.set(id, el); else tabRefs.current.delete(id) }}
+            onKeyDown={onTabKey(id)}
             onPointerDown={beginTabDrag(id)}
             onDoubleClick={() => startRename(id)}
             onContextMenu={e => { e.preventDefault(); setMenuFor({ id, x: e.clientX, y: e.clientY }) }}
