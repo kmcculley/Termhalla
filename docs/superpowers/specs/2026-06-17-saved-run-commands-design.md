@@ -102,9 +102,8 @@ a no-op if the pane has no live PTY (defensive — the menu only renders on term
 ## UI — `RunCommandsMenu`
 
 A `▷` toolbar button (`run-chip-<paneId>`), placed left of the `⏱` schedule chip, toggles
-`menu === 'run'`. The popover is absolutely positioned within the tile and stops click
-propagation (same pattern as `ScheduleDialog`/`ProcessPopover`; NOT portaled — that gotcha is for
-`position: fixed` overlays).
+`menu === 'run'` and renders a centered `Modal` (same component `ScheduleDialog` uses — portaled
+to `<body>`, closes on outside click), with `backdropTestId="run-commands-dialog"`.
 
 Contents:
 - **"This workspace"** section — lists workspace commands, each a row: **Run** button
