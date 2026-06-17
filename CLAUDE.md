@@ -42,7 +42,11 @@ node-pty) is kept thin.
 
 - **TDD.** Write the failing test first. Pure logic → vitest in `tests/`.
   UI/IPC/integration → a Playwright e2e that launches the app. Match the style of
-  the nearest existing test.
+  the nearest existing test. Renderer pure logic you want unit-tested must not import
+  `../api` (it reads `window.termhalla` at module load and throws under vitest's node
+  env, so anything importing it transitively — e.g. `store/internals.ts` — can't be
+  imported in a test). Inject the IPC call as an argument and pass `() => api.foo()`
+  from the thin store action; see `op.ts` / `store/pane-ops.ts`.
 - **Path alias:** import shared code as `@shared/...` (configured in
   `electron.vite.config.ts` and `tsconfig*.json`).
 - **IPC naming:** `domain:verb` (e.g. `pty:spawn`, `usage:metrics`). Main→renderer

@@ -360,3 +360,44 @@ alert and only fixes defaults). Emitting from the existing var functions means z
 reaches 4.5:1 for *small* text; 4.48:1 is the best achievable without darkening the colour, accepted
 because the title is bold (AA-large). A user picking a mid-luminance alert colour gets the same
 best-effort. The guard test fails the build if a future token edit regresses contrast.
+
+### [2026-06-17] Fallible user actions gate success on `runOp`; vault writes propagate
+
+**Context:** A `/review-quality` pass (4th) flagged two data-integrity Major bugs. Editor save
+(`use-editor-tabs.ts`) `await`ed `fs:write` with no catch, then marked the buffer clean and deleted
+its recovery draft — a rejected write silently discarded the edits. Env-vault add/create toasted
+success unconditionally; worse, `env:setGlobal`/`setTerminal` were fire-and-forget `send`s and
+`EnvVault.persist()` swallowed write errors, so the toast could never be truthful.
+**Decision:** Route fallible user actions through one tested `runOp(op, toast, failMsg)` helper that
+awaits the op and, on rejection, toasts `"<failMsg>: <message>"` and returns `false` so the caller
+skips its success follow-up. Save commits clean-state + draft-drop only when `runOp` returns true.
+For env, promote `setGlobal`/`setTerminal` from `send` to `invoke`, and make `persist()` **throw**
+instead of swallowing — so create/set propagate a write failure to the renderer's `runOp`. The
+**remove** handlers stay `send` + best-effort (swallowed at the IPC boundary).
+**Rationale:** The renderer can only avoid a false success if the failure actually reaches it —
+which needs both an awaitable channel (`invoke`) *and* a non-swallowing producer (`persist`). The
+set-vs-remove asymmetry is deliberate: a failed *add* loses data the user just typed (must surface);
+a failed *remove* loses nothing (the var simply reappears next launch), so best-effort is fine and
+avoids crashing the `.on` listener. This also resolves the long-deferred "silent write-error swallow
+in `EnvVault.persist()`" follow-up.
+**Consequences:** Every new fallible IPC-backed action should use `runOp` rather than re-rolling a
+try/catch. A vault add/create can now reject; callers must `await` it. `persist()` throwing means any
+*future* automatic/background persist caller would need its own catch — today every caller is a
+user action that can surface a toast.
+
+### [2026-06-17] Renderer pure logic kept api-free so it's vitest-testable
+
+**Context:** Consolidating the duplicated shell-id / add-pane / theme-scope logic into shared helpers
+needed those helpers unit-tested. But `src/renderer/api.ts` evaluates `window.termhalla` at module
+load, so *any* module that imports `../api` (directly or transitively, e.g. `store/internals.ts`)
+throws under vitest's node environment — which is why the store itself has no direct unit test and
+slices are tested via their isolated creators.
+**Decision:** Put extracted renderer pure logic in api-free modules — `op.ts`, `store/pane-ops.ts`
+(`defaultShellId`/`firstTarget`/`dispatchAddPane`), `components/theme-scope.ts` — injecting any IPC
+dependency as a parameter (e.g. `dispatchAddPane(state, wsId, kind, openFolder)` takes `openFolder`;
+the `addPaneOfKind` store action passes `() => api.openFolder()`). `firstTarget` moved out of
+`internals.ts` into `pane-ops.ts` and is re-exported for existing call sites.
+**Rationale:** Mirrors the established main-process convention (pure modules beside the impure shell)
+on the renderer side. Dependency injection keeps the helpers free of `window`, so they run headless.
+**Consequences:** When extracting renderer logic to unit-test it, don't import `../api` in that
+module — thread the IPC call in as a function argument and call it from the thin store action.

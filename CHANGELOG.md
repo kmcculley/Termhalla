@@ -37,6 +37,14 @@ All notable changes to Termhalla are recorded here. The format follows
   `🔑` button (layered over globals).
 
 ### Fixed
+- **Editor saves no longer lose content on a failed write.** A rejected `fs:write` (disk full,
+  permission, path removed) used to still mark the buffer clean and delete its recovery draft,
+  silently discarding the edits. Save now commits the clean state and drops the draft only after
+  the write succeeds, and shows a "Save failed" toast otherwise — the buffer stays dirty so you
+  can retry. The env-vault add/create actions likewise only confirm once the write succeeds:
+  `env:setGlobal`/`env:setTerminal` were promoted from fire-and-forget sends to `invoke`, and
+  `EnvVault.persist()` no longer swallows write errors — so a failed vault write now surfaces a
+  toast instead of a false "added"/"Vault created" (removes stay best-effort).
 - **Text readability (WCAG AA).** The needs-input (orange) and busy (blue) alert bars now
   pick black-or-white title text from the bar colour's luminance instead of forcing white —
   fixing white-on-orange (2.29:1 → 7.2:1) and keeping it correct for any custom alert colour

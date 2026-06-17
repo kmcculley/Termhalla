@@ -94,6 +94,43 @@ is now element-wise `sameOrder`; several magic numbers named (`CLOUD_FOCUS_REFRE
 preload casts, `VaultData`/`EnvVaultData` duplicate, window-state dynamic import +
 debounce, `WorkspaceView` mosaic cast, etc.) stay deferred below.
 
+## Fourth review (2026-06-17 #4) — Major resolved
+
+A fourth `/review-quality` pass over `src/` found 0 Critical, 6 Major, 13 Minor.
+All **6 Major** were resolved on `main` (`6e4039f`, `e7173dd`) — TDD where the
+logic is pure (23 new renderer unit tests + 1 env-vault test), covered by the
+existing e2e suite for the UI wiring. See [decisions.md](../decisions.md) (the
+`runOp`/vault-write and api-free-helpers entries) and the
+[changelog](../../CHANGELOG.md):
+
+- **[Major] Editor save lost content on a failed write.** A rejected `fs:write`
+  still marked the buffer clean and deleted its recovery draft. Save now commits
+  clean-state + drops the draft only after the write succeeds (via the new tested
+  `op.ts` `runOp`), else toasts "Save failed" and leaves the buffer dirty.
+- **[Major] Env add/create toasted a false success.** `env:setGlobal`/`setTerminal`
+  promoted from `send` to `invoke` and `EnvVault.persist()` no longer swallows
+  write errors, so create/set propagate a failure to the renderer's `runOp`.
+  Removes stay best-effort. *(Resolves the deferred persist-swallow item below.)*
+- **[Major] Shell-id fallback duplicated across 4 launch sites** → `defaultShellId`
+  in the new api-free `store/pane-ops.ts`.
+- **[Major] Add-pane dispatch triplicated and drifted** (App/CommandPalette/
+  WorkspaceTabs each re-inlined `ws.layout ? … : null` + the kind branch, one with
+  a latent unguarded `ws.layout`) → one `addPaneOfKind` store action over the
+  tested `dispatchAddPane` (guards a missing workspace).
+- **[Major] `ThemeSettings` god component** → the three scope ladders (`t`,
+  `scopeOf`, target parse) collapse into tested `components/theme-scope.ts`
+  helpers.
+- **[Major] `WorkspaceTabs` doing too much** → pointer-drag/undock orchestration
+  extracted to a `useTabDrag` hook.
+
+The 13 Minor findings (dead exports in `paths.ts`/`window-state.ts`,
+`parseClaudeUsage` window-policy split, `detectShells` cmd-fallback literal,
+`computeIdleFallback` boolean-trap flags, `deserializeWorkspace` raw `JSON.parse`
+[also tracked under review #2], `normalizeQuick` theme cast, scattered timing
+constants, `tabBadge`/`StatusBar` inline assembly, `ScheduleDialog` 6-state clump,
+`EnvSettings` row duplication, `SettingsPanel` render-phase setState) stay
+deferred.
+
 ## Still deferred
 
 - **EditorPane tab state still lives in a ref-held `Map` + `force` re-render.**
@@ -108,10 +145,10 @@ debounce, `WorkspaceView` mosaic cast, etc.) stay deferred below.
   `SCHEMA_VERSION` is `3`, and the field is never read in `loadAppState`.**
   Either wire it to a constant + validate on load, or introduce a dedicated
   `APP_STATE_VERSION` with a note on why it versions independently. *(Minor.)*
-- **Silent write-error swallow in `EnvVault.persist()`** (and the empty `catch`
-  in `integration-scripts.ts`). A failed vault write loses a just-entered secret
-  with no signal; consider surfacing a `persisted: false` to the renderer.
-  *(Minor — re-flagged by review #2.)*
+- ~~**Silent write-error swallow in `EnvVault.persist()`.**~~ **Resolved** (review #4,
+  `e7173dd`): `persist()` now propagates, and create/set are `invoke` so a failed
+  vault write surfaces a toast instead of a false success. The empty `catch` in
+  `integration-scripts.ts` remains deferred (best-effort shell-integration write).
 
 ### Newly tracked from review #2 (Minor)
 
