@@ -6,6 +6,8 @@ All notable changes to Termhalla are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.1.1] - 2026-06-17
+
 ### Added
 - **GitHub Actions CI & releases.** Push/PR runs typecheck + unit tests on
   `windows-latest`; pushing a `v*` tag builds the NSIS installer and publishes it to
