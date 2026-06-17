@@ -29,9 +29,12 @@ nsis:
   oneClick: false # show the wizard so the install dir is selectable
   perMachine: false # per-user install -> no UAC elevation prompt
   allowToChangeInstallationDirectory: true
-# Generic HTTP update feed. electron-builder writes these coordinates into the bundled
-# app-update.yml; electron-updater reads it to find latest.yml + the installer delta.
-# CHANGE this url to wherever you host the feed before the first real release.
+# GitHub Releases update feed. electron-builder bakes these coordinates into the bundled
+# app-update.yml; electron-updater reads it to find latest.yml + the installer delta from
+# the public repo's Releases (no runtime token needed). releaseType: release publishes a
+# full (non-draft) release so a tag push goes live and auto-update flows immediately.
 publish:
-  provider: generic
-  url: https://updates.localhostworks.dev/termhalla
+  provider: github
+  owner: kmcculley
+  repo: Termhalla
+  releaseType: release
