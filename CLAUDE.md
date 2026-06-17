@@ -104,6 +104,22 @@ related area:
   wrong (dispose before snapshot, or route to the destination before it mounts) and you lose
   scrollback or output. App-state's `windows[]` arrangement is owned by main; the renderer keeps it
   in sync via `win:report` — don't write app-state from the renderer.
+- **Same-window cross-workspace pane move is renderer-only.** Unlike the multi-window handoff above,
+  `movePaneToWorkspace` (`store.ts`) needs no main-side `transit` buffer: the source unmount and
+  destination mount happen in one synchronous React commit, so no `pty:data` is dispatched in the
+  gap. Scrollback rides a renderer stash (`stashSnapshot`/`consumeSnapshot` in `terminal-registry.ts`),
+  the PTY is re-adopted by the idempotent `pty:spawn`, and editor drafts are *flushed not deleted*
+  while a pane is in transit (`pane-transit.ts`). The move must **not** call `closePane`/`teardownPanes`
+  (those `api.ptyKill`). Don't add a transit buffer here thinking it's a missing piece.
+- **Overlays opened from inside a mosaic tile must portal to `<body>`.** A `position: fixed` child of a
+  react-mosaic tile is positioned/clipped relative to the tile (its transform is a containing block) and
+  stacks *under* the tile toolbar. `PaneContextMenu` and `Modal` `createPortal` to escape it; a menu
+  rendered inline silently mis-positions and intercepts no clicks. Guarded by `tests/e2e/pane-actions.spec.ts`.
+- **Pane maximize hides siblings, never unmounts them.** `toggleMaximize` sets transient (non-persisted)
+  `maximized[wsId]`; `PaneTile` marks its tile with a `data-max` attribute (imperatively, so react-mosaic
+  re-renders don't strip it) and CSS fills it with `!important` while siblings get `visibility: hidden`
+  (the keep-mounted pattern — `display:none` would thrash xterm). Swapping `ws.layout` to maximize would
+  unmount siblings and dispose their scrollback/TUIs — don't.
 - **Native `node-pty`** is patched (Spectre off) and must be `electron-rebuild`'d
   for Electron's ABI. See README → Native modules.
 

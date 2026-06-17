@@ -421,3 +421,30 @@ first PTY spawn — the one packaging failure mode that dev never exercises.
 real host before the first `npm run release`. Packaging must run after `npm install` (so patch-package
 applies the Spectre patch) and with `NoDefaultCurrentDirectoryInExePath` cleared (native rebuild
 invokes `.bat`s). Going public later means adding signing/notarization, not changing tools.
+
+### [2026-06-17] Pane title-bar actions: renderer-only move + CSS-hide maximize
+
+**Context:** The pane title bar gained a right-click menu (Rename / Move to workspace / Settings /
+Close) and a Maximize toggle, and shed its env/⚙/🎨 buttons. Two sub-problems had multiple viable
+approaches: (a) moving a pane to another workspace without killing its PTY or losing scrollback, and
+(b) maximizing one pane without destroying its siblings' xterm/Monaco state.
+**Decision:** **Move** is renderer-only — serialize the xterm into a renderer stash before the
+layout mutation, re-parent the `PaneNode` between workspaces, and let the destination's idempotent
+`pty:spawn` re-adopt the still-running PTY (`pty.has`) and replay the stash. No main-side `transit`
+buffer (unlike the cross-*window* undock handoff). Editors flush their hot-exit draft (not delete it)
+while in transit; moving to a new workspace clones the source workspace's theme override (`carryTheme`).
+**Maximize** keeps every sibling mounted and uses CSS — a transient `maximized[wsId]` flag, a
+`data-max` attribute set imperatively on the tile, and `!important` rules that fill it while siblings
+get `visibility: hidden` — rather than swapping `ws.layout` to the single pane.
+**Rationale:** The same-window unmount→remount is a single synchronous React commit, so no `pty:data`
+can interleave — the main-side transit machinery the undock path needs is unnecessary here, and
+omitting it keeps the feature in one layer. Layout-swap maximize was rejected because it unmounts
+siblings (disposing scrollback, freezing live TUIs, losing unsaved Monaco edits) and risks persisting
+a collapsed layout — both violate the "never unmount" invariant; the CSS approach reuses the proven
+inactive-workspace `visibility:hidden` pattern and leaves the layout tree (and autosave) untouched.
+**Consequences:** Move must never route through `closePane`/`teardownPanes` (they `api.ptyKill`).
+Overlays opened from inside a mosaic tile must `createPortal` to `<body>` to escape the tile's
+transform containing block (a real bug caught in review — the menu rendered under the toolbar).
+A pre-existing `WindowManager.routeToPane` crash (asserted a main window during teardown) was hardened
+in passing. `maximized`/`focusedPaneId` are transient and never serialized (`serializeWorkspace` only
+writes `{id,name,layout,panes,theme}`).
