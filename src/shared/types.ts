@@ -226,6 +226,8 @@ export interface CloudStatus {
   detail?: Record<string, string>     // popover rows
   checkedAt: number
   login?: TerminalLaunch              // command for the "Log in" button (reuses the launch shape)
+  family?: string                     // provider family: 'aws' | 'azure'
+  profile?: string                    // AWS profile name (aws members only)
 }
 
 /** Live usage metrics for a Claude session, parsed from its transcript. */

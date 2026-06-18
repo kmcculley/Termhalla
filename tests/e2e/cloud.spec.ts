@@ -16,22 +16,22 @@ test('shows the cloud status bar with AWS + Azure indicators and a detail popove
   })
   const win = await app.firstWindow()
 
-  // The bottom status bar renders, with both provider indicators (whatever their state).
   await expect(win.getByTestId('status-bar')).toBeVisible({ timeout: 15_000 })
   await expect(win.getByTestId('cloud-aws')).toBeVisible({ timeout: 20_000 })
   await expect(win.getByTestId('cloud-azure')).toBeVisible({ timeout: 20_000 })
 
-  // Clicking an indicator opens its detail popover with a Refresh button.
+  // AWS popover lists at least one profile row + a Refresh.
   await win.getByTestId('cloud-aws').click()
   await expect(win.getByTestId('cloud-menu-aws')).toBeVisible()
+  await expect(win.locator('[data-testid^="cloud-profile-"]')).not.toHaveCount(0)
   await expect(win.getByTestId('cloud-refresh-aws')).toBeVisible()
-  await win.getByTestId('cloud-refresh-aws').click()           // refresh must not crash
+  await win.getByTestId('cloud-refresh-aws').click()
   await expect(win.getByTestId('cloud-menu-aws')).toBeVisible()
 
-  // If a provider offers Log in (installed-but-logged-out), it opens a terminal pane.
-  const loginAws = win.getByTestId('cloud-login-aws')
-  if (await loginAws.count()) {
-    await loginAws.click()
+  // If any profile offers Log in (installed-but-logged-out), it opens a terminal pane.
+  const login = win.locator('[data-testid^="cloud-login-aws:"]').first()
+  if (await login.count()) {
+    await login.click()
     await expect(win.locator('[data-testid^="terminal-"]')).toBeVisible({ timeout: 15_000 })
   }
 

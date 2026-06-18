@@ -1,25 +1,25 @@
 import { describe, it, expect } from 'vitest'
-import { parseAwsIdentity, parseAzureIdentity, awsProvider, azureProvider } from '../../src/main/cloud/providers'
+import { parseAwsIdentity, parseAzureIdentity, awsProbeForProfile, azureProvider } from '../../src/main/cloud/providers'
 import { resolveBin } from '../../src/main/cloud/resolve-bin'
 import { classifyProbe } from '../../src/main/cloud/classify'
 
 describe('parseAwsIdentity', () => {
   it('extracts account + detail, defaulting the profile when env is unset', () => {
     const out = JSON.stringify({ UserId: 'AIDA', Account: '123456789012', Arn: 'arn:aws:iam::123456789012:user/kev' })
-    const id = parseAwsIdentity(out, {})
+    const id = parseAwsIdentity(out, 'default', {})
     expect(id.account).toBe('123456789012')
     expect(id.detail).toMatchObject({ Account: '123456789012', Profile: 'default', Arn: 'arn:aws:iam::123456789012:user/kev' })
   })
-  it('uses AWS_PROFILE and AWS_REGION from env', () => {
+  it('stamps the given profile and reads region from env', () => {
     const out = JSON.stringify({ Account: '1', Arn: 'a' })
-    const id = parseAwsIdentity(out, { AWS_PROFILE: 'prod', AWS_REGION: 'us-east-1' })
+    const id = parseAwsIdentity(out, 'prod', { AWS_REGION: 'us-east-1' })
     expect(id.detail).toMatchObject({ Profile: 'prod', Region: 'us-east-1' })
   })
   it('throws when there is no Account', () => {
-    expect(() => parseAwsIdentity('{}', {})).toThrow()
+    expect(() => parseAwsIdentity('{}', 'default', {})).toThrow()
   })
   it('throws on malformed JSON', () => {
-    expect(() => parseAwsIdentity('not json', {})).toThrow()
+    expect(() => parseAwsIdentity('not json', 'default', {})).toThrow()
   })
 })
 
@@ -56,16 +56,17 @@ describe('resolveBin', () => {
 describe('classifyProbe', () => {
   const now = 1000
   it('maps ENOENT to not-installed', () => {
-    const s = classifyProbe(awsProvider, { errorCode: 'ENOENT', code: null, stdout: '' }, now)
-    expect(s).toMatchObject({ id: 'aws', label: 'AWS', state: 'not-installed', checkedAt: now })
-    expect(s.login).toEqual(awsProvider.login)
+    const aws = awsProbeForProfile('default')
+    const s = classifyProbe(aws, { errorCode: 'ENOENT', code: null, stdout: '' }, now)
+    expect(s).toMatchObject({ id: 'aws:default', family: 'aws', state: 'not-installed', checkedAt: now })
+    expect(s.login).toEqual(aws.login)
   })
   it('maps a non-zero exit to logged-out', () => {
-    expect(classifyProbe(awsProvider, { code: 255, stdout: '' }, now).state).toBe('logged-out')
+    expect(classifyProbe(awsProbeForProfile('default'), { code: 255, stdout: '' }, now).state).toBe('logged-out')
   })
   it('maps a successful parse to logged-in', () => {
     const out = JSON.stringify({ Account: '1', Arn: 'a' })
-    const s = classifyProbe(awsProvider, { code: 0, stdout: out }, now)
+    const s = classifyProbe(awsProbeForProfile('default'), { code: 0, stdout: out }, now)
     expect(s.state).toBe('logged-in')
     expect(s.account).toBe('1')
   })
@@ -73,6 +74,6 @@ describe('classifyProbe', () => {
     expect(classifyProbe(azureProvider, { code: 0, stdout: 'not json' }, now).state).toBe('error')
   })
   it('maps a non-ENOENT spawn error / timeout to error', () => {
-    expect(classifyProbe(awsProvider, { errorCode: 'ETIMEDOUT', code: null, stdout: '' }, now).state).toBe('error')
+    expect(classifyProbe(awsProbeForProfile('default'), { errorCode: 'ETIMEDOUT', code: null, stdout: '' }, now).state).toBe('error')
   })
 })

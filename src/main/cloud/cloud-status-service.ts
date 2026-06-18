@@ -1,6 +1,6 @@
 import type { CloudStatus } from '@shared/types'
 import type { CloudProvider } from './providers'
-import { DEFAULT_PROVIDERS } from './providers'
+import { resolveProviders as defaultResolveProviders } from './providers'
 import { classifyProbe, type ProbeResult } from './classify'
 import { runCliProbe } from './probe'
 
@@ -15,10 +15,11 @@ export class CloudStatusService {
   private timer: ReturnType<typeof setInterval> | null = null
   private refreshing = false
   private abort = new AbortController()
+  private current: CloudProvider[] = []
 
   constructor(
     private readonly onStatus: (statuses: CloudStatus[]) => void,
-    private readonly providers: CloudProvider[] = DEFAULT_PROVIDERS,
+    private readonly resolveProviders: () => CloudProvider[] = defaultResolveProviders,
     private readonly runProbe: RunProbe = runCliProbe,
     private readonly now: () => number = () => Date.now(),
     private readonly intervalMs = 60000
@@ -43,16 +44,17 @@ export class CloudStatusService {
     if (this.refreshing) return
     this.refreshing = true
     try {
+      this.current = this.resolveProviders()
       let showedChecking = false
-      for (const p of this.providers) {
+      for (const p of this.current) {
         if (!this.last.has(p.id)) {
-          this.last.set(p.id, { id: p.id, label: p.label, state: 'checking', checkedAt: this.now(), login: p.login })
+          this.last.set(p.id, { id: p.id, label: p.label, family: p.family, profile: p.profile, state: 'checking', checkedAt: this.now(), login: p.login })
           showedChecking = true
         }
       }
       if (showedChecking) this.emit()
 
-      await Promise.all(this.providers.map(async p => {
+      await Promise.all(this.current.map(async p => {
         const result = await this.runProbe(p, this.abort.signal)
         const fresh = classifyProbe(p, result, this.now())
         const prior = this.last.get(p.id)
@@ -66,7 +68,7 @@ export class CloudStatusService {
   }
 
   private emit(): void {
-    const statuses = this.providers.map(p => this.last.get(p.id)).filter((s): s is CloudStatus => Boolean(s))
+    const statuses = this.current.map(p => this.last.get(p.id)).filter((s): s is CloudStatus => Boolean(s))
     const sig = statuses.map(s =>
       `${s.id}:${s.state}:${s.account ?? ''}:${s.detail ? Object.entries(s.detail).map(([k, v]) => `${k}=${v}`).join(',') : ''}`
     ).join('|')
