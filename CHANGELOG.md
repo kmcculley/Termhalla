@@ -6,11 +6,26 @@ All notable changes to Termhalla are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.3.4] - 2026-06-18
+
 ### Fixed
 - **Dropdown menus are readable again.** Native `<select>` option popups (the tab bar's shell picker
   and "+ pane" menu, plus the dialog dropdowns) inherited the light chrome text on Chromium's
   default-light popup background — white-on-white. `<option>` is now themed (elevated background +
   luminance-adaptive text), so the popups are legible on light and dark themes.
+- **Claude usage % no longer freezes on a stale value.** When a session's transcript is rotated or
+  removed between being resolved and read, the usage tracker now clears the metric (and logs the
+  read failure) instead of silently leaving the chip on its last value.
+- **Previously-silent main-process failures are now diagnosable.** The Windows process-table query
+  (process chips), cloud-CLI output parsing, and the encrypted env-var vault each swallowed errors
+  with no log. They now emit a warning — the vault distinguishes an unreadable/permission-denied
+  file from an ordinary wrong passphrase (which stays quiet) — so blank chips and failed unlocks can
+  be traced.
+
+### Changed
+- **Editor drafts and the per-project notepad now flush on every window's close**, not just the main
+  window's, so a floating (undocked) window that closes before main still persists its in-memory
+  state. Both already wrote live on each edit; this completes the shutdown safety net.
 
 ## [0.3.3] - 2026-06-18
 
