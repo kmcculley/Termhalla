@@ -147,12 +147,17 @@ export function templateFromWorkspace(ws: Workspace, id: string, name: string): 
     id, name,
     layout: ws.layout === null ? null : cloneConfig(ws.layout),
     panes: cloneConfig(ws.panes),
-    theme: ws.theme ? cloneConfig(ws.theme) : undefined
+    theme: ws.theme ? cloneConfig(ws.theme) : undefined,
+    runCommands: ws.runCommands ? cloneConfig(ws.runCommands) : undefined
   }
 }
 
 /** Instantiate a fresh workspace from a template (new pane ids), restoring its theme override. */
 export function workspaceFromTemplate(tpl: WorkspaceTemplate, wsId: string, name: string, uuid: () => string): Workspace {
   const { layout, panes } = remapPaneIds(tpl.layout, tpl.panes, uuid)
-  return { id: wsId, name, layout, panes, theme: tpl.theme ? cloneConfig(tpl.theme) : undefined }
+  return {
+    id: wsId, name, layout, panes,
+    theme: tpl.theme ? cloneConfig(tpl.theme) : undefined,
+    runCommands: tpl.runCommands ? cloneConfig(tpl.runCommands) : undefined
+  }
 }

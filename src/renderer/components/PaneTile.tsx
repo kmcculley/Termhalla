@@ -12,8 +12,9 @@ import { PaneContextMenu } from './PaneContextMenu'
 import { ProcessPopover } from './ProcessPopover'
 import { CwdMenu } from './CwdMenu'
 import { GitPopover } from './GitPopover'
+import { RunCommandsMenu } from './RunCommandsMenu'
 
-export type PaneMenu = 'proc' | 'cwd' | 'schedule' | 'git'
+export type PaneMenu = 'proc' | 'cwd' | 'schedule' | 'git' | 'run'
 
 const SHELL_CHIP_LABEL: Record<string, string> = {
   'Windows PowerShell': 'pwsh',
@@ -108,6 +109,7 @@ export function PaneTile({ wsId, paneId, path }: { wsId: string; paneId: string;
           <ProcessPopover paneId={paneId} procInfo={procInfo} aiSession={aiSession} usage={usage} onClose={close} />
         )}
         {menu === 'schedule' && <ScheduleDialog paneId={paneId} onClose={close} />}
+        {menu === 'run' && <RunCommandsMenu wsId={wsId} paneId={paneId} onClose={close} />}
         {menu === 'cwd' && <CwdMenu wsId={wsId} paneId={paneId} cwd={cwd} onClose={close} />}
         {menu === 'git' && gitStatus && <GitPopover status={gitStatus} />}
         {pane?.config.kind === 'terminal' && termCfg && <TerminalPane paneId={paneId} wsId={wsId} config={termCfg} />}

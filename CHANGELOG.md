@@ -7,6 +7,18 @@ All notable changes to Termhalla are recorded here. The format follows
 ## [Unreleased]
 
 ### Added
+- **Saved run commands.** Each terminal pane now has a `▷` toolbar button that
+  opens a **Run commands** modal listing workspace-scoped and pane-scoped saved
+  commands (label + shell command). Clicking `▷` next to a command sends it to
+  the terminal as raw keystrokes + CR (via the existing `encodeBroadcast` path —
+  no new IPC) and closes the modal. Commands can be added, edited, and deleted
+  from the same modal. Two scopes: **pane** (this terminal only) and **workspace**
+  (every terminal in the workspace); workspace commands appear first in the list.
+  Both lists persist with the workspace JSON and ride into saved templates.
+  Schema 4→5, additive — existing workspaces load unchanged. Pure list helpers in
+  `src/shared/run-commands.ts`; store slice in
+  `src/renderer/store/run-commands-slice.ts`. This is the persisted, manually-triggered
+  sibling of the runtime-only scheduled-commands feature.
 - **Git status on the pane chip.** Each terminal pane whose cwd is inside a git
   working tree now shows a compact git indicator in its toolbar: the current branch
   name plus a `●` dirty dot when there are staged, unstaged, or untracked changes.

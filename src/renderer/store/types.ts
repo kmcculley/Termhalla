@@ -2,7 +2,7 @@ import type { StoreApi } from 'zustand'
 import type {
   Workspace, ShellInfo, MosaicNode, MosaicDirection, TerminalConfig, TerminalStatus,
   PaneConfig, EditorConfig, ExplorerConfig, QuickStore, SshConnection, ProcInfo, CloudStatus,
-  TerminalLaunch, AiSession, UsageMetrics, EditorDraft, ScheduledTask, Theme, EnvVaultState, GitStatus
+  TerminalLaunch, AiSession, UsageMetrics, EditorDraft, ScheduledTask, Theme, EnvVaultState, GitStatus, RunCommand
 } from '@shared/types'
 import type { Chord, CommandId } from '@shared/keybindings'
 import type { PaneKind } from './pane-ops'
@@ -81,6 +81,8 @@ export interface State {
   schedules: Record<string, ScheduledTask>
   addSchedule: (task: Omit<ScheduledTask, 'id'>) => string
   cancelSchedule: (id: string) => void
+  setWorkspaceRunCommands: (wsId: string, runCommands: RunCommand[]) => void
+  runCommand: (paneId: string, command: string) => void
   quick: QuickStore
   home: string
   paletteOpen: boolean
