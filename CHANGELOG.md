@@ -6,6 +6,8 @@ All notable changes to Termhalla are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.2.1] - 2026-06-18
+
 ### Added
 - **Multi-profile AWS cloud status.** The AWS chip in the status bar now covers every
   profile configured in `~/.aws/config` (`[default]` + `[profile X]` sections, capped
@@ -19,6 +21,24 @@ All notable changes to Termhalla are recorded here. The format follows
   status array into per-family groups for the renderer. Azure is unchanged. Pure logic
   covered by new vitest suites (`aws-profiles`, `group-cloud`); e2e updated to the grouped
   chip assertions.
+- **MIT license.** The project is now MIT-licensed (`LICENSE`, `package.json` `license` field).
+- **Distribution channels.** Every release now also ships a portable `Termhalla-<version>-win.zip`
+  (unzip-and-run, no SmartScreen prompt) alongside the NSIS installer. winget manifests
+  (`packaging/winget/`) and a Scoop manifest (`packaging/scoop/`, installs the portable zip,
+  hash-verified) are provided. A `packaging/signing.md` documents the (deferred) code-signing setup
+  and the auto-update ordering caveat.
+
+### Changed
+- **Release publishing hardened.** Releases are now built with `electron-builder --publish never`
+  and published by a single `gh release create` step, eliminating the electron-builder
+  concurrent-publisher race that created duplicate release objects for one tag. The NSIS
+  `artifactName` is now space-free so the on-disk file, the uploaded asset, and `latest.yml` agree.
+- **CI/Release actions** bumped to `actions/checkout@v5` + `actions/setup-node@v5` (clears the
+  Node 20 deprecation).
+
+## [0.2.0] - 2026-06-17
+
+### Added
 - **Searchable output history.** Terminal output is indexed in a local SQLite FTS5
   database (`search.db` under `userData`) as it streams. A **Search output history**
   modal (🔍 in the status bar or **Ctrl+Shift+F**) lets the user query across current
