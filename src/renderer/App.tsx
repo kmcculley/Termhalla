@@ -17,6 +17,7 @@ import { SettingsPanel } from './components/SettingsPanel'
 import { NotesPanel } from './components/NotesPanel'
 import { SearchHistory } from './components/SearchHistory'
 import { matchShortcut, resolveBindings } from '@shared/keymap'
+import { redrawPane } from './components/terminal-registry'
 import { api } from './api'
 
 export default function App() {
@@ -92,6 +93,7 @@ export default function App() {
         }
         case 'toggle-notes': s.setNotesOpen(!s.notesOpen); break
         case 'toggle-search': s.setSearchOpen(!s.searchOpen); break
+        case 'redraw-terminal': redrawPane(s.focusedPaneId ?? ''); break
       }
     }
     window.addEventListener('keydown', onKey)

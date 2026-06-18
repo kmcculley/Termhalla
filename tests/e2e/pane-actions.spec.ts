@@ -103,6 +103,7 @@ test('maximize hides siblings; restore brings them back', async () => {
 
   // Split to create a sibling
   await win.getByTestId(`split-${a}`).click()
+  await win.getByTestId(`split-terminal-${a}`).click()
   await expect(win.locator('[data-testid^="tile-"]')).toHaveCount(2, { timeout: 10_000 })
   const siblingTile = win.locator('[data-testid^="tile-"]').nth(1)
   const siblingTestId = await siblingTile.getAttribute('data-testid')

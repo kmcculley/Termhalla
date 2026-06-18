@@ -24,10 +24,21 @@ describe('QuickStore', () => {
       recentDirs: ['C:\\proj', 'C:\\work'],
       templates: [],
       themePresets: [],
-      recordByDefault: false
+      recordByDefault: false,
+      autoResumeClaude: true
     }
     await store.save(data)
     expect(await store.load()).toEqual(data)
+    rmSync(dir, { recursive: true, force: true })
+  })
+
+  it('defaults autoResumeClaude to true when absent', async () => {
+    const store = new QuickStore(dir)
+    await store.save({
+      connections: [], recentConnections: [], favoriteDirs: [], recentDirs: [],
+      templates: [], themePresets: []
+    })
+    expect((await store.load()).autoResumeClaude).toBe(true)
     rmSync(dir, { recursive: true, force: true })
   })
 

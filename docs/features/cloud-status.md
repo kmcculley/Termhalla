@@ -33,7 +33,7 @@ The main-process `cloud-status-service.ts:CloudStatusService` owns the loop; the
 |---|---|
 | `src/main/cloud/aws-profiles.ts` | `parseAwsProfiles` (pure), `discoverAwsProfiles`, `AWS_PROFILE_CAP` |
 | `src/main/cloud/providers.ts` | `CloudProvider` shape, `parseAwsIdentity`/`parseAzureIdentity`, `awsProbeForProfile`, `azureProvider`, `resolveProviders` |
-| `src/main/cloud/resolve-bin.ts` | Pure PATH/PATHEXT lookup; not-installed vs logged-out discrimination |
+| `src/main/resolve-bin.ts` | Pure PATH/PATHEXT lookup; not-installed vs logged-out discrimination (shared: also resolves ssh/aws launch commands for the PTY) |
 | `src/main/cloud/classify.ts` | `ProbeResult` type + pure `classifyProbe` state mapping (copies `family`/`profile`) |
 | `src/main/cloud/probe.ts` | `runCliProbe` — `execFile` (`shell:true`) + AbortSignal + `unref()` |
 | `src/main/cloud/cloud-status-service.ts` | Timer, `resolveProviders` per refresh, stale-while-revalidate, dedup emit, abort on stop |

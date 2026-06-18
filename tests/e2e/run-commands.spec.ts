@@ -42,6 +42,7 @@ test('saves, runs, and persists pane + workspace run commands', async () => {
 
   // Split a second terminal; its run menu shows the workspace command.
   await win.locator('[data-testid^="split-"]').first().click()
+  await win.locator('[data-testid^="split-terminal-"]').first().click()
   await expect(win.locator('[data-testid^="terminal-"]')).toHaveCount(2, { timeout: 15_000 })
   await win.locator('[data-testid^="run-chip-"]').nth(1).click()
   await expect(win.getByTestId('run-commands-dialog')).toContainText('workspace-cmd')

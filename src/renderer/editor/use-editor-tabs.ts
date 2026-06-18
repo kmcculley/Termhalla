@@ -11,6 +11,7 @@ import { useEditorDrafts } from './use-editor-drafts'
 import { useExternalFileWatch } from './use-external-file-watch'
 import { useResolvedPaneTheme } from '../use-resolved-theme'
 import { isPaneInTransit, endPaneTransit } from '../components/pane-transit'
+import { registerFocuser, unregisterFocuser } from '../components/terminal-registry'
 
 /** The tab/model state + actions a rendered EditorPane needs. The Monaco editor instance,
  *  the tab→model map, draft persistence, save logic, the untitled scratch buffer, external-file
@@ -176,6 +177,7 @@ export function useEditorTabs(paneId: string, wsId: string, config: EditorConfig
     })
     edRef.current = ed
     registerEditorPane(paneId)
+    registerFocuser(paneId, () => { ed.focus(); return ed.hasTextFocus() })
     const focusDisp = ed.onDidFocusEditorText(() => registerEditorPane(paneId))
     ed.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS, () => { void saveActiveRef.current() })
     // One persistent untitled scratch buffer per pane (saved='' so the existing dirty/persist
@@ -187,6 +189,7 @@ export function useEditorTabs(paneId: string, wsId: string, config: EditorConfig
     tabs.current.set(UNTITLED, { path: UNTITLED, model: untitledModel, saved: '', disp: untitledDisp, tooLarge: false, missing: false })
     if (config.files.length === 0) setActiveModel(UNTITLED)
     return () => {
+      unregisterFocuser(paneId)
       focusDisp.dispose(); ed.dispose()
       clearDraftTimers()
       const moving = isPaneInTransit(paneId)

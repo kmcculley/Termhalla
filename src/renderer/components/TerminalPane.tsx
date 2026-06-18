@@ -6,13 +6,21 @@ import '@xterm/xterm/css/xterm.css'
 import { api } from '../api'
 import type { TerminalConfig } from '@shared/types'
 import { resolveTheme } from '@shared/theme'
+import { nextFontSize } from '@shared/font-zoom'
+import { matchShortcut, resolveBindings } from '@shared/keymap'
 import { useStore } from '../store'
 import { useResolvedPaneTheme } from '../use-resolved-theme'
 import { clipboardKeyAction } from './terminal-clipboard'
-import { registerSerializer, unregisterSerializer, consumeSnapshot } from './terminal-registry'
+import { registerSerializer, unregisterSerializer, consumeSnapshot, registerFocuser, unregisterFocuser, registerRedrawer, unregisterRedrawer } from './terminal-registry'
 
 /** Scrollback lines captured when serializing a terminal for a window-handoff replay. */
 const HANDOFF_SCROLLBACK_LINES = 1000
+
+/** Quiet window after the last resize before we repaint xterm once, so a drag doesn't repaint per frame. */
+const RESIZE_SETTLE_MS = 150
+
+/** Output-quiet window after a restored shell's prompt before auto-typing `claude --resume`. */
+const RESUME_QUIET_MS = 700
 
 export function TerminalPane({ paneId, wsId, config }: { paneId: string; wsId: string; config: TerminalConfig }) {
   const hostRef = useRef<HTMLDivElement>(null)
@@ -32,6 +40,9 @@ export function TerminalPane({ paneId, wsId, config }: { paneId: string; wsId: s
     const serialize = new SerializeAddon()
     term.loadAddon(serialize)
     registerSerializer(paneId, () => serialize.serialize({ scrollback: HANDOFF_SCROLLBACK_LINES }))
+    // Report whether focus actually landed: term.focus() is a no-op while the pane is hidden
+    // (e.g. its workspace is mid-switch), and requestPaneFocus retries until it sticks.
+    registerFocuser(paneId, () => { term.focus(); return document.activeElement === term.textarea })
     termRef.current = term; fitRef.current = fit
     term.open(hostRef.current!)
     fit.fit()
@@ -50,7 +61,21 @@ export function TerminalPane({ paneId, wsId, config }: { paneId: string; wsId: s
     api.searchSetMuted(paneId, !!config.historyMuted)
     if (useStore.getState().quick.recordByDefault) api.recStart(paneId)
 
-    const offData = api.onPtyData((id, data) => { if (id === paneId) term.write(data) })
+    // Auto-resume Claude: a pane that had Claude running at last save (config.resumeAi) types
+    // `claude --resume` once — after the restored shell has printed its prompt and gone quiet. Using
+    // an output-quiet timer (reset on each data chunk) is shell-agnostic: it fires shortly after the
+    // prompt appears, not before the shell is ready. Off when the setting is disabled.
+    const wantResume = config.resumeAi === 'claude' && useStore.getState().quick.autoResumeClaude !== false
+    let resumeTimer: ReturnType<typeof setTimeout> | undefined
+    let resumed = false
+    const scheduleResume = () => {
+      if (!wantResume || resumed) return
+      if (resumeTimer) clearTimeout(resumeTimer)
+      resumeTimer = setTimeout(() => { resumed = true; api.ptyWrite({ id: paneId, data: 'claude --resume\r' }) }, RESUME_QUIET_MS)
+    }
+    scheduleResume()
+
+    const offData = api.onPtyData((id, data) => { if (id === paneId) { term.write(data); scheduleResume() } })
     const offExit = api.onPtyExit((id) => { if (id === paneId && !disposed) term.write('\r\n[process exited]\r\n') })
     const inputDisp = term.onData(d => api.ptyWrite({ id: paneId, data: d }))
 
@@ -59,6 +84,12 @@ export function TerminalPane({ paneId, wsId, config }: { paneId: string; wsId: s
     // shell or TUI don't auto-run); it flows out via the inputDisp onData handler above.
     const paste = async () => { const text = await api.clipboardRead(); if (text) term.paste(text) }
     term.attachCustomKeyEventHandler(e => {
+      // Let app-global shortcuts (command palette, workspace switch, …) reach App's window-level
+      // keydown handler instead of being consumed by the terminal. xterm otherwise swallows e.g.
+      // Ctrl+K when a terminal is focused — which, now that new panes auto-focus, would be most of
+      // the time. Returning false makes xterm ignore the key without preventing/stopping it, so the
+      // original event still bubbles to window. Only keydown matches; keyup/press fall through.
+      if (e.type === 'keydown' && matchShortcut(e, resolveBindings(useStore.getState().quick.keybindings))) return false
       const action = clipboardKeyAction(e, term.hasSelection())
       if (action === 'copy') { api.clipboardWrite(term.getSelection()); term.clearSelection(); return false }
       if (action === 'paste') { void paste(); return false }
@@ -67,7 +98,36 @@ export function TerminalPane({ paneId, wsId, config }: { paneId: string; wsId: s
     const onContextMenu = (e: MouseEvent) => { e.preventDefault(); void paste() }
     hostRef.current!.addEventListener('contextmenu', onContextMenu)
 
+    // Ctrl/Cmd + wheel zooms the terminal font (like editors/browsers). Capture phase + stop so
+    // xterm doesn't also scroll the buffer; writes the global termFontSize, which the theme effect
+    // below re-applies and re-fits across every terminal. passive:false so preventDefault sticks.
+    const onWheel = (e: WheelEvent) => {
+      if (!(e.ctrlKey || e.metaKey)) return
+      e.preventDefault(); e.stopPropagation()
+      const cur = term.options.fontSize ?? 13
+      const next = nextFontSize(cur, e.deltaY)
+      if (next !== cur) useStore.getState().setTheme({ termFontSize: next })
+    }
+    hostRef.current!.addEventListener('wheel', onWheel, { passive: false, capture: true })
+
+    // Force the terminal — and any running TUI (e.g. Claude) — to repaint. `refresh` re-renders
+    // xterm from its buffer (fixes xterm-side glitches); the optional PTY size nudge makes the
+    // running app redraw via SIGWINCH/ConPTY (fixes a TUI that drew garbled across a resize). The
+    // nudge is a deliberate redundant resize — safe because the status tail is ANSI-stripped — so it
+    // is reserved for the explicit redraw (not the per-frame auto path).
+    const redraw = (nudge: boolean) => {
+      fit.fit()
+      term.refresh(0, term.rows - 1)
+      if (nudge) {
+        const { cols, rows } = term
+        api.ptyResize({ id: paneId, cols: Math.max(cols - 1, 1), rows })
+        api.ptyResize({ id: paneId, cols, rows })
+      }
+    }
+    registerRedrawer(paneId, () => redraw(true))
+
     let lastCols = term.cols, lastRows = term.rows
+    let settle: ReturnType<typeof setTimeout> | undefined
     const ro = new ResizeObserver(() => {
       fit.fit()
       // Only resize the PTY when the grid actually changed. A redundant resize makes
@@ -76,13 +136,22 @@ export function TerminalPane({ paneId, wsId, config }: { paneId: string; wsId: s
         lastCols = term.cols; lastRows = term.rows
         api.ptyResize({ id: paneId, cols: term.cols, rows: term.rows })
       }
+      // After the user stops dragging, repaint once so xterm rendering self-corrects (no PTY nudge
+      // here — the per-grid-change resize above already told the TUI; this only re-renders xterm).
+      if (settle) clearTimeout(settle)
+      settle = setTimeout(() => redraw(false), RESIZE_SETTLE_MS)
     })
     ro.observe(hostRef.current!)
 
     return () => {
       disposed = true
       hostRef.current?.removeEventListener('contextmenu', onContextMenu)
+      hostRef.current?.removeEventListener('wheel', onWheel, { capture: true } as EventListenerOptions)
       unregisterSerializer(paneId)
+      unregisterFocuser(paneId)
+      unregisterRedrawer(paneId)
+      if (settle) clearTimeout(settle)
+      if (resumeTimer) clearTimeout(resumeTimer)
       ro.disconnect(); inputDisp.dispose(); offData(); offExit(); term.dispose()
       termRef.current = null; fitRef.current = null
     }

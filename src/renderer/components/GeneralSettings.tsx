@@ -9,6 +9,8 @@ export function GeneralSettings() {
   const setShell = useStore(s => s.setNewTerminalShell)
   const recordByDefault = useStore(s => s.quick.recordByDefault)
   const setRecordByDefault = useStore(s => s.setRecordByDefault)
+  const autoResumeClaude = useStore(s => s.quick.autoResumeClaude)
+  const setAutoResumeClaude = useStore(s => s.setAutoResumeClaude)
   return (
     <div data-testid="settings-general" style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
       <label style={{ display: 'flex', gap: 8, alignItems: 'center', justifyContent: 'space-between' }}>
@@ -21,6 +23,11 @@ export function GeneralSettings() {
         <input data-testid="rec-default" type="checkbox" checked={!!recordByDefault}
           onChange={e => setRecordByDefault(e.target.checked)} />
         Record new terminals by default
+      </label>
+      <label style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+        <input data-testid="auto-resume-claude" type="checkbox" checked={autoResumeClaude !== false}
+          onChange={e => setAutoResumeClaude(e.target.checked)} />
+        Resume Claude in restored terminals (claude --resume)
       </label>
       <div>
         <button data-testid="rec-folder" onClick={() => api.recReveal()}>Open recordings folder</button>

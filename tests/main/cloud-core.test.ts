@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { parseAwsIdentity, parseAzureIdentity, awsProbeForProfile, azureProvider } from '../../src/main/cloud/providers'
-import { resolveBin } from '../../src/main/cloud/resolve-bin'
+import { resolveBin } from '../../src/main/resolve-bin'
 import { classifyProbe } from '../../src/main/cloud/classify'
 
 describe('parseAwsIdentity', () => {

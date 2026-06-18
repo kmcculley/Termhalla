@@ -4,7 +4,9 @@ import { delimiter, join } from 'node:path'
 type Env = Record<string, string | undefined>
 
 /** Find `bin` on PATH (trying PATHEXT extensions). Returns the full path, or null if absent.
- *  Used to distinguish "CLI not installed" from "logged out" before spawning. */
+ *  Used to distinguish "CLI not installed" from "logged out" before a cloud probe, and to
+ *  resolve a launch override (ssh/aws) to a full path so node-pty can spawn it — its Windows
+ *  resolver matches the bare name verbatim (no PATHEXT), so "ssh" never finds ssh.exe. */
 export function resolveBin(
   bin: string,
   env: Env = process.env,

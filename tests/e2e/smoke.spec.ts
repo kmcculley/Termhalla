@@ -42,20 +42,22 @@ test('launches, opens a terminal, echoes input', async ({ app }) => {
   await win.screenshot({ path: 'test-results/smoke-terminal.png' })
 })
 
-test('split creates a second terminal tile', async ({ app }) => {
+test('split menu creates a second terminal tile', async ({ app }) => {
   const win = await app.firstWindow()
   await win.getByTestId('add-first-terminal').click()
-  const split = win.locator('[data-testid^="split-"]').first()
-  await split.click()
+  await expect(win.locator('[data-testid^="terminal-"]')).toHaveCount(1, { timeout: 15_000 })
+  await win.locator('[data-testid^="split-"]').first().click()      // opens the split menu
+  await win.locator('[data-testid^="split-terminal-"]').first().click()
   await expect(win.locator('[data-testid^="terminal-"]')).toHaveCount(2, { timeout: 15_000 })
   await win.screenshot({ path: 'test-results/smoke-split.png' })
 })
 
-test('vertical split button creates a second terminal tile', async ({ app }) => {
+test('vertical split menu creates a second terminal tile', async ({ app }) => {
   const win = await app.firstWindow()
   await win.getByTestId('add-first-terminal').click()
   await expect(win.locator('[data-testid^="terminal-"]')).toHaveCount(1, { timeout: 15_000 })
-  await win.locator('[data-testid^="split-col-"]').first().click()
+  await win.locator('[data-testid^="split-col-"]').first().click() // opens the split-down menu
+  await win.locator('[data-testid^="split-terminal-"]').first().click()
   await expect(win.locator('[data-testid^="terminal-"]')).toHaveCount(2, { timeout: 15_000 })
 })
 

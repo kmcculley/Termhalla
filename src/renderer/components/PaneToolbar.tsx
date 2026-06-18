@@ -17,7 +17,6 @@ export function PaneToolbar(
     toggle: (menu: PaneMenu) => void
   }
 ) {
-  const addTerminal = useStore(s => s.addTerminal)
   const closePane = useStore(s => s.closePane)
   const toggleMaximize = useStore(s => s.toggleMaximize)
   const isMax = useStore(s => s.maximized[wsId] === paneId)
@@ -58,8 +57,8 @@ export function PaneToolbar(
         </>
       )}
       <button data-testid={`cwd-${paneId}`} title="Folder actions" onClick={() => toggle('cwd')}>📁</button>
-      <button data-testid={`split-${paneId}`} title="Split right" onClick={() => addTerminal(wsId, paneId, 'row')}>⬌</button>
-      <button data-testid={`split-col-${paneId}`} title="Split down" onClick={() => addTerminal(wsId, paneId, 'column')}>⬍</button>
+      <button data-testid={`split-${paneId}`} title="Split right (terminal / editor / explorer)" onClick={() => toggle('split-row')}>⬌</button>
+      <button data-testid={`split-col-${paneId}`} title="Split down (terminal / editor / explorer)" onClick={() => toggle('split-col')}>⬍</button>
       <button data-testid={`max-${paneId}`} title={isMax ? 'Restore pane' : 'Maximize pane'}
         onClick={() => toggleMaximize(wsId, paneId)}>{isMax ? '🗗' : '🗖'}</button>
       <button data-testid={`close-${paneId}`} onClick={() => closePane(wsId, paneId)}>✕</button>

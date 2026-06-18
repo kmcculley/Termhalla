@@ -6,6 +6,38 @@ All notable changes to Termhalla are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-06-18
+
+### Added
+- **Split buttons offer Terminal / Editor / Explorer.** The pane split buttons no longer open a
+  terminal directly — each opens a small menu to choose what the split creates, in that direction.
+  Terminal and Explorer inherit the source pane's working directory.
+- **Auto-resume Claude on restart.** Terminals that had Claude running when the app last closed
+  re-run `claude --resume` once the restored shell is ready (in the saved cwd). On by default;
+  toggle under Settings → General. A `resumeAi` marker is folded into each terminal's persisted
+  config at save time (no AI session content is stored).
+- **Redraw a garbled terminal.** A resize now repaints the terminal once it settles, and a new
+  "Redraw terminal" command (Ctrl+Shift+L, rebindable) forces a full repaint — re-fitting xterm and
+  nudging the PTY so a running TUI (e.g. Claude) redraws — for cases a resize left scrambled.
+- **Ctrl/Cmd + scroll zooms the terminal font.** Holding Ctrl (or Cmd) while scrolling over a
+  terminal grows/shrinks the global terminal font size (clamped 8–32), applied to every terminal
+  via the existing theme path. Pure step/clamp logic is unit-tested (`font-zoom`).
+- **Panes take focus automatically.** A newly created terminal/editor pane is focused so you can
+  type immediately; switching workspaces focuses that workspace's pane; and closing a dialog
+  returns focus to the active pane. A small per-pane focus registry retries across frames so it
+  works even while a pane is still mounting or its workspace is mid-switch.
+
+### Fixed
+- **`ssh` / `aws` launches no longer fail with "File not found".** node-pty's Windows resolver
+  matches a bare launch command verbatim against `Path` (no PATHEXT), so `ssh`/`aws` never matched
+  `ssh.exe`/`aws.exe`. Launch commands are now resolved to a full path (PATH + PATHEXT) before
+  spawning. (`resolve-bin.ts` moved to `src/main/` as a shared utility.)
+- **Toast notifications no longer appear to "block typing".** The real cause was that the app did no
+  programmatic focus management at all: after interacting with an overlay (which fires most toasts),
+  focus was never returned to the terminal. Fixed by the focus work above. Global keyboard shortcuts
+  (command palette, workspace switch, …) now also reliably pass through a focused terminal to the
+  app handler instead of being swallowed by xterm.
+
 ## [0.2.1] - 2026-06-18
 
 ### Added
