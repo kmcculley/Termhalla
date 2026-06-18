@@ -72,14 +72,28 @@ export class EnvVault {
   }
 
   private tryDecrypt(passphrase: string): boolean {
+    let raw: string
+    try { raw = readFileSync(this.file(), 'utf8') }
+    catch (e) {
+      // A filesystem error (missing/unreadable/permission, or the path is a directory) is NOT a
+      // wrong-passphrase attempt. Surface it — otherwise an EACCES vault is indistinguishable from a
+      // typo and the user just sees repeated "unlock failed" with no way to find the real cause.
+      const code = (e as NodeJS.ErrnoException).code
+      console.warn('[env-vault] cannot read vault file:', code ?? (e as Error).message)
+      return false
+    }
     try {
-      const blob = JSON.parse(readFileSync(this.file(), 'utf8')) as EncryptedBlob
+      const blob = JSON.parse(raw) as EncryptedBlob
       const data = parseVaultData(decryptJSON(blob, passphrase))
       if (!data) return false
       this.data = data
       this.passphrase = passphrase
       return true
-    } catch { return false }
+    } catch {
+      // Wrong passphrase / tampered blob — the expected, routine failure on a bad unlock. Stay quiet
+      // so ordinary typos don't spam the log; unlock()'s backoff handles brute-force throttling.
+      return false
+    }
   }
 
   setGlobal(name: string, value: string): void { if (!this.data) return; this.data.global[name] = value; this.persist() }

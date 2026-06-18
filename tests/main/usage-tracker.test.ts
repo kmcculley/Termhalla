@@ -1,4 +1,4 @@
-import { describe, it, expect, afterEach } from 'vitest'
+import { describe, it, expect, afterEach, vi } from 'vitest'
 import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
@@ -20,7 +20,7 @@ function waitFor(pred: () => boolean, ms = 4000): Promise<void> {
 }
 
 const cleanups: Array<() => void> = []
-afterEach(() => { while (cleanups.length) cleanups.pop()!() })
+afterEach(() => { while (cleanups.length) cleanups.pop()!(); vi.restoreAllMocks() })
 
 describe('UsageTracker', () => {
   function setup(model?: string): { home: string; cwd: string; projDir: string } {
@@ -52,6 +52,23 @@ describe('UsageTracker', () => {
 
     await waitFor(() => (emits.at(-1)?.contextTokens ?? 0) > 0)
     expect(emits.at(-1)!.contextTokens).toBe(50100) // 100 + 50000
+  })
+
+  it('clears stale metrics (emits null) and warns when the transcript read fails', async () => {
+    const { home, cwd, projDir } = setup()
+    // A `.jsonl` entry that is actually a directory: it stat()s fine (so resolveTranscript selects it
+    // as the newest), but readFile() throws EISDIR — the path that previously returned with no emit,
+    // freezing the display on whatever stale value it last showed.
+    mkdirSync(join(projDir, 'live.jsonl'))
+
+    const emits: Array<UsageMetrics | null> = []
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    const tracker = new UsageTracker((_id, m) => emits.push(m), home, 50)
+    cleanups.push(() => tracker.dispose())
+    await tracker.watch('p1', cwd)
+
+    expect(emits.at(-1)).toBeNull()        // stale data cleared, not frozen
+    expect(warn).toHaveBeenCalled()        // failure is diagnosable, not silent
   })
 
   it('reports the 1M window from the settings model alias', async () => {

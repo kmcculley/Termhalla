@@ -64,6 +64,7 @@ export class WindowManager {
   private persistTimer: ReturnType<typeof setTimeout> | null = null
   private quitting = false
   private closedCbs: (() => void)[] = []
+  private windowCloseCbs: (() => void)[] = []
 
   constructor(private readonly persist: (s: AppState) => void) {}
 
@@ -134,6 +135,9 @@ export class WindowManager {
    *  structural changes + beginQuit, so a per-window close never overwrites it with a shrinking set.
    *  The main window's X quits the app. */
   private onClose(id: string, e: Electron.Event): void {
+    // Fire flush hooks for EVERY window's close (incl. during quit), before the redock/quit branches
+    // below can return — so a floating window closing first still flushes, not just the main window.
+    for (const cb of this.windowCloseCbs) cb()
     if (this.quitting) return
     const cw = this.core.windows.find(w => w.id === id)
     if (cw && !cw.isMain && cw.workspaceIds.length > 0) {
@@ -191,6 +195,11 @@ export class WindowManager {
   }
 
   onAllWindowsClosed(cb: () => void): void { this.closedCbs.push(cb) }
+
+  /** Run `cb` synchronously whenever any window is closing (the 'close' event, while the window still
+   *  exists — safe for synchronous flushes). Used to persist drafts/notes regardless of which window
+   *  (main or floating) closes. */
+  onWindowClose(cb: () => void): void { this.windowCloseCbs.push(cb) }
 
   /** Associate a pane with the window that spawned it (from the ipcMain event sender). Called on
    *  every `pty:spawn`, so ownership is correct for fresh panes and re-affirmed after a move. */

@@ -11,7 +11,16 @@ export function queryProcesses(timeoutMs = 2000): Promise<CimRow[]> {
       'powershell.exe',
       ['-NoProfile', '-NonInteractive', '-Command', PS_CMD],
       { timeout: timeoutMs, maxBuffer: 16 * 1024 * 1024, windowsHide: true, killSignal: 'SIGKILL' },
-      (err, stdout) => resolve(err ? [] : parseCimRows(stdout))
+      (err, stdout, stderr) => {
+        if (err) {
+          // Degrade to empty (never reject) but log: a silent [] makes every busy pane's proc chip
+          // blank with no clue whether it was a timeout, a permissions issue, or a real empty table.
+          console.warn('[proc] process query failed:', err.message, (stderr ?? '').trim())
+          resolve([])
+          return
+        }
+        resolve(parseCimRows(stdout))
+      }
     )
   })
 }

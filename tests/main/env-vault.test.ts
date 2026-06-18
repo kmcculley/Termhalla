@@ -1,5 +1,5 @@
-import { describe, it, expect, afterEach } from 'vitest'
-import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
+import { describe, it, expect, afterEach, vi } from 'vitest'
+import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { EnvVault, parseVaultData, UNLOCK_BACKOFF_BASE_MS } from '../../src/main/env-vault/env-vault'
@@ -39,6 +39,21 @@ describe('EnvVault', () => {
     writeFileSync(occupied, 'x')
     const v = new EnvVault(occupied)
     expect(() => v.create('pw')).toThrow()
+  })
+  it('warns on an unreadable vault file but stays silent on a wrong passphrase', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    // A wrong passphrase is a routine user event — it must NOT spam the log.
+    const dir = tmp()
+    new EnvVault(dir).create('pw')
+    expect(new EnvVault(dir).unlock('wrong', 1000)).toBe(false)
+    expect(warn).not.toHaveBeenCalled()
+    // A filesystem error (here the vault path is a directory → EISDIR on read) is not a passphrase
+    // attempt — previously indistinguishable from a typo; now surfaced so the user can fix the cause.
+    const dir2 = tmp()
+    mkdirSync(join(dir2, 'env-vault.json'))
+    expect(new EnvVault(dir2).unlock('pw', 1000)).toBe(false)
+    expect(warn).toHaveBeenCalled()
+    warn.mockRestore()
   })
   it('rejects a correct passphrase while inside the failure backoff window', () => {
     const dir = tmp()
