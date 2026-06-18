@@ -7,6 +7,18 @@ All notable changes to Termhalla are recorded here. The format follows
 ## [Unreleased]
 
 ### Added
+- **Multi-profile AWS cloud status.** The AWS chip in the status bar now covers every
+  profile configured in `~/.aws/config` (`[default]` + `[profile X]` sections, capped
+  at 8, `['default']` fallback when the file is missing or empty). Each profile is probed
+  independently with `aws sts get-caller-identity --profile X`; login opens a terminal
+  running `aws sso login --profile X`. The status-bar chip shows a `N/M` logged-in count
+  when there are multiple profiles, and the popover lists each profile as its own row with
+  its own state glyph and Login button. Provider list is resolved per refresh cycle so
+  profile additions/removals take effect without restarting the app. `CloudStatus` gains
+  `family` and `profile` fields; a new pure `groupCloudStatuses` helper collapses the flat
+  status array into per-family groups for the renderer. Azure is unchanged. Pure logic
+  covered by new vitest suites (`aws-profiles`, `group-cloud`); e2e updated to the grouped
+  chip assertions.
 - **Searchable output history.** Terminal output is indexed in a local SQLite FTS5
   database (`search.db` under `userData`) as it streams. A **Search output history**
   modal (🔍 in the status bar or **Ctrl+Shift+F**) lets the user query across current
