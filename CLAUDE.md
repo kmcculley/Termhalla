@@ -144,6 +144,7 @@ related area:
 | Renderer store | `src/renderer/store.ts` (root) + `src/renderer/store/` (slices + helpers) | — |
 | IPC contract | `src/shared/ipc-contract.ts` | — |
 | Keybindings | `src/shared/keybindings.ts`, `src/renderer/components/KeybindingsSettings.tsx` | [keybindings](docs/features/keybindings.md) |
+| Saved run commands | `src/shared/run-commands.ts`, `src/renderer/store/run-commands-slice.ts` | [run-commands](docs/features/run-commands.md) |
 | Packaging / auto-update | `electron-builder.yml`, `src/main/updater.ts`, `build/icon.ico` | [packaging](docs/features/packaging.md) |
 
 ## Process / workflow
