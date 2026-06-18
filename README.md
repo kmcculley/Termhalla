@@ -151,4 +151,4 @@ vitest · Playwright.
 
 ## License
 
-Unpublished / private. No license granted.
+[MIT](LICENSE) © 2026 localhostworks.
