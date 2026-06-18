@@ -6,6 +6,18 @@ All notable changes to Termhalla are recorded here. The format follows
 
 ## [Unreleased]
 
+### Fixed
+- **Cloud status no longer gets stuck on "cloud status…" after the first run.** The `cloud:status`
+  push is fire-and-forget; if it fired before the renderer subscribed (more likely when restoring a
+  saved session, where the CLI probe can finish first), it was lost and the dedup guard blocked a
+  re-send, leaving the chip stuck on the empty placeholder. The renderer now pulls the current
+  status on mount (`cloud:current`), mirroring the existing `winReady` handshake used for
+  `win:assignment`. The cloud IPC handlers are also removed on teardown.
+
+### Changed
+- **Installer filename is now version-less: `Termhalla-Setup.exe`** (was `Termhalla-Setup-<version>.exe`).
+  Each release still carries its real version in `latest.yml`, so auto-update is unaffected.
+
 ## [0.3.0] - 2026-06-18
 
 ### Added
