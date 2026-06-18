@@ -1,6 +1,6 @@
 import { execFile } from 'node:child_process'
 import type { CloudProvider } from './providers'
-import { resolveBin } from './resolve-bin'
+import { resolveBin } from '../resolve-bin'
 import type { ProbeResult } from './classify'
 
 /** Run a provider's identity command. Resolves to a ProbeResult; never rejects.
