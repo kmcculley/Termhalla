@@ -24,6 +24,7 @@ export function registerPty(
     onCwd?: (paneId: string, cwd: string) => void
     onCommandDone?: (paneId: string) => void
     onPaneGone?: (paneId: string) => void
+    indexer: import('../search/indexer').Indexer
   }
 ): PtyManager {
   const { shells, recorder, envVault, scriptDir, send } = deps
@@ -42,13 +43,13 @@ export function registerPty(
   let tracker: ProcessTracker
   const engine = new StatusEngine(
     (id, status) => { send(CH.ptyStatus, id, status); tracker.setBusy(id, status.state === 'busy') },
-    (id, cwd) => { send(CH.ptyCwd, id, cwd); deps.onCwd?.(id, cwd) },
+    (id, cwd) => { send(CH.ptyCwd, id, cwd); deps.onCwd?.(id, cwd); deps.indexer.setCwd(id, cwd) },
     undefined,
     (id) => { ai.commandDone(id); deps.onCommandDone?.(id) }
   )
   const pty = new PtyManager(
-    (id, data) => { send(CH.ptyData, id, data); recorder.data(id, data) },
-    (id, code) => { send(CH.ptyExit, id, code); tracker.unregister(id); ai.unregister(id); recorder.stop(id); send(CH.recState, id, { recording: false, file: null }); deps.onPaneGone?.(id) },
+    (id, data) => { send(CH.ptyData, id, data); recorder.data(id, data); deps.indexer.data(id, data) },
+    (id, code) => { send(CH.ptyExit, id, code); tracker.unregister(id); ai.unregister(id); recorder.stop(id); send(CH.recState, id, { recording: false, file: null }); deps.onPaneGone?.(id); deps.indexer.remove(id) },
     engine, scriptDir
   )
   tracker = new ProcessTracker(
@@ -67,7 +68,7 @@ export function registerPty(
   ipcMain.on(CH.ptyResize, (_e, a: PtyResizeArgs) => { pty.resize(a.id, a.cols, a.rows); recorder.resize(a.id, a.cols, a.rows) })
   // ai/tracker unregister here is synchronous; the async pty onExit fires them again but
   // both are idempotent (Map.delete returns false), so the renderer sees a single clear.
-  ipcMain.on(CH.ptyKill, (_e, id: string) => { pty.kill(id); tracker.unregister(id); ai.unregister(id); deps.onPaneGone?.(id) })
+  ipcMain.on(CH.ptyKill, (_e, id: string) => { pty.kill(id); tracker.unregister(id); ai.unregister(id); deps.onPaneGone?.(id); deps.indexer.remove(id) })
 
   ipcMain.on(CH.notify, (e, a: NotifyArgs) => {
     if (!Notification.isSupported()) return
