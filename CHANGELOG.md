@@ -6,6 +6,8 @@ All notable changes to Termhalla are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.3.1] - 2026-06-18
+
 ### Fixed
 - **Cloud status no longer gets stuck on "cloud status…" after the first run.** The `cloud:status`
   push is fire-and-forget; if it fired before the renderer subscribed (more likely when restoring a
