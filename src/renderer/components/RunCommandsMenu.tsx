@@ -79,7 +79,7 @@ export function RunCommandsMenu({ wsId, paneId, onClose }: { wsId: string; paneI
           onChange={e => setCommand(e.target.value)} style={{ fontFamily: 'var(--mono)' }} />
         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
           <label>Scope:&nbsp;
-            <select data-testid="run-cmd-scope" value={scope} onChange={e => setScope(e.target.value as Scope)}>
+            <select data-testid="run-cmd-scope" value={scope} onChange={e => setScope(e.target.value as Scope)} disabled={editId !== null}>
               <option value="pane">This terminal</option>
               <option value="workspace">This workspace</option>
             </select>
