@@ -32,6 +32,12 @@ nsis:
   oneClick: false # show the wizard so the install dir is selectable
   perMachine: false # per-user install -> no UAC elevation prompt
   allowToChangeInstallationDirectory: true
+  # Space-free artifact name so the local dist file, the uploaded GitHub asset, and the name
+  # baked into latest.yml all agree. GitHub rewrites spaces in asset filenames, so the default
+  # "Termhalla Setup X.Y.Z.exe" would upload as a munged name that latest.yml wouldn't match —
+  # breaking the updater. The release workflow uploads dist/* directly (see release.yml), so the
+  # on-disk name must already be the canonical one.
+  artifactName: ${productName}-Setup-${version}.${ext}
 # GitHub Releases update feed. electron-builder bakes these coordinates into the bundled
 # app-update.yml; electron-updater reads it to find latest.yml + the installer delta from
 # the public repo's Releases (no runtime token needed). releaseType: release publishes a

@@ -517,3 +517,27 @@ features were lower-risk and shipped; hibernation warrants its own focused cycle
 **Consequences:** The keep-mounted invariant is unchanged. If revived, resume from the brainstorm:
 reuse the `stashSnapshot`/`consumeSnapshot` + serialize-before-dispose machinery; do NOT route through
 `closePane`/`teardownPanes` (those drop the persisted pane). No branch exists.
+
+### [2026-06-18] Release publishing via `gh release create`, not electron-builder's publisher
+**Context:** Cutting v0.2.0 produced **two GitHub release objects for the same `v0.2.0` tag** with
+the assets split between them — one had only the `.blockmap`, the other the installer + `latest.yml`.
+electron-builder's GitHub publisher uploads artifacts concurrently and each lazily creates the
+release, racing into duplicates (visible as doubled `publishing publisher=Github` log lines). The
+tag resolved to the incomplete release, so auto-update would have broken. Cleaned up by deleting the
+incomplete release object via the API.
+**Decision:** Take electron-builder out of the release-creation path. `npm run package` now builds
+with `--publish never` (still emits `latest.yml`, since the `publish:` config is present); the
+`release.yml` workflow publishes in one deterministic step with `gh release create "$TAG"
+--generate-notes dist/*.exe dist/*.blockmap dist/latest.yml` (idempotent on re-run via `gh release
+upload --clobber`). Added `nsis.artifactName: ${productName}-Setup-${version}.${ext}` so the on-disk
+filename is space-free and matches both the uploaded asset name and the name baked into `latest.yml`
+(GitHub rewrites spaces in asset filenames, which would otherwise desync the updater's download URL).
+The `npm run release` script is removed.
+**Rationale:** `gh release create` creates exactly one release object, so the duplicate-release race
+is structurally impossible. The `publish:` block stays in `electron-builder.yml` only so
+`app-update.yml` (the runtime feed coordinates) and `latest.yml` are still generated. Verified
+locally: `npm run package` emits `dist/Termhalla-Setup-0.2.0.exe` + `.blockmap` + `latest.yml` with
+`latest.yml` referencing the dashed name, and creates no GitHub release.
+**Consequences:** Releasing is unchanged for the operator (bump version, commit, tag `vX.Y.Z`, push
+tag). There is no local one-shot publish script anymore — publishing only happens in CI. If the
+artifactName is ever changed, keep it space-free or the updater URL will break.

@@ -31,12 +31,28 @@ jobs:
             exit 1
           fi
 
-      # npm run release = `electron-vite build` (compiles out/) && `electron-builder --win
-      # --publish always`. electron-builder rebuilds node-pty for Electron's ABI, packs the
-      # NSIS installer, and uploads it + latest.yml + .blockmap to the tag's GitHub Release.
-      # Calling electron-builder alone would skip the electron-vite build and ship an asar
-      # missing out/main/index.js.
-      - name: Build and publish
-        run: npm run release
+      # Build the artifacts WITHOUT letting electron-builder publish. electron-builder's GitHub
+      # publisher races when multiple artifacts lazily create the release, producing TWO release
+      # objects for one tag with the assets split between them (observed on v0.2.0). `npm run
+      # package` = electron-vite build (compiles out/) + electron-builder --win --publish never,
+      # which rebuilds native deps for Electron's ABI, packs the NSIS installer, and still emits
+      # latest.yml (the publish config is present) into dist/ — but creates no GitHub release.
+      - name: Build installer
+        run: npm run package
+
+      # Publish in one deterministic step: a single GitHub release for this tag with the three
+      # update assets uploaded directly. `gh release create` makes exactly one release object, so
+      # the duplicate-release race cannot happen. Idempotent on re-run: if the release already
+      # exists, clobber its assets instead of failing. The artifactName (electron-builder.yml) is
+      # space-free so these filenames match what latest.yml references.
+      - name: Publish GitHub Release
+        shell: bash
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          assets=(dist/*.exe dist/*.blockmap dist/latest.yml)
+          if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
+            gh release upload "$GITHUB_REF_NAME" "${assets[@]}" --clobber
+          else
+            gh release create "$GITHUB_REF_NAME" --title "$GITHUB_REF_NAME" --generate-notes "${assets[@]}"
+          fi

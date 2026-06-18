@@ -7,14 +7,20 @@
 ## What it does
 
 `npm run package` turns the `electron-vite` output (`out/`) into a Windows NSIS
-installer in `dist/`; `npm run release` does the same and publishes the installer plus
-its update manifest to the configured feed. Both run `electron-vite build` first, then
-hand off to [electron-builder](https://www.electron.build/).
+installer in `dist/` (runs `electron-vite build`, then hands off to
+[electron-builder](https://www.electron.build/) with `--publish never`). It produces the
+installer, its `.blockmap`, and the `latest.yml` update manifest — but uploads nothing.
+**Publishing is done only by CI on a tag push** (see CI & releases below); there is no
+`npm run release` script.
 
 | Command | Result |
 |---|---|
-| `npm run package` | `dist/Termhalla Setup <version>.exe` + `latest.yml` + `.blockmap` (no upload) |
-| `npm run release` | Same, then `electron-builder --publish always` uploads them to the feed |
+| `npm run package` | `dist/Termhalla-Setup-<version>.exe` + `latest.yml` + `.blockmap` (no upload) |
+
+The installer filename is space-free (`nsis.artifactName: ${productName}-Setup-${version}.${ext}`)
+so the on-disk name, the uploaded GitHub asset name, and the name baked into `latest.yml` all
+match — required because the release workflow uploads `dist/*` directly and GitHub rewrites
+spaces in asset filenames.
 
 ## How it's wired
 
@@ -46,9 +52,12 @@ apps poll Releases on launch and install on restart.
   `npm run typecheck` → `npm test` on `windows-latest` (Node 22). No e2e on CI
   (it's `workers: 1` and flaky on hosted runners — kept local).
 - **`.github/workflows/release.yml`** — on a `v*` tag push, verifies the tag matches
-  `package.json` version, then runs `npm run release` (`electron-vite build` +
-  `electron-builder --win --publish always`) with the built-in `GITHUB_TOKEN`, uploading
-  the installer + `latest.yml` + `.blockmap` to the tag's Release.
+  `package.json` version, runs `npm run package` (build, no publish), then publishes with a
+  single `gh release create "$TAG" --generate-notes dist/*.exe dist/*.blockmap dist/latest.yml`
+  (idempotent on re-run via `gh release upload --clobber`). electron-builder is kept **out** of
+  the release-creation path — its concurrent GitHub publisher raced into two release objects for
+  one tag (assets split between them; observed on v0.2.0). `gh release create` makes exactly one
+  release, so the race can't recur.
 
 **Cutting a release:** bump `version` in `package.json`, commit, then
 `git tag vX.Y.Z && git push origin vX.Y.Z`. The workflow builds and publishes; installed

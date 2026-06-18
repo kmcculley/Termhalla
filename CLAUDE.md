@@ -12,9 +12,14 @@ npm run build        # build to out/  (required before npm run e2e)
 npm run typecheck    # tsc for renderer + node configs
 npm test             # vitest unit tests (fast, headless)
 npm run e2e          # Playwright-for-Electron (launches the real app)
-npm run package      # build + pack a Windows NSIS installer into dist/ (no publish)
-npm run release      # package, then publish installer + update feed (--publish always)
+npm run package      # build + pack a Windows NSIS installer + latest.yml into dist/ (no publish)
 ```
+
+- **Releasing is a tag push, not an npm script.** Bump `package.json` version, commit, tag
+  `vX.Y.Z`, push the tag → `release.yml` runs `npm run package` then uploads the installer +
+  `latest.yml` to a single GitHub Release via `gh release create`. There is intentionally no
+  `npm run release` (electron-builder's own publisher raced into duplicate releases — see
+  [decisions](docs/decisions.md)).
 
 - **`npm run e2e` runs against `out/`** — always `npm run build` first (or after
   any source change you want exercised end-to-end).

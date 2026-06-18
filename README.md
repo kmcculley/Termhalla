@@ -53,8 +53,9 @@ npm run dev                  # launch the app with hot reload
 | `npm test` | Run the unit test suite (vitest, headless). |
 | `npm run test:watch` | Vitest in watch mode. |
 | `npm run e2e` | Run the Playwright-for-Electron end-to-end suite. |
-| `npm run package` | Build and pack a Windows NSIS installer into `dist/` (no publish). |
-| `npm run release` | Same, then publish the installer + `latest.yml` to GitHub Releases (`--publish always`). Normally done by CI on a tag push. |
+| `npm run package` | Build and pack a Windows NSIS installer + `latest.yml` into `dist/` (no publish). |
+
+Releasing is done by CI on a tag push, not a local script: bump the `package.json` version, commit, tag `vX.Y.Z`, and push the tag. The `release.yml` workflow runs `npm run package` and uploads the installer + `latest.yml` to a single GitHub Release.
 
 ### Native modules
 
