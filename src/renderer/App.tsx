@@ -56,6 +56,10 @@ export default function App() {
     // Now that win:assignment is subscribed, ask main for this window's assignment (avoids losing
     // a push that fired on did-finish-load before React mounted this listener).
     api.winReady()
+    // Same hazard for cloud:status (fire-and-forget, no re-send): if its push fired before the
+    // onCloudStatus listener above was attached, it's lost and dedup blocks a re-send, leaving the
+    // chip stuck on "cloud status…". Pull the current status now to recover it.
+    void api.cloudCurrent().then(statuses => s().setCloud(statuses)).catch(() => {})
     return () => offs.forEach(off => off())
   }, [])
 

@@ -11,6 +11,10 @@ export function registerCloud(win: BrowserWindow, send: Send): Disposer {
   const cloud = new CloudStatusService((statuses) => send(CH.cloudStatus, statuses))
   cloud.start()
   ipcMain.handle(CH.cloudRefresh, () => cloud.refresh())
+  // Pull-on-mount: the cloud:status push is fire-and-forget, so a renderer that subscribes after the
+  // first probe completes (common when restoring a heavy session) misses it, and dedup blocks a
+  // re-send — leaving the chip stuck on "cloud status…". The renderer recovers by pulling this.
+  ipcMain.handle(CH.cloudCurrent, () => cloud.snapshot())
 
   let lastFocusRefresh = 0
   win.on('focus', () => {
@@ -18,5 +22,5 @@ export function registerCloud(win: BrowserWindow, send: Send): Disposer {
     if (t - lastFocusRefresh > CLOUD_FOCUS_REFRESH_MS) { lastFocusRefresh = t; void cloud.refresh() }
   })
 
-  return () => cloud.stop()
+  return () => { cloud.stop(); ipcMain.removeHandler(CH.cloudRefresh); ipcMain.removeHandler(CH.cloudCurrent) }
 }
