@@ -30,6 +30,7 @@ test('saves a workspace and restores its layout on relaunch', async () => {
   await win.getByTestId('add-first-terminal').click()
   await expect(win.locator('[data-testid^="terminal-"]')).toHaveCount(1, { timeout: 15_000 })
   await win.locator('[data-testid^="split-"]').first().click()
+  await win.locator('[data-testid^="split-terminal-"]').first().click()
   await expect(win.locator('[data-testid^="terminal-"]')).toHaveCount(2, { timeout: 15_000 })
   await win.getByTestId('save-workspace').click()
   await win.waitForTimeout(800) // allow async save IPC to flush to disk

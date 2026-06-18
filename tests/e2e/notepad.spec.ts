@@ -48,6 +48,7 @@ test('per-project notepad: take a note, persist across relaunch, scope by projec
 
   // Split a second terminal, cd into project B, focus it -> notes are empty (different project).
   await win.locator('[data-testid^="split-"]').first().click()
+  await win.locator('[data-testid^="split-terminal-"]').first().click()
   await expect(win.locator('[data-testid^="terminal-"]')).toHaveCount(2, { timeout: 15_000 })
   await win.locator('.xterm-screen').nth(1).click()
   await win.keyboard.type(`Set-Location '${projB}'`)

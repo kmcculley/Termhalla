@@ -13,8 +13,9 @@ import { ProcessPopover } from './ProcessPopover'
 import { CwdMenu } from './CwdMenu'
 import { GitPopover } from './GitPopover'
 import { RunCommandsMenu } from './RunCommandsMenu'
+import { SplitMenu } from './SplitMenu'
 
-export type PaneMenu = 'proc' | 'cwd' | 'schedule' | 'git' | 'run'
+export type PaneMenu = 'proc' | 'cwd' | 'schedule' | 'git' | 'run' | 'split-row' | 'split-col'
 
 const SHELL_CHIP_LABEL: Record<string, string> = {
   'Windows PowerShell': 'pwsh',
@@ -111,6 +112,8 @@ export function PaneTile({ wsId, paneId, path }: { wsId: string; paneId: string;
         {menu === 'schedule' && <ScheduleDialog paneId={paneId} onClose={close} />}
         {menu === 'run' && <RunCommandsMenu wsId={wsId} paneId={paneId} onClose={close} />}
         {menu === 'cwd' && <CwdMenu wsId={wsId} paneId={paneId} cwd={cwd} onClose={close} />}
+        {menu === 'split-row' && <SplitMenu wsId={wsId} paneId={paneId} dir="row" onClose={close} />}
+        {menu === 'split-col' && <SplitMenu wsId={wsId} paneId={paneId} dir="column" onClose={close} />}
         {menu === 'git' && gitStatus && <GitPopover status={gitStatus} />}
         {pane?.config.kind === 'terminal' && termCfg && <TerminalPane paneId={paneId} wsId={wsId} config={termCfg} />}
         {pane?.config.kind === 'editor' && <EditorPane paneId={paneId} wsId={wsId} config={pane.config} />}
