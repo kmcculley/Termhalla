@@ -11,7 +11,7 @@ import {
   placePane, firstTarget, paneCwd, applyCwds, clearPaneRuntime, teardownPanes
 } from './store/internals'
 import { defaultShellId, dispatchAddPane } from './store/pane-ops'
-import { readPaneSnapshot, stashSnapshot } from './components/terminal-registry'
+import { readPaneSnapshot, stashSnapshot, requestPaneFocus } from './components/terminal-registry'
 import { beginPaneTransit } from './components/pane-transit'
 import { AUTOSAVE_DEBOUNCE_MS } from './timing'
 import { createThemeSlice } from './store/theme-slice'
@@ -66,6 +66,9 @@ export const useStore = create<State>((set, get) => {
         : { workspaces: { ...s.workspaces, [wsId]: r.workspace }, maximized }
     })
     scheduleAutosave()
+    // Focus the pane the user just opened so they can type immediately. It mounts after this
+    // commit, so requestPaneFocus retries until its focuser registers (see terminal-registry).
+    requestPaneFocus(r.paneId)
     return r.paneId
   }
 
@@ -220,7 +223,18 @@ export const useStore = create<State>((set, get) => {
       reportAssignment()
     },
 
-    setActive: (id) => { set({ activeId: id }); scheduleAutosave(); reportAssignment() },
+    setActive: (id) => { set({ activeId: id }); scheduleAutosave(); reportAssignment(); get().refocusActivePane() },
+
+    /** Put keyboard focus back on the active workspace's pane: the one the user last focused if it
+     *  still lives in this workspace, otherwise its first pane. Used on tab switch (so the first
+     *  terminal is ready to type) and after a dialog closes (so typing isn't silently swallowed). */
+    refocusActivePane: () => {
+      const s = get()
+      const ws = s.activeId ? s.workspaces[s.activeId] : undefined
+      if (!ws) return
+      const target = (s.focusedPaneId && ws.panes[s.focusedPaneId]) ? s.focusedPaneId : firstTarget(ws)
+      if (target) requestPaneFocus(target)
+    },
 
     setLayout: (wsId, layout) => {
       set(s => ({ workspaces: { ...s.workspaces, [wsId]: { ...s.workspaces[wsId], layout } } }))

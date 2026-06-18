@@ -6,10 +6,12 @@ import '@xterm/xterm/css/xterm.css'
 import { api } from '../api'
 import type { TerminalConfig } from '@shared/types'
 import { resolveTheme } from '@shared/theme'
+import { nextFontSize } from '@shared/font-zoom'
+import { matchShortcut, resolveBindings } from '@shared/keymap'
 import { useStore } from '../store'
 import { useResolvedPaneTheme } from '../use-resolved-theme'
 import { clipboardKeyAction } from './terminal-clipboard'
-import { registerSerializer, unregisterSerializer, consumeSnapshot } from './terminal-registry'
+import { registerSerializer, unregisterSerializer, consumeSnapshot, registerFocuser, unregisterFocuser } from './terminal-registry'
 
 /** Scrollback lines captured when serializing a terminal for a window-handoff replay. */
 const HANDOFF_SCROLLBACK_LINES = 1000
@@ -32,6 +34,9 @@ export function TerminalPane({ paneId, wsId, config }: { paneId: string; wsId: s
     const serialize = new SerializeAddon()
     term.loadAddon(serialize)
     registerSerializer(paneId, () => serialize.serialize({ scrollback: HANDOFF_SCROLLBACK_LINES }))
+    // Report whether focus actually landed: term.focus() is a no-op while the pane is hidden
+    // (e.g. its workspace is mid-switch), and requestPaneFocus retries until it sticks.
+    registerFocuser(paneId, () => { term.focus(); return document.activeElement === term.textarea })
     termRef.current = term; fitRef.current = fit
     term.open(hostRef.current!)
     fit.fit()
@@ -59,6 +64,12 @@ export function TerminalPane({ paneId, wsId, config }: { paneId: string; wsId: s
     // shell or TUI don't auto-run); it flows out via the inputDisp onData handler above.
     const paste = async () => { const text = await api.clipboardRead(); if (text) term.paste(text) }
     term.attachCustomKeyEventHandler(e => {
+      // Let app-global shortcuts (command palette, workspace switch, …) reach App's window-level
+      // keydown handler instead of being consumed by the terminal. xterm otherwise swallows e.g.
+      // Ctrl+K when a terminal is focused — which, now that new panes auto-focus, would be most of
+      // the time. Returning false makes xterm ignore the key without preventing/stopping it, so the
+      // original event still bubbles to window. Only keydown matches; keyup/press fall through.
+      if (e.type === 'keydown' && matchShortcut(e, resolveBindings(useStore.getState().quick.keybindings))) return false
       const action = clipboardKeyAction(e, term.hasSelection())
       if (action === 'copy') { api.clipboardWrite(term.getSelection()); term.clearSelection(); return false }
       if (action === 'paste') { void paste(); return false }
@@ -66,6 +77,18 @@ export function TerminalPane({ paneId, wsId, config }: { paneId: string; wsId: s
     })
     const onContextMenu = (e: MouseEvent) => { e.preventDefault(); void paste() }
     hostRef.current!.addEventListener('contextmenu', onContextMenu)
+
+    // Ctrl/Cmd + wheel zooms the terminal font (like editors/browsers). Capture phase + stop so
+    // xterm doesn't also scroll the buffer; writes the global termFontSize, which the theme effect
+    // below re-applies and re-fits across every terminal. passive:false so preventDefault sticks.
+    const onWheel = (e: WheelEvent) => {
+      if (!(e.ctrlKey || e.metaKey)) return
+      e.preventDefault(); e.stopPropagation()
+      const cur = term.options.fontSize ?? 13
+      const next = nextFontSize(cur, e.deltaY)
+      if (next !== cur) useStore.getState().setTheme({ termFontSize: next })
+    }
+    hostRef.current!.addEventListener('wheel', onWheel, { passive: false, capture: true })
 
     let lastCols = term.cols, lastRows = term.rows
     const ro = new ResizeObserver(() => {
@@ -82,7 +105,9 @@ export function TerminalPane({ paneId, wsId, config }: { paneId: string; wsId: s
     return () => {
       disposed = true
       hostRef.current?.removeEventListener('contextmenu', onContextMenu)
+      hostRef.current?.removeEventListener('wheel', onWheel, { capture: true } as EventListenerOptions)
       unregisterSerializer(paneId)
+      unregisterFocuser(paneId)
       ro.disconnect(); inputDisp.dispose(); offData(); offExit(); term.dispose()
       termRef.current = null; fitRef.current = null
     }

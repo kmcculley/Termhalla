@@ -41,6 +41,7 @@ export interface State {
   focusedPaneId: string | null
   toggleMaximize: (wsId: string, paneId: string) => void
   setFocusedPane: (paneId: string) => void
+  refocusActivePane: () => void
   movePaneToWorkspace: (paneId: string, fromWsId: string, toWsId: string) => void
   movePaneToNewWorkspace: (paneId: string, fromWsId: string) => void
   setLayout: (wsId: string, layout: MosaicNode | null) => void
