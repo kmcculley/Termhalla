@@ -484,3 +484,36 @@ pure-core/thin-shell convention.
 `vX.Y.Z`, push the tag. Auto-update works from the *second* release onward (an installed
 build needs a newer `latest.yml`). Builds remain unsigned (SmartScreen prompt accepted).
 To review notes before going live, switch `releaseType: release` → `draft`.
+
+### [2026-06-17] Second native module (better-sqlite3) for output search; ABI-driven test split
+**Context:** The searchable-output-history feature needs a persistent full-text index over terminal
+output. The app had no database dependency.
+**Decision:** Use **better-sqlite3 + FTS5** (a native module), added alongside `node-pty`:
+`electron-rebuild` for Electron's ABI + `asarUnpack` for its `.node` and runtime deps
+(`bindings`, `file-uri-to-path`). Because the installed binary is built for Electron's ABI, it
+**cannot load under vitest's Node** — so the code that imports it (`search-service.ts`, `indexer.ts`)
+is **e2e-tested only**, while all real logic is pushed into pure modules unit-tested under vitest
+(`segment-buffer.ts`, `prune-policy.ts`, `fts-query.ts`).
+**Rationale:** FTS5 gives ranked, scalable search no hand-rolled JS index matches; the project already
+runs the `electron-rebuild` machinery for `node-pty`, so the build cost is incremental. The pure/impure
+split keeps the bulk of the logic testable without the ABI conflict, matching the repo's
+pure-core/thin-shell convention. (Considered and rejected: sql.js/WASM — avoids native build but adds
+manual whole-file persistence + RAM; pure-JS index — no FTS ranking.)
+**Consequences:** A fresh checkout must `electron-rebuild` better-sqlite3 before `dev`/`e2e` (same as
+node-pty); on this sandbox, clear `NoDefaultCurrentDirectoryInExePath` first and use
+`electron-rebuild -o better-sqlite3` to avoid rebuilding (and breaking) node-pty's winpty `.bat` step.
+Native-importing code carries no unit tests by design — the e2e is its sole gate.
+
+### [2026-06-17] Pane hibernation deferred (keep-mounted invariant left intact)
+**Context:** The 2026-06-17 feature batch included pane hibernation (sleep/wake a terminal: serialize
+scrollback, kill the PTY + trackers, render a dormant tile, re-spawn + replay on wake). It is the one
+feature that deliberately challenges the load-bearing "never unmount a pane" rule.
+**Decision:** **Deferred, not built.** The design was explored (sleep = readPaneSnapshot →
+teardownPanes → clearPaneRuntime → mark `asleep`, keep the pane in the layout; wake = stash snapshot →
+TerminalPane remounts + re-spawns) but stopped before implementation.
+**Rationale:** Owner deferred it during brainstorming when the open decisions surfaced
+(scrollback-persist-across-restart vs same-session; SSH reconnect-on-wake). The other four batch
+features were lower-risk and shipped; hibernation warrants its own focused cycle.
+**Consequences:** The keep-mounted invariant is unchanged. If revived, resume from the brainstorm:
+reuse the `stashSnapshot`/`consumeSnapshot` + serialize-before-dispose machinery; do NOT route through
+`closePane`/`teardownPanes` (those drop the persisted pane). No branch exists.
