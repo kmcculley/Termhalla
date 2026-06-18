@@ -79,7 +79,6 @@ when `total > 1`. Color: green when `loggedIn === total`, amber when `0 < logged
   a per-member **Log in** button `cloud-login-<id>` (`cloud-login-aws:<profile>` / `cloud-login-azure`)
   shown when that member is `logged-out`/`error` and offers `login`. A group **Refresh** button
   `cloud-refresh-<family>` (preserved) refreshes all.
-- If profiles were capped, the popover footer shows "+N more (showing 8)".
 
 ## Error handling & edges
 
@@ -89,7 +88,8 @@ when `total > 1`. Color: green when `loggedIn === total`, amber when `0 < logged
 - **Expired / never-logged-in SSO profile** → `get-caller-identity --profile X` exits non-zero (no
   interactive prompt under `execFile`) → that row is `logged-out` with its own Log-in button
   (`aws sso login --profile X`).
-- **> 8 profiles** → capped at 8; the popover footer notes the remainder (never silently truncated).
+- **> 8 profiles** → capped at 8; `discoverAwsProfiles` logs a one-line `console.warn` in main with
+  the dropped count (not silently truncated — surfaced in the main-process log rather than the UI).
 - **Cost** → up to 8 concurrent `aws` calls per poll; bounded by the cap, gated by the existing
   `refreshing` guard, aborted on shutdown, deduped before emit.
 - **Privacy** → unchanged; account id / ARN already shown in the popover, nothing newly persisted.
@@ -97,8 +97,9 @@ when `total > 1`. Color: green when `loggedIn === total`, amber when `0 < logged
 ## Testing
 
 ### Unit (vitest)
-- `aws-profiles.test.ts` — parse `[default]` + `[profile X]`; ignore `[sso-session X]`/`[services X]`
-  and comments; dedupe; cap at 8; empty/garbage → `['default']` fallback.
+- `aws-profiles.test.ts` — `parseAwsProfiles`: parse `[default]` + `[profile X]`; ignore
+  `[sso-session X]`/`[services X]` and comments; dedupe; preserve order. `discoverAwsProfiles`:
+  caps at 8; empty/garbage/missing-file → `['default']` fallback.
 - `group-cloud.test.ts` — summary precedence (all-in, mixed, all-out, all-checking, all-not-installed),
   `loggedIn`/`total` counts, member ordering, single-member (Azure) group.
 - `cloud-providers.test.ts` (extend existing `parseAwsIdentity` coverage) — `parseAwsIdentity` stamps
