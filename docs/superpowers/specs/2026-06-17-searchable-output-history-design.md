@@ -70,6 +70,7 @@ load under vitest's Node (the same reason `node-pty` is never unit-tested). Ther
 | `src/main/ipc/register.ts` | Compose `registerSearch`; add its disposer. |
 | `src/renderer/store.ts` / `store/types.ts` | `revealPaneFromSearch(paneId)` + `relaunchFromSearch(cwd)` actions; search-modal open state. |
 | `src/renderer/App.tsx` | Mount `SearchHistory`; dispatch `toggle-search` (Ctrl+Shift+F). |
+| `src/renderer/components/StatusBar.tsx` | A 🔍 `search-toggle` button (mirrors the notepad 📝). |
 | `src/shared/keybindings.ts` | `toggle-search` command (Ctrl+Shift+F — verified free). |
 | `src/renderer/components/PaneToolbar.tsx` | A per-terminal history-mute toggle (🔇/📖) — see UI. |
 | `package.json` | Add `better-sqlite3` (+ `@types/better-sqlite3`). |
@@ -136,7 +137,8 @@ both tables in one transaction (`segments` row, then `segments_fts(rowid, text)`
 ## Search UI & actions
 
 A dedicated **`SearchHistory`** modal (`Modal`, portaled), opened by **Ctrl+Shift+F** and a
-command-palette entry:
+status-bar 🔍 button (`search-toggle`, mirroring the notepad's 📝 toggle — avoids coupling into the
+command-palette items module; a palette entry is a later follow-up):
 - Input `search-input` → debounced `api.searchQuery(q)` (q → `fts-query.ts` → safe MATCH; bm25 rank).
 - Each result `search-result-<i>`: cwd basename + relative time, the `snippet()` with the match
   highlighted, and a source indicator (pane open vs gone).
