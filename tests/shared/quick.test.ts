@@ -21,6 +21,34 @@ describe('buildSshArgs', () => {
     expect(buildSshArgs({ ...base, port: 2200, identityFile: 'k' }))
       .toEqual(['-p', '2200', '-i', 'k', 'kev@example.com'])
   })
+  it('leaves args unchanged when tmuxSession is unset or empty', () => {
+    expect(buildSshArgs({ ...base, tmuxSession: '' })).toEqual(['kev@example.com'])
+    expect(buildSshArgs({ ...base, tmuxSession: '   ' })).toEqual(['kev@example.com'])
+  })
+  it('prepends -t and appends a tmux attach-or-create command when tmuxSession is set', () => {
+    expect(buildSshArgs({ ...base, tmuxSession: 'main' }))
+      .toEqual(['-t', 'kev@example.com', 'tmux', 'new', '-A', '-s', 'main'])
+  })
+  it('keeps -t before port/identity, host before the tmux command', () => {
+    expect(buildSshArgs({ ...base, port: 2200, identityFile: 'k', tmuxSession: 'work' }))
+      .toEqual(['-t', '-p', '2200', '-i', 'k', 'kev@example.com', 'tmux', 'new', '-A', '-s', 'work'])
+  })
+  it('sanitizes tmux session names (tmux forbids . and :, collapse whitespace)', () => {
+    expect(buildSshArgs({ ...base, tmuxSession: ' my.session:1 ' }))
+      .toEqual(['-t', 'kev@example.com', 'tmux', 'new', '-A', '-s', 'my-session-1'])
+  })
+  it('strips a leading dash produced by sanitization (tmux would treat it as a flag)', () => {
+    expect(buildSshArgs({ ...base, tmuxSession: '.session' }))
+      .toEqual(['-t', 'kev@example.com', 'tmux', 'new', '-A', '-s', 'session'])
+    expect(buildSshArgs({ ...base, tmuxSession: ' :foo' }))
+      .toEqual(['-t', 'kev@example.com', 'tmux', 'new', '-A', '-s', 'foo'])
+  })
+  it('treats an all-punctuation session name as tmux off', () => {
+    expect(buildSshArgs({ ...base, tmuxSession: '...' })).toEqual(['kev@example.com'])
+  })
+  it('emits the legacy argv when tmuxSession is entirely absent', () => {
+    expect(buildSshArgs(base)).toEqual(['kev@example.com'])
+  })
 })
 
 describe('pushRecent', () => {

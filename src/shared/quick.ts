@@ -1,12 +1,18 @@
 import type { SshConnection, QuickStore } from './types'
 
-/** Build the argv after the `ssh` program: `[-p PORT] [-i IDENTITY] user@host`. */
+/** Build the argv after the `ssh` program: `[-t] [-p PORT] [-i IDENTITY] user@host [tmux new -A -s NAME]`.
+ *  When `tmuxSession` is set, force a remote PTY (-t) and run an attach-or-create tmux command so the
+ *  session is reattached on reconnect/restart (the launch override is persisted and re-run verbatim). */
 export function buildSshArgs(c: SshConnection): string[] {
+  // tmux forbids '.' and ':' in session names; collapse those and whitespace runs to '-'.
+  const session = (c.tmuxSession ?? '').trim().replace(/[.:\s]+/g, '-').replace(/^-+/, '')
   const args: string[] = []
+  if (session) args.push('-t')
   // Omit -p when the port is unset, the default (22), or an out-of-range 0.
   if (c.port && c.port !== 22) args.push('-p', String(c.port))
   if (c.identityFile && c.identityFile.length > 0) args.push('-i', c.identityFile)
   args.push(`${c.user}@${c.host}`)
+  if (session) args.push('tmux', 'new', '-A', '-s', session)
   return args
 }
 

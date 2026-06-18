@@ -18,6 +18,8 @@ export function SshConnectionForm() {
   const [user, setUser] = useState(editing?.user ?? '')
   const [port, setPort] = useState(editing?.port ? String(editing.port) : '')
   const [identityFile, setIdentityFile] = useState(editing?.identityFile ?? '')
+  const [tmux, setTmux] = useState(!!editing?.tmuxSession)
+  const [tmuxSession, setTmuxSession] = useState(editing?.tmuxSession ?? 'main')
 
   if (!target) return null
 
@@ -32,7 +34,8 @@ export function SshConnectionForm() {
     host: host.trim(),
     user: user.trim(),
     ...(port.trim() ? { port: Number(port) } : {}),
-    ...(identityFile.trim() ? { identityFile: identityFile.trim() } : {})
+    ...(identityFile.trim() ? { identityFile: identityFile.trim() } : {}),
+    ...(tmux && tmuxSession.trim() ? { tmuxSession: tmuxSession.trim() } : {})
   })
 
   const onSave = (connect: boolean) => {
@@ -79,6 +82,13 @@ export function SshConnectionForm() {
             <button data-testid="conn-browse" onClick={browse}>Browse…</button>
           </div>
         ))}
+        <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12 }}>
+          <input data-testid="conn-tmux" type="checkbox" checked={tmux}
+            onChange={e => setTmux(e.target.checked)} />
+          <span style={{ color: 'var(--fg-dim, #aaa)' }}>Open in tmux session (attach or create on connect)</span>
+        </label>
+        {tmux && field('tmux session name', <input data-testid="conn-tmux-session" value={tmuxSession}
+          onChange={e => setTmuxSession(e.target.value)} style={inputStyle} />)}
         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 6, marginTop: 4 }}>
           <button data-testid="conn-cancel" onClick={close}>Cancel</button>
           <button data-testid="conn-save" disabled={!valid} onClick={() => onSave(false)}>Save</button>

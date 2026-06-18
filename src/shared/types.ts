@@ -35,6 +35,7 @@ export interface SshConnection {
   user: string
   port?: number          // default 22
   identityFile?: string  // path to a private key; optional
+  tmuxSession?: string   // when set (non-empty), connect via `tmux new -A -s <name>`
 }
 
 export interface WorkspaceTemplate {

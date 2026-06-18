@@ -58,3 +58,45 @@ test('command palette: create a connection, launch it, and jump to a recent dir'
 
   const pid = app.process().pid; await app.close().catch(() => {}); if (pid) killTree(pid)
 })
+
+test('ssh form: enabling tmux persists the session and round-trips into edit', async () => {
+  test.setTimeout(60_000)
+  const userData = mkdtempSync(join(tmpdir(), 'termh-tmux-'))
+  mkdirSync(userData, { recursive: true })
+  writeFileSync(join(userData, 'quick.json'), JSON.stringify({
+    connections: [], recentConnections: [], favoriteDirs: [], recentDirs: []
+  }), 'utf8')
+
+  const app: ElectronApplication = await electron.launch({
+    args: ['out/main/index.js', '--no-sandbox', '--disable-gpu', `--user-data-dir=${userData}`]
+  })
+  const win = await app.firstWindow()
+  await expect(win.getByTestId('workspace-tabs')).toBeVisible({ timeout: 15_000 })
+
+  // Create a connection with tmux enabled.
+  await win.keyboard.press('Control+K')
+  await win.getByTestId('palette-input').fill('new ssh')
+  await win.getByTestId('palette-item-0').click()
+  await expect(win.getByTestId('connection-form')).toBeVisible()
+  await win.getByTestId('conn-name').fill('tmux-box')
+  await win.getByTestId('conn-host').fill('example.com')
+  await win.getByTestId('conn-user').fill('kev')
+  // The session input is hidden until the checkbox is on.
+  await expect(win.getByTestId('conn-tmux-session')).toBeHidden()
+  await win.getByTestId('conn-tmux').check()
+  await expect(win.getByTestId('conn-tmux-session')).toHaveValue('main') // default
+  await win.getByTestId('conn-tmux-session').fill('work')
+  await win.getByTestId('conn-save').click()
+  await expect(win.getByTestId('connection-form')).toBeHidden()
+
+  // Re-open the connection in the edit form: the checkbox is on and the name round-trips.
+  await win.keyboard.press('Control+K')
+  await win.getByTestId('palette-input').fill('tmux-box')
+  await expect(win.getByTestId('palette-item-0')).toContainText('tmux-box')
+  await win.getByTestId('palette-item-0').getByTitle('Edit').click()
+  await expect(win.getByTestId('connection-form')).toBeVisible()
+  await expect(win.getByTestId('conn-tmux')).toBeChecked()
+  await expect(win.getByTestId('conn-tmux-session')).toHaveValue('work')
+
+  const pid = app.process().pid; await app.close().catch(() => {}); if (pid) killTree(pid)
+})
