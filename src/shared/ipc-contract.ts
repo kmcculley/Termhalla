@@ -37,6 +37,7 @@ export const CH = {
   gitStatus: 'git:status',         // main -> renderer event
   cloudStatus: 'cloud:status',     // main -> renderer event
   cloudRefresh: 'cloud:refresh',
+  cloudCurrent: 'cloud:current',   // renderer pulls the latest status (recovers a missed push)
   aiSession: 'ai:session',         // main -> renderer event
   usageWatch: 'usage:watch',
   usageUnwatch: 'usage:unwatch',
@@ -107,6 +108,9 @@ export interface TermhallaApi {
   onGitStatus(cb: (id: string, status: GitStatus | null) => void): () => void
   onCloudStatus(cb: (statuses: CloudStatus[]) => void): () => void
   cloudRefresh(): Promise<void>
+  /** Pull the latest cloud status on mount, so a renderer that missed the fire-and-forget
+   *  cloud:status push (e.g. it subscribed after the probe completed) isn't stuck on the empty state. */
+  cloudCurrent(): Promise<CloudStatus[]>
   onAiSession(cb: (id: string, ai: AiSession | null) => void): () => void
   usageWatch(id: string, cwd: string): void
   usageUnwatch(id: string): void

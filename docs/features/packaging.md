@@ -15,12 +15,13 @@ installer, its `.blockmap`, and the `latest.yml` update manifest — but uploads
 
 | Command | Result |
 |---|---|
-| `npm run package` | `dist/Termhalla-Setup-<version>.exe` + `latest.yml` + `.blockmap` (no upload) |
+| `npm run package` | `dist/Termhalla-Setup.exe` + `latest.yml` + `.blockmap` (no upload) |
 
-The installer filename is space-free (`nsis.artifactName: ${productName}-Setup-${version}.${ext}`)
+The installer filename is space-free and version-less (`nsis.artifactName: ${productName}-Setup.${ext}`)
 so the on-disk name, the uploaded GitHub asset name, and the name baked into `latest.yml` all
 match — required because the release workflow uploads `dist/*` directly and GitHub rewrites
-spaces in asset filenames.
+spaces in asset filenames. The version is omitted (every release ships `Termhalla-Setup.exe`); the
+real version still lives in each release's `latest.yml`, which is what the auto-updater compares.
 
 ## How it's wired
 
@@ -62,7 +63,7 @@ apps poll Releases on launch and install on restart.
 ## Distribution channels
 
 The Windows build target is `[nsis, zip]` — every release ships the **installer**
-(`Termhalla-Setup-<version>.exe`) and a **portable zip** (`Termhalla-<version>-win.zip`,
+(`Termhalla-Setup.exe`) and a **portable zip** (`Termhalla-<version>-win.zip`,
 unzip-and-run, no install). Beyond the direct download, manifests live in `packaging/`:
 
 - **winget** — `packaging/winget/<version>/` (three manifests, `localhostworks.Termhalla`); submit

@@ -65,6 +65,7 @@ const api: TermhallaApi = {
   onGitStatus: pushChannel<[string, import('@shared/types').GitStatus | null]>(CH.gitStatus),
   onCloudStatus: pushChannel<[import('@shared/types').CloudStatus[]]>(CH.cloudStatus),
   cloudRefresh: () => ipcRenderer.invoke(CH.cloudRefresh),
+  cloudCurrent: () => ipcRenderer.invoke(CH.cloudCurrent),
   onAiSession: pushChannel<[string, import('@shared/types').AiSession | null]>(CH.aiSession),
   usageWatch: (id, cwd) => ipcRenderer.send(CH.usageWatch, id, cwd),
   usageUnwatch: (id) => ipcRenderer.send(CH.usageUnwatch, id),

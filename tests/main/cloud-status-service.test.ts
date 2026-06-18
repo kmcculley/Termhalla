@@ -34,6 +34,18 @@ describe('CloudStatusService.refresh', () => {
     expect(last.state).toBe('logged-in')
   })
 
+  it('snapshot() returns current statuses so a renderer that missed the push can pull them', async () => {
+    // Repro of the "stuck on cloud status…" bug: the cloud:status broadcast is fire-and-forget, so a
+    // renderer that subscribes after the emit never receives it (and dedup blocks re-delivery). The
+    // renderer recovers by pulling snapshot() on mount.
+    const svc = new CloudStatusService(vi.fn(), () => provs, () => Promise.resolve(okAws), () => 1)
+    expect(svc.snapshot()).toEqual([])      // nothing probed yet
+    await svc.refresh()
+    const snap = svc.snapshot()
+    expect(snap).toHaveLength(1)
+    expect(snap[0].state).toBe('logged-in')
+  })
+
   it('does not run overlapping refresh cycles', async () => {
     const probe = vi.fn(() => new Promise<ProbeResult>(r => setTimeout(() => r(okAws), 5)))
     const svc = new CloudStatusService(vi.fn(), () => provs, probe, () => 1)

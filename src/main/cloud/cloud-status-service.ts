@@ -67,8 +67,14 @@ export class CloudStatusService {
     }
   }
 
+  /** The latest known status for every current provider. A renderer that mounts after a push (which
+   *  is fire-and-forget and otherwise lost) pulls this so it never gets stuck on the empty state. */
+  snapshot(): CloudStatus[] {
+    return this.current.map(p => this.last.get(p.id)).filter((s): s is CloudStatus => Boolean(s))
+  }
+
   private emit(): void {
-    const statuses = this.current.map(p => this.last.get(p.id)).filter((s): s is CloudStatus => Boolean(s))
+    const statuses = this.snapshot()
     const sig = statuses.map(s =>
       `${s.id}:${s.state}:${s.account ?? ''}:${s.detail ? Object.entries(s.detail).map(([k, v]) => `${k}=${v}`).join(',') : ''}`
     ).join('|')
