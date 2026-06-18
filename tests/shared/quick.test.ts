@@ -37,6 +37,18 @@ describe('buildSshArgs', () => {
     expect(buildSshArgs({ ...base, tmuxSession: ' my.session:1 ' }))
       .toEqual(['-t', 'kev@example.com', 'tmux', 'new', '-A', '-s', 'my-session-1'])
   })
+  it('strips a leading dash produced by sanitization (tmux would treat it as a flag)', () => {
+    expect(buildSshArgs({ ...base, tmuxSession: '.session' }))
+      .toEqual(['-t', 'kev@example.com', 'tmux', 'new', '-A', '-s', 'session'])
+    expect(buildSshArgs({ ...base, tmuxSession: ' :foo' }))
+      .toEqual(['-t', 'kev@example.com', 'tmux', 'new', '-A', '-s', 'foo'])
+  })
+  it('treats an all-punctuation session name as tmux off', () => {
+    expect(buildSshArgs({ ...base, tmuxSession: '...' })).toEqual(['kev@example.com'])
+  })
+  it('emits the legacy argv when tmuxSession is entirely absent', () => {
+    expect(buildSshArgs(base)).toEqual(['kev@example.com'])
+  })
 })
 
 describe('pushRecent', () => {
