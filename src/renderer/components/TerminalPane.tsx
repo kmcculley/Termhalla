@@ -22,6 +22,9 @@ const RESIZE_SETTLE_MS = 150
 /** Output-quiet window after a restored shell's prompt before auto-typing `claude --resume`. */
 const RESUME_QUIET_MS = 700
 
+/** Output-quiet window after entering the alternate screen (tmux/TUI launch) before a one-shot repaint. */
+const ALT_SCREEN_REFRESH_MS = 200
+
 export function TerminalPane({ paneId, wsId, config }: { paneId: string; wsId: string; config: TerminalConfig }) {
   const hostRef = useRef<HTMLDivElement>(null)
   const termRef = useRef<Terminal | null>(null)
@@ -126,6 +129,25 @@ export function TerminalPane({ paneId, wsId, config }: { paneId: string; wsId: s
     }
     registerRedrawer(paneId, redraw)
 
+    // tmux/vim/less… switch to the alternate screen when they launch; under xterm's DOM renderer that
+    // first full-screen frame occasionally draws garbled (a known renderer miss that a repaint cures
+    // — the same thing the manual Redraw does; subsequent frames are fine). So when we enter the
+    // alternate buffer, repaint once after the initial draw settles. Over ssh the remote tmux isn't in
+    // the local process tree, but the alt-screen switch IS in the byte stream xterm parses, so this
+    // catches it. Re-arms on each alt entry (detach/reattach, another TUI); harmless no-op otherwise.
+    let altPending = false
+    let altTimer: ReturnType<typeof setTimeout> | undefined
+    const bumpAlt = () => {
+      if (!altPending) return
+      if (altTimer) clearTimeout(altTimer)
+      altTimer = setTimeout(() => { altPending = false; repaint() }, ALT_SCREEN_REFRESH_MS)
+    }
+    const offBufferChange = term.buffer.onBufferChange(b => {
+      if (b.type === 'alternate') { altPending = true; bumpAlt() }
+      else { altPending = false; if (altTimer) clearTimeout(altTimer) }
+    })
+    const offWriteParsed = term.onWriteParsed(() => bumpAlt())  // debounce the one-shot until output quiets
+
     let lastCols = term.cols, lastRows = term.rows
     let settle: ReturnType<typeof setTimeout> | undefined
     const ro = new ResizeObserver(() => {
@@ -153,6 +175,8 @@ export function TerminalPane({ paneId, wsId, config }: { paneId: string; wsId: s
       unregisterRedrawer(paneId)
       if (settle) clearTimeout(settle)
       if (resumeTimer) clearTimeout(resumeTimer)
+      if (altTimer) clearTimeout(altTimer)
+      offBufferChange.dispose(); offWriteParsed.dispose()
       ro.disconnect(); inputDisp.dispose(); offData(); offExit(); term.dispose()
       termRef.current = null; fitRef.current = null
     }

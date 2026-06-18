@@ -6,6 +6,14 @@ All notable changes to Termhalla are recorded here. The format follows
 
 ## [Unreleased]
 
+### Fixed
+- **tmux (and other full-screen TUIs) no longer launch with a garbled first frame.** Under xterm's
+  DOM renderer the initial alternate-screen draw occasionally renders garbled (a known renderer miss
+  a repaint cures; subsequent frames are fine). The terminal now repaints once, after the draw
+  settles, whenever it enters the alternate screen — detected from the byte stream, so it works for
+  tmux over ssh (where the remote process isn't visible locally). Re-arms on each entry; no-op for
+  normal shell use.
+
 ## [0.3.2] - 2026-06-18
 
 ### Fixed
