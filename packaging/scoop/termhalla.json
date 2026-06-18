@@ -1,0 +1,24 @@
+{
+  "version": "0.2.0",
+  "description": "Unified terminals, editor, and explorer with saveable workspaces.",
+  "homepage": "https://github.com/kmcculley/Termhalla",
+  "license": "MIT",
+  "architecture": {
+    "64bit": {
+      "url": "https://github.com/kmcculley/Termhalla/releases/download/v0.2.0/Termhalla-0.2.0-win.zip",
+      "hash": "15388dc0c1979a1d5a5358affefe78c8a4b01be7a4f4256644b6c89f765ab71e"
+    }
+  },
+  "bin": "Termhalla.exe",
+  "shortcuts": [
+    ["Termhalla.exe", "Termhalla"]
+  ],
+  "checkver": "github",
+  "autoupdate": {
+    "architecture": {
+      "64bit": {
+        "url": "https://github.com/kmcculley/Termhalla/releases/download/v$version/Termhalla-$version-win.zip"
+      }
+    }
+  }
+}

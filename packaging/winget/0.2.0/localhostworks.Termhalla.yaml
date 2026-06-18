@@ -1,0 +1,7 @@
+# winget version manifest. Submit this folder's three files to microsoft/winget-pkgs
+# under manifests/l/localhostworks/Termhalla/0.2.0/ (or via `wingetcreate submit`).
+PackageIdentifier: localhostworks.Termhalla
+PackageVersion: 0.2.0
+DefaultLocale: en-US
+ManifestType: version
+ManifestVersion: 1.6.0

@@ -1,0 +1,15 @@
+PackageIdentifier: localhostworks.Termhalla
+PackageVersion: 0.2.0
+# electron-builder NSIS installer -> winget type "nullsoft" (silent via /S). Per-user install
+# (electron-builder.yml perMachine:false), so Scope: user.
+InstallerType: nullsoft
+Scope: user
+InstallModes:
+  - silent
+  - silentWithProgress
+Installers:
+  - Architecture: x64
+    InstallerUrl: https://github.com/kmcculley/Termhalla/releases/download/v0.2.0/Termhalla-Setup-0.2.0.exe
+    InstallerSha256: C6F72B74CC74511B38F41D47D6D116A6B6B97A972E8AD3E698913E0936543DF2
+ManifestType: installer
+ManifestVersion: 1.6.0

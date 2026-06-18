@@ -25,7 +25,10 @@ asarUnpack:
   - "**/node_modules/bindings/**"
   - "**/node_modules/file-uri-to-path/**"
 win:
-  target: nsis
+  target:
+    - nsis   # the installer most users download
+    - zip    # portable, no-install build — used by the Scoop manifest and anyone who wants
+             # to unzip-and-run. Produces dist/Termhalla-<version>-win.zip.
   # Unsigned: internal distribution. Windows SmartScreen shows an "unknown publisher"
   # prompt on first run — expected. Add certificateFile/certificatePassword here to sign.
 nsis:

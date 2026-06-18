@@ -40,17 +40,27 @@ jobs:
       - name: Build installer
         run: npm run package
 
-      # Publish in one deterministic step: a single GitHub release for this tag with the three
-      # update assets uploaded directly. `gh release create` makes exactly one release object, so
-      # the duplicate-release race cannot happen. Idempotent on re-run: if the release already
-      # exists, clobber its assets instead of failing. The artifactName (electron-builder.yml) is
-      # space-free so these filenames match what latest.yml references.
+      # ── CODE SIGNING (stub — disabled) ─────────────────────────────────────────────────────────
+      # The installer is currently UNSIGNED, so Windows SmartScreen warns on download. To sign it,
+      # see packaging/signing.md. IMPORTANT ordering caveat: this app auto-updates, and latest.yml
+      # (generated during `npm run package`) carries the installer's hash — so signing MUST happen
+      # BEFORE latest.yml is generated, i.e. inline in electron-builder (Azure Trusted Signing via
+      # win.azureSignOptions, or a SignPath sign hook), NOT as a post-package step here (re-signing
+      # after packaging would change the bytes and break the updater's hash check). signing.md has
+      # the full recipe + the secret names (SIGNPATH_API_TOKEN / AZURE_* etc.). Left as a stub so
+      # the unsigned build keeps working until signing is set up.
+
+      # Publish in one deterministic step: a single GitHub release for this tag with the update
+      # assets + the portable zip uploaded directly. `gh release create` makes exactly one release
+      # object, so the duplicate-release race cannot happen. Idempotent on re-run: if the release
+      # exists, clobber its assets. The artifactName (electron-builder.yml) is space-free so these
+      # filenames match what latest.yml references.
       - name: Publish GitHub Release
         shell: bash
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          assets=(dist/*.exe dist/*.blockmap dist/latest.yml)
+          assets=(dist/*.exe dist/*.blockmap dist/*.zip dist/latest.yml)
           if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
             gh release upload "$GITHUB_REF_NAME" "${assets[@]}" --clobber
           else

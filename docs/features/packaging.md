@@ -53,11 +53,25 @@ apps poll Releases on launch and install on restart.
   (it's `workers: 1` and flaky on hosted runners — kept local).
 - **`.github/workflows/release.yml`** — on a `v*` tag push, verifies the tag matches
   `package.json` version, runs `npm run package` (build, no publish), then publishes with a
-  single `gh release create "$TAG" --generate-notes dist/*.exe dist/*.blockmap dist/latest.yml`
-  (idempotent on re-run via `gh release upload --clobber`). electron-builder is kept **out** of
-  the release-creation path — its concurrent GitHub publisher raced into two release objects for
-  one tag (assets split between them; observed on v0.2.0). `gh release create` makes exactly one
-  release, so the race can't recur.
+  single `gh release create "$TAG" --generate-notes dist/*.exe dist/*.blockmap dist/*.zip
+  dist/latest.yml` (idempotent on re-run via `gh release upload --clobber`). electron-builder is
+  kept **out** of the release-creation path — its concurrent GitHub publisher raced into two release
+  objects for one tag (assets split between them; observed on v0.2.0). `gh release create` makes
+  exactly one release, so the race can't recur.
+
+## Distribution channels
+
+The Windows build target is `[nsis, zip]` — every release ships the **installer**
+(`Termhalla-Setup-<version>.exe`) and a **portable zip** (`Termhalla-<version>-win.zip`,
+unzip-and-run, no install). Beyond the direct download, manifests live in `packaging/`:
+
+- **winget** — `packaging/winget/<version>/` (three manifests, `localhostworks.Termhalla`); submit
+  to `microsoft/winget-pkgs`.
+- **Scoop** — `packaging/scoop/termhalla.json` (installs the portable zip; `checkver`/`autoupdate`
+  for hands-off version bumps). See `packaging/scoop/README.md`.
+
+Both verify downloads by hash, so they sidestep the SmartScreen prompt that the unsigned direct
+installer trips.
 
 **Cutting a release:** bump `version` in `package.json`, commit, then
 `git tag vX.Y.Z && git push origin vX.Y.Z`. The workflow builds and publishes; installed
@@ -73,10 +87,13 @@ drafts until you publish them.)
 - **Clear `NoDefaultCurrentDirectoryInExePath`** before packaging — the native rebuild
   invokes `.bat`s and a sandbox-set value of this var breaks them (same constraint as
   `npx electron-rebuild`; see README → Native modules).
-- **Unsigned by default.** Internal builds click through SmartScreen. Add
-  `certificateFile`/`certificatePassword` under `win:` (or rely on a cert already in the
-  Windows store) to sign. macOS/Linux targets would additionally need notarization /
-  their own targets — not configured (Windows-only today).
+- **Unsigned by default.** The installer trips SmartScreen ("unknown publisher"); users
+  click **More info → Run anyway**, `Unblock-File`, or install via winget/Scoop (hash-verified,
+  no prompt). Turning on signing is documented in [`packaging/signing.md`](../../packaging/signing.md)
+  — note the load-bearing caveat: because the app auto-updates, signing must happen **inline in
+  electron-builder** (Azure Trusted Signing or a SignPath sign hook) so `latest.yml`'s hash matches
+  the signed binary; a post-package signing step would break the updater. macOS/Linux targets would
+  additionally need notarization / their own targets — not configured (Windows-only today).
 
 ## The app icon
 

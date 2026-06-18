@@ -1,0 +1,18 @@
+PackageIdentifier: localhostworks.Termhalla
+PackageVersion: 0.2.0
+PackageLocale: en-US
+Publisher: localhostworks
+PublisherUrl: https://github.com/kmcculley/Termhalla
+PackageName: Termhalla
+PackageUrl: https://github.com/kmcculley/Termhalla
+License: MIT
+LicenseUrl: https://github.com/kmcculley/Termhalla/blob/main/LICENSE
+ShortDescription: Unified terminals, editor, and explorer with saveable workspaces.
+Moniker: termhalla
+Tags:
+  - terminal
+  - editor
+  - electron
+  - developer-tools
+ManifestType: defaultLocale
+ManifestVersion: 1.6.0

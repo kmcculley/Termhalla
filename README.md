@@ -31,6 +31,31 @@ for Claude — how full its context window is.
 
 See [`docs/features/`](docs/features/) for a doc per feature.
 
+## Install (Windows)
+
+Grab the latest installer from [**Releases**](https://github.com/kmcculley/Termhalla/releases/latest)
+(`Termhalla-Setup-<version>.exe`), or use a package manager.
+
+> **Heads-up: the installer is unsigned.** Windows SmartScreen will show
+> "Windows protected your PC / unknown publisher." It's expected for an unsigned build — click
+> **More info → Run anyway**, or run `Unblock-File .\Termhalla-Setup-<version>.exe` first. Signing
+> is on the roadmap ([`packaging/signing.md`](packaging/signing.md)); the package-manager installs
+> below verify by hash and avoid the prompt.
+
+**winget** (manifests in [`packaging/winget/`](packaging/winget/), pending submission to
+`winget-pkgs`):
+```powershell
+winget install localhostworks.Termhalla
+```
+
+**Scoop** (portable build; see [`packaging/scoop/`](packaging/scoop/)):
+```powershell
+scoop install https://raw.githubusercontent.com/kmcculley/Termhalla/main/packaging/scoop/termhalla.json
+```
+
+**Portable:** download `Termhalla-<version>-win.zip` from the release, unzip anywhere, run
+`Termhalla.exe` — no install, no SmartScreen prompt.
+
 ## Quick start
 
 **Prerequisites:** Node.js 18+, npm, Windows 10/11, and the Visual Studio C++
