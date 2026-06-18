@@ -6,6 +6,8 @@ All notable changes to Termhalla are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.3.2] - 2026-06-18
+
 ### Fixed
 - **SSH connection dialog is now typeable immediately.** Opening it from the command palette is a
   modal→modal handoff (the palette closes as the form opens); the palette's close was bouncing focus
