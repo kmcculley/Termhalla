@@ -43,6 +43,19 @@ This is roadmap sub-project B; it builds on the existing cwd tracking (see [cwd-
 - `normalizeQuick` sanitizes on both read and write, so a malformed file or renderer payload cannot inject unexpected shapes into main.
 - SSH panes get **no** shell-integration injection (our scripts never reach the remote host), so status is heuristic-only and live cwd is not tracked (the directory is remote) — consistent with `cmd`.
 
+## tmux auto-attach
+
+A favorite can opt into a named tmux session (`tmuxSession` on `SshConnection`). When set,
+`buildSshArgs` emits `ssh -t … user@host tmux new -A -s <name>`: `-t` forces a remote PTY and
+`tmux new -A -s` attaches the session if it exists or creates it otherwise. Because the launch
+override (`{command:'ssh', args}`) is persisted per-pane and re-run verbatim on restart, the
+session is reattached automatically on reconnect and on app restart — no extra runtime logic.
+
+Session names are sanitized at arg-build time (tmux forbids `.` and `:`; whitespace and those
+characters collapse to `-`). Detaching inside tmux (Ctrl-b d) returns from the remote command,
+so ssh exits and the pane closes; the remote session lives on and relaunching the favorite (or
+restarting the app) reattaches it.
+
 ## Behaviors & edge cases
 
 - **Spawn-failure guard** — a bad launch command (e.g. `ssh` not on PATH) is caught in `PtyManager.spawn`; it writes a `[failed to launch …]` line to the pane, marks/unwinds the status engine, and fires `onExit(id, 1)` instead of crashing main.
