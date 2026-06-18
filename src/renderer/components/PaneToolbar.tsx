@@ -28,6 +28,8 @@ export function PaneToolbar(
           <button type="button" data-testid={`proc-chip-${paneId}`} title="Running process"
             style={{ maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
             onClick={() => toggle('proc')}>{chipText}</button>
+          <button type="button" data-testid={`run-chip-${paneId}`} title="Run commands"
+            onClick={() => toggle('run')}>▷</button>
           <button type="button" data-testid={`schedule-chip-${paneId}`} title="Schedule a command"
             onClick={() => toggle('schedule')}>⏱</button>
           <button type="button" data-testid={`rec-${paneId}`}
