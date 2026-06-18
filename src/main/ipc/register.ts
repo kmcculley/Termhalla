@@ -13,6 +13,8 @@ import { registerRecording } from './register-recording'
 import { registerEnv } from './register-env'
 import { registerClipboard } from './register-clipboard'
 import { registerGit } from './register-git'
+import { Indexer } from '../search/indexer'
+import { registerSearch } from './register-search'
 
 /** Composition root: register every IPC handler ONCE against the build-once service layer. Push
  *  events go through `send`, which routes pane-scoped channels (their first arg is a paneId) to the
@@ -20,7 +22,7 @@ import { registerGit } from './register-git'
  *  registrars (notify/dialogs/drafts) take the main window, which already exists after
  *  `WindowManager.prepare()`. Returns the PtyManager so the app can kill PTYs on quit. */
 export function registerHandlers(services: Services, wm: WindowManager): PtyManager {
-  const { store, quick, shells, recorder, envVault, scriptDir, dir } = services
+  const { store, quick, shells, recorder, envVault, scriptDir, dir, searchService } = services
 
   const send = (channel: string, ...args: unknown[]): void => {
     const paneId = typeof args[0] === 'string' ? args[0] : null
@@ -30,8 +32,9 @@ export function registerHandlers(services: Services, wm: WindowManager): PtyMana
 
   const win = wm.mainWindow()
   const { service: git, dispose: disposeGit } = registerGit(send)
+  const indexer = new Indexer(searchService)
   const pty = registerPty(win, {
-    shells, recorder, envVault, scriptDir, send,
+    shells, recorder, envVault, scriptDir, send, indexer,
     claimPane: (id, sender) => wm.claimPane(id, sender),
     replayInto: (id) => wm.replayInto(id),
     onCwd: (id, cwd) => { void git.setCwd(id, cwd) },
@@ -44,12 +47,14 @@ export function registerHandlers(services: Services, wm: WindowManager): PtyMana
   registerDrafts(win, dir)
   registerNotes(win, dir)
 
+  const disposeSearch = registerSearch({ searchService, indexer })
   const disposers: Disposer[] = [
     registerFs(win, send),
     registerCloud(win, send),
     registerUsage(send),
     registerRecording({ pty, recorder, userDataDir: dir, send }),
-    disposeGit
+    disposeGit,
+    disposeSearch
   ]
   wm.onAllWindowsClosed(() => { for (const dispose of disposers) dispose() })
 

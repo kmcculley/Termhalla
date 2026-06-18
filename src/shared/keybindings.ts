@@ -20,11 +20,12 @@ export type Shortcut =
   | { type: 'open-settings' }
   | { type: 'toggle-maximize-pane' }
   | { type: 'toggle-notes' }
+  | { type: 'toggle-search' }
 
 export type CommandId =
   | 'toggle-palette' | 'toggle-broadcast' | 'new-terminal' | 'close-workspace'
   | 'next-workspace' | 'prev-workspace' | 'open-settings' | 'toggle-maximize-pane'
-  | 'toggle-notes'
+  | 'toggle-notes' | 'toggle-search'
 
 export interface Command { id: CommandId; label: string; category: string; defaultChord: Chord; tip?: string }
 
@@ -40,7 +41,8 @@ export const COMMANDS: Command[] = [
   { id: 'next-workspace',       label: 'Next workspace',     category: 'Workspaces', defaultChord: c(true, false, 'tab') },
   { id: 'prev-workspace',       label: 'Previous workspace', category: 'Workspaces', defaultChord: c(true, true, 'tab') },
   { id: 'close-workspace',      label: 'Close workspace',    category: 'Workspaces', defaultChord: c(true, true, 'w') },
-  { id: 'toggle-notes',         label: 'Toggle notes panel', category: 'General',    defaultChord: c(true, true, 'n'), tip: 'open the project notes panel' },
+  { id: 'toggle-notes',         label: 'Toggle notes panel',          category: 'General',    defaultChord: c(true, true, 'n'), tip: 'open the project notes panel' },
+  { id: 'toggle-search',        label: 'Search output history',       category: 'General',    defaultChord: c(true, true, 'f'), tip: 'search terminal output history' },
 ]
 
 /** Canonical, JSON-storable, comparable key for a chord, e.g. "mod+shift+t". */

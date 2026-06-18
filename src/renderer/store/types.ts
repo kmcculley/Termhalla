@@ -126,6 +126,10 @@ export interface State {
   settings: SettingsTarget | null
   openSettings: (t: SettingsTarget) => void
   closeSettings: () => void
+  searchOpen: boolean
+  setSearchOpen: (open: boolean) => void
+  revealPaneFromSearch: (paneId: string) => void
+  relaunchFromSearch: (cwd: string) => void
 }
 
 /** Wiring handed to every slice creator: the store's set/get plus the shared debounced-save and

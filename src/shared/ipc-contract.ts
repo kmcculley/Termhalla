@@ -1,4 +1,4 @@
-import type { ShellInfo, Workspace, AppState, TerminalStatus, DirEntry, ReadResult, StatResult, FsChange, TerminalLaunch, QuickStore, ProcInfo, CloudStatus, AiSession, UsageMetrics, EditorDraft, EnvVaultData, RecState, EnvVaultState, GitStatus } from './types'
+import type { ShellInfo, Workspace, AppState, TerminalStatus, DirEntry, ReadResult, StatResult, FsChange, TerminalLaunch, QuickStore, ProcInfo, CloudStatus, AiSession, UsageMetrics, EditorDraft, EnvVaultData, RecState, EnvVaultState, GitStatus, SearchHit, SearchStats } from './types'
 
 export const CH = {
   listShells: 'shells:list',
@@ -60,6 +60,10 @@ export const CH = {
   winAssignment: 'win:assignment',   // main -> renderer event
   termSerialize: 'term:serialize',   // main -> renderer event (request a snapshot)
   termSnapshot: 'term:snapshot',     // renderer -> main (the snapshot reply)
+  searchQuery: 'search:query',
+  searchStats: 'search:stats',
+  searchClear: 'search:clear',
+  searchSetMuted: 'search:setMuted',
 } as const
 
 export interface NotifyArgs { title: string; body: string }
@@ -143,4 +147,8 @@ export interface TermhallaApi {
   onWinAssignment(cb: (a: WinAssignment) => void): () => void
   onTermSerialize(cb: (workspaceId: string) => void): () => void
   termSnapshot(args: TermSnapshotArgs): void
+  searchQuery(q: string): Promise<SearchHit[]>
+  searchStats(): Promise<SearchStats>
+  searchClear(): Promise<SearchStats>
+  searchSetMuted(paneId: string, muted: boolean): void
 }

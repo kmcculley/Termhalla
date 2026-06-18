@@ -21,6 +21,11 @@ export function PaneToolbar(
   const closePane = useStore(s => s.closePane)
   const toggleMaximize = useStore(s => s.toggleMaximize)
   const isMax = useStore(s => s.maximized[wsId] === paneId)
+  const updatePaneConfig = useStore(s => s.updatePaneConfig)
+  const historyMuted = useStore(s => {
+    const cfg = s.workspaces[wsId]?.panes[paneId]?.config
+    return cfg?.kind === 'terminal' ? !!cfg.historyMuted : false
+  })
   return (
     <>
       {isTerminal && (
@@ -43,6 +48,13 @@ export function PaneToolbar(
               {gitStatus.detached ? '⎇ ' : ''}{gitStatus.branch}{gitStatus.dirty ? ' ●' : ''}
             </button>
           )}
+          <button type="button" data-testid={`history-mute-${paneId}`}
+            title={historyMuted ? 'Output history muted — click to index' : 'Indexing output history — click to mute'}
+            onClick={() => {
+              const next = !historyMuted
+              updatePaneConfig(wsId, paneId, { historyMuted: next || undefined })
+              api.searchSetMuted(paneId, next)
+            }}>{historyMuted ? '🔇' : '📖'}</button>
         </>
       )}
       <button data-testid={`cwd-${paneId}`} title="Folder actions" onClick={() => toggle('cwd')}>📁</button>

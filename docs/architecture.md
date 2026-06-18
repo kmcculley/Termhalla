@@ -136,6 +136,7 @@ All persistent data lives under the Electron `userData` directory
 | `quick.json` | App-global SSH connections, favorite/recent dirs, theme presets, and `keybindings` map (CommandId → chord override string; `'none'` = explicitly unbound). Sanitized on read+write by `normalizeQuick`. |
 | `editor-drafts.json` | Unsaved editor buffers (hot-exit), keyed `paneId::path`. Written by `DraftStore`. |
 | `notes.json` | Per-project notepad text, keyed by project key (git root or cwd). Written by `NotesStore`. |
+| `search.db` | SQLite FTS5 index of terminal output segments (`segments` + `segments_fts`). Opened in WAL mode by `SearchService` (`src/main/search/search-service.ts`); never transmitted. |
 | `shell-integration/` | Generated per-shell init scripts injected into terminals. |
 
 Pane configs are a discriminated union (`PaneConfig` = terminal | editor |
@@ -157,9 +158,11 @@ explorer) so the layout can mix pane kinds. `SCHEMA_VERSION` in
 [electron-vite](https://electron-vite.org/) builds three targets — `main`,
 `preload`, `renderer` — to `out/`, with a shared `@shared` path alias. The main
 and preload bundles externalize deps; the renderer bundles React + Monaco. Native
-`node-pty` is patched (Spectre off) and rebuilt for Electron's ABI. Type-checking
-runs against two tsconfigs (`tsconfig.json` for the renderer, `tsconfig.node.json`
-for main/preload).
+Two native modules require `electron-rebuild` for Electron's ABI: `node-pty` (patched,
+Spectre off) for the terminal layer, and `better-sqlite3` for the output search index
+(`SearchService`). Both are excluded from the asar archive via `asarUnpack` in
+`electron-builder.yml`. Type-checking runs against two tsconfigs (`tsconfig.json` for
+the renderer, `tsconfig.node.json` for main/preload).
 
 ## Testing
 

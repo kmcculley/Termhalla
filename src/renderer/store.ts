@@ -23,6 +23,7 @@ import { createToastsSlice } from './store/toasts-slice'
 import { createSettingsSlice } from './store/settings-slice'
 import { createKeybindingsSlice } from './store/keybindings-slice'
 import { createNotesSlice } from './store/notes-slice'
+import { createSearchSlice } from './store/search-slice'
 
 // Re-exported so existing `import { ... } from '../store'` call sites keep working.
 export type { ThemeScope } from './store/types'
@@ -110,6 +111,7 @@ export const useStore = create<State>((set, get) => {
     paletteOpen: false,
     broadcastOpen: false,
     connectionFormFor: null,
+    searchOpen: false,
 
     // ---- domain slices ----
     ...createThemeSlice(deps),
@@ -121,6 +123,7 @@ export const useStore = create<State>((set, get) => {
     ...createSettingsSlice(deps),
     ...createKeybindingsSlice(deps),
     ...createNotesSlice(deps),
+    ...createSearchSlice(deps),
 
     // ---- core: bootstrap + persistence ----
     init: async () => {

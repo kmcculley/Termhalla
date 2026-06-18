@@ -6,6 +6,7 @@ import { QuickStore } from './persistence/quick-store'
 import { userDataDir } from './persistence/paths'
 import { Recorder } from './recording/recorder'
 import { EnvVault } from './env-vault/env-vault'
+import { SearchService } from './search/search-service'
 import type { ShellInfo } from '@shared/types'
 
 export interface Services {
@@ -16,6 +17,7 @@ export interface Services {
   recorder: Recorder
   envVault: EnvVault
   scriptDir: string
+  searchService: SearchService
 }
 
 /** Build the privileged service layer ONCE for the whole app (not per window). PTYs and stores
@@ -24,6 +26,7 @@ export function buildServices(): Services {
   const dir = userDataDir()
   const scriptDir = join(dir, 'shell-integration')
   writeIntegrationScripts(scriptDir)
+  const searchService = new SearchService(join(dir, 'search.db'))
   return {
     dir,
     store: new WorkspaceStore(dir),
@@ -31,6 +34,7 @@ export function buildServices(): Services {
     shells: detectShells(),
     recorder: new Recorder(),
     envVault: new EnvVault(dir),
-    scriptDir
+    scriptDir,
+    searchService
   }
 }
