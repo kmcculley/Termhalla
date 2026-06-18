@@ -66,6 +66,13 @@ export interface State {
   setRecording: (id: string, on: boolean) => void
   setRecordByDefault: (on: boolean) => void
   drafts: Record<string, EditorDraft>
+  notes: Record<string, string>
+  notesOpen: boolean
+  notesProjectKey: string | null
+  setNotesOpen: (open: boolean) => void
+  setNotesProject: (key: string) => void
+  setNote: (key: string, text: string) => void
+  flushNotes: () => void
   cloud: CloudStatus[]
   setCloud: (statuses: CloudStatus[]) => void
   refreshCloud: () => void
@@ -129,5 +136,6 @@ export interface SliceDeps {
   get: StoreApi<State>['getState']
   scheduleAutosave: () => void
   scheduleQuickSave: () => void
+  scheduleNotesSave: () => void
   commitPane: (wsId: string, cfg: PaneConfig, target: string | null, dir: MosaicDirection, markEditor?: boolean) => string
 }
