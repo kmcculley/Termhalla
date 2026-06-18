@@ -110,21 +110,21 @@ export function TerminalPane({ paneId, wsId, config }: { paneId: string; wsId: s
     }
     hostRef.current!.addEventListener('wheel', onWheel, { passive: false, capture: true })
 
-    // Force the terminal — and any running TUI (e.g. Claude) — to repaint. `refresh` re-renders
-    // xterm from its buffer (fixes xterm-side glitches); the optional PTY size nudge makes the
-    // running app redraw via SIGWINCH/ConPTY (fixes a TUI that drew garbled across a resize). The
-    // nudge is a deliberate redundant resize — safe because the status tail is ANSI-stripped — so it
-    // is reserved for the explicit redraw (not the per-frame auto path).
-    const redraw = (nudge: boolean) => {
+    // Repaint xterm from its own buffer — fixes xterm-side render glitches WITHOUT changing the grid,
+    // so it can never desync xterm's size from the remote (which would jumble a TUI like tmux).
+    const repaint = () => term.refresh(0, term.rows - 1)
+    // Manual "Redraw terminal": re-fit, repaint, then nudge the PTY size so a running TUI (Claude,
+    // tmux, …) redraws via SIGWINCH/ConPTY. The nudge's final resize re-syncs the PTY to the fitted
+    // grid, so this stays size-consistent. It's a deliberate redundant resize (safe — the status tail
+    // is ANSI-stripped), reserved for the explicit command, never the per-resize auto path.
+    const redraw = () => {
       fit.fit()
-      term.refresh(0, term.rows - 1)
-      if (nudge) {
-        const { cols, rows } = term
-        api.ptyResize({ id: paneId, cols: Math.max(cols - 1, 1), rows })
-        api.ptyResize({ id: paneId, cols, rows })
-      }
+      repaint()
+      const { cols, rows } = term
+      api.ptyResize({ id: paneId, cols: Math.max(cols - 1, 1), rows })
+      api.ptyResize({ id: paneId, cols, rows })
     }
-    registerRedrawer(paneId, () => redraw(true))
+    registerRedrawer(paneId, redraw)
 
     let lastCols = term.cols, lastRows = term.rows
     let settle: ReturnType<typeof setTimeout> | undefined
@@ -136,10 +136,11 @@ export function TerminalPane({ paneId, wsId, config }: { paneId: string; wsId: s
         lastCols = term.cols; lastRows = term.rows
         api.ptyResize({ id: paneId, cols: term.cols, rows: term.rows })
       }
-      // After the user stops dragging, repaint once so xterm rendering self-corrects (no PTY nudge
-      // here — the per-grid-change resize above already told the TUI; this only re-renders xterm).
+      // After the user stops dragging, repaint once so xterm rendering self-corrects. Repaint only —
+      // the RO above already fit + resized the PTY; calling fit() again here without a matching
+      // ptyResize could desync xterm's grid from the remote and jumble a TUI (e.g. tmux over ssh).
       if (settle) clearTimeout(settle)
-      settle = setTimeout(() => redraw(false), RESIZE_SETTLE_MS)
+      settle = setTimeout(repaint, RESIZE_SETTLE_MS)
     })
     ro.observe(hostRef.current!)
 

@@ -6,6 +6,19 @@ All notable changes to Termhalla are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.3.2] - 2026-06-18
+
+### Fixed
+- **SSH connection dialog is now typeable immediately.** Opening it from the command palette is a
+  modal→modal handoff (the palette closes as the form opens); the palette's close was bouncing focus
+  to the active terminal and stealing the form's autoFocus, so fields couldn't be typed into until
+  the window was refocused. The terminal is now refocused only when the *last* overlay closes
+  (deferred, open-modal-counted), so a dialog opened by another dialog keeps its focus.
+- **Terminal resize no longer risks desyncing the grid from a remote TUI.** The post-resize
+  auto-repaint now only re-renders xterm (it no longer re-runs `fit()` without a matching PTY
+  resize), so xterm and a remote app (e.g. tmux over ssh) can't end up disagreeing on the size. The
+  manual "Redraw terminal" command (Ctrl+Shift+L) still does a full re-fit + PTY nudge.
+
 ## [0.3.1] - 2026-06-18
 
 ### Fixed

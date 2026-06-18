@@ -3,6 +3,10 @@ import { createPortal } from 'react-dom'
 import type { CSSProperties, HTMLAttributes, ReactNode } from 'react'
 import { useStore } from '../store'
 
+/** How many Modal instances are currently mounted. Used so closing one dialog to open another
+ *  (a modal→modal handoff) doesn't bounce focus to the terminal between them. */
+let openModals = 0
+
 /** Single source of truth for overlay stacking. Higher = closer to the user.
  *  Centralizes what used to be ad-hoc magic z-index literals scattered across dialogs. */
 export const Z = {
@@ -49,11 +53,19 @@ interface ModalProps {
  *  card that stops propagation. Portalling escapes the mosaic tiles' transform containing block,
  *  which would otherwise confine a `position: fixed` overlay to one tile. */
 export function Modal({ onClose, align = 'center', z = Z.dialog, backdropTestId, cardTestId, card, cardProps, children }: ModalProps) {
-  // When this dialog closes, put keyboard focus back on the active pane. A dialog holds focus while
-  // open; without this, after it closes (and any toast it fired appears) the terminal silently
-  // swallows typing until clicked — the "can't type while a toast is up" bug. If another overlay
-  // opens in the same commit, its own mount-time autofocus runs after this cleanup and wins.
-  useEffect(() => () => useStore.getState().refocusActivePane(), [])
+  // When the LAST dialog closes, put keyboard focus back on the active pane (so typing isn't
+  // swallowed by a now-dead overlay — the "can't type while a toast is up" bug). Crucially, when one
+  // dialog closes to open another (e.g. command palette → SSH form), both unmount/mount in the same
+  // commit; refocusing the terminal here would steal focus from the new dialog's autoFocus and leave
+  // the user unable to type into it. So count open modals and defer the refocus to a microtask,
+  // firing only if no overlay remains by then.
+  useEffect(() => {
+    openModals++
+    return () => {
+      openModals--
+      void Promise.resolve().then(() => { if (openModals === 0) useStore.getState().refocusActivePane() })
+    }
+  }, [])
   const overlay: CSSProperties = {
     position: 'fixed', inset: 0, background: BACKDROP, zIndex: z,
     ...(align === 'center'
