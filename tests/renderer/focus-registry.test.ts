@@ -1,7 +1,22 @@
 import { describe, it, expect } from 'vitest'
 import {
-  registerFocuser, unregisterFocuser, focusPane, requestPaneFocus
+  registerFocuser, unregisterFocuser, focusPane, requestPaneFocus,
+  registerRedrawer, unregisterRedrawer, redrawPane
 } from '../../src/renderer/components/terminal-registry'
+
+describe('pane redraw registry', () => {
+  it('redrawPane returns false when no redrawer is registered', () => {
+    expect(redrawPane('absent')).toBe(false)
+  })
+  it('redrawPane invokes the registered redrawer and returns true', () => {
+    let n = 0
+    registerRedrawer('r1', () => { n++ })
+    expect(redrawPane('r1')).toBe(true)
+    expect(n).toBe(1)
+    unregisterRedrawer('r1')
+    expect(redrawPane('r1')).toBe(false)
+  })
+})
 
 describe('pane focus registry', () => {
   it('focusPane returns false when no focuser is registered', () => {

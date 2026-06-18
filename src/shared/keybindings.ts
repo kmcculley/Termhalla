@@ -21,11 +21,12 @@ export type Shortcut =
   | { type: 'toggle-maximize-pane' }
   | { type: 'toggle-notes' }
   | { type: 'toggle-search' }
+  | { type: 'redraw-terminal' }
 
 export type CommandId =
   | 'toggle-palette' | 'toggle-broadcast' | 'new-terminal' | 'close-workspace'
   | 'next-workspace' | 'prev-workspace' | 'open-settings' | 'toggle-maximize-pane'
-  | 'toggle-notes' | 'toggle-search'
+  | 'toggle-notes' | 'toggle-search' | 'redraw-terminal'
 
 export interface Command { id: CommandId; label: string; category: string; defaultChord: Chord; tip?: string }
 
@@ -43,6 +44,7 @@ export const COMMANDS: Command[] = [
   { id: 'close-workspace',      label: 'Close workspace',    category: 'Workspaces', defaultChord: c(true, true, 'w') },
   { id: 'toggle-notes',         label: 'Toggle notes panel',          category: 'General',    defaultChord: c(true, true, 'n'), tip: 'open the project notes panel' },
   { id: 'toggle-search',        label: 'Search output history',       category: 'General',    defaultChord: c(true, true, 'f'), tip: 'search terminal output history' },
+  { id: 'redraw-terminal',      label: 'Redraw terminal',             category: 'Panes',      defaultChord: c(true, true, 'l'), tip: 'redraw a garbled terminal' },
 ]
 
 /** Canonical, JSON-storable, comparable key for a chord, e.g. "mod+shift+t". */

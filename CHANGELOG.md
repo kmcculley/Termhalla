@@ -7,6 +7,16 @@ All notable changes to Termhalla are recorded here. The format follows
 ## [Unreleased]
 
 ### Added
+- **Split buttons offer Terminal / Editor / Explorer.** The pane split buttons no longer open a
+  terminal directly — each opens a small menu to choose what the split creates, in that direction.
+  Terminal and Explorer inherit the source pane's working directory.
+- **Auto-resume Claude on restart.** Terminals that had Claude running when the app last closed
+  re-run `claude --resume` once the restored shell is ready (in the saved cwd). On by default;
+  toggle under Settings → General. A `resumeAi` marker is folded into each terminal's persisted
+  config at save time (no AI session content is stored).
+- **Redraw a garbled terminal.** A resize now repaints the terminal once it settles, and a new
+  "Redraw terminal" command (Ctrl+Shift+L, rebindable) forces a full repaint — re-fitting xterm and
+  nudging the PTY so a running TUI (e.g. Claude) redraws — for cases a resize left scrambled.
 - **Ctrl/Cmd + scroll zooms the terminal font.** Holding Ctrl (or Cmd) while scrolling over a
   terminal grows/shrinks the global terminal font size (clamped 8–32), applied to every terminal
   via the existing theme path. Pure step/clamp logic is unit-tested (`font-zoom`).

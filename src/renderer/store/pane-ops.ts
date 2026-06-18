@@ -44,6 +44,25 @@ export async function dispatchAddPane(
   }
 }
 
+/** Fold the live AI-session map into terminal pane configs at save time: a pane currently running
+ *  an AI tool (e.g. Claude) gets `resumeAi` stamped so it can auto-resume on the next launch; a pane
+ *  that no longer runs one has any stale `resumeAi` cleared. Pure; returns the same ws when unchanged
+ *  so it never forces a needless write. Mirrors applyCwds (kept here, api-free, so it's testable). */
+export function applyResumeAi(ws: Workspace, aiSessions: Record<string, AiSession>): Workspace {
+  let changed = false
+  const panes = { ...ws.panes }
+  for (const id of Object.keys(panes)) {
+    const pane = panes[id]
+    if (pane.config.kind !== 'terminal') continue
+    const next = aiSessions[id]?.tool
+    if (pane.config.resumeAi !== next) {
+      panes[id] = { ...pane, config: { ...pane.config, resumeAi: next } }
+      changed = true
+    }
+  }
+  return changed ? { ...ws, panes } : ws
+}
+
 /** Display state for an AI session pane: 'working' when busy, 'awaiting' when quiet, null if not
  *  an AI session. */
 export function aiState(

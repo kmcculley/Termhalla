@@ -74,6 +74,7 @@ export interface QuickStore {
   theme?: Partial<Theme>
   themePresets: { id: string; name: string; theme: Theme }[]
   recordByDefault?: boolean
+  autoResumeClaude?: boolean     // re-run `claude --resume` in restored terminals that had Claude (default on)
   keybindings?: Record<string, string>   // CommandId -> chordKey ("mod+shift+t") | 'none' (unbound)
 }
 
@@ -94,6 +95,7 @@ export interface TerminalConfig {
   theme?: Partial<Theme>
   runCommands?: RunCommand[]   // pane-scoped saved run commands
   historyMuted?: boolean        // absent = indexed
+  resumeAi?: AiTool             // an AI tool (e.g. claude) was running at last save; auto-resume on restore
 }
 
 export interface EditorConfig {

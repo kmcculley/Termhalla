@@ -11,10 +11,16 @@ import { matchShortcut, resolveBindings } from '@shared/keymap'
 import { useStore } from '../store'
 import { useResolvedPaneTheme } from '../use-resolved-theme'
 import { clipboardKeyAction } from './terminal-clipboard'
-import { registerSerializer, unregisterSerializer, consumeSnapshot, registerFocuser, unregisterFocuser } from './terminal-registry'
+import { registerSerializer, unregisterSerializer, consumeSnapshot, registerFocuser, unregisterFocuser, registerRedrawer, unregisterRedrawer } from './terminal-registry'
 
 /** Scrollback lines captured when serializing a terminal for a window-handoff replay. */
 const HANDOFF_SCROLLBACK_LINES = 1000
+
+/** Quiet window after the last resize before we repaint xterm once, so a drag doesn't repaint per frame. */
+const RESIZE_SETTLE_MS = 150
+
+/** Output-quiet window after a restored shell's prompt before auto-typing `claude --resume`. */
+const RESUME_QUIET_MS = 700
 
 export function TerminalPane({ paneId, wsId, config }: { paneId: string; wsId: string; config: TerminalConfig }) {
   const hostRef = useRef<HTMLDivElement>(null)
@@ -55,7 +61,21 @@ export function TerminalPane({ paneId, wsId, config }: { paneId: string; wsId: s
     api.searchSetMuted(paneId, !!config.historyMuted)
     if (useStore.getState().quick.recordByDefault) api.recStart(paneId)
 
-    const offData = api.onPtyData((id, data) => { if (id === paneId) term.write(data) })
+    // Auto-resume Claude: a pane that had Claude running at last save (config.resumeAi) types
+    // `claude --resume` once — after the restored shell has printed its prompt and gone quiet. Using
+    // an output-quiet timer (reset on each data chunk) is shell-agnostic: it fires shortly after the
+    // prompt appears, not before the shell is ready. Off when the setting is disabled.
+    const wantResume = config.resumeAi === 'claude' && useStore.getState().quick.autoResumeClaude !== false
+    let resumeTimer: ReturnType<typeof setTimeout> | undefined
+    let resumed = false
+    const scheduleResume = () => {
+      if (!wantResume || resumed) return
+      if (resumeTimer) clearTimeout(resumeTimer)
+      resumeTimer = setTimeout(() => { resumed = true; api.ptyWrite({ id: paneId, data: 'claude --resume\r' }) }, RESUME_QUIET_MS)
+    }
+    scheduleResume()
+
+    const offData = api.onPtyData((id, data) => { if (id === paneId) { term.write(data); scheduleResume() } })
     const offExit = api.onPtyExit((id) => { if (id === paneId && !disposed) term.write('\r\n[process exited]\r\n') })
     const inputDisp = term.onData(d => api.ptyWrite({ id: paneId, data: d }))
 
@@ -90,7 +110,24 @@ export function TerminalPane({ paneId, wsId, config }: { paneId: string; wsId: s
     }
     hostRef.current!.addEventListener('wheel', onWheel, { passive: false, capture: true })
 
+    // Force the terminal — and any running TUI (e.g. Claude) — to repaint. `refresh` re-renders
+    // xterm from its buffer (fixes xterm-side glitches); the optional PTY size nudge makes the
+    // running app redraw via SIGWINCH/ConPTY (fixes a TUI that drew garbled across a resize). The
+    // nudge is a deliberate redundant resize — safe because the status tail is ANSI-stripped — so it
+    // is reserved for the explicit redraw (not the per-frame auto path).
+    const redraw = (nudge: boolean) => {
+      fit.fit()
+      term.refresh(0, term.rows - 1)
+      if (nudge) {
+        const { cols, rows } = term
+        api.ptyResize({ id: paneId, cols: Math.max(cols - 1, 1), rows })
+        api.ptyResize({ id: paneId, cols, rows })
+      }
+    }
+    registerRedrawer(paneId, () => redraw(true))
+
     let lastCols = term.cols, lastRows = term.rows
+    let settle: ReturnType<typeof setTimeout> | undefined
     const ro = new ResizeObserver(() => {
       fit.fit()
       // Only resize the PTY when the grid actually changed. A redundant resize makes
@@ -99,6 +136,10 @@ export function TerminalPane({ paneId, wsId, config }: { paneId: string; wsId: s
         lastCols = term.cols; lastRows = term.rows
         api.ptyResize({ id: paneId, cols: term.cols, rows: term.rows })
       }
+      // After the user stops dragging, repaint once so xterm rendering self-corrects (no PTY nudge
+      // here — the per-grid-change resize above already told the TUI; this only re-renders xterm).
+      if (settle) clearTimeout(settle)
+      settle = setTimeout(() => redraw(false), RESIZE_SETTLE_MS)
     })
     ro.observe(hostRef.current!)
 
@@ -108,6 +149,9 @@ export function TerminalPane({ paneId, wsId, config }: { paneId: string; wsId: s
       hostRef.current?.removeEventListener('wheel', onWheel, { capture: true } as EventListenerOptions)
       unregisterSerializer(paneId)
       unregisterFocuser(paneId)
+      unregisterRedrawer(paneId)
+      if (settle) clearTimeout(settle)
+      if (resumeTimer) clearTimeout(resumeTimer)
       ro.disconnect(); inputDisp.dispose(); offData(); offExit(); term.dispose()
       termRef.current = null; fitRef.current = null
     }

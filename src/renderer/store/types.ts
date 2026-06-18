@@ -66,6 +66,7 @@ export interface State {
   recording: Record<string, boolean>
   setRecording: (id: string, on: boolean) => void
   setRecordByDefault: (on: boolean) => void
+  setAutoResumeClaude: (on: boolean) => void
   drafts: Record<string, EditorDraft>
   notes: Record<string, string>
   notesOpen: boolean

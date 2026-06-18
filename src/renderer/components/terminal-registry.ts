@@ -61,3 +61,20 @@ export function requestPaneFocus(paneId: string, schedule: Schedule = rafSchedul
   const attempt = () => { if (!focusPane(paneId) && tries++ < FOCUS_RETRY_FRAMES) schedule(attempt) }
   attempt()
 }
+
+/**
+ * Per-pane redraw hooks. A mounted TerminalPane registers a callback that re-fits and forces its
+ * terminal (and any running TUI like Claude) to repaint — used by the "Redraw terminal" command to
+ * fix a display garbled by a resize. Kept here with the other per-pane imperative hooks.
+ */
+const redrawers = new Map<string, () => void>()
+export function registerRedrawer(paneId: string, fn: () => void): void { redrawers.set(paneId, fn) }
+export function unregisterRedrawer(paneId: string): void { redrawers.delete(paneId) }
+
+/** Redraw a pane now. Returns false if it has no live redrawer (not mounted / not a terminal). */
+export function redrawPane(paneId: string): boolean {
+  const fn = redrawers.get(paneId)
+  if (!fn) return false
+  fn()
+  return true
+}

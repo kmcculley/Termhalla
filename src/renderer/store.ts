@@ -8,7 +8,7 @@ import { schedulesWithout } from '@shared/schedule'
 import { api } from './api'
 import type { State, SliceDeps } from './store/types'
 import {
-  placePane, firstTarget, paneCwd, applyCwds, clearPaneRuntime, teardownPanes
+  placePane, firstTarget, paneCwd, applyCwds, applyResumeAi, clearPaneRuntime, teardownPanes
 } from './store/internals'
 import { defaultShellId, dispatchAddPane } from './store/pane-ops'
 import { readPaneSnapshot, stashSnapshot, requestPaneFocus } from './components/terminal-registry'
@@ -168,8 +168,9 @@ export const useStore = create<State>((set, get) => {
     },
 
     saveAll: async () => {
-      const { order, workspaces, cwds } = get()
-      await Promise.all(order.map(id => api.saveWorkspace(applyCwds(workspaces[id], cwds))))
+      const { order, workspaces, cwds, aiSessions } = get()
+      await Promise.all(order.map(id =>
+        api.saveWorkspace(applyResumeAi(applyCwds(workspaces[id], cwds), aiSessions))))
       // The windows[] arrangement (which window hosts which workspace) is persisted by main's
       // WindowManager, kept in sync via win:report — the renderer only owns workspace files now.
     },
