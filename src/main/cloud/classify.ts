@@ -16,7 +16,10 @@ export function classifyProbe(provider: CloudProvider, r: ProbeResult, now: numb
   try {
     const { account, detail } = provider.parse(r.stdout)
     return { ...base, state: 'logged-in', account, detail }
-  } catch {
+  } catch (e) {
+    // A zero exit but unparseable output usually means the CLI changed its output format. Surface it
+    // (low noise — only fires on malformed output) so the cause is diagnosable, not just an 'error' chip.
+    console.warn('[cloud] failed to parse probe output for', provider.id, '-', (e as Error).message)
     return { ...base, state: 'error' }
   }
 }

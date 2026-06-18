@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, vi } from 'vitest'
 import { parseAwsIdentity, parseAzureIdentity, awsProbeForProfile, azureProvider } from '../../src/main/cloud/providers'
 import { resolveBin } from '../../src/main/resolve-bin'
 import { classifyProbe } from '../../src/main/cloud/classify'
@@ -72,6 +72,13 @@ describe('classifyProbe', () => {
   })
   it('maps a parse failure to error', () => {
     expect(classifyProbe(azureProvider, { code: 0, stdout: 'not json' }, now).state).toBe('error')
+  })
+  it('warns (rather than silently swallowing) when the provider parse throws', () => {
+    // A CLI changing its output format must leave a diagnostic, not just flip the chip to 'error'.
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    classifyProbe(azureProvider, { code: 0, stdout: 'not json' }, now)
+    expect(warn).toHaveBeenCalled()
+    warn.mockRestore()
   })
   it('maps a non-ENOENT spawn error / timeout to error', () => {
     expect(classifyProbe(awsProbeForProfile('default'), { errorCode: 'ETIMEDOUT', code: null, stdout: '' }, now).state).toBe('error')

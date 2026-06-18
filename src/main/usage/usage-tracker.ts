@@ -77,7 +77,15 @@ export class UsageTracker {
     if (this.sessions.get(id) !== sess) return
     if (!file) { this.onMetrics(id, null); return }
     let content: string
-    try { content = await readFile(file, 'utf8') } catch { return }
+    try { content = await readFile(file, 'utf8') }
+    catch (e) {
+      // The transcript vanished/rotated between resolve and read (the dir is watched, so this is
+      // plausible). Clear stale metrics rather than freezing the display on the last value, and
+      // leave a diagnostic instead of swallowing the error silently.
+      console.warn('[usage] failed to read transcript:', (e as Error).message)
+      if (this.sessions.get(id) === sess) this.onMetrics(id, null)
+      return
+    }
     if (this.sessions.get(id) !== sess) return
     this.onMetrics(id, parseClaudeUsage(content, sess.alias))
   }

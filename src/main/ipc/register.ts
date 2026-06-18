@@ -44,8 +44,11 @@ export function registerHandlers(services: Services, wm: WindowManager): PtyMana
   registerWorkspaces({ store, quick, shells })
   registerEnv(win, envVault, send)
   registerClipboard()
-  registerDrafts(win, dir)
-  registerNotes(win, dir)
+  // Drafts/notes persist live; their flush is the shutdown safety net, run on EVERY window's close
+  // (main or floating) so a floating window closing before main still flushes its in-memory state.
+  const flushDrafts = registerDrafts(dir)
+  const flushNotes = registerNotes(dir)
+  wm.onWindowClose(() => { flushDrafts(); flushNotes() })
 
   const disposeSearch = registerSearch({ searchService, indexer })
   const disposers: Disposer[] = [
