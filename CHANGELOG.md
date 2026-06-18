@@ -6,6 +6,12 @@ All notable changes to Termhalla are recorded here. The format follows
 
 ## [Unreleased]
 
+### Fixed
+- **Dropdown menus are readable again.** Native `<select>` option popups (the tab bar's shell picker
+  and "+ pane" menu, plus the dialog dropdowns) inherited the light chrome text on Chromium's
+  default-light popup background — white-on-white. `<option>` is now themed (elevated background +
+  luminance-adaptive text), so the popups are legible on light and dark themes.
+
 ## [0.3.3] - 2026-06-18
 
 ### Fixed

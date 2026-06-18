@@ -118,6 +118,17 @@ body { background: var(--bg, #1e1e1e); color: var(--fg, #eee); font-family: var(
   cursor: pointer;
   transition: background 120ms ease, border-color 120ms ease;
 }
+
+/* Native <select> option popups render on Chromium's default-light background, so the inherited
+   light chrome text is invisible there (white-on-white) on dark themes — e.g. the tab bar's shell
+   picker and "+ pane" menu. Pin options to the elevated surface color + its luminance-adaptive
+   readable text so the popup is legible on light and dark themes alike. Scoped to <option>, which
+   xterm/Monaco never render, so their widgets are untouched. */
+option {
+  background-color: var(--elevated, #252526);
+  color: var(--fg-on-elevated, var(--fg, #eee));
+}
+
 :is(
   [data-testid="workspace-tabs"], [data-testid="status-bar"], [data-testid="empty-workspace"],
   .mosaic-window-toolbar, [data-testid="env-manager"], [data-testid="theme-editor"],
