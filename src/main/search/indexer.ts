@@ -1,5 +1,5 @@
 import { stripAnsi } from '../status/needs-input'
-import { SegmentBuffer } from './segment-buffer'
+import { SegmentBuffer, FLUSH_TICK_MS } from './segment-buffer'
 import type { SearchService } from './search-service'
 
 /** Owns a per-pane SegmentBuffer + cwd/muted maps; feeds flushed segments to SearchService. One
@@ -12,7 +12,7 @@ export class Indexer {
   private timer: ReturnType<typeof setInterval>
 
   constructor(private readonly svc: SearchService, private readonly now: () => number = () => Date.now()) {
-    this.timer = setInterval(() => this.tick(), 500)
+    this.timer = setInterval(() => this.tick(), FLUSH_TICK_MS)
     ;(this.timer as { unref?: () => void }).unref?.()
   }
 

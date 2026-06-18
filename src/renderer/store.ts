@@ -344,6 +344,10 @@ export const useStore = create<State>((set, get) => {
       if (!ws) return
       const data = encodeBroadcast(text, mode, enter)
       for (const id of terminalPaneIds(ws)) api.ptyWrite({ id, data })
-    }
+    },
+
+    // Run a saved command in one terminal: raw keystrokes + CR (same plumbing as broadcastInput).
+    // Lives on the root store (not the run-commands slice) so the slice stays api-free/unit-testable.
+    runCommand: (paneId, command) => api.ptyWrite({ id: paneId, data: encodeBroadcast(command, 'keys', true) })
   }
 })

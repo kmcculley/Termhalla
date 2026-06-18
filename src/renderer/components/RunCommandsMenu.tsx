@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { v4 as uuid } from 'uuid'
 import { useStore } from '../store'
-import { addRunCommand, updateRunCommand, removeRunCommand, mergeForMenu } from '@shared/run-commands'
+import { addRunCommand, updateRunCommand, removeRunCommand } from '@shared/run-commands'
 import type { RunCommand } from '@shared/types'
 import { Modal } from './Modal'
 
@@ -23,8 +23,6 @@ export function RunCommandsMenu({ wsId, paneId, onClose }: { wsId: string; paneI
   const [command, setCommand] = useState('')
   const [scope, setScope] = useState<Scope>('pane')
   const [editId, setEditId] = useState<string | null>(null)
-
-  const entries = mergeForMenu(wsCmds, paneCmds)
 
   // Persist a new list for the given scope.
   const persist = (s: Scope, next: RunCommand[]) => {
@@ -48,12 +46,12 @@ export function RunCommandsMenu({ wsId, paneId, onClose }: { wsId: string; paneI
   const run = (command: string) => { runCommand(paneId, command); onClose() }
 
   const section = (s: Scope, title: string) => {
-    const list = entries.filter(e => e.scope === s)
+    const list = listFor(s) ?? []
     return (
       <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
         <div style={{ fontSize: 12, color: 'var(--fg-dim, #aaa)' }}>{title}</div>
         {list.length === 0 && <div style={{ fontSize: 12, color: 'var(--fg-dim, #aaa)' }}>None yet.</div>}
-        {list.map(({ cmd }) => (
+        {list.map(cmd => (
           <div key={cmd.id} data-testid={`run-row-${cmd.id}`} style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
             <button data-testid={`run-cmd-${cmd.id}`} onClick={() => run(cmd.command)}>▷</button>
             <span onClick={() => startEdit(s, cmd)} title={cmd.command}

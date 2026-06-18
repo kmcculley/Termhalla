@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { addRunCommand, updateRunCommand, removeRunCommand, mergeForMenu } from '../../src/shared/run-commands'
+import { addRunCommand, updateRunCommand, removeRunCommand } from '../../src/shared/run-commands'
 import type { RunCommand } from '../../src/shared/types'
 
 const a: RunCommand = { id: 'a', label: 'Test', command: 'npm test' }
@@ -33,20 +33,5 @@ describe('removeRunCommand', () => {
     expect(removeRunCommand([a, b], 'a')).toEqual([b])
     expect(removeRunCommand([a], 'zzz')).toEqual([a])
     expect(removeRunCommand(undefined, 'a')).toEqual([])
-  })
-})
-
-describe('mergeForMenu', () => {
-  it('returns workspace entries before pane entries, each tagged with scope', () => {
-    const out = mergeForMenu([a], [b])
-    expect(out).toEqual([
-      { scope: 'workspace', cmd: a },
-      { scope: 'pane', cmd: b }
-    ])
-  })
-  it('handles either side undefined', () => {
-    expect(mergeForMenu(undefined, [b])).toEqual([{ scope: 'pane', cmd: b }])
-    expect(mergeForMenu([a], undefined)).toEqual([{ scope: 'workspace', cmd: a }])
-    expect(mergeForMenu(undefined, undefined)).toEqual([])
   })
 })

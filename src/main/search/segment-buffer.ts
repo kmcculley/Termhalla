@@ -2,6 +2,9 @@ export interface Segment { text: string; ts: number; cwd: string }
 
 export const SEGMENT_IDLE_MS = 1000
 export const SEGMENT_MAX_BYTES = 8192
+/** How often the Indexer polls buffers for idle flushes. Must be < SEGMENT_IDLE_MS so an idle
+ *  buffer is flushed within ~1.5× SEGMENT_IDLE_MS of its last output. */
+export const FLUSH_TICK_MS = 500
 
 /** Pure per-pane output accumulator. The caller passes ANSI-stripped text. Emits a Segment when the
  *  buffer crosses the size threshold (push), has been idle long enough (flushDue), or the pane ends

@@ -1,12 +1,10 @@
-import { encodeBroadcast } from '@shared/broadcast'
-import { api } from '../api'
 import type { State, SliceDeps } from './types'
 
-type RunCommandsSlice = Pick<State, 'setWorkspaceRunCommands' | 'runCommand'>
+type RunCommandsSlice = Pick<State, 'setWorkspaceRunCommands'>
 
-/** Saved run commands: workspace-scoped list persisted on the Workspace (pane-scoped list reuses
- *  updatePaneConfig), plus the send action that runs a command in a terminal — raw keystrokes + CR
- *  via the shared encodeBroadcast path (same plumbing as broadcast / scheduled commands). */
+/** Workspace-scoped saved run commands (the pane-scoped list reuses updatePaneConfig). The send
+ *  action `runCommand` lives on the root store (store.ts) so this slice stays free of `../api` and
+ *  remains unit-testable. */
 export function createRunCommandsSlice({ set, scheduleAutosave }: SliceDeps): RunCommandsSlice {
   return {
     setWorkspaceRunCommands: (wsId, runCommands) => {
@@ -16,10 +14,6 @@ export function createRunCommandsSlice({ set, scheduleAutosave }: SliceDeps): Ru
         return { workspaces: { ...s.workspaces, [wsId]: { ...ws, runCommands } } }
       })
       scheduleAutosave()
-    },
-
-    runCommand: (paneId, command) => {
-      api.ptyWrite({ id: paneId, data: encodeBroadcast(command, 'keys', true) })
     }
   }
 }

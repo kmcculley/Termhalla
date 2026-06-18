@@ -26,9 +26,8 @@ function defaultWatchFactory(root: string, onChange: () => void): Watcher {
 interface PaneEntry { cwd: string; root: string | null; sig: string }
 interface RootEntry { refs: Set<string>; watcher: Watcher; timer: ReturnType<typeof setTimeout> | null }
 
-function sigOf(status: GitStatus | null): string {
-  if (!status) return 'null'
-  const s = status
+function sigOf(s: GitStatus | null): string {
+  if (!s) return 'null'
   return `${s.root}|${s.branch}|${s.detached}|${s.upstream ?? ''}|${s.ahead}|${s.behind}|${s.staged}|${s.unstaged}|${s.untracked}`
 }
 
