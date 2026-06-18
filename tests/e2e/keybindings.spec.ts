@@ -31,19 +31,27 @@ test('rebinds a command, fires the new chord, and rejects a no-Ctrl chord', asyn
 
   // Invalid: a chord without Ctrl is rejected with an error and no change.
   await win.getByTestId('kb-change-new-terminal').click()
+  // Wait until capture is armed before pressing: the cell shows "Press shortcut…" from the same
+  // `capturing` state the (capture-phase) key listener is registered on, so this closes the
+  // click→press race that otherwise drops the chord on slower machines.
+  await expect(win.getByTestId('kb-chord-new-terminal')).toHaveText('Press shortcut…')
   await win.keyboard.press('Shift+N')
   await expect(win.getByTestId('kb-error')).toBeVisible()
   await win.getByTestId('kb-change-new-terminal').click() // cancel the still-open capture
+  await expect(win.getByTestId('kb-chord-new-terminal')).toHaveText('Ctrl+Shift+T') // capture closed
 
-  // Valid rebind to Ctrl+Shift+N.
+  // Valid rebind to Ctrl+Shift+Y. (Not Ctrl+Shift+N — Chromium/Electron reserves that as the
+  // incognito-window accelerator and swallows it before the renderer sees the keydown, so the
+  // capture never records it. Y is a free chord that reaches the app on every platform.)
   await win.getByTestId('kb-change-new-terminal').click()
-  await win.keyboard.press('Control+Shift+N')
-  await expect(win.getByTestId('kb-chord-new-terminal')).toHaveText('Ctrl+Shift+N')
+  await expect(win.getByTestId('kb-chord-new-terminal')).toHaveText('Press shortcut…')
+  await win.keyboard.press('Control+Shift+Y')
+  await expect(win.getByTestId('kb-chord-new-terminal')).toHaveText('Ctrl+Shift+Y')
 
   // Close Settings and confirm the new chord opens a pane (tile count grows).
   await win.getByTestId('settings-close').click()
   const before = await win.locator('[data-testid^="tile-"]').count()
-  await win.keyboard.press('Control+Shift+N')
+  await win.keyboard.press('Control+Shift+Y')
   await expect(win.locator('[data-testid^="tile-"]')).toHaveCount(before + 1, { timeout: 10_000 })
 
   // Reset restores the default.

@@ -29,9 +29,13 @@ test('status bar shows a shortcut tip that reflects the current binding', async 
   await win.getByTestId('settings-button').click()
   await win.getByTestId('settings-nav-keybindings').click()
   await win.getByTestId('kb-change-new-terminal').click()
-  await win.keyboard.press('Control+Shift+N')
+  // Wait until capture is armed (cell shows "Press shortcut…") before pressing, so the chord isn't
+  // dropped by the click→press race on slower machines.
+  await expect(win.getByTestId('kb-chord-new-terminal')).toHaveText('Press shortcut…')
+  // Ctrl+Shift+Y (not Ctrl+Shift+N — Chromium reserves that for incognito and swallows the keydown).
+  await win.keyboard.press('Control+Shift+Y')
   await win.getByTestId('settings-close').click()
-  await expect(tip).toContainText('Ctrl+Shift+N')
+  await expect(tip).toContainText('Ctrl+Shift+Y')
 
   const pid = app.process().pid; await app.close().catch(() => {}); killTree(pid)
 })
