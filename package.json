@@ -1,6 +1,6 @@
 {
   "name": "termhalla",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "description": "Unified terminals, editor, and explorer with saveable workspaces.",
   "author": "localhostworks",
   "main": "out/main/index.js",
