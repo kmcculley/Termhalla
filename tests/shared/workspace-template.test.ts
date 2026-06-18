@@ -53,4 +53,21 @@ describe('templateFromWorkspace / workspaceFromTemplate', () => {
     const out = workspaceFromTemplate(tpl, 'w2', 'Copy', uuid)
     expect(out.theme).toEqual({ windowBg: '#abcdef' })
   })
+  it('captures and restores workspace-scoped run commands (deep copy)', () => {
+    const cmds = [{ id: 'rc1', label: 'Build', command: 'npm run build' }]
+    const withCmds = { ...ws, runCommands: cmds } as unknown as Workspace
+    const tpl = templateFromWorkspace(withCmds, 't1', 'T')
+    expect(tpl.runCommands).toEqual(cmds)
+    const out = workspaceFromTemplate(tpl, 'w2', 'Copy', uuid)
+    expect(out.runCommands).toEqual(cmds)
+    // must be a deep copy, not the same array reference
+    expect(out.runCommands).not.toBe(cmds)
+    expect(out.runCommands).not.toBe(tpl.runCommands)
+  })
+  it('round-trips a workspace with no run commands without adding the field', () => {
+    const tpl = templateFromWorkspace(ws, 't1', 'T')
+    expect(tpl.runCommands).toBeUndefined()
+    const out = workspaceFromTemplate(tpl, 'w2', 'Copy', uuid)
+    expect(out.runCommands).toBeUndefined()
+  })
 })

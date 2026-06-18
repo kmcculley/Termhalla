@@ -43,6 +43,7 @@ export interface WorkspaceTemplate {
   layout: MosaicNode | null
   panes: Record<string, PaneNode>
   theme?: Partial<Theme>
+  runCommands?: RunCommand[]   // workspace-scoped saved run commands
 }
 
 export interface Theme {
