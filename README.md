@@ -58,13 +58,21 @@ npm run dev                  # launch the app with hot reload
 
 ### Native modules
 
-`node-pty` is a native addon and must be compiled against Electron's ABI:
+Two native addons must be compiled against Electron's ABI:
+
+**`node-pty`** (terminal layer):
 
 - `npm install` runs `patch-package`, applying `patches/node-pty+1.1.0-beta34.patch`
   (disables the Spectre mitigation, which needs MSVC Spectre libs we don't require).
 - Then run `npx electron-rebuild` to rebuild it for the installed Electron version.
 - If the rebuild fails invoking a `.bat`, clear the `NoDefaultCurrentDirectoryInExePath`
   environment variable first — a sandbox can set it and break `.bat`-invoking builds.
+
+**`better-sqlite3`** (output search index):
+
+- Run `npx electron-rebuild -f -w better-sqlite3` after install (or after any Electron version change).
+- The compiled `.node` binary is kept out of the asar archive (`asarUnpack` in `electron-builder.yml`) so it loads at runtime.
+- The same `NoDefaultCurrentDirectoryInExePath` caveat applies if the rebuild fails.
 
 ### Packaging & distribution
 

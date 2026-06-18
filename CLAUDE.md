@@ -126,6 +126,11 @@ related area:
   '\.gyp$'`) — a hand-edited one with wrong hunk counts fails to *parse* and breaks
   `npm ci` postinstall on a fresh checkout (e.g. CI) even though local builds, which
   already have node-pty built, never re-run it. `.gitattributes` pins patches to LF.
+- **`better-sqlite3` is a second native module** (used by `SearchService`) and likewise
+  needs `npx electron-rebuild -f -w better-sqlite3` for Electron's ABI plus an
+  `asarUnpack` entry in `electron-builder.yml`. In this sandbox environment, clear the
+  `NoDefaultCurrentDirectoryInExePath` env var before rebuilding — it breaks the `.bat`
+  invocations used by native build tools (same fix as for node-pty's winpty `.bat`).
 
 ## Where things live
 
@@ -145,6 +150,7 @@ related area:
 | Renderer store | `src/renderer/store.ts` (root) + `src/renderer/store/` (slices + helpers) | — |
 | IPC contract | `src/shared/ipc-contract.ts` | — |
 | Keybindings | `src/shared/keybindings.ts`, `src/renderer/components/KeybindingsSettings.tsx` | [keybindings](docs/features/keybindings.md) |
+| Output search history | `src/main/search/` | [search-history](docs/features/search-history.md) |
 | Saved run commands | `src/shared/run-commands.ts`, `src/renderer/store/run-commands-slice.ts` | [run-commands](docs/features/run-commands.md) |
 | Packaging / auto-update | `electron-builder.yml`, `src/main/updater.ts`, `build/icon.ico` | [packaging](docs/features/packaging.md) |
 

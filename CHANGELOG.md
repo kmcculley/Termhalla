@@ -7,6 +7,19 @@ All notable changes to Termhalla are recorded here. The format follows
 ## [Unreleased]
 
 ### Added
+- **Searchable output history.** Terminal output is indexed in a local SQLite FTS5
+  database (`search.db` under `userData`) as it streams. A **Search output history**
+  modal (🔍 in the status bar or **Ctrl+Shift+F**) lets the user query across current
+  and past sessions: results show a ranked context snippet and the working directory;
+  **Reveal** focuses the source pane if it is still open, **Relaunch** opens a new
+  terminal at the hit's cwd. Indexing is on by default with a per-terminal 🔇/📖 mute
+  toggle (persisted as `historyMuted` in the pane config, schema 5→6). A **Clear
+  history** button wipes the full index. A 50 000-segment retention cap prunes the
+  oldest entries automatically. Privacy boundary: output only — keystrokes are never
+  indexed; the index is local and never transmitted. Built on `better-sqlite3` (native,
+  Electron-ABI, `asarUnpack`); pure logic (`segment-buffer`, `prune-policy`, `fts-query`)
+  is unit-tested under vitest; `SearchService` + `Indexer` are validated by a Playwright
+  e2e test.
 - **Saved run commands.** Each terminal pane now has a `▷` toolbar button that
   opens a **Run commands** modal listing workspace-scoped and pane-scoped saved
   commands (label + shell command). Clicking `▷` next to a command sends it to
