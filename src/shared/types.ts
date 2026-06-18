@@ -93,6 +93,7 @@ export interface TerminalConfig {
   envId?: string            // links to a per-terminal env-vault entry; injected on spawn
   theme?: Partial<Theme>
   runCommands?: RunCommand[]   // pane-scoped saved run commands
+  historyMuted?: boolean        // absent = indexed
 }
 
 export interface EditorConfig {
@@ -241,7 +242,19 @@ export interface UsageMetrics {
 /** Decrypted env-vault contents surfaced to the renderer while unlocked. */
 export interface EnvVaultData { global: Record<string, string>; terminals: Record<string, Record<string, string>> }
 
-export const SCHEMA_VERSION = 5
+export interface SearchHit {
+  id: number
+  paneId: string
+  ts: number
+  cwd: string
+  snippet: string
+}
+export interface SearchStats {
+  segments: number
+  oldest: number | null
+}
+
+export const SCHEMA_VERSION = 6
 
 /** A saved, named command a user can run on click in a terminal. Persisted (pane- or
  *  workspace-scoped). Runtime sending reuses encodeBroadcast(command, 'keys', true). */
