@@ -15,6 +15,7 @@ import { Scheduler } from './components/Scheduler'
 import { Toasts } from './components/Toasts'
 import { SettingsPanel } from './components/SettingsPanel'
 import { NotesPanel } from './components/NotesPanel'
+import { SearchHistory } from './components/SearchHistory'
 import { matchShortcut, resolveBindings } from '@shared/keymap'
 import { api } from './api'
 
@@ -90,6 +91,7 @@ export default function App() {
           break
         }
         case 'toggle-notes': s.setNotesOpen(!s.notesOpen); break
+        case 'toggle-search': s.setSearchOpen(!s.searchOpen); break
       }
     }
     window.addEventListener('keydown', onKey)
@@ -131,6 +133,7 @@ export default function App() {
       <SettingsPanel />
       <BroadcastDialog />
       <CommandPalette />
+      <SearchHistory />
       <SshConnectionForm key={connectionFormFor === null ? 'none' : connectionFormFor === 'new' ? 'new' : connectionFormFor.id} />
     </div>
   )

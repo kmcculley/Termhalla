@@ -72,6 +72,9 @@ export function StatusBar() {
         </div>
       ))}
       <div style={{ flex: 1 }} />
+      <button data-testid="search-toggle" type="button" title="Search output history (Ctrl+Shift+F)"
+        onClick={() => useStore.getState().setSearchOpen(true)}
+        style={{ background: 'transparent', border: 'none', cursor: 'pointer', font: 'inherit', color: 'var(--fg-dim, #aaa)', padding: 0 }}>🔍</button>
       <button data-testid="notes-toggle" type="button" title="Toggle notes (project notepad)"
         onClick={() => useStore.getState().setNotesOpen(!useStore.getState().notesOpen)}
         style={{ background: 'transparent', border: 'none', cursor: 'pointer', font: 'inherit', color: 'var(--fg-dim, #aaa)', padding: 0 }}>📝</button>
