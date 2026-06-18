@@ -3,6 +3,7 @@ import { useStore } from '../store'
 import type { CloudState, CloudStatus } from '@shared/types'
 import { Z, SURFACE } from './Modal'
 import { resolveBindings, formatChord, COMMANDS, TIP_COMMANDS, nextTipIndex } from '@shared/keybindings'
+import { groupCloudStatuses } from '@shared/group-cloud'
 
 const GLYPH: Record<CloudState, string> = {
   'checking': '…', 'logged-in': '✓', 'logged-out': '⚠', 'not-installed': '∅', 'error': '!'
@@ -40,32 +41,38 @@ export function StatusBar() {
       style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '2px 10px', background: 'var(--panel, #1e1e1e)',
         borderTop: '1px solid var(--border, #333)', fontSize: 12, color: 'var(--fg-dim, #aaa)', minHeight: 22 }}>
       {cloud.length === 0 && <span style={{ opacity: 'var(--dimmer)' }}>cloud status…</span>}
-      {cloud.map(c => (
-        <div key={c.id} style={{ position: 'relative' }}>
-          <button data-testid={`cloud-${c.id}`} type="button" title={`${c.label}: ${c.state}`}
-            onClick={() => setOpenFor(openFor === c.id ? null : c.id)}
+      {groupCloudStatuses(cloud).map(g => (
+        <div key={g.family} style={{ position: 'relative' }}>
+          <button data-testid={`cloud-${g.family}`} type="button" title={`${g.label}: ${g.summary}`}
+            onClick={() => setOpenFor(openFor === g.family ? null : g.family)}
             style={{ background: 'transparent', border: 'none', cursor: 'pointer', font: 'inherit',
-              color: COLOR[c.state], padding: 0, whiteSpace: 'nowrap' }}>
-            {GLYPH[c.state]} {c.label}{accountLabel(c)}
+              color: COLOR[g.summary], padding: 0, whiteSpace: 'nowrap' }}>
+            {GLYPH[g.summary]} {g.label}{g.total > 1 ? ` ${g.loggedIn}/${g.total}` : ''}
           </button>
-          {openFor === c.id && (
-            <div data-testid={`cloud-menu-${c.id}`} onClick={e => e.stopPropagation()}
-              style={{ ...SURFACE, position: 'absolute', bottom: 24, left: 0, zIndex: Z.menu, padding: 8, minWidth: 240, display: 'flex',
-                flexDirection: 'column', gap: 4, fontFamily: 'var(--mono)' }}>
-              {c.detail && Object.entries(c.detail).map(([k, v]) => (
-                <div key={k} style={{ display: 'flex', gap: 8, whiteSpace: 'nowrap' }}>
-                  <span style={{ color: 'var(--fg-dim, #aaa)', minWidth: 92 }}>{k}</span>
-                  <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{v}</span>
+          {openFor === g.family && (
+            <div data-testid={`cloud-menu-${g.family}`} onClick={e => e.stopPropagation()}
+              style={{ ...SURFACE, position: 'absolute', bottom: 24, left: 0, zIndex: Z.menu, padding: 8, minWidth: 260,
+                display: 'flex', flexDirection: 'column', gap: 6, fontFamily: 'var(--mono)' }}>
+              {g.members.map(c => (
+                <div key={c.id} data-testid={`cloud-profile-${c.profile ?? c.family}`}
+                  style={{ display: 'flex', flexDirection: 'column', gap: 2, borderTop: '1px solid var(--border, #444)', paddingTop: 4 }}>
+                  <div style={{ color: COLOR[c.state], whiteSpace: 'nowrap' }}>
+                    {GLYPH[c.state]} {c.profile ?? c.label}{accountLabel(c)}
+                  </div>
+                  {c.detail && Object.entries(c.detail).map(([k, v]) => (
+                    <div key={k} style={{ display: 'flex', gap: 8, whiteSpace: 'nowrap', color: 'var(--fg-dim, #aaa)' }}>
+                      <span style={{ minWidth: 80 }}>{k}</span>
+                      <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{v}</span>
+                    </div>
+                  ))}
+                  {c.state !== 'not-installed' && c.login && (c.state === 'logged-out' || c.state === 'error') && (
+                    <button data-testid={`cloud-login-${c.id}`} type="button"
+                      onClick={() => { const l = c.login!; launchCommand(l); setOpenFor(null) }}>Log in</button>
+                  )}
                 </div>
               ))}
-              {(!c.detail || Object.keys(c.detail).length === 0) && <div style={{ color: 'var(--fg-dim, #aaa)' }}>{c.state}</div>}
               <div style={{ display: 'flex', gap: 6, marginTop: 4 }}>
-                <button data-testid={`cloud-refresh-${c.id}`} type="button"
-                  onClick={() => refreshCloud()}>Refresh</button>
-                {c.state !== 'not-installed' && c.login && (
-                  <button data-testid={`cloud-login-${c.id}`} type="button"
-                    onClick={() => { const l = c.login!; launchCommand(l); setOpenFor(null) }}>Log in</button>
-                )}
+                <button data-testid={`cloud-refresh-${g.family}`} type="button" onClick={() => refreshCloud()}>Refresh</button>
               </div>
             </div>
           )}
