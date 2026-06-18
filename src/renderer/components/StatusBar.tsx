@@ -72,6 +72,9 @@ export function StatusBar() {
         </div>
       ))}
       <div style={{ flex: 1 }} />
+      <button data-testid="notes-toggle" type="button" title="Toggle notes (project notepad)"
+        onClick={() => useStore.getState().setNotesOpen(!useStore.getState().notesOpen)}
+        style={{ background: 'transparent', border: 'none', cursor: 'pointer', font: 'inherit', color: 'var(--fg-dim, #aaa)', padding: 0 }}>📝</button>
       {tipText && <span data-testid="statusbar-tip" style={{ whiteSpace: 'nowrap', opacity: 0.85 }}>{tipText}</span>}
     </div>
   )
