@@ -47,6 +47,7 @@ export function TerminalPane({ paneId, wsId, config }: { paneId: string; wsId: s
       id: paneId, shellId: config.shellId, cwd: config.cwd,
       cols: term.cols, rows: term.rows, launch: config.launch, envId: config.envId
     })
+    api.searchSetMuted(paneId, !!config.historyMuted)
     if (useStore.getState().quick.recordByDefault) api.recStart(paneId)
 
     const offData = api.onPtyData((id, data) => { if (id === paneId) term.write(data) })
