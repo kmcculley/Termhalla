@@ -6,6 +6,8 @@ All notable changes to Termhalla are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-06-18
+
 ### Added
 - **Split buttons offer Terminal / Editor / Explorer.** The pane split buttons no longer open a
   terminal directly — each opens a small menu to choose what the split creates, in that direction.
