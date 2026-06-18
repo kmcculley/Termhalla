@@ -1,4 +1,5 @@
 import type { TerminalLaunch } from '@shared/types'
+import { discoverAwsProfiles } from './aws-profiles'
 
 export interface CloudIdentity { account: string; detail: Record<string, string> }
 
@@ -6,6 +7,8 @@ export interface CloudProvider {
   id: string
   label: string
   bin: string
+  family: string
+  profile?: string
   probeArgs: string[]
   parse(stdout: string): CloudIdentity
   login: TerminalLaunch
@@ -13,12 +16,11 @@ export interface CloudProvider {
 
 type Env = Record<string, string | undefined>
 
-/** `aws sts get-caller-identity` output -> account id + detail (profile/region from env). */
-export function parseAwsIdentity(stdout: string, env: Env = process.env): CloudIdentity {
+/** `aws sts get-caller-identity` output -> account id + detail (profile arg + region from env). */
+export function parseAwsIdentity(stdout: string, profile: string, env: Env = process.env): CloudIdentity {
   const j = JSON.parse(stdout) as { Account?: string; Arn?: string; UserId?: string }
   const account = j.Account ?? ''
   if (!account) throw new Error('aws: no Account in get-caller-identity output')
-  const profile = env.AWS_PROFILE ?? env.AWS_DEFAULT_PROFILE ?? 'default'
   const region = env.AWS_REGION ?? env.AWS_DEFAULT_REGION ?? ''
   const detail: Record<string, string> = { Account: account, Profile: profile }
   if (j.Arn) detail.Arn = j.Arn
@@ -39,18 +41,24 @@ export function parseAzureIdentity(stdout: string): CloudIdentity {
   return { account, detail }
 }
 
-export const awsProvider: CloudProvider = {
-  id: 'aws', label: 'AWS', bin: 'aws',
-  probeArgs: ['sts', 'get-caller-identity', '--output', 'json'],
-  parse: parseAwsIdentity,
-  login: { command: 'aws', args: ['sso', 'login'], title: 'aws sso login' }
+/** A probe for one AWS profile: `--profile X`, profile-stamped parse, per-profile sso login. */
+export function awsProbeForProfile(profile: string): CloudProvider {
+  return {
+    id: `aws:${profile}`, label: 'AWS', bin: 'aws', family: 'aws', profile,
+    probeArgs: ['sts', 'get-caller-identity', '--profile', profile, '--output', 'json'],
+    parse: (stdout) => parseAwsIdentity(stdout, profile),
+    login: { command: 'aws', args: ['sso', 'login', '--profile', profile], title: `aws sso login --profile ${profile}` }
+  }
 }
 
 export const azureProvider: CloudProvider = {
-  id: 'azure', label: 'Azure', bin: 'az',
+  id: 'azure', label: 'Azure', bin: 'az', family: 'azure',
   probeArgs: ['account', 'show', '--output', 'json'],
   parse: parseAzureIdentity,
   login: { command: 'az', args: ['login'], title: 'az login' }
 }
 
-export const DEFAULT_PROVIDERS: CloudProvider[] = [awsProvider, azureProvider]
+/** The providers to probe this cycle: every discovered AWS profile (first), then Azure. */
+export function resolveProviders(discover: () => string[] = discoverAwsProfiles): CloudProvider[] {
+  return [...discover().map(awsProbeForProfile), azureProvider]
+}
