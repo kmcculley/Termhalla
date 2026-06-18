@@ -18,6 +18,7 @@ export function createSearchSlice({ set, get }: SliceDeps): SearchSlice {
     },
 
     relaunchFromSearch: (cwd) => {
+      if (!cwd) return   // a hit with no cwd can't be relaunched — keep the modal open
       get().launchDir(cwd)
       set({ searchOpen: false })
     }
