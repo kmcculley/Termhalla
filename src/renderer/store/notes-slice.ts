@@ -11,7 +11,7 @@ export function createNotesSlice({ set, scheduleNotesSave }: SliceDeps): NotesSl
     setNotesProject: (key) => set({ notesProjectKey: key }),
     setNote: (key, text) => {
       set(s => ({ notes: { ...s.notes, [key]: text } }))
-      scheduleNotesSave()
+      scheduleNotesSave(key)
     }
   }
 }

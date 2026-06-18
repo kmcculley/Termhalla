@@ -1,4 +1,4 @@
-import { mkdir, readFile, writeFile } from 'node:fs/promises'
+import { readFile } from 'node:fs/promises'
 import { mkdirSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 
@@ -43,8 +43,4 @@ export class NotesStore {
     catch { /* best-effort on teardown */ }
   }
 
-  private async persist(): Promise<void> {
-    try { await mkdir(this.baseDir, { recursive: true }); await writeFile(this.file(), JSON.stringify(this.map), 'utf8') }
-    catch { /* best-effort */ }
-  }
 }

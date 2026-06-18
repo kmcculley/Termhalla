@@ -40,13 +40,15 @@ function makeDebounce(fn: () => void, ms: number) {
 export const useStore = create<State>((set, get) => {
   const autosave = makeDebounce(() => { void get().saveAll() }, AUTOSAVE_DEBOUNCE_MS)
   const quickSave = makeDebounce(() => { void api.saveQuick(get().quick) }, AUTOSAVE_DEBOUNCE_MS)
+  const dirtyNotes = new Set<string>()
   const notesSave = makeDebounce(() => {
-    const s = get(); const k = s.notesProjectKey
-    if (k != null) void api.notesSet(k, s.notes[k] ?? '')
+    const s = get()
+    for (const k of dirtyNotes) void api.notesSet(k, s.notes[k] ?? '')
+    dirtyNotes.clear()
   }, AUTOSAVE_DEBOUNCE_MS)
   const scheduleAutosave = autosave.schedule
   const scheduleQuickSave = quickSave.schedule
-  const scheduleNotesSave = notesSave.schedule
+  const scheduleNotesSave = (key: string) => { dirtyNotes.add(key); notesSave.schedule() }
 
   /** Place `cfg` as a new pane in `wsId`, commit it to state, schedule a save, and return the
    *  new pane id. Centralizes the get-ws / placePane / set-workspaces / autosave sequence that

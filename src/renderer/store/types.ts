@@ -136,6 +136,6 @@ export interface SliceDeps {
   get: StoreApi<State>['getState']
   scheduleAutosave: () => void
   scheduleQuickSave: () => void
-  scheduleNotesSave: () => void
+  scheduleNotesSave: (key: string) => void
   commitPane: (wsId: string, cfg: PaneConfig, target: string | null, dir: MosaicDirection, markEditor?: boolean) => string
 }

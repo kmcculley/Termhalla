@@ -15,7 +15,7 @@ describe('notes slice', () => {
     const { slice, get, scheduleNotesSave } = harness()
     slice.setNote('/proj', 'hello')
     expect(get().notes['/proj']).toBe('hello')
-    expect(scheduleNotesSave).toHaveBeenCalled()
+    expect(scheduleNotesSave).toHaveBeenCalledWith('/proj')
   })
   it('setNotesProject sets the current key', () => {
     const { slice, get } = harness()
