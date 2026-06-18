@@ -43,6 +43,8 @@ export const CH = {
   usageMetrics: 'usage:metrics',    // main -> renderer event
   draftsLoad: 'drafts:load',
   draftsSet: 'drafts:set',
+  notesLoad: 'notes:load',
+  notesSet: 'notes:set',
   draftsDelete: 'drafts:delete',
   recStart: 'rec:start',
   recStop: 'rec:stop',
@@ -115,6 +117,8 @@ export interface TermhallaApi {
   draftsLoad(): Promise<Record<string, EditorDraft>>
   draftsSet(key: string, draft: EditorDraft): void
   draftsDelete(key: string): void
+  notesLoad(): Promise<Record<string, string>>
+  notesSet(key: string, text: string): void
   recStart(id: string): void
   recStop(id: string): void
   onRecState(cb: (id: string, state: RecState) => void): () => void

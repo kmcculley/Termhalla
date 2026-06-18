@@ -58,6 +58,8 @@ const api: TermhallaApi = {
   draftsLoad: () => ipcRenderer.invoke(CH.draftsLoad),
   draftsSet: (key, draft) => ipcRenderer.send(CH.draftsSet, key, draft),
   draftsDelete: (key) => ipcRenderer.send(CH.draftsDelete, key),
+  notesLoad: () => ipcRenderer.invoke(CH.notesLoad),
+  notesSet: (key, text) => ipcRenderer.send(CH.notesSet, key, text),
   onPtyCwd: pushChannel<[string, string]>(CH.ptyCwd),
   onPtyProcs: pushChannel<[string, import('@shared/types').ProcInfo | null]>(CH.ptyProcs),
   onGitStatus: pushChannel<[string, import('@shared/types').GitStatus | null]>(CH.gitStatus),
