@@ -19,6 +19,18 @@ All notable changes to Termhalla are recorded here. The format follows
   `src/shared/run-commands.ts`; store slice in
   `src/renderer/store/run-commands-slice.ts`. This is the persisted, manually-triggered
   sibling of the runtime-only scheduled-commands feature.
+- **Per-project notepad.** A collapsible right-side drawer (📝 in the status bar,
+  or **Ctrl+Shift+N**) provides a plain-text scratchpad scoped to the focused
+  pane's project. The project key is the git repo root when available (from the
+  git-status service), falling back to the pane's cwd, so every pane in the same
+  repo shares one note. The drawer tracks the focused pane and stays on the last
+  known project when focus moves to a non-terminal or a pane without a cwd yet.
+  Notes persist in an app-global `notes.json` (`userData`) via a new `NotesStore`
+  (modeled on `DraftStore`): async writes during editing, synchronous flush on
+  window close, empty text prunes the key. Multi-window: note content is shared
+  via main; open-state and shown-project are per-window. Pure helpers in
+  `src/shared/project-key.ts`; store slice in `src/renderer/store/notes-slice.ts`;
+  drawer in `src/renderer/components/NotesPanel.tsx`.
 - **Git status on the pane chip.** Each terminal pane whose cwd is inside a git
   working tree now shows a compact git indicator in its toolbar: the current branch
   name plus a `●` dirty dot when there are staged, unstaged, or untracked changes.

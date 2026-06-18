@@ -22,6 +22,7 @@ import { createRunCommandsSlice } from './store/run-commands-slice'
 import { createToastsSlice } from './store/toasts-slice'
 import { createSettingsSlice } from './store/settings-slice'
 import { createKeybindingsSlice } from './store/keybindings-slice'
+import { createNotesSlice } from './store/notes-slice'
 
 // Re-exported so existing `import { ... } from '../store'` call sites keep working.
 export type { ThemeScope } from './store/types'
@@ -39,8 +40,15 @@ function makeDebounce(fn: () => void, ms: number) {
 export const useStore = create<State>((set, get) => {
   const autosave = makeDebounce(() => { void get().saveAll() }, AUTOSAVE_DEBOUNCE_MS)
   const quickSave = makeDebounce(() => { void api.saveQuick(get().quick) }, AUTOSAVE_DEBOUNCE_MS)
+  const dirtyNotes = new Set<string>()
+  const notesSave = makeDebounce(() => {
+    const s = get()
+    for (const k of dirtyNotes) void api.notesSet(k, s.notes[k] ?? '')
+    dirtyNotes.clear()
+  }, AUTOSAVE_DEBOUNCE_MS)
   const scheduleAutosave = autosave.schedule
   const scheduleQuickSave = quickSave.schedule
+  const scheduleNotesSave = (key: string) => { dirtyNotes.add(key); notesSave.schedule() }
 
   /** Place `cfg` as a new pane in `wsId`, commit it to state, schedule a save, and return the
    *  new pane id. Centralizes the get-ws / placePane / set-workspaces / autosave sequence that
@@ -69,7 +77,7 @@ export const useStore = create<State>((set, get) => {
     api.winReport({ windowId: s.windowId, workspaceIds: s.order, activeId: s.activeId })
   }
 
-  const deps: SliceDeps = { set, get, scheduleAutosave, scheduleQuickSave, commitPane }
+  const deps: SliceDeps = { set, get, scheduleAutosave, scheduleQuickSave, scheduleNotesSave, commitPane }
 
   return {
     // ---- initial state ----
@@ -91,6 +99,9 @@ export const useStore = create<State>((set, get) => {
     usage: {},
     recording: {},
     drafts: {},
+    notes: {},
+    notesOpen: false,
+    notesProjectKey: null,
     cloud: [],
     envVault: { exists: false, unlocked: false },
     schedules: {},
@@ -109,13 +120,14 @@ export const useStore = create<State>((set, get) => {
     ...createToastsSlice(deps),
     ...createSettingsSlice(deps),
     ...createKeybindingsSlice(deps),
+    ...createNotesSlice(deps),
 
     // ---- core: bootstrap + persistence ----
     init: async () => {
       const shells = await api.listShells()
       set({ shells, newTerminalShellId: shells[0]?.id ?? null })
-      const [quick, home, drafts] = await Promise.all([api.loadQuick(), api.homeDir(), api.draftsLoad()])
-      set({ quick, home, drafts })
+      const [quick, home, drafts, notes] = await Promise.all([api.loadQuick(), api.homeDir(), api.draftsLoad(), api.notesLoad()])
+      set({ quick, home, drafts, notes })
       // Workspaces are hydrated by applyAssignment when main pushes this window's win:assignment.
     },
 
@@ -162,6 +174,7 @@ export const useStore = create<State>((set, get) => {
     },
 
     flushQuick: quickSave.flush,
+    flushNotes: notesSave.flush,
     setNewTerminalShell: (id) => set({ newTerminalShellId: id }),
 
     // ---- core: workspace management ----

@@ -6,6 +6,7 @@ import { registerPty } from './register-pty'
 import { registerFs } from './register-fs'
 import { registerWorkspaces } from './register-workspaces'
 import { registerDrafts } from './register-drafts'
+import { registerNotes } from './register-notes'
 import { registerCloud } from './register-cloud'
 import { registerUsage } from './register-usage'
 import { registerRecording } from './register-recording'
@@ -41,6 +42,7 @@ export function registerHandlers(services: Services, wm: WindowManager): PtyMana
   registerEnv(win, envVault, send)
   registerClipboard()
   registerDrafts(win, dir)
+  registerNotes(win, dir)
 
   const disposers: Disposer[] = [
     registerFs(win, send),

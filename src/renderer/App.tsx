@@ -14,6 +14,7 @@ import { UsageWatcher } from './components/UsageWatcher'
 import { Scheduler } from './components/Scheduler'
 import { Toasts } from './components/Toasts'
 import { SettingsPanel } from './components/SettingsPanel'
+import { NotesPanel } from './components/NotesPanel'
 import { matchShortcut, resolveBindings } from '@shared/keymap'
 import { api } from './api'
 
@@ -21,14 +22,14 @@ export default function App() {
   const init = useStore(s => s.init)
   // Scope the subscription: a bare useStore() re-renders the root (and every workspace host)
   // on ANY store change — cwd/proc/usage/status churn included. Only these three drive App.
-  const { activeId, workspaces, order } = useStore(
-    useShallow(s => ({ activeId: s.activeId, workspaces: s.workspaces, order: s.order }))
+  const { activeId, workspaces, order, notesOpen } = useStore(
+    useShallow(s => ({ activeId: s.activeId, workspaces: s.workspaces, order: s.order, notesOpen: s.notesOpen }))
   )
   const isMainWindow = useStore(s => s.isMainWindow)
   const connectionFormFor = useStore(s => s.connectionFormFor)
   useEffect(() => { init() }, [init])
   useEffect(() => {
-    const flush = () => { const s = useStore.getState(); void s.saveAll(); s.flushQuick() }
+    const flush = () => { const s = useStore.getState(); void s.saveAll(); s.flushQuick(); s.flushNotes() }
     window.addEventListener('beforeunload', flush)
     return () => window.removeEventListener('beforeunload', flush)
   }, [])
@@ -88,6 +89,7 @@ export default function App() {
           if (pane && activeId && s.workspaces[activeId]?.panes[pane]) s.toggleMaximize(activeId, pane)
           break
         }
+        case 'toggle-notes': s.setNotesOpen(!s.notesOpen); break
       }
     }
     window.addEventListener('keydown', onKey)
@@ -98,26 +100,29 @@ export default function App() {
     <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', background: 'var(--bg, #1e1e1e)' }}>
       <ThemeProvider />
       {isMainWindow ? <WorkspaceTabs /> : <FloatingHeader />}
-      <div style={{ flex: 1, position: 'relative' }} className="mosaic-blueprint-theme">
-        {order.length === 0 && <div data-testid="app-title">Termhalla</div>}
-        {/* Every workspace stays mounted; only the active one is shown. Switching tabs must NOT
-            unmount inactive panes — that would dispose their xterm instances (losing scrollback
-            and freezing live TUIs like Claude until the next write) and Monaco models (losing
-            unsaved edits). `visibility: hidden` (not `display: none`) keeps each host at full
-            size, so xterm's FitAddon and the PTY grid never resize on switch. */}
-        {order.map(id => {
-          const ws = workspaces[id]
-          if (!ws) return null
-          const isActive = id === activeId
-          return (
-            <div key={id} data-testid="workspace-host" data-ws={id} data-active={isActive ? 'true' : 'false'}
-              aria-hidden={!isActive}
-              style={{ ...themeCssVarsPartial(ws.theme ?? {}), position: 'absolute', inset: 0, visibility: isActive ? 'visible' : 'hidden',
-                pointerEvents: isActive ? 'auto' : 'none', zIndex: isActive ? 1 : 0 }}>
-              <WorkspaceView ws={ws} />
-            </div>
-          )
-        })}
+      <div style={{ flex: 1, display: 'flex', minHeight: 0 }}>
+        <div style={{ flex: 1, position: 'relative' }} className="mosaic-blueprint-theme">
+          {order.length === 0 && <div data-testid="app-title">Termhalla</div>}
+          {/* Every workspace stays mounted; only the active one is shown. Switching tabs must NOT
+              unmount inactive panes — that would dispose their xterm instances (losing scrollback
+              and freezing live TUIs like Claude until the next write) and Monaco models (losing
+              unsaved edits). `visibility: hidden` (not `display: none`) keeps each host at full
+              size, so xterm's FitAddon and the PTY grid never resize on switch. */}
+          {order.map(id => {
+            const ws = workspaces[id]
+            if (!ws) return null
+            const isActive = id === activeId
+            return (
+              <div key={id} data-testid="workspace-host" data-ws={id} data-active={isActive ? 'true' : 'false'}
+                aria-hidden={!isActive}
+                style={{ ...themeCssVarsPartial(ws.theme ?? {}), position: 'absolute', inset: 0, visibility: isActive ? 'visible' : 'hidden',
+                  pointerEvents: isActive ? 'auto' : 'none', zIndex: isActive ? 1 : 0 }}>
+                <WorkspaceView ws={ws} />
+              </div>
+            )
+          })}
+        </div>
+        {notesOpen && <NotesPanel />}
       </div>
       <StatusBar />
       <UsageWatcher />
