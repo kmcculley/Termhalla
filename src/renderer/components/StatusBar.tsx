@@ -46,7 +46,9 @@ export function StatusBar() {
           <button data-testid={`cloud-${g.family}`} type="button" title={`${g.label}: ${g.summary}`}
             onClick={() => setOpenFor(openFor === g.family ? null : g.family)}
             style={{ background: 'transparent', border: 'none', cursor: 'pointer', font: 'inherit',
-              color: COLOR[g.summary], padding: 0, whiteSpace: 'nowrap' }}>
+              // Partial login (some profiles in, some out) shows amber, not the all-green of summary.
+              color: g.summary === 'logged-in' && g.loggedIn < g.total ? COLOR['logged-out'] : COLOR[g.summary],
+              padding: 0, whiteSpace: 'nowrap' }}>
             {GLYPH[g.summary]} {g.label}{g.total > 1 ? ` ${g.loggedIn}/${g.total}` : ''}
           </button>
           {openFor === g.family && (
