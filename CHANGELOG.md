@@ -6,6 +6,8 @@ All notable changes to Termhalla are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.3.3] - 2026-06-18
+
 ### Fixed
 - **tmux (and other full-screen TUIs) no longer launch with a garbled first frame.** Under xterm's
   DOM renderer the initial alternate-screen draw occasionally renders garbled (a known renderer miss
