@@ -6,6 +6,8 @@ All notable changes to Termhalla are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.3.5] - 2026-06-18
+
 ### Added
 - SSH favorites can open in a named tmux session (`tmux new -A -s <name>`), attached-or-created on
   connect and reattached automatically on reconnect/restart.
