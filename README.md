@@ -19,15 +19,25 @@ for Claude — how full its context window is.
 
 | Area | What you get |
 |---|---|
-| **Tiled workspaces** | Multiple real shells in a [react-mosaic](https://nomcopter.github.io/react-mosaic/) split layout; named workspace tabs; save/restore + debounced auto-save; window-state memory. |
+| **Tiled workspaces** | Multiple real shells in a [react-mosaic](https://nomcopter.github.io/react-mosaic/) split layout; named workspace tabs with right-click Rename / Save / Close, inline rename, and drag-to-reorder; save/restore + debounced auto-save; reusable layout **templates** (save a layout, spawn new workspaces from it); window-state memory. |
+| **Multi-window undock** | Tear a workspace tab off into its own OS window on any monitor and drag it back to re-dock; live shells survive the move with scrollback intact, and the multi-window arrangement is restored on relaunch. |
 | **Status & alerts** | Per-terminal busy / idle / needs-input state from OSC 133 shell integration; status borders, 🔔 tab badges, OS notifications, per-terminal alert settings. |
 | **Editor & explorer** | Monaco editor panes with per-file tabs, dirty tracking, Ctrl+S, external-change reload; a lazy, watched file-tree explorer. |
 | **CWD awareness** | Live working directory per terminal (OSC 9;9 / OSC 7); "Open Explorer here" / "Reveal"; restored on reload. |
 | **SSH & favorites** | Ctrl+K command palette; saved SSH connections (no secrets stored); recent/favorite directories. |
 | **Child-process tracking** | The foreground process on a chip + a descendant process tree popover. |
+| **Git status** | A per-pane branch chip (branch name + dirty dot) for panes inside a git working tree, with upstream ref, ahead/behind, and staged/unstaged/untracked counts in a popover. |
 | **Cloud status** | Global status bar showing AWS / Azure CLI login state. |
 | **AI session awareness** | Detects Claude Code / Codex sessions in a terminal; `✨ Claude` chip + tab indicator + "waiting for you" notification. |
 | **Claude usage metrics** | Live context-window % on the chip and a token breakdown in the popover, parsed from Claude's transcript. |
+| **Broadcast & scheduled input** | Send the same text to every terminal in a workspace at once (raw keystrokes or bracketed paste, plus a row of quick-keys); or schedule command(s) to a single terminal after a delay, when it goes idle, or on a recurring schedule. |
+| **Saved run commands** | Named, persisted run-on-click commands (e.g. Test / Build / Watch) at pane and workspace scope, riding into saved workspace templates. |
+| **Output search history** | Full-text search across current and past terminal output (local SQLite FTS5 index), with reveal-in-pane / relaunch-at-cwd actions and a per-pane indexing mute. |
+| **Terminal recording** | Record a terminal's output to a replayable asciinema `.cast` file — per-terminal, or automatically for every new terminal. |
+| **Per-project notepad** | A collapsible notes drawer scoped to the focused pane's project (git root, else cwd), persisted across restarts. |
+| **Environment variables** | Inject env vars into terminals from an AES-256-GCM-encrypted local vault — global vars for every shell or per-terminal overrides. |
+| **Theming** | Customize window / panel / text / accent / alert / terminal colors, fonts, and sizes, with named presets. |
+| **Keybindings** | Rebindable keyboard shortcuts via **Settings → Keybindings**, persisted; reserved Ctrl+1–9 workspace jumps; rotating shortcut tips in the status bar. |
 
 See [`docs/features/`](docs/features/) for a doc per feature.
 
