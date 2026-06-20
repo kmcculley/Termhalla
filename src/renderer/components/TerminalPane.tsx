@@ -10,7 +10,7 @@ import { nextFontSize } from '@shared/font-zoom'
 import { matchShortcut, resolveBindings } from '@shared/keymap'
 import { useStore } from '../store'
 import { useResolvedPaneTheme } from '../use-resolved-theme'
-import { clipboardKeyAction } from './terminal-clipboard'
+import { handleClipboardKey } from './terminal-clipboard'
 import { registerSerializer, unregisterSerializer, consumeSnapshot, registerFocuser, unregisterFocuser, registerRedrawer, unregisterRedrawer } from './terminal-registry'
 
 /** Scrollback lines captured when serializing a terminal for a window-handoff replay. */
@@ -93,10 +93,12 @@ export function TerminalPane({ paneId, wsId, config }: { paneId: string; wsId: s
       // the time. Returning false makes xterm ignore the key without preventing/stopping it, so the
       // original event still bubbles to window. Only keydown matches; keyup/press fall through.
       if (e.type === 'keydown' && matchShortcut(e, resolveBindings(useStore.getState().quick.keybindings))) return false
-      const action = clipboardKeyAction(e, term.hasSelection())
-      if (action === 'copy') { api.clipboardWrite(term.getSelection()); term.clearSelection(); return false }
-      if (action === 'paste') { void paste(); return false }
-      return true
+      // handleClipboardKey calls e.preventDefault() for copy/paste so the browser's native
+      // copy/paste DOM event doesn't ALSO fire xterm's built-in handler (which double-pastes).
+      return handleClipboardKey(e, term.hasSelection(), {
+        copy: () => { api.clipboardWrite(term.getSelection()); term.clearSelection() },
+        paste: () => { void paste() }
+      })
     })
     const onContextMenu = (e: MouseEvent) => { e.preventDefault(); void paste() }
     hostRef.current!.addEventListener('contextmenu', onContextMenu)

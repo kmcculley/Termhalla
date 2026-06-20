@@ -56,6 +56,27 @@ test('pastes the clipboard with Ctrl+V', async ({ app }) => {
   await expect(win.locator('.xterm-rows')).toContainText('PASTE-V-TOKEN', { timeout: 15_000 })
 })
 
+test('Ctrl+V pastes exactly once (no double paste)', async ({ app }) => {
+  const win = await openTerminal(app)
+  await app.evaluate(({ clipboard }) => clipboard.writeText('PASTEONCETOKEN'))
+  await win.locator('.xterm-screen').click()
+  await win.keyboard.press('Control+v')
+  // Wait for the paste to land before doing anything else (mirrors the proven Ctrl+V test above;
+  // typing immediately would race the async clipboard read).
+  await expect(win.locator('.xterm-rows')).toContainText('PASTEONCETOKEN', { timeout: 15_000 })
+  // Type a sentinel AFTER the paste. Both paste copies (the custom handler's term.paste and, when
+  // the bug is present, the browser's native paste event) are dispatched to the PTY before this
+  // keystroke; the PTY is FIFO, so once the sentinel renders every paste byte has flushed and the
+  // count reflects the final state.
+  await win.keyboard.type('ZZSENT')
+  await expect(win.locator('.xterm-rows')).toContainText('ZZSENT', { timeout: 5_000 })
+  // The custom Ctrl+V handler must preventDefault so the browser's native paste event does not
+  // ALSO fire xterm's built-in paste listener — otherwise the token lands twice.
+  const text = await win.locator('.xterm-rows').textContent()
+  const count = (text?.match(/PASTEONCETOKEN/g) || []).length
+  expect(count).toBe(1)
+})
+
 test('pastes the clipboard on right-click', async ({ app }) => {
   const win = await openTerminal(app)
   await app.evaluate(({ clipboard }) => clipboard.writeText('PASTE-RMB-TOKEN'))
