@@ -86,6 +86,15 @@ test('ssh form: enabling tmux persists the session and round-trips into edit', a
   await win.getByTestId('conn-tmux').check()
   await expect(win.getByTestId('conn-tmux-session')).toHaveValue('main') // default
   await win.getByTestId('conn-tmux-session').fill('work')
+  // tmux options appear with the on-by-default boxes pre-checked.
+  await expect(win.getByTestId('conn-tmux-options')).toBeVisible()
+  await expect(win.getByTestId('conn-tmux-mouse')).toBeChecked()
+  await expect(win.getByTestId('conn-tmux-truecolor')).toBeChecked()
+  await expect(win.getByTestId('conn-tmux-esc')).toBeChecked()
+  await expect(win.getByTestId('conn-tmux-clipboard')).not.toBeChecked()
+  // Opt out of mouse and set a scrollback limit, to verify they persist.
+  await win.getByTestId('conn-tmux-mouse').uncheck()
+  await win.getByTestId('conn-tmux-history').fill('50000')
   await win.getByTestId('conn-save').click()
   await expect(win.getByTestId('connection-form')).toBeHidden()
 
@@ -97,6 +106,9 @@ test('ssh form: enabling tmux persists the session and round-trips into edit', a
   await expect(win.getByTestId('connection-form')).toBeVisible()
   await expect(win.getByTestId('conn-tmux')).toBeChecked()
   await expect(win.getByTestId('conn-tmux-session')).toHaveValue('work')
+  await expect(win.getByTestId('conn-tmux-mouse')).not.toBeChecked()
+  await expect(win.getByTestId('conn-tmux-truecolor')).toBeChecked()
+  await expect(win.getByTestId('conn-tmux-history')).toHaveValue('50000')
 
   const pid = app.process().pid; await app.close().catch(() => {}); if (pid) killTree(pid)
 })

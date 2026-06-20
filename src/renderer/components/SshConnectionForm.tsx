@@ -20,6 +20,12 @@ export function SshConnectionForm() {
   const [identityFile, setIdentityFile] = useState(editing?.identityFile ?? '')
   const [tmux, setTmux] = useState(!!editing?.tmuxSession)
   const [tmuxSession, setTmuxSession] = useState(editing?.tmuxSession ?? 'main')
+  const o0 = editing?.tmuxOptions
+  const [tmuxMouse, setTmuxMouse] = useState(o0?.mouse ?? true)
+  const [tmuxTrueColor, setTmuxTrueColor] = useState(o0?.trueColor ?? true)
+  const [tmuxEsc, setTmuxEsc] = useState(o0?.fastEsc ?? true)
+  const [tmuxClipboard, setTmuxClipboard] = useState(o0?.clipboard ?? false)
+  const [tmuxHistory, setTmuxHistory] = useState(o0?.historyLimit ? String(o0.historyLimit) : '')
 
   if (!target) return null
 
@@ -35,7 +41,13 @@ export function SshConnectionForm() {
     user: user.trim(),
     ...(port.trim() ? { port: Number(port) } : {}),
     ...(identityFile.trim() ? { identityFile: identityFile.trim() } : {}),
-    ...(tmux && tmuxSession.trim() ? { tmuxSession: tmuxSession.trim() } : {})
+    ...(tmux && tmuxSession.trim() ? {
+      tmuxSession: tmuxSession.trim(),
+      tmuxOptions: {
+        mouse: tmuxMouse, trueColor: tmuxTrueColor, fastEsc: tmuxEsc, clipboard: tmuxClipboard,
+        ...(tmuxHistory.trim() ? { historyLimit: Number(tmuxHistory) } : {})
+      }
+    } : {})
   })
 
   const onSave = (connect: boolean) => {
@@ -89,6 +101,42 @@ export function SshConnectionForm() {
         </label>
         {tmux && field('tmux session name', <input data-testid="conn-tmux-session" value={tmuxSession}
           onChange={e => setTmuxSession(e.target.value)} style={inputStyle} />)}
+        {tmux && (
+          <div data-testid="conn-tmux-options"
+            style={{ display: 'flex', flexDirection: 'column', gap: 4, paddingLeft: 18, fontSize: 12 }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: 6 }}
+              title="Wheel-scroll panes and apps like Claude Code; click to select/resize panes. Fixes 'scrolling does nothing'.">
+              <input data-testid="conn-tmux-mouse" type="checkbox" checked={tmuxMouse}
+                onChange={e => setTmuxMouse(e.target.checked)} />
+              <span style={{ color: 'var(--fg-dim, #aaa)' }}>Mouse mode (scroll &amp; click)</span>
+            </label>
+            <label style={{ display: 'flex', alignItems: 'center', gap: 6 }}
+              title="Full 24-bit color in TUIs like Claude Code and vim.">
+              <input data-testid="conn-tmux-truecolor" type="checkbox" checked={tmuxTrueColor}
+                onChange={e => setTmuxTrueColor(e.target.checked)} />
+              <span style={{ color: 'var(--fg-dim, #aaa)' }}>True color (24-bit)</span>
+            </label>
+            <label style={{ display: 'flex', alignItems: 'center', gap: 6 }}
+              title="Removes the laggy delay after pressing Esc in vim and other TUIs.">
+              <input data-testid="conn-tmux-esc" type="checkbox" checked={tmuxEsc}
+                onChange={e => setTmuxEsc(e.target.checked)} />
+              <span style={{ color: 'var(--fg-dim, #aaa)' }}>Faster Esc</span>
+            </label>
+            <label style={{ display: 'flex', alignItems: 'center', gap: 6 }}
+              title="Let remote programs copy into your local clipboard (OSC 52).">
+              <input data-testid="conn-tmux-clipboard" type="checkbox" checked={tmuxClipboard}
+                onChange={e => setTmuxClipboard(e.target.checked)} />
+              <span style={{ color: 'var(--fg-dim, #aaa)' }}>System clipboard (OSC 52)</span>
+            </label>
+            <label style={{ display: 'flex', alignItems: 'center', gap: 6 }}
+              title="How many lines of scrollback tmux keeps per pane. Blank = leave at the remote default.">
+              <span style={{ color: 'var(--fg-dim, #aaa)' }}>Scrollback lines</span>
+              <input data-testid="conn-tmux-history" value={tmuxHistory} inputMode="numeric" placeholder="default"
+                onChange={e => setTmuxHistory(e.target.value.replace(/[^0-9]/g, ''))}
+                style={{ ...inputStyle, width: 90 }} />
+            </label>
+          </div>
+        )}
         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 6, marginTop: 4 }}>
           <button data-testid="conn-cancel" onClick={close}>Cancel</button>
           <button data-testid="conn-save" disabled={!valid} onClick={() => onSave(false)}>Save</button>
