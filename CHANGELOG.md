@@ -6,6 +6,11 @@ All notable changes to Termhalla are recorded here. The format follows
 
 ## [Unreleased]
 
+### Added
+- SSH favorites: configurable tmux options (mouse, true color, faster Esc, scrollback,
+  OSC 52 clipboard) applied via `set -g` on connect. Mouse mode is on by default, fixing
+  wheel-scroll inside full-screen TUIs (e.g. Claude Code) under tmux.
+
 ## [0.3.5] - 2026-06-18
 
 ### Added

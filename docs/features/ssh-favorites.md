@@ -56,6 +56,20 @@ characters collapse to `-`). Detaching inside tmux (Ctrl-b d) returns from the r
 so ssh exits and the pane closes; the remote session lives on and relaunching the favorite (or
 restarting the app) reattaches it.
 
+## tmux options
+
+When a favorite has a tmux session enabled, the SSH connection form shows five configurable tmux options:
+
+- **Mouse mode** (ON by default) — enables mouse support so wheel-scroll works inside full-screen TUIs like Claude Code running under tmux.
+- **True color (24-bit)** (ON by default) — sets the terminal type to `tmux-256color` and enables the `Tc` capability for true color support.
+- **Faster Esc** (ON by default) — reduces `escape-time` to 10 ms, eliminating the slow prefix-key repeat in vi modes.
+- **System clipboard / OSC 52** (OFF by default) — enables `set-clipboard` so tmux integrates with the system clipboard.
+- **Scrollback lines** (optional field) — custom history limit; when set, overrides the remote `~/.tmux.conf`.
+
+The three on-by-default options (mouse, true color, faster Esc) apply automatically to all restored or existing tmux favorites without re-editing — they set sensible defaults for terminal UX inside tmux.
+
+All options are applied as server-global `set -g` commands appended to the `tmux new -A -s <name>` call. Server-global means they override the remote `~/.tmux.conf` for the duration of the session; the remote config is unchanged. The pure builders `tmuxOptionCommands` and `buildSshArgs` in `src/shared/quick.ts` handle option coalescing and command generation.
+
 ## Behaviors & edge cases
 
 - **Spawn-failure guard** — a bad launch command (e.g. `ssh` not on PATH) is caught in `PtyManager.spawn`; it writes a `[failed to launch …]` line to the pane, marks/unwinds the status engine, and fires `onExit(id, 1)` instead of crashing main.
