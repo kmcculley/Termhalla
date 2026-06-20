@@ -1,6 +1,7 @@
-import { mkdir, readFile, writeFile } from 'node:fs/promises'
+import { readFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { EMPTY_QUICK, type QuickStore as QuickData, type Theme } from '@shared/types'
+import { atomicWrite } from './atomic-write'
 
 /** A theme override is kept only if it is a plain object; anything else (absent, primitive, array)
  *  normalizes to undefined (= no override). */
@@ -42,7 +43,8 @@ export class QuickStore {
   }
 
   async save(data: QuickData): Promise<void> {
-    await mkdir(this.baseDir, { recursive: true })
-    await writeFile(this.file(), JSON.stringify(normalizeQuick(data), null, 2), 'utf8')
+    // Atomic: a killed write must not truncate quick.json into one that loads as EMPTY_QUICK,
+    // wiping the user's saved SSH connections.
+    await atomicWrite(this.file(), JSON.stringify(normalizeQuick(data), null, 2))
   }
 }

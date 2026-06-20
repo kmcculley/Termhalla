@@ -1,6 +1,6 @@
 import { readFile } from 'node:fs/promises'
-import { mkdirSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
+import { atomicWriteSync } from './atomic-write'
 
 type NotesMap = Record<string, string>
 
@@ -39,7 +39,7 @@ export class NotesStore {
 
   /** Synchronous write for shutdown (win 'close'); best-effort. */
   flush(): void {
-    try { mkdirSync(this.baseDir, { recursive: true }); writeFileSync(this.file(), JSON.stringify(this.map), 'utf8') }
+    try { atomicWriteSync(this.file(), JSON.stringify(this.map)) }
     catch { /* best-effort on teardown */ }
   }
 

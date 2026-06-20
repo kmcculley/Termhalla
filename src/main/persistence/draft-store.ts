@@ -1,7 +1,7 @@
-import { mkdir, readFile, writeFile } from 'node:fs/promises'
-import { mkdirSync, writeFileSync } from 'node:fs'
+import { readFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import type { EditorDraft } from '@shared/types'
+import { atomicWrite, atomicWriteSync } from './atomic-write'
 
 type DraftMap = Record<string, EditorDraft>
 
@@ -47,12 +47,12 @@ export class DraftStore {
 
   /** Synchronous write for shutdown (win 'close'); best-effort. */
   flush(): void {
-    try { mkdirSync(this.baseDir, { recursive: true }); writeFileSync(this.file(), JSON.stringify(this.map), 'utf8') }
+    try { atomicWriteSync(this.file(), JSON.stringify(this.map)) }
     catch { /* best-effort on teardown */ }
   }
 
   private async persist(): Promise<void> {
-    try { await mkdir(this.baseDir, { recursive: true }); await writeFile(this.file(), JSON.stringify(this.map), 'utf8') }
+    try { await atomicWrite(this.file(), JSON.stringify(this.map)) }
     catch { /* best-effort */ }
   }
 }

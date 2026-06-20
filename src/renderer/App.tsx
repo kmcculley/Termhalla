@@ -51,7 +51,14 @@ export default function App() {
       api.onRecState((id, state) => s().setRecording(id, state.recording)),
       api.onEnvState(state => s().setEnvState(state)),
       api.onWinAssignment(a => { void s().applyAssignment(a) }),
-      api.onTermSerialize(wsId => s().serializeWorkspace(wsId))
+      api.onTermSerialize(wsId => s().serializeWorkspace(wsId)),
+      // Main asks us to flush before it quits. Persist workspaces (cwd) + quick (SSH) and AWAIT the
+      // disk writes, then confirm — so the quit/auto-update install can't race our writes to exit.
+      api.onAppFlush(async () => {
+        const st = s()
+        try { await Promise.all([st.saveAll(), api.saveQuick(st.quick)]) }
+        finally { api.appFlushDone() }
+      })
     ]
     // Now that win:assignment is subscribed, ask main for this window's assignment (avoids losing
     // a push that fired on did-finish-load before React mounted this listener).

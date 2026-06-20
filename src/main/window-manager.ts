@@ -12,6 +12,7 @@ import {
   undock, redock, decideDrop, windowOf,
   type CoreState, type Strip
 } from './window-manager-core'
+import { coordinateFlush } from './quit-flush'
 
 /** Height (px) of the main window's tab strip — the drop zone for re-docking a torn-off tab. */
 const STRIP_HEIGHT = 36
@@ -65,12 +66,27 @@ export class WindowManager {
   private quitting = false
   private closedCbs: (() => void)[] = []
   private windowCloseCbs: (() => void)[] = []
+  private flushConfirm: ((windowId: string) => void) | null = null
 
   constructor(private readonly persist: (s: AppState) => void) {}
 
   /** The app is quitting: snapshot the final arrangement+bounds once, and let every window close
    *  normally (no re-dock interception, no shrinking per-window persist). */
   beginQuit(): void { this.quitting = true; this.persistState() }
+
+  /** Ask every live window to flush its renderer-owned state (workspaces, quick) to disk, and wait
+   *  until all confirm or `timeoutMs` elapses. The renderer flush is fire-and-forget on `beforeunload`
+   *  otherwise, which races process exit during an auto-update install — so the quit awaits this first.
+   *  Bounded by the timeout so a hung/crashed renderer can never block the quit. */
+  async flushRenderers(timeoutMs: number): Promise<void> {
+    const live = [...this.wins.entries()].filter(([, w]) => !w.isDestroyed() && !w.webContents.isDestroyed())
+    if (live.length === 0) return
+    const { confirm, promise } = coordinateFlush(live.map(([id]) => id), timeoutMs)
+    this.flushConfirm = confirm
+    for (const [, win] of live) this.safeSend(win, CH.appFlush)
+    await promise
+    this.flushConfirm = null
+  }
 
   // ── lifecycle ───────────────────────────────────────────────────────────────────────────────
   // Windows are created (but not loaded) in `prepare`, then `registerHandlers` registers the
@@ -243,6 +259,7 @@ export class WindowManager {
     // The renderer signals ready AFTER subscribing to win:assignment, so the first assignment is
     // never lost to a push that races ahead of the listener. (did-finish-load is the dev-reload path.)
     ipcMain.on(CH.winReady, (e) => { const id = this.windowIdOf(e.sender); if (id) this.sendAssignment(id) })
+    ipcMain.on(CH.appFlushDone, (e) => { const id = this.windowIdOf(e.sender); if (id) this.flushConfirm?.(id) })
   }
 
   private windowIdOf(sender: WebContents): string | undefined {

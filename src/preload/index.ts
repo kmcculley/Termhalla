@@ -92,6 +92,8 @@ const api: TermhallaApi = {
   onWinAssignment: pushChannel<[import('@shared/ipc-contract').WinAssignment]>(CH.winAssignment),
   onTermSerialize: pushChannel<[string]>(CH.termSerialize),
   termSnapshot: (a) => ipcRenderer.send(CH.termSnapshot, a),
+  onAppFlush: pushChannel<[]>(CH.appFlush),
+  appFlushDone: () => ipcRenderer.send(CH.appFlushDone),
   searchQuery: (q) => ipcRenderer.invoke(CH.searchQuery, q),
   searchStats: () => ipcRenderer.invoke(CH.searchStats),
   searchClear: () => ipcRenderer.invoke(CH.searchClear),

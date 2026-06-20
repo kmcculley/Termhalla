@@ -4,7 +4,18 @@ All notable changes to Termhalla are recorded here. The format follows
 [Keep a Changelog](https://keepachangelog.com/), and the project aims to follow
 [Semantic Versioning](https://semver.org/). Dates are YYYY-MM-DD.
 
-## [0.3.6] - 2026-06-20
+## [0.3.7] - 2026-06-20
+
+### Fixed
+- **Persisted state survives an interrupted/auto-update quit.** Workspaces (incl. each terminal's
+  saved cwd) and `quick.json` (SSH connections, theme, keybindings) were written with a plain
+  `writeFile`, which truncates the file before writing. On quit those writes also fired
+  fire-and-forget from the renderer, and the auto-update installer tore the process down mid-write —
+  leaving truncated files that the loaders silently degraded to defaults on next launch (SSH
+  connections wiped, some workspaces reset to their spawn directory). Two fixes: (1) **all stores now
+  write atomically** (temp file + `rename`, with a retry on transient Windows `EPERM`/`EBUSY`), so an
+  interrupted write can never corrupt the previous good file; (2) **quit now waits for renderers to
+  flush** their workspace/quick state to disk (bounded by a 2s timeout) before the process exits.
 
 ### Added
 - SSH favorites: configurable tmux options (mouse, true color, faster Esc, scrollback,

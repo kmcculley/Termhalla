@@ -1,9 +1,10 @@
-import { mkdir, readFile, writeFile, readdir } from 'node:fs/promises'
+import { readFile, readdir } from 'node:fs/promises'
 import { join } from 'node:path'
 import type { Workspace, AppState } from '@shared/types'
 import { serializeWorkspace, deserializeWorkspace } from '@shared/workspace-model'
 import { migrateAppState } from '@shared/app-state-model'
 import { DEFAULT_WINDOW_STATE } from '../window-state'
+import { atomicWrite } from './atomic-write'
 
 export class WorkspaceStore {
   constructor(private readonly baseDir: string) {}
@@ -13,8 +14,9 @@ export class WorkspaceStore {
   private appStateFile() { return join(this.baseDir, 'app-state.json') }
 
   async saveWorkspace(ws: Workspace): Promise<void> {
-    await mkdir(this.wsDir(), { recursive: true })
-    await writeFile(this.wsFile(ws.id), serializeWorkspace(ws), 'utf8')
+    // Atomic write: an interrupted save (e.g. an auto-update installer killing the app mid-write)
+    // must never truncate a previously-good workspace file into one that loads as null.
+    await atomicWrite(this.wsFile(ws.id), serializeWorkspace(ws))
   }
 
   async loadWorkspace(id: string): Promise<Workspace | null> {
@@ -42,8 +44,7 @@ export class WorkspaceStore {
   }
 
   async saveAppState(state: AppState): Promise<void> {
-    await mkdir(this.baseDir, { recursive: true })
-    await writeFile(this.appStateFile(), JSON.stringify(state, null, 2), 'utf8')
+    await atomicWrite(this.appStateFile(), JSON.stringify(state, null, 2))
   }
 
   async loadAppState(): Promise<AppState | null> {

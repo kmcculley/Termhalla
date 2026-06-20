@@ -5,6 +5,10 @@ import { registerHandlers } from './ipc/register'
 import { initAutoUpdate } from './updater'
 import { installAppMenu } from './menu'
 
+/** Upper bound on how long a quit waits for renderers to flush their state. A flush normally takes a
+ *  few ms; this only caps the wait if a renderer hangs or crashed, so the quit can never wedge. */
+const QUIT_FLUSH_TIMEOUT_MS = 2000
+
 async function start(): Promise<void> {
   const services = buildServices()
   const wm = new WindowManager(state => { void services.store.saveAppState(state) })
@@ -23,8 +27,16 @@ async function start(): Promise<void> {
   initAutoUpdate()
 
   // Snapshot the full multi-window arrangement before windows start closing, so a quit doesn't
-  // shrink the saved state window-by-window.
-  app.on('before-quit', () => wm.beginQuit())
+  // shrink the saved state window-by-window — then defer the actual quit until every renderer has
+  // flushed its workspace/quick state to disk. Without this, those writes are fire-and-forget on
+  // `beforeunload` and race the process exit during an auto-update install, losing cwd/SSH state.
+  let quitFlushed = false
+  app.on('before-quit', (e) => {
+    wm.beginQuit()
+    if (quitFlushed) return
+    e.preventDefault()
+    void wm.flushRenderers(QUIT_FLUSH_TIMEOUT_MS).finally(() => { quitFlushed = true; app.quit() })
+  })
   app.on('window-all-closed', () => { pty.killAll(); if (process.platform !== 'darwin') app.quit() })
 }
 

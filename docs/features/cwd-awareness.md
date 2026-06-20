@@ -53,6 +53,7 @@ Detection is **integration-only**: PowerShell (pwsh + Windows PowerShell) and ba
 - **Split inherit** — terminals split from a pane start in that pane's cwd; the top-level "＋ pane" menu keeps the default (home) directory.
 - **Pure-Linux WSL cwds** — paths like `/home/...` are left untranslated; Windows Explorer can't open them, so Reveal fails gracefully (known limitation).
 - **Cleanup parity** — `closePane` deletes the pane's entry from `cwds` (and `statuses`, `procs`, etc.), so the runtime maps don't leak. (The follow-ups doc flagged this as parity work; it is addressed in the shipped `closePane`.)
+- **Restore survives an interrupted quit** — the saved cwd lives in each workspace file, which is now written atomically (temp + `rename`) and flushed on quit before the process exits, so an auto-update restart can't truncate it back to the spawn directory. See the persistence decision in [../decisions.md](../decisions.md).
 - **Deferred** — an OSC 7 path containing a literal `;` mis-parses because the parser splits the OSC body on the first `;`. Bash-only and rare on Windows; OSC 9;9 (the primary PowerShell path) is immune. Deferred per the follow-ups doc.
 
 ## Testing

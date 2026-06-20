@@ -7,6 +7,33 @@ design specs live in [`superpowers/specs/`](superpowers/); this log captures the
 
 ---
 
+### [2026-06-20] Atomic persistence writes + flush-before-quit
+
+**Context:** A user lost SSH connections (`quick.json` wiped to defaults) and some
+workspaces' saved cwd after an auto-update restart. Root cause: every store wrote
+with a plain `writeFile` (which truncates the target before writing), and on quit
+the workspace/quick writes fired fire-and-forget from the renderer's `beforeunload`
+with nothing in main awaiting them. The auto-update installer (`quitAndInstall`,
+and electron-updater's `autoInstallOnAppQuit`) tore the process down mid-write,
+leaving truncated files that every loader silently degrades to defaults/null on the
+next launch. Notes/drafts survived because they flush *synchronously from main* on
+`win.on('close')` — that asymmetry pinpointed the gap.
+**Decision:** (1) Route all persistence through `atomicWrite`/`atomicWriteSync`
+(`persistence/atomic-write.ts`): write a unique temp file, then `rename` over the
+target (atomic on one volume), with a retry on transient Windows `EPERM`/`EBUSY`.
+(2) Defer the quit: `before-quit` calls `wm.flushRenderers(2s)`, a `app:flush` →
+`app:flush:done` round-trip (coordinated by the pure `coordinateFlush`), and only
+quits once every window confirms or the timeout fires.
+**Rationale:** `rename` makes an interrupted write leave *either* the old complete
+file or the new one — never a truncated one — which alone would have prevented the
+data loss. The flush wait additionally guarantees the *latest* state reaches disk
+across all quit paths, not just kept-intact. The timeout means a hung/crashed
+renderer can never wedge the quit.
+**Consequences:** Persistence is crash-safe by construction; new stores should use
+`atomicWrite`, not `writeFile`. A quit costs one bounded renderer round-trip
+(normally a few ms). Orphaned `*.tmp` files can be left only by a hard kill between
+temp-write and rename, and are ignored by `listWorkspaceIds`' `*.json` filter.
+
 ### [2026-06-13] Electron + TypeScript, three sandboxed layers
 
 **Context:** A desktop app needing real OS shells, native file access, and a rich

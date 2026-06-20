@@ -61,6 +61,8 @@ export const CH = {
   winAssignment: 'win:assignment',   // main -> renderer event
   termSerialize: 'term:serialize',   // main -> renderer event (request a snapshot)
   termSnapshot: 'term:snapshot',     // renderer -> main (the snapshot reply)
+  appFlush: 'app:flush',             // main -> renderer event (flush renderer-owned state before quit)
+  appFlushDone: 'app:flush:done',    // renderer -> main (flush complete)
   searchQuery: 'search:query',
   searchStats: 'search:stats',
   searchClear: 'search:clear',
@@ -151,6 +153,10 @@ export interface TermhallaApi {
   onWinAssignment(cb: (a: WinAssignment) => void): () => void
   onTermSerialize(cb: (workspaceId: string) => void): () => void
   termSnapshot(args: TermSnapshotArgs): void
+  /** Main requests a flush of renderer-owned state (workspaces/quick) before quitting; the renderer
+   *  persists, then calls appFlushDone so main knows the writes are on disk before the process exits. */
+  onAppFlush(cb: () => void): () => void
+  appFlushDone(): void
   searchQuery(q: string): Promise<SearchHit[]>
   searchStats(): Promise<SearchStats>
   searchClear(): Promise<SearchStats>
