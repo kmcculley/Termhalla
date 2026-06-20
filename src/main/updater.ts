@@ -29,7 +29,10 @@ function present(event: UpdateEvent, info?: { version?: string; error?: string }
   }
   const p = parentWin ? dialog.showMessageBox(parentWin, opts) : dialog.showMessageBox(opts)
   if (d.kind === 'restart') {
-    void p.then(r => { if (r.response === 0) autoUpdater.quitAndInstall() })
+    // isSilent=true runs the NSIS installer with /S so the update applies the same way it was
+    // already installed (per-user, since perMachine:false) with no wizard — no install-scope or
+    // "launch now?" prompts. isForceRunAfter=true relaunches Termhalla once the install completes.
+    void p.then(r => { if (r.response === 0) autoUpdater.quitAndInstall(true, true) })
   } else {
     void p
   }

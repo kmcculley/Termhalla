@@ -37,7 +37,11 @@ real version still lives in each release's `latest.yml`, which is what the auto-
   windows start) runs `autoUpdater.checkForUpdatesAndNotify()`. It is a **no-op in dev**:
   `app.isPackaged` gates it, because the `app-update.yml` it reads only exists in a
   packaged build. The feed coordinates come from the `publish:` block, which
-  electron-builder bakes into that bundled `app-update.yml`.
+  electron-builder bakes into that bundled `app-update.yml`. When the user accepts the
+  "Restart now" prompt, the update is applied via `quitAndInstall(true, true)` — **silent**
+  (`/S`, no wizard: no install-scope question, no "launch?" checkbox; reuses the existing
+  per-user install mode) and **force-run-after** (relaunches the app). Calling it bare would
+  run the NSIS installer interactively.
 
 ## Auto-update feed
 
