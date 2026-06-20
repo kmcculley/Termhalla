@@ -1,9 +1,17 @@
 import { describe, it, expect } from 'vitest'
-import { buildSshArgs, pushRecent, nextRecentDirs, buildPaletteItems, filterPaletteItems } from '@shared/quick'
+import { buildSshArgs, tmuxOptionCommands, pushRecent, nextRecentDirs, buildPaletteItems, filterPaletteItems } from '@shared/quick'
 import type { SshConnection } from '@shared/types'
 import type { QuickStore } from '@shared/types'
 
 const base: SshConnection = { id: 'c1', name: 'box', host: 'example.com', user: 'kev' }
+
+// The tokens appended for the on-by-default options (mouse + faster Esc + true color).
+const DEFAULT_TMUX = [
+  '\\;', 'set', '-g', 'mouse', 'on',
+  '\\;', 'set', '-g', 'escape-time', '10',
+  '\\;', 'set', '-g', 'default-terminal', 'tmux-256color',
+  '\\;', 'set', '-ga', 'terminal-overrides', "',*:Tc'"
+]
 
 describe('buildSshArgs', () => {
   it('omits port when default (22) and identity when unset', () => {
@@ -25,29 +33,74 @@ describe('buildSshArgs', () => {
     expect(buildSshArgs({ ...base, tmuxSession: '' })).toEqual(['kev@example.com'])
     expect(buildSshArgs({ ...base, tmuxSession: '   ' })).toEqual(['kev@example.com'])
   })
-  it('prepends -t and appends a tmux attach-or-create command when tmuxSession is set', () => {
+  it('prepends -t and appends tmux attach + on-by-default options when tmuxSession is set', () => {
     expect(buildSshArgs({ ...base, tmuxSession: 'main' }))
-      .toEqual(['-t', 'kev@example.com', 'tmux', 'new', '-A', '-s', 'main'])
+      .toEqual(['-t', 'kev@example.com', 'tmux', 'new', '-A', '-s', 'main', ...DEFAULT_TMUX])
   })
   it('keeps -t before port/identity, host before the tmux command', () => {
     expect(buildSshArgs({ ...base, port: 2200, identityFile: 'k', tmuxSession: 'work' }))
-      .toEqual(['-t', '-p', '2200', '-i', 'k', 'kev@example.com', 'tmux', 'new', '-A', '-s', 'work'])
+      .toEqual(['-t', '-p', '2200', '-i', 'k', 'kev@example.com',
+        'tmux', 'new', '-A', '-s', 'work', ...DEFAULT_TMUX])
   })
   it('sanitizes tmux session names (tmux forbids . and :, collapse whitespace)', () => {
     expect(buildSshArgs({ ...base, tmuxSession: ' my.session:1 ' }))
-      .toEqual(['-t', 'kev@example.com', 'tmux', 'new', '-A', '-s', 'my-session-1'])
+      .toEqual(['-t', 'kev@example.com', 'tmux', 'new', '-A', '-s', 'my-session-1', ...DEFAULT_TMUX])
   })
   it('strips a leading dash produced by sanitization (tmux would treat it as a flag)', () => {
     expect(buildSshArgs({ ...base, tmuxSession: '.session' }))
-      .toEqual(['-t', 'kev@example.com', 'tmux', 'new', '-A', '-s', 'session'])
+      .toEqual(['-t', 'kev@example.com', 'tmux', 'new', '-A', '-s', 'session', ...DEFAULT_TMUX])
     expect(buildSshArgs({ ...base, tmuxSession: ' :foo' }))
-      .toEqual(['-t', 'kev@example.com', 'tmux', 'new', '-A', '-s', 'foo'])
+      .toEqual(['-t', 'kev@example.com', 'tmux', 'new', '-A', '-s', 'foo', ...DEFAULT_TMUX])
   })
   it('treats an all-punctuation session name as tmux off', () => {
     expect(buildSshArgs({ ...base, tmuxSession: '...' })).toEqual(['kev@example.com'])
   })
   it('emits the legacy argv when tmuxSession is entirely absent', () => {
     expect(buildSshArgs(base)).toEqual(['kev@example.com'])
+  })
+  it('mouse off drops only the mouse command; other defaults remain', () => {
+    expect(buildSshArgs({ ...base, tmuxSession: 'main', tmuxOptions: { mouse: false } }))
+      .toEqual(['-t', 'kev@example.com', 'tmux', 'new', '-A', '-s', 'main',
+        '\\;', 'set', '-g', 'escape-time', '10',
+        '\\;', 'set', '-g', 'default-terminal', 'tmux-256color',
+        '\\;', 'set', '-ga', 'terminal-overrides', "',*:Tc'"])
+  })
+  it('all options off appends only the bare attach-or-create command', () => {
+    expect(buildSshArgs({ ...base, tmuxSession: 'main',
+      tmuxOptions: { mouse: false, trueColor: false, fastEsc: false, clipboard: false } }))
+      .toEqual(['-t', 'kev@example.com', 'tmux', 'new', '-A', '-s', 'main'])
+  })
+  it('emits history-limit only for a positive number', () => {
+    const off = { mouse: false, trueColor: false, fastEsc: false }
+    expect(buildSshArgs({ ...base, tmuxSession: 'main', tmuxOptions: { ...off, historyLimit: 50000 } }))
+      .toEqual(['-t', 'kev@example.com', 'tmux', 'new', '-A', '-s', 'main',
+        '\\;', 'set', '-g', 'history-limit', '50000'])
+    expect(buildSshArgs({ ...base, tmuxSession: 'main', tmuxOptions: { ...off, historyLimit: 0 } }))
+      .toEqual(['-t', 'kev@example.com', 'tmux', 'new', '-A', '-s', 'main'])
+  })
+  it('clipboard on appends set-clipboard', () => {
+    expect(buildSshArgs({ ...base, tmuxSession: 'main',
+      tmuxOptions: { mouse: false, trueColor: false, fastEsc: false, clipboard: true } }))
+      .toEqual(['-t', 'kev@example.com', 'tmux', 'new', '-A', '-s', 'main',
+        '\\;', 'set', '-g', 'set-clipboard', 'on'])
+  })
+  it('no tmux session ignores tmuxOptions entirely', () => {
+    expect(buildSshArgs({ ...base, tmuxOptions: { mouse: true } })).toEqual(['kev@example.com'])
+  })
+
+  describe('tmuxOptionCommands', () => {
+    it('applies on-by-default options for empty input', () => {
+      expect(tmuxOptionCommands()).toEqual([
+        ['set', '-g', 'mouse', 'on'],
+        ['set', '-g', 'escape-time', '10'],
+        ['set', '-g', 'default-terminal', 'tmux-256color'],
+        ['set', '-ga', 'terminal-overrides', "',*:Tc'"]
+      ])
+    })
+    it('returns an empty list when every option is off', () => {
+      expect(tmuxOptionCommands({ mouse: false, trueColor: false, fastEsc: false, clipboard: false }))
+        .toEqual([])
+    })
   })
 })
 

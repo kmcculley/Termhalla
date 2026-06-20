@@ -27,6 +27,17 @@ export interface TerminalLaunch {
   title: string
 }
 
+/** Common tmux options, applied via server-global `set -g` on connect (only when tmuxSession is
+ *  set). An undefined field uses its default: mouse/trueColor/fastEsc ON, clipboard OFF, no
+ *  history-limit. `set -g` overrides the remote ~/.tmux.conf. */
+export interface TmuxOptions {
+  mouse?: boolean        // default true  -> set -g mouse on
+  trueColor?: boolean    // default true  -> default-terminal tmux-256color + terminal-overrides *:Tc
+  fastEsc?: boolean      // default true  -> set -g escape-time 10
+  historyLimit?: number  // default unset -> omit; when > 0 -> set -g history-limit N
+  clipboard?: boolean    // default false -> set -g set-clipboard on
+}
+
 /** A saved SSH connection. No secrets stored — only host/user/port and an identity-file path. */
 export interface SshConnection {
   id: string
@@ -36,6 +47,7 @@ export interface SshConnection {
   port?: number          // default 22
   identityFile?: string  // path to a private key; optional
   tmuxSession?: string   // when set (non-empty), connect via `tmux new -A -s <name>`
+  tmuxOptions?: TmuxOptions // tmux `set -g` options applied on connect (only with tmuxSession)
 }
 
 export interface WorkspaceTemplate {

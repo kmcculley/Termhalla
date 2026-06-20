@@ -1,4 +1,27 @@
-import type { SshConnection, QuickStore } from './types'
+import type { SshConnection, QuickStore, TmuxOptions } from './types'
+
+/** Backslash-semicolon: the remote shell turns `\;` into a literal `;`, which tmux reads as a
+ *  command separator (a bare `;` would be consumed by the remote shell instead). */
+const TMUX_SEP = '\\;'
+
+/** The tmux `set -g` commands (each an argv fragment) for the given options, with defaults applied.
+ *  Order is fixed for deterministic argv. `set -g` is server-global so it overrides the remote
+ *  ~/.tmux.conf and applies to the attached session. */
+export function tmuxOptionCommands(o: TmuxOptions = {}): string[][] {
+  const cmds: string[][] = []
+  if (o.mouse ?? true) cmds.push(['set', '-g', 'mouse', 'on'])
+  if (o.fastEsc ?? true) cmds.push(['set', '-g', 'escape-time', '10'])
+  if (o.trueColor ?? true) {
+    cmds.push(['set', '-g', 'default-terminal', 'tmux-256color'])
+    // single-quoted so the remote shell does not glob the '*'
+    cmds.push(['set', '-ga', 'terminal-overrides', "',*:Tc'"])
+  }
+  if (o.historyLimit && o.historyLimit > 0) {
+    cmds.push(['set', '-g', 'history-limit', String(Math.floor(o.historyLimit))])
+  }
+  if (o.clipboard ?? false) cmds.push(['set', '-g', 'set-clipboard', 'on'])
+  return cmds
+}
 
 /** Build the argv after the `ssh` program: `[-t] [-p PORT] [-i IDENTITY] user@host [tmux new -A -s NAME]`.
  *  When `tmuxSession` is set, force a remote PTY (-t) and run an attach-or-create tmux command so the
@@ -12,7 +35,10 @@ export function buildSshArgs(c: SshConnection): string[] {
   if (c.port && c.port !== 22) args.push('-p', String(c.port))
   if (c.identityFile && c.identityFile.length > 0) args.push('-i', c.identityFile)
   args.push(`${c.user}@${c.host}`)
-  if (session) args.push('tmux', 'new', '-A', '-s', session)
+  if (session) {
+    args.push('tmux', 'new', '-A', '-s', session)
+    for (const cmd of tmuxOptionCommands(c.tmuxOptions)) args.push(TMUX_SEP, ...cmd)
+  }
   return args
 }
 
