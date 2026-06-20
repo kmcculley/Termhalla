@@ -4,12 +4,23 @@ All notable changes to Termhalla are recorded here. The format follows
 [Keep a Changelog](https://keepachangelog.com/), and the project aims to follow
 [Semantic Versioning](https://semver.org/). Dates are YYYY-MM-DD.
 
-## [Unreleased]
+## [0.3.6] - 2026-06-20
 
 ### Added
 - SSH favorites: configurable tmux options (mouse, true color, faster Esc, scrollback,
   OSC 52 clipboard) applied via `set -g` on connect. Mouse mode is on by default, fixing
   wheel-scroll inside full-screen TUIs (e.g. Claude Code) under tmux.
+
+### Fixed
+- **Ctrl+V no longer pastes twice.** The terminal's custom key handler returned `false` for Ctrl+V
+  without calling `preventDefault`, so the browser still fired a native paste event that xterm's own
+  listener handled too — pasting the clipboard a second time. The handler now prevents the default,
+  so a paste happens exactly once.
+- **Auto-update installs silently and relaunches.** The "Restart now" update flow ran the NSIS
+  installer interactively — popping the full wizard (install-scope "all users / just me" question,
+  install dir, "launch Termhalla?" checkbox) on every update. `quitAndInstall(true, true)` now runs
+  the installer with `/S`, applying the update the same way it was already installed (per-user) with
+  no prompts, then auto-launches Termhalla afterward.
 
 ## [0.3.5] - 2026-06-18
 
