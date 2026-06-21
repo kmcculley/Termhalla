@@ -6,6 +6,12 @@ All notable changes to Termhalla are recorded here. The format follows
 
 ## [Unreleased]
 
+### Added
+- **Clickable terminal links + image preview.** Ctrl/Cmd+click a URL in any terminal to open it in
+  the browser, or a referenced image (local path or http(s) image URL) to preview it in a lightbox.
+  Detection runs on the rendered buffer, so it works under cmd/PowerShell/tmux/ssh. Local-path
+  previews are disabled in SSH panes (the file is on the remote); image URLs still work there.
+
 ### Fixed
 - **SSH tmux options no longer break the connection on Windows.** With a tmux session *and* any
   option enabled (mouse is on by default, so this hit almost every tmux favorite), the connection
