@@ -5,6 +5,7 @@ import type {
   TerminalLaunch, AiSession, UsageMetrics, EditorDraft, ScheduledTask, Theme, EnvVaultState, GitStatus, RunCommand
 } from '@shared/types'
 import type { Chord, CommandId } from '@shared/keybindings'
+import type { ImageSource } from '@shared/ipc-contract'
 import type { PaneKind } from './pane-ops'
 
 export type ThemeScope =
@@ -17,6 +18,14 @@ export interface Toast { id: string; kind: ToastKind; text: string }
 
 export type SettingsSection = 'general' | 'appearance' | 'environment' | 'terminal' | 'keybindings'
 export interface SettingsTarget { section: SettingsSection; paneId?: string }
+
+export interface PreviewState {
+  open: boolean
+  source?: ImageSource
+  status: 'loading' | 'ready' | 'error'
+  dataUrl?: string
+  error?: string
+}
 
 export interface State {
   shells: ShellInfo[]
@@ -121,6 +130,9 @@ export interface State {
   toasts: Toast[]
   pushToast: (text: string, kind?: ToastKind) => string
   dismissToast: (id: string) => void
+  preview: PreviewState
+  openImagePreview: (source: ImageSource) => void
+  closeImagePreview: () => void
   setBinding: (id: CommandId, chord: Chord) => void
   unbindCommand: (id: CommandId) => void
   resetBinding: (id: CommandId) => void

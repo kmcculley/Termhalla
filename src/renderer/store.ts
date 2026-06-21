@@ -24,6 +24,7 @@ import { createSettingsSlice } from './store/settings-slice'
 import { createKeybindingsSlice } from './store/keybindings-slice'
 import { createNotesSlice } from './store/notes-slice'
 import { createSearchSlice } from './store/search-slice'
+import { createPreviewSlice } from './store/preview-slice'
 
 // Re-exported so existing `import { ... } from '../store'` call sites keep working.
 export type { ThemeScope } from './store/types'
@@ -127,6 +128,7 @@ export const useStore = create<State>((set, get) => {
     ...createKeybindingsSlice(deps),
     ...createNotesSlice(deps),
     ...createSearchSlice(deps),
+    ...createPreviewSlice(deps),
 
     // ---- core: bootstrap + persistence ----
     init: async () => {
