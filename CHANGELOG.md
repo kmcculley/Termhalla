@@ -4,7 +4,7 @@ All notable changes to Termhalla are recorded here. The format follows
 [Keep a Changelog](https://keepachangelog.com/), and the project aims to follow
 [Semantic Versioning](https://semver.org/). Dates are YYYY-MM-DD.
 
-## [Unreleased]
+## [0.4.0] - 2026-06-21
 
 ### Added
 - **Clickable terminal links + image preview.** Ctrl/Cmd+click a URL in any terminal to open it in
