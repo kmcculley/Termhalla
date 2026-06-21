@@ -8,11 +8,12 @@ import type { TerminalConfig } from '@shared/types'
 import { resolveTheme } from '@shared/theme'
 import { nextFontSize } from '@shared/font-zoom'
 import { matchShortcut, resolveBindings } from '@shared/keymap'
-import { useStore } from '../store'
+import { useStore, paneCwd } from '../store'
 import { useResolvedPaneTheme } from '../use-resolved-theme'
 import { handleClipboardKey } from './terminal-clipboard'
 import { registerSerializer, unregisterSerializer, consumeSnapshot, registerFocuser, unregisterFocuser, registerRedrawer, unregisterRedrawer } from './terminal-registry'
 import { redraw } from './redraw'
+import { registerTerminalLinks } from '../terminal/links'
 
 /** Scrollback lines captured when serializing a terminal for a window-handoff replay. */
 const HANDOFF_SCROLLBACK_LINES = 1000
@@ -132,6 +133,16 @@ export function TerminalPane({ paneId, wsId, config }: { paneId: string; wsId: s
     })
     registerRedrawer(paneId, redrawAction)
 
+    // Clickable links: Ctrl/Cmd+click a URL to open it, or an image (path/url) to preview it.
+    // Local-path detection is off for SSH panes (the file lives on the remote).
+    const linksDisposer = registerTerminalLinks(term, {
+      isSsh: config.launch?.command === 'ssh',
+      getCwd: () => paneCwd(useStore.getState(), paneId) || config.cwd,
+      getHome: () => useStore.getState().home,
+      openExternal: (url) => api.openExternal(url),
+      openImage: (src) => useStore.getState().openImagePreview(src)
+    })
+
     // tmux/vim/less… switch to the alternate screen when they launch; under xterm's DOM renderer that
     // first full-screen frame occasionally draws garbled (a known renderer miss that a repaint cures
     // — the same thing the manual Redraw does; subsequent frames are fine). So when we enter the
@@ -180,6 +191,7 @@ export function TerminalPane({ paneId, wsId, config }: { paneId: string; wsId: s
       if (resumeTimer) clearTimeout(resumeTimer)
       if (altTimer) clearTimeout(altTimer)
       offBufferChange.dispose(); offWriteParsed.dispose()
+      linksDisposer.dispose()
       ro.disconnect(); inputDisp.dispose(); offData(); offExit(); term.dispose()
       termRef.current = null; fitRef.current = null
     }
