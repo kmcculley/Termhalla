@@ -12,6 +12,8 @@ import { registerUsage } from './register-usage'
 import { registerRecording } from './register-recording'
 import { registerEnv } from './register-env'
 import { registerClipboard } from './register-clipboard'
+import { registerShell } from './register-shell'
+import { registerPreview } from './register-preview'
 import { registerGit } from './register-git'
 import { Indexer } from '../search/indexer'
 import { registerSearch } from './register-search'
@@ -44,6 +46,7 @@ export function registerHandlers(services: Services, wm: WindowManager): PtyMana
   registerWorkspaces({ store, quick, shells })
   registerEnv(win, envVault, send)
   registerClipboard()
+  registerShell()
   // Drafts/notes persist live; their flush is the shutdown safety net, run on EVERY window's close
   // (main or floating) so a floating window closing before main still flushes its in-memory state.
   const flushDrafts = registerDrafts(dir)
@@ -53,6 +56,7 @@ export function registerHandlers(services: Services, wm: WindowManager): PtyMana
   const disposeSearch = registerSearch({ searchService, indexer })
   const disposers: Disposer[] = [
     registerFs(win, send),
+    registerPreview(),
     registerCloud(win, send),
     registerUsage(send),
     registerRecording({ pty, recorder, userDataDir: dir, send }),
