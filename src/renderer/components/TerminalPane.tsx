@@ -12,6 +12,7 @@ import { useStore } from '../store'
 import { useResolvedPaneTheme } from '../use-resolved-theme'
 import { handleClipboardKey } from './terminal-clipboard'
 import { registerSerializer, unregisterSerializer, consumeSnapshot, registerFocuser, unregisterFocuser, registerRedrawer, unregisterRedrawer } from './terminal-registry'
+import { redraw } from './redraw'
 
 /** Scrollback lines captured when serializing a terminal for a window-handoff replay. */
 const HANDOFF_SCROLLBACK_LINES = 1000
@@ -118,18 +119,18 @@ export function TerminalPane({ paneId, wsId, config }: { paneId: string; wsId: s
     // Repaint xterm from its own buffer — fixes xterm-side render glitches WITHOUT changing the grid,
     // so it can never desync xterm's size from the remote (which would jumble a TUI like tmux).
     const repaint = () => term.refresh(0, term.rows - 1)
-    // Manual "Redraw terminal": re-fit, repaint, then nudge the PTY size so a running TUI (Claude,
-    // tmux, …) redraws via SIGWINCH/ConPTY. The nudge's final resize re-syncs the PTY to the fitted
-    // grid, so this stays size-consistent. It's a deliberate redundant resize (safe — the status tail
-    // is ANSI-stripped), reserved for the explicit command, never the per-resize auto path.
-    const redraw = () => {
-      fit.fit()
-      repaint()
-      const { cols, rows } = term
-      api.ptyResize({ id: paneId, cols: Math.max(cols - 1, 1), rows })
-      api.ptyResize({ id: paneId, cols, rows })
-    }
-    registerRedrawer(paneId, redraw)
+    // Manual "Redraw terminal" (Ctrl+Shift+L): the aggressive path — re-fit + repaint xterm, a real
+    // cross-tick SIGWINCH nudge, and a Ctrl+L to the program so a garbled TUI (Claude, tmux, …)
+    // re-emits a clean frame. Logic + rationale live in the injectable `redraw()` so it's unit-tested.
+    const redrawAction = () => redraw({
+      fit: () => fit.fit(),
+      repaint,
+      dims: () => ({ cols: term.cols, rows: term.rows }),
+      resize: ({ cols, rows }) => api.ptyResize({ id: paneId, cols, rows }),
+      write: (data) => api.ptyWrite({ id: paneId, data }),
+      schedule: (fn) => setTimeout(fn, 0),
+    })
+    registerRedrawer(paneId, redrawAction)
 
     // tmux/vim/less… switch to the alternate screen when they launch; under xterm's DOM renderer that
     // first full-screen frame occasionally draws garbled (a known renderer miss that a repaint cures
