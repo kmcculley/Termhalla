@@ -13,9 +13,14 @@ export function ImageLightbox() {
   useEffect(() => { if (!preview.open) setActualSize(false) }, [preview.open])
   useEffect(() => {
     if (!preview.open) return
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') close() }
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
+    // Capture phase + stop: the focused xterm textarea otherwise consumes Escape (it sends ESC to
+    // the PTY) before it bubbles to window. Capturing here closes the lightbox first and keeps the
+    // ESC from also reaching the terminal.
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); close() }
+    }
+    window.addEventListener('keydown', onKey, true)
+    return () => window.removeEventListener('keydown', onKey, true)
   }, [preview.open, close])
 
   if (!preview.open) return null
