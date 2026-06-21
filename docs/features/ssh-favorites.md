@@ -68,7 +68,9 @@ When a favorite has a tmux session enabled, the SSH connection form shows five c
 
 The three on-by-default options (mouse, true color, faster Esc) apply automatically to all restored or existing tmux favorites without re-editing — they set sensible defaults for terminal UX inside tmux.
 
-All options are applied as server-global `set -g` commands appended to the `tmux new -A -s <name>` call. Server-global means they override the remote `~/.tmux.conf` for the duration of the session; the remote config is unchanged. The pure builders `tmuxOptionCommands` and `buildSshArgs` in `src/shared/quick.ts` handle option coalescing and command generation.
+All options are applied as server-global `tmux set -g` commands. Server-global means they override the remote `~/.tmux.conf` for the duration of the session; the remote config is unchanged. The pure builders `tmuxOptionCommands` and `buildSshArgs` in `src/shared/quick.ts` handle option coalescing and command generation.
+
+**Why each option is its own `tmux set` command joined by a shell `;` (not `tmux new \; set …`).** The earlier design appended the options as arguments to a *single* tmux command using tmux's own `\;` separator, e.g. `tmux new -A -s NAME \; set -g mouse on`. That requires a backslash-escaped `\;` to survive node-pty → ConPTY → Windows `ssh.exe` (`CommandLineToArgvW`) → remote shell and arrive at *tmux* as its separator. On Windows the backslash does **not** survive `ssh.exe`'s argv parsing, so tmux never received a separator, the invocation collapsed to an interactive remote shell, and the terminal's automatic Device-Attributes report (`ESC[?…c`) leaked onto that shell's prompt as `… : command not found`. The fix runs each option as a separate `tmux set` joined by a bare shell `;` — a plain token that passes through every quoting layer untouched — then `exec tmux new -A -s NAME` to attach (so detach exits ssh and SIGWINCH reaches tmux). With no options enabled, the bare `tmux new -A -s NAME` form is kept.
 
 ## Behaviors & edge cases
 

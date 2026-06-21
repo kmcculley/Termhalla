@@ -4,6 +4,27 @@ All notable changes to Termhalla are recorded here. The format follows
 [Keep a Changelog](https://keepachangelog.com/), and the project aims to follow
 [Semantic Versioning](https://semver.org/). Dates are YYYY-MM-DD.
 
+## [Unreleased]
+
+### Fixed
+- **SSH tmux options no longer break the connection on Windows.** With a tmux session *and* any
+  option enabled (mouse is on by default, so this hit almost every tmux favorite), the connection
+  dropped to a bare remote shell — tmux never started and the terminal's Device-Attributes report
+  (`ESC[?…c`) leaked onto the prompt as `61: command not found`. The options were appended as
+  arguments to a single `tmux new \; set …` using tmux's `\;` separator, whose backslash did not
+  survive Windows `ssh.exe` argv parsing, so tmux never received its separator. Each option is now a
+  separate `tmux set` command joined by a bare shell `;` (which survives every quoting layer), and
+  the session is `exec`'d to attach. Connections with no options were unaffected and still use the
+  bare `tmux new -A -s NAME` form.
+
+### Changed
+- **"Redraw terminal" (Ctrl+Shift+L) is now aggressive enough to fix a garbled running TUI.** It
+  previously only repainted xterm's own buffer plus a same-tick ±1-col resize that ConPTY could
+  coalesce into a no-op, so it couldn't clear corruption living in a running program's frame (a
+  half-cleared overlay, a merged Claude/tmux repaint). It now does a real cross-tick SIGWINCH nudge
+  (shrink the grid 2×2, restore next tick) and sends Ctrl+L so the program re-emits a clean frame.
+  As a result it may clear the screen (Ctrl+L), so it no longer preserves prior on-screen content.
+
 ## [0.3.7] - 2026-06-20
 
 ### Fixed

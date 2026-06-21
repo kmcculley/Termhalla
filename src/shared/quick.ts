@@ -1,8 +1,12 @@
 import type { SshConnection, QuickStore, TmuxOptions } from './types'
 
-/** Backslash-semicolon: the remote shell turns `\;` into a literal `;`, which tmux reads as a
- *  command separator (a bare `;` would be consumed by the remote shell instead). */
-const TMUX_SEP = '\\;'
+/** A bare shell command separator. Each tmux option is run as its OWN `tmux set` command, separated
+ *  by the *remote shell's* `;` — a plain token that passes through every quoting layer (node-pty →
+ *  ConPTY → Windows `ssh.exe` argv parsing → remote shell) untouched. The previous design made the
+ *  options arguments to a single `tmux new \; set …` and relied on a backslash-escaped `\;` reaching
+ *  *tmux* as its separator; that backslash did not survive Windows `ssh.exe`'s `CommandLineToArgvW`,
+ *  so tmux never started and the terminal's auto-reports leaked onto a bare remote shell prompt. */
+const SHELL_SEP = ';'
 
 /** The tmux `set -g` commands (each an argv fragment) for the given options, with defaults applied.
  *  Order is fixed for deterministic argv. `set -g` is server-global so it overrides the remote
@@ -23,9 +27,14 @@ export function tmuxOptionCommands(o: TmuxOptions = {}): string[][] {
   return cmds
 }
 
-/** Build the argv after the `ssh` program: `[-t] [-p PORT] [-i IDENTITY] user@host [tmux new -A -s NAME]`.
+/** Build the argv after the `ssh` program: `[-t] [-p PORT] [-i IDENTITY] user@host [tmux …]`.
  *  When `tmuxSession` is set, force a remote PTY (-t) and run an attach-or-create tmux command so the
- *  session is reattached on reconnect/restart (the launch override is persisted and re-run verbatim). */
+ *  session is reattached on reconnect/restart (the launch override is persisted and re-run verbatim).
+ *
+ *  With options enabled, each is applied as its own `tmux set` command joined by a bare shell `;`
+ *  (see SHELL_SEP), then the session is `exec`'d so detaching exits ssh and SIGWINCH reaches tmux.
+ *  `tmux set -g` auto-starts the server, so the globals are in place before `new -A -s` creates the
+ *  session. With no options we keep the bare `tmux new -A -s NAME` (no `;`, no exec) form. */
 export function buildSshArgs(c: SshConnection): string[] {
   // tmux forbids '.' and ':' in session names; collapse those and whitespace runs to '-'.
   const session = (c.tmuxSession ?? '').trim().replace(/[.:\s]+/g, '-').replace(/^-+/, '')
@@ -36,8 +45,13 @@ export function buildSshArgs(c: SshConnection): string[] {
   if (c.identityFile && c.identityFile.length > 0) args.push('-i', c.identityFile)
   args.push(`${c.user}@${c.host}`)
   if (session) {
-    args.push('tmux', 'new', '-A', '-s', session)
-    for (const cmd of tmuxOptionCommands(c.tmuxOptions)) args.push(TMUX_SEP, ...cmd)
+    const opts = tmuxOptionCommands(c.tmuxOptions)
+    if (opts.length) {
+      for (const cmd of opts) args.push('tmux', ...cmd, SHELL_SEP)
+      args.push('exec', 'tmux', 'new', '-A', '-s', session)
+    } else {
+      args.push('tmux', 'new', '-A', '-s', session)
+    }
   }
   return args
 }
