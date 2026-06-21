@@ -13,6 +13,7 @@ import { StatusBar } from './components/StatusBar'
 import { UsageWatcher } from './components/UsageWatcher'
 import { Scheduler } from './components/Scheduler'
 import { Toasts } from './components/Toasts'
+import { ImageLightbox } from './components/ImageLightbox'
 import { SettingsPanel } from './components/SettingsPanel'
 import { NotesPanel } from './components/NotesPanel'
 import { SearchHistory } from './components/SearchHistory'
@@ -143,6 +144,7 @@ export default function App() {
       <UsageWatcher />
       <Scheduler />
       <Toasts />
+      <ImageLightbox />
       <SettingsPanel />
       <BroadcastDialog />
       <CommandPalette />
