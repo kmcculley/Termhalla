@@ -67,6 +67,8 @@ export const CH = {
   searchStats: 'search:stats',
   searchClear: 'search:clear',
   searchSetMuted: 'search:setMuted',
+  shellOpenExternal: 'shell:openExternal',  // renderer -> main (open a URL in the default browser)
+  previewLoadImage: 'preview:loadImage',    // renderer -> main (read file / fetch url -> data URL)
 } as const
 
 export interface NotifyArgs { title: string; body: string }
@@ -79,6 +81,9 @@ export interface WinRedockArgs { workspaceId: string; targetWindowId: string }
 export interface WinReportArgs { windowId: string; workspaceIds: string[]; activeId: string | null }
 export interface WinAssignment { windowId: string; isMain: boolean; workspaceIds: string[]; activeId: string | null }
 export interface TermSnapshotArgs { paneId: string; data: string }
+
+export type ImageSource = { kind: 'file'; src: string } | { kind: 'url'; src: string }
+export type ImageResult = { ok: true; dataUrl: string; mime: string } | { ok: false; error: string }
 
 export interface TermhallaApi {
   listShells(): Promise<ShellInfo[]>
@@ -161,4 +166,6 @@ export interface TermhallaApi {
   searchStats(): Promise<SearchStats>
   searchClear(): Promise<SearchStats>
   searchSetMuted(paneId: string, muted: boolean): void
+  openExternal(url: string): void
+  previewLoadImage(src: ImageSource): Promise<ImageResult>
 }

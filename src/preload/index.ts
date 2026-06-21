@@ -98,6 +98,8 @@ const api: TermhallaApi = {
   searchStats: () => ipcRenderer.invoke(CH.searchStats),
   searchClear: () => ipcRenderer.invoke(CH.searchClear),
   searchSetMuted: (paneId, muted) => ipcRenderer.send(CH.searchSetMuted, paneId, muted),
+  openExternal: (url) => ipcRenderer.send(CH.shellOpenExternal, url),
+  previewLoadImage: (src) => ipcRenderer.invoke(CH.previewLoadImage, src),
 }
 
 contextBridge.exposeInMainWorld('termhalla', api)
