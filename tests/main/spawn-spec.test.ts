@@ -40,8 +40,16 @@ describe('resolveSpawnSpec', () => {
     expect(spec.env).toEqual({})
   })
 
-  it('falls back to the shell args for a non-integrated shell', () => {
+  it('injects a cwd-reporting PROMPT env for cmd (keeping its own args)', () => {
     const spec = resolveSpawnSpec(cmd, 'C:\\scripts')
-    expect(spec).toEqual({ file: 'C:\\cmd.exe', args: [], env: undefined })
+    expect(spec.file).toBe('C:\\cmd.exe')
+    expect(spec.args).toEqual([])
+    expect(spec.env?.PROMPT).toContain(']9;9;')
+  })
+
+  it('falls back to the shell args with no env for a non-integrated shell', () => {
+    const other: ShellInfo = { id: 'fish', label: 'fish', path: 'C:\\fish.exe', args: ['-l'] }
+    const spec = resolveSpawnSpec(other, 'C:\\scripts')
+    expect(spec).toEqual({ file: 'C:\\fish.exe', args: ['-l'], env: undefined })
   })
 })

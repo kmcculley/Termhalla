@@ -1,7 +1,12 @@
 import { describe, it, expect } from 'vitest'
-import { shellInjection, PS_SCRIPT, SH_SCRIPT } from '../../src/main/status/shell-integration'
+import { shellInjection, PS_SCRIPT, SH_SCRIPT, CMD_PROMPT } from '../../src/main/status/shell-integration'
 import { POWERSHELL_INTEGRATION, BASH_INTEGRATION } from '../../src/main/status/integration-scripts'
+import { CwdParser } from '../../src/main/status/cwd-parser'
 import type { ShellInfo } from '@shared/types'
+
+/** Expand the cmd PROMPT codes the way cmd.exe does at runtime, for a given cwd. */
+const expandCmdPrompt = (prompt: string, cwd: string): string =>
+  prompt.split('$E').join('\x1b').split('$P').join(cwd).split('$G').join('>')
 
 const shell = (id: string, args: string[] = []): ShellInfo =>
   ({ id, label: id, path: `C:\\${id}.exe`, args })
@@ -23,8 +28,17 @@ describe('shellInjection', () => {
       expect(inj.args.join(' ')).toContain(SH_SCRIPT)
     }
   })
-  it('returns null for cmd (heuristics only)', () => {
-    expect(shellInjection(shell('cmd'), 'C:\\scripts')).toBeNull()
+  it('injects a cwd-reporting PROMPT for cmd', () => {
+    const inj = shellInjection(shell('cmd'), 'C:\\scripts')!
+    expect(inj).not.toBeNull()
+    expect(inj.env.PROMPT).toBe(CMD_PROMPT)
+    // No script file / args swap — cmd reports cwd purely via the PROMPT env var.
+    expect(inj.args).toEqual([])
+  })
+  it('cmd PROMPT expands to a parseable OSC 9;9 cwd report', () => {
+    const inj = shellInjection(shell('cmd'), 'C:\\scripts')!
+    const emitted = expandCmdPrompt(inj.env.PROMPT, 'C:\\dev\\Termhalla')
+    expect(new CwdParser().push(emitted)).toBe('C:\\dev\\Termhalla')
   })
 })
 
