@@ -13,7 +13,7 @@ Each integrated shell reports its current directory on every prompt. Termhalla p
 - **Inherit** the source pane's cwd when a new pane is split off it.
 - Feed the live cwd into the recent-directories quick list.
 
-Detection is **integration-only**: PowerShell (pwsh + Windows PowerShell) and bash (Git Bash / WSL) track live; **cmd has no live cwd** and uses its spawn directory only.
+Detection is **integration-only**: PowerShell (pwsh + Windows PowerShell) and bash (Git Bash / WSL) track live via injected OSC scripts, and **cmd tracks live too** via an `OSC 9;9` report emitted from its `PROMPT` env var (it has no `PROMPT_COMMAND` hook, but expands `$E`/`$P`/`$G` codes every prompt). Shells with no injection (e.g. a custom shell, or an SSH launch to a remote host) keep their spawn directory only.
 
 ## How it works
 
@@ -49,7 +49,7 @@ Detection is **integration-only**: PowerShell (pwsh + Windows PowerShell) and ba
 
 - **bash decode fallback** — OSC 7 paths run through a try/catch `decodeURIComponent`; a literal `%` that isn't a valid percent-escape falls back to the raw path instead of throwing (regression-tested).
 - **Raw vs. encoded bash path** — the spec calls the OSC 7 path "URL-encoded", but `termhalla.sh` actually emits raw `$PWD`. The guarded decoder handles both, so behavior is correct either way.
-- **cmd = spawn cwd only** — cmd has no integration script, so no live updates; the 📁 menu still targets its spawn directory (a valid path). Consistent with the status engine.
+- **cmd live cwd via PROMPT** — cmd has no integration *script*, but `shellInjection` sets its `PROMPT` env var to `$E]9;9;$P$E\$P$G`, so each prompt emits `OSC 9;9;<cwd>` (ST-terminated, since cmd's `PROMPT` can produce ESC but not BEL) ahead of the normal `path>` text. This survives ConPTY and feeds `CwdParser` like the script-based shells. (Status detection is separate and still heuristic for cmd — we add the cwd report, not OSC 133 markers.) Without this, cmd panes never reported a cwd and so never persisted/restored one.
 - **Split inherit** — terminals split from a pane start in that pane's cwd; the top-level "＋ pane" menu keeps the default (home) directory.
 - **Pure-Linux WSL cwds** — paths like `/home/...` are left untranslated; Windows Explorer can't open them, so Reveal fails gracefully (known limitation).
 - **Cleanup parity** — `closePane` deletes the pane's entry from `cwds` (and `statuses`, `procs`, etc.), so the runtime maps don't leak. (The follow-ups doc flagged this as parity work; it is addressed in the shipped `closePane`.)

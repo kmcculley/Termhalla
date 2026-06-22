@@ -4,6 +4,20 @@ All notable changes to Termhalla are recorded here. The format follows
 [Keep a Changelog](https://keepachangelog.com/), and the project aims to follow
 [Semantic Versioning](https://semver.org/). Dates are YYYY-MM-DD.
 
+## [Unreleased]
+
+### Fixed
+- **cmd.exe terminals now retain their working directory across restarts.** Some workspaces never
+  kept their cwd even on a plain close/reopen — those running `cmd`. Persistence was sound; the gap
+  was *detection*: cmd got no shell-integration injection, so it never emitted a cwd report and there
+  was nothing to save. (The v0.3.7 atomic-write/flush fix addressed a different bug — truncated files
+  on auto-update restart — not this one.) cmd has no `PROMPT_COMMAND` hook, but it expands codes in
+  its `PROMPT` env var every prompt, so `shellInjection` now sets `PROMPT=$E]9;9;$P$E\$P$G` to emit
+  `OSC 9;9;<cwd>` (ST-terminated — cmd's `PROMPT` can produce ESC but not BEL) ahead of the normal
+  `path>` prompt. `CwdParser` reads it like the script-based shells, so the cwd persists and restores.
+  cmd *status* detection is unchanged (still heuristic — no OSC 133 markers added). Covered by a new
+  e2e that cd's a cmd pane, relaunches, and asserts the directory is restored.
+
 ## [0.4.0] - 2026-06-21
 
 ### Added

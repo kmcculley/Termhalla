@@ -41,7 +41,7 @@ This is roadmap sub-project B; it builds on the existing cwd tracking (see [cwd-
 - **Stored** (in `quick.json`, plaintext): connection `name`, `host`, `user`, optional `port`, and the *path* to an identity file. Favorite/recent directory paths and recent-connection ids.
 - **Never stored:** passwords, passphrases, private-key material, or any secret. There is no in-app key agent. Authentication is fully delegated to `ssh`, which prompts interactively inside the terminal pane.
 - `normalizeQuick` sanitizes on both read and write, so a malformed file or renderer payload cannot inject unexpected shapes into main.
-- SSH panes get **no** shell-integration injection (our scripts never reach the remote host), so status is heuristic-only and live cwd is not tracked (the directory is remote) — consistent with `cmd`.
+- SSH panes get **no** shell-integration injection (our scripts never reach the remote host), so status is heuristic-only and live cwd is not tracked (the directory is remote). Note this is *not* the same as `cmd`, which is a local shell and does report live cwd via its `PROMPT` env var.
 
 ## tmux auto-attach
 
