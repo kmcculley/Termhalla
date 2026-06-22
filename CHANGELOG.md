@@ -4,7 +4,7 @@ All notable changes to Termhalla are recorded here. The format follows
 [Keep a Changelog](https://keepachangelog.com/), and the project aims to follow
 [Semantic Versioning](https://semver.org/). Dates are YYYY-MM-DD.
 
-## [Unreleased]
+## [0.4.2] - 2026-06-22
 
 ### Fixed
 - **Terminal copy no longer "sometimes" silently fails.** Two structural fragilities made copy
