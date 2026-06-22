@@ -48,6 +48,25 @@ test('copies a selected line with Ctrl+C', async ({ app }) => {
   ).toContain('CLIP-COPY-TOKEN')
 })
 
+test('copy-on-select: finishing a selection copies it without Ctrl+C', async ({ app }) => {
+  const win = await openTerminal(app)
+  // Seed a known-wrong value so we can tell a real copy-on-select apart from a stale clipboard.
+  await app.evaluate(({ clipboard }) => clipboard.writeText('STALE-BEFORE-SELECT'))
+  await win.locator('.xterm-screen').click()
+  await win.keyboard.type('echo CLIP-SELECT-TOKEN')
+  await win.keyboard.press('Enter')
+  await expect(win.locator('.xterm-rows')).toContainText('CLIP-SELECT-TOKEN', { timeout: 15_000 })
+
+  // Triple-click selects the line; the mouseup that ends it must copy — no Ctrl+C pressed.
+  await win.locator('.xterm-rows').getByText('CLIP-SELECT-TOKEN', { exact: false }).first()
+    .click({ clickCount: 3 })
+
+  await expect.poll(
+    () => app.evaluate(({ clipboard }) => clipboard.readText()),
+    { timeout: 5_000 }
+  ).toContain('CLIP-SELECT-TOKEN')
+})
+
 test('pastes the clipboard with Ctrl+V', async ({ app }) => {
   const win = await openTerminal(app)
   await app.evaluate(({ clipboard }) => clipboard.writeText('PASTE-V-TOKEN'))

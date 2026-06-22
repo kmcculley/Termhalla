@@ -4,6 +4,22 @@ All notable changes to Termhalla are recorded here. The format follows
 [Keep a Changelog](https://keepachangelog.com/), and the project aims to follow
 [Semantic Versioning](https://semver.org/). Dates are YYYY-MM-DD.
 
+## [Unreleased]
+
+### Fixed
+- **Terminal copy no longer "sometimes" silently fails.** Two structural fragilities made copy
+  intermittent, especially in a live pane (e.g. a running Claude Code session):
+  - *Copy raced terminal output.* Ctrl+C only copied if `term.hasSelection()` was still true at the
+    keypress, but incoming output clears the xterm selection — so in an active pane the selection was
+    often gone by the time you pressed the key, and Ctrl+C fell through as a bare `^C` (copying
+    nothing). New **copy-on-select** (default on) copies a selection the instant the mouse gesture
+    ends, before any output can clear it; the selection is left visible and Ctrl+C still works as a
+    manual copy. Toggle under Settings → General ("Copy terminal selection to clipboard on select").
+  - *The write was fire-and-forget.* The Windows clipboard is a single global lock that RDP / VMware
+    Horizon / PowerToys AdvancedPaste / Phone Link clipboard redirectors grab right after any change;
+    Electron's `clipboard.writeText` fails silently in that window. The main-side write now verifies
+    by read-back and retries with a short backoff (`writeTextReliably`), surviving the lock contention.
+
 ## [0.4.1] - 2026-06-21
 
 ### Fixed

@@ -11,6 +11,8 @@ export function GeneralSettings() {
   const setRecordByDefault = useStore(s => s.setRecordByDefault)
   const autoResumeClaude = useStore(s => s.quick.autoResumeClaude)
   const setAutoResumeClaude = useStore(s => s.setAutoResumeClaude)
+  const copyOnSelect = useStore(s => s.quick.copyOnSelect)
+  const setCopyOnSelect = useStore(s => s.setCopyOnSelect)
   return (
     <div data-testid="settings-general" style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
       <label style={{ display: 'flex', gap: 8, alignItems: 'center', justifyContent: 'space-between' }}>
@@ -28,6 +30,11 @@ export function GeneralSettings() {
         <input data-testid="auto-resume-claude" type="checkbox" checked={autoResumeClaude !== false}
           onChange={e => setAutoResumeClaude(e.target.checked)} />
         Resume Claude in restored terminals (claude --resume)
+      </label>
+      <label style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+        <input data-testid="copy-on-select" type="checkbox" checked={copyOnSelect !== false}
+          onChange={e => setCopyOnSelect(e.target.checked)} />
+        Copy terminal selection to clipboard on select
       </label>
       <div>
         <button data-testid="rec-folder" onClick={() => api.recReveal()}>Open recordings folder</button>

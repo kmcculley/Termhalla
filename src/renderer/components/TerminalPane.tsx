@@ -105,6 +105,18 @@ export function TerminalPane({ paneId, wsId, config }: { paneId: string; wsId: s
     const onContextMenu = (e: MouseEvent) => { e.preventDefault(); void paste() }
     hostRef.current!.addEventListener('contextmenu', onContextMenu)
 
+    // Copy-on-select: the instant a selection gesture ends (mouseup after a drag or multi-click),
+    // copy it to the clipboard — BEFORE incoming terminal output can clear the xterm selection out
+    // from under a later Ctrl+C (in a live pane, e.g. Claude printing, that race is what made copy
+    // "sometimes" fail). Ctrl+C stays as a manual copy/interrupt. The selection is left intact (not
+    // cleared) so it stays visible and re-copyable. Gated by the copyOnSelect setting (default on).
+    const onMouseUp = () => {
+      if (useStore.getState().quick.copyOnSelect === false) return
+      const sel = term.getSelection()
+      if (sel) api.clipboardWrite(sel)
+    }
+    hostRef.current!.addEventListener('mouseup', onMouseUp)
+
     // Ctrl/Cmd + wheel zooms the terminal font (like editors/browsers). Capture phase + stop so
     // xterm doesn't also scroll the buffer; writes the global termFontSize, which the theme effect
     // below re-applies and re-fits across every terminal. passive:false so preventDefault sticks.
@@ -183,6 +195,7 @@ export function TerminalPane({ paneId, wsId, config }: { paneId: string; wsId: s
     return () => {
       disposed = true
       hostRef.current?.removeEventListener('contextmenu', onContextMenu)
+      hostRef.current?.removeEventListener('mouseup', onMouseUp)
       hostRef.current?.removeEventListener('wheel', onWheel, { capture: true } as EventListenerOptions)
       unregisterSerializer(paneId)
       unregisterFocuser(paneId)

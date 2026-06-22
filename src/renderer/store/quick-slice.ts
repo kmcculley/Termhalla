@@ -7,7 +7,7 @@ import type { State, SliceDeps } from './types'
 type QuickSlice = Pick<State,
   'saveTemplate' | 'deleteTemplate' | 'newWorkspaceFromTemplate' |
   'saveConnection' | 'deleteConnection' | 'pinDir' | 'unpinDir' |
-  'launchConnection' | 'launchDir' | 'setRecordByDefault' | 'setAutoResumeClaude'>
+  'launchConnection' | 'launchDir' | 'setRecordByDefault' | 'setAutoResumeClaude' | 'setCopyOnSelect'>
 
 /** The "quick.json" domain: workspace templates, SSH connection favorites, pinned/recent dirs,
  *  the launch shortcuts that open a favorite as a new terminal pane, and the record-by-default
@@ -90,6 +90,7 @@ export function createQuickSlice({ set, get, scheduleAutosave, scheduleQuickSave
     },
 
     setRecordByDefault: (on) => { set(s => ({ quick: { ...s.quick, recordByDefault: on } })); scheduleQuickSave() },
-    setAutoResumeClaude: (on) => { set(s => ({ quick: { ...s.quick, autoResumeClaude: on } })); scheduleQuickSave() }
+    setAutoResumeClaude: (on) => { set(s => ({ quick: { ...s.quick, autoResumeClaude: on } })); scheduleQuickSave() },
+    setCopyOnSelect: (on) => { set(s => ({ quick: { ...s.quick, copyOnSelect: on } })); scheduleQuickSave() }
   }
 }

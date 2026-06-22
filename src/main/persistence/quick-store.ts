@@ -23,6 +23,7 @@ function normalizeQuick(value: unknown): QuickData {
     themePresets: Array.isArray(v.themePresets) ? v.themePresets : [],
     recordByDefault: typeof v.recordByDefault === 'boolean' ? v.recordByDefault : false,
     autoResumeClaude: typeof v.autoResumeClaude === 'boolean' ? v.autoResumeClaude : true,
+    copyOnSelect: typeof v.copyOnSelect === 'boolean' ? v.copyOnSelect : true,
     keybindings: v.keybindings && typeof v.keybindings === 'object' && !Array.isArray(v.keybindings)
       ? Object.fromEntries(Object.entries(v.keybindings).filter(([, val]) => typeof val === 'string')) as Record<string, string>
       : undefined,
