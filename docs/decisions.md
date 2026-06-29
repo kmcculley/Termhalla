@@ -417,6 +417,11 @@ in `EnvVault.persist()`" follow-up.
 try/catch. A vault add/create can now reject; callers must `await` it. `persist()` throwing means any
 *future* automatic/background persist caller would need its own catch — today every caller is a
 user action that can surface a toast.
+**Note (2026-06-29, feature 0001 / ESC-001):** the toast on/off preference added with the Edit ▸
+Settings… menu (`quick.toastsEnabled`) governs **success/info toasts only** — `error`-kind toasts
+always render regardless of the setting (`pushToast` branches on `kind` in `toasts-slice.ts`). The
+`runOp` failure-feedback guarantee above is therefore **preserved**: a failed save/vault write still
+surfaces its "Save failed"/error toast even when toasts are disabled.
 
 ### [2026-06-17] Renderer pure logic kept api-free so it's vitest-testable
 

@@ -155,6 +155,8 @@ related area:
 | Renderer store | `src/renderer/store.ts` (root) + `src/renderer/store/` (slices + helpers) | — |
 | IPC contract | `src/shared/ipc-contract.ts` | — |
 | Keybindings | `src/shared/keybindings.ts`, `src/renderer/components/KeybindingsSettings.tsx` | [keybindings](docs/features/keybindings.md) |
+| Native app menu / Settings entry | `src/main/menu.ts` (Edit ▸ Settings… → `menu:open-settings` push, consumed in `src/renderer/App.tsx`) | — |
+| Toast notifications | `src/renderer/store/toasts-slice.ts` (single `pushToast` gate; `quick.toastsEnabled` opt-in for success/info, errors always show) | — |
 | Output search history | `src/main/search/` | [search-history](docs/features/search-history.md) |
 | Saved run commands | `src/shared/run-commands.ts`, `src/renderer/store/run-commands-slice.ts` | [run-commands](docs/features/run-commands.md) |
 | Terminal links / image preview | `src/shared/terminal-links.ts`, `src/renderer/terminal/links.ts`, `src/main/ipc/register-preview.ts` | [terminal-links](docs/features/terminal-links.md) |

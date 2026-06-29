@@ -77,6 +77,7 @@ export interface State {
   setRecordByDefault: (on: boolean) => void
   setAutoResumeClaude: (on: boolean) => void
   setCopyOnSelect: (on: boolean) => void
+  setToastsEnabled: (on: boolean) => void
   drafts: Record<string, EditorDraft>
   notes: Record<string, string>
   notesOpen: boolean

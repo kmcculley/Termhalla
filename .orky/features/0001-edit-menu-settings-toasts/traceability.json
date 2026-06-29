@@ -1,0 +1,52 @@
+{
+  "REQ-001": {
+    "tasks": ["TASK-003"],
+    "tests": ["TEST-001", "TEST-013"],
+    "files": ["src/main/menu.ts"]
+  },
+  "REQ-002": {
+    "tasks": ["TASK-003", "TASK-004"],
+    "tests": ["TEST-002", "TEST-014"],
+    "files": ["src/main/menu.ts", "src/renderer/App.tsx"]
+  },
+  "REQ-003": {
+    "tasks": ["TASK-001", "TASK-002", "TASK-004"],
+    "tests": ["TEST-003"],
+    "files": ["src/shared/ipc-contract.ts", "src/preload/index.ts", "src/renderer/App.tsx"]
+  },
+  "REQ-004": {
+    "tasks": ["TASK-005"],
+    "tests": ["TEST-015", "TEST-016"],
+    "files": ["src/renderer/components/WorkspaceTabs.tsx"]
+  },
+  "REQ-005": {
+    "tasks": ["TASK-008", "TASK-010"],
+    "tests": ["TEST-009", "TEST-010", "TEST-018"],
+    "files": ["src/renderer/store/toasts-slice.ts"]
+  },
+  "REQ-006": {
+    "tasks": ["TASK-008"],
+    "tests": ["TEST-011", "TEST-012", "TEST-020"],
+    "files": ["src/renderer/store/toasts-slice.ts"]
+  },
+  "REQ-007": {
+    "tasks": ["TASK-006", "TASK-007"],
+    "tests": ["TEST-004", "TEST-005", "TEST-006", "TEST-007", "TEST-008"],
+    "files": ["src/shared/types.ts", "src/main/persistence/quick-store.ts", "src/renderer/store/quick-slice.ts", "src/renderer/store/types.ts"]
+  },
+  "REQ-008": {
+    "tasks": ["TASK-009"],
+    "tests": ["TEST-017", "TEST-018"],
+    "files": ["src/renderer/components/GeneralSettings.tsx"]
+  },
+  "REQ-009": {
+    "tasks": ["TASK-011"],
+    "tests": ["TEST-021"],
+    "files": ["CHANGELOG.md", "CLAUDE.md", "docs/decisions.md", "tests/docs-feature-0001.test.ts"]
+  },
+  "REQ-010": {
+    "tasks": ["TASK-008", "TASK-010"],
+    "tests": ["TEST-019", "TEST-020"],
+    "files": ["src/renderer/store/toasts-slice.ts"]
+  }
+}

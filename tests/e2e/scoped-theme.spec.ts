@@ -45,7 +45,7 @@ test('scoped theming: app vs per-pane override, persisted', async () => {
   await win.getByTestId('add-first-terminal').click()
   await expect(win.locator('[data-testid^="terminal-"]')).toHaveCount(1, { timeout: 15_000 })
 
-  await win.getByTestId('settings-button').click()
+  await win.keyboard.press('Control+Comma')
   await win.getByTestId('settings-nav-appearance').click()
   await expect(win.getByTestId('settings-appearance')).toBeVisible()
 

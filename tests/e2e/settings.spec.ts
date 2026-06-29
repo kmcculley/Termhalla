@@ -11,13 +11,15 @@ function killTree(pid: number | undefined): void {
 const launch = (userData: string) =>
   electron.launch({ args: ['out/main/index.js', '--no-sandbox', '--disable-gpu', `--user-data-dir=${userData}`] })
 
-test('gear opens the panel and the sidebar switches sections', async () => {
+// Feature 0001 / REQ-004: the ⚙ gear settings-button was removed; these tests now open Settings
+// via the preserved Ctrl+, keybinding entry point (the gear path no longer exists).
+test('Ctrl+, opens the panel and the sidebar switches sections', async () => {
   test.setTimeout(60_000)
   const userData = mkdtempSync(join(tmpdir(), 'termh-set1-'))
   const app = await launch(userData)
   const win = await app.firstWindow()
   await expect(win.getByTestId('workspace-tabs')).toBeVisible({ timeout: 15_000 })
-  await win.getByTestId('settings-button').click()
+  await win.keyboard.press('Control+Comma')
   await expect(win.getByTestId('settings-panel')).toBeVisible()
   await expect(win.getByTestId('settings-general')).toBeVisible()
   await win.getByTestId('settings-nav-appearance').click()
@@ -31,10 +33,10 @@ test('record-by-default toggle persists across reopen', async () => {
   const app = await launch(userData)
   const win = await app.firstWindow()
   await expect(win.getByTestId('workspace-tabs')).toBeVisible({ timeout: 15_000 })
-  await win.getByTestId('settings-button').click()
+  await win.keyboard.press('Control+Comma')
   await win.getByTestId('rec-default').check()
   await win.getByTestId('settings-close').click()
-  await win.getByTestId('settings-button').click()
+  await win.keyboard.press('Control+Comma')
   await expect(win.getByTestId('rec-default')).toBeChecked()
   const pid = app.process().pid; await app.close().catch(() => {}); killTree(pid)
 })

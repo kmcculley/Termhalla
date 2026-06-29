@@ -12,7 +12,7 @@ function launch(userData: string): Promise<ElectronApplication> {
 }
 
 async function openKeybindings(win: import('@playwright/test').Page) {
-  await win.getByTestId('settings-button').click()
+  await win.keyboard.press('Control+Comma')
   await expect(win.getByTestId('settings-panel')).toBeVisible()
   await win.getByTestId('settings-nav-keybindings').click()
   await expect(win.getByTestId('settings-keybindings')).toBeVisible()
@@ -79,7 +79,7 @@ test('Settings nav and dropdown menus are readable on a light theme', async () =
     g.document.documentElement.style.setProperty('--elevated', '#f5f5f5')
     g.document.documentElement.style.setProperty('--fg-on-elevated', '#182026')
   })
-  await win.getByTestId('settings-button').click()
+  await win.keyboard.press('Control+Comma')
   await expect(win.getByTestId('settings-panel')).toBeVisible()
   const color = await win.getByTestId('settings-nav-general').evaluate(el => {
     const g = globalThis as unknown as { getComputedStyle(e: unknown): { color: string } }

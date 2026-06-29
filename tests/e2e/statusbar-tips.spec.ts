@@ -26,7 +26,7 @@ test('status bar shows a shortcut tip that reflects the current binding', async 
   await expect(tip).toContainText('open a new pane')
 
   // Rebind new-terminal and confirm the tip text updates live (no rotation wait needed).
-  await win.getByTestId('settings-button').click()
+  await win.keyboard.press('Control+Comma')
   await win.getByTestId('settings-nav-keybindings').click()
   await win.getByTestId('kb-change-new-terminal').click()
   // Wait until capture is armed (cell shows "Press shortcut…") before pressing, so the chord isn't

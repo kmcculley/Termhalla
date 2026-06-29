@@ -21,6 +21,12 @@ to it when a review surfaces a lesson general enough to outlive its feature.
   and malformed input — the failure modes, not only the happy path. *(seed)*
 - **CONV-003** — No silent truncation, rounding, or capping: if a limit is enforced, the spec
   states it and a test asserts it. *(seed)*
+- **CONV-004** — A global notification/feedback-suppression preference MUST NOT suppress
+  error/failure notifications; only informational/success notifications may be made opt-in.
+  *(from FINDING-DA-001 in 0001-edit-menu-settings-toasts)*
+- **CONV-005** — A native menu-item accelerator MUST be derived from (or kept in sync with) the
+  user-customizable keybinding registry, never hard-coded to duplicate a rebindable command.
+  *(from FINDING-UX-002 in 0001-edit-menu-settings-toasts)*
 
 ## Principles
 Higher-level stances that inform specs and reviews but are too broad to gate mechanically.

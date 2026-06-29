@@ -43,7 +43,8 @@ test('closing a dialog restores focus to the terminal', async () => {
   await expect.poll(() => activeClass(win), { timeout: 10_000 }).toContain('xterm-helper-textarea')
 
   // Open Settings (a Modal). It takes focus away from the terminal.
-  await win.getByTestId('settings-button').click()
+  // Feature 0001 / REQ-004: the ⚙ gear was removed — open Settings via the Ctrl+, keybinding.
+  await win.keyboard.press('Control+Comma')
   await expect(win.getByTestId('settings-panel')).toBeVisible()
   await expect.poll(() => activeClass(win), { timeout: 5_000 }).not.toContain('xterm-helper-textarea')
 

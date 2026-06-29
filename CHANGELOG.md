@@ -4,6 +4,22 @@ All notable changes to Termhalla are recorded here. The format follows
 [Keep a Changelog](https://keepachangelog.com/), and the project aims to follow
 [Semantic Versioning](https://semver.org/). Dates are YYYY-MM-DD.
 
+## [Unreleased]
+
+### Changed
+- **Settings moved to a native Edit menu.** A new top-level **Edit ▸ Settings…** menu item
+  (accelerator `Ctrl+,`) opens the Settings modal at the General section, via a new
+  `menu:open-settings` main→renderer IPC push. The redundant ⚙ gear button in the workspace tab
+  bar was removed; Settings remains reachable from the Edit menu, the Command Palette, the pane
+  context menu, and the `Ctrl+,` keybinding.
+- **Success/info toast notifications now default OFF.** Bottom-right success and info toasts are
+  suppressed unless explicitly enabled via Settings → General ("Show success and info toast
+  notifications (errors always show)"). **Error toasts always render** regardless of the setting, so
+  failure feedback (e.g. the editor "Save failed" signal) is never silenced. Existing installs (and
+  any `quick.json` predating the preference) read as OFF with no migration; the `toastsEnabled`
+  preference is additive (no schema bump). Suppression is gated at the single `pushToast` chokepoint,
+  which branches on toast kind.
+
 ## [0.4.2] - 2026-06-22
 
 ### Fixed

@@ -44,7 +44,7 @@ test('customizes the theme, persists it across relaunch, and supports presets', 
   let win = await app.firstWindow()
   await expect(win.getByTestId('workspace-tabs')).toBeVisible({ timeout: 15_000 })
 
-  await win.getByTestId('settings-button').click()
+  await win.keyboard.press('Control+Comma')
   await win.getByTestId('settings-nav-appearance').click()
   await expect(win.getByTestId('settings-appearance')).toBeVisible()
 

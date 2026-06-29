@@ -13,15 +13,14 @@ export function WorkspaceTabs() {
   const {
     order, workspaces, activeId, setActive, newWorkspace,
     saveAll, shells, newTerminalShellId, setNewTerminalShell, addPaneOfKind,
-    renameWorkspace, closeWorkspace, moveWorkspace, setBroadcastOpen, broadcastOpen, openSettings
+    renameWorkspace, closeWorkspace, moveWorkspace, setBroadcastOpen, broadcastOpen
   } = useStore(useShallow(s => ({
     order: s.order, workspaces: s.workspaces, activeId: s.activeId, setActive: s.setActive,
     newWorkspace: s.newWorkspace, saveAll: s.saveAll, shells: s.shells,
     newTerminalShellId: s.newTerminalShellId, setNewTerminalShell: s.setNewTerminalShell,
     addPaneOfKind: s.addPaneOfKind,
     renameWorkspace: s.renameWorkspace, closeWorkspace: s.closeWorkspace,
-    moveWorkspace: s.moveWorkspace, setBroadcastOpen: s.setBroadcastOpen, broadcastOpen: s.broadcastOpen,
-    openSettings: s.openSettings
+    moveWorkspace: s.moveWorkspace, setBroadcastOpen: s.setBroadcastOpen, broadcastOpen: s.broadcastOpen
   })))
   // Derive the per-workspace badge string inside the selector: statuses/aiSessions change on
   // every line of output, but shallow-comparing the derived strings means we only re-render
@@ -100,7 +99,6 @@ export function WorkspaceTabs() {
       </select>
       <button data-testid="broadcast-button" title="Broadcast to all terminals (Ctrl+Shift+Enter)"
         onClick={() => setBroadcastOpen(!broadcastOpen)}>⇉</button>
-      <button data-testid="settings-button" title="Settings (Ctrl+,)" onClick={() => openSettings({ section: 'general' })}>⚙</button>
       <button data-testid="save-workspace" onClick={() => saveAll()}>Save</button>
 
       {menuFor && (

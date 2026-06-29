@@ -89,6 +89,7 @@ export interface QuickStore {
   recordByDefault?: boolean
   autoResumeClaude?: boolean     // re-run `claude --resume` in restored terminals that had Claude (default on)
   copyOnSelect?: boolean         // copy a terminal selection to the clipboard as soon as it's made (default on)
+  toastsEnabled?: boolean        // show bottom-right toast notifications; toasts render only when strictly true (default off)
   keybindings?: Record<string, string>   // CommandId -> chordKey ("mod+shift+t") | 'none' (unbound)
 }
 

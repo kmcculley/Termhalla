@@ -17,7 +17,7 @@ test('sets a global env var and a new terminal sees it', async () => {
   const win = await app.firstWindow()
 
   // Open the env settings section and create a fresh encrypted vault (unlocked in-session).
-  await win.getByTestId('settings-button').click()
+  await win.keyboard.press('Control+Comma')
   await win.getByTestId('settings-nav-environment').click()
   await expect(win.getByTestId('settings-environment')).toBeVisible()
   await win.getByTestId('env-passphrase').fill('pw')

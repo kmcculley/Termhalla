@@ -53,6 +53,8 @@ export default function App() {
       api.onEnvState(state => s().setEnvState(state)),
       api.onWinAssignment(a => { void s().applyAssignment(a) }),
       api.onTermSerialize(wsId => s().serializeWorkspace(wsId)),
+      // Native Edit ▸ Settings… opens the Settings modal at the General section.
+      api.onOpenSettings(() => s().openSettings({ section: 'general' })),
       // Main asks us to flush before it quits. Persist workspaces (cwd) + quick (SSH) and AWAIT the
       // disk writes, then confirm — so the quit/auto-update install can't race our writes to exit.
       api.onAppFlush(async () => {

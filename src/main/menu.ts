@@ -1,13 +1,26 @@
 import { app, BrowserWindow, Menu, dialog, type MenuItemConstructorOptions } from 'electron'
+import { CH } from '@shared/ipc-contract'
 import { checkForUpdatesInteractive } from './updater'
 
 /**
  * Install the application menu. Replaces Electron's default menu bar with a minimal
- * template: View (reload / devtools / zoom / fullscreen) and Help (Check for Updates,
- * About). Call once after the windows start.
+ * template: Edit (Settings…), View (reload / devtools / zoom / fullscreen) and Help
+ * (Check for Updates, About). Call once after the windows start.
  */
 export function installAppMenu(): void {
   const template: MenuItemConstructorOptions[] = [
+    {
+      label: 'Edit',
+      submenu: [
+        {
+          label: 'Settings…',
+          accelerator: 'CmdOrCtrl+,',
+          // Open the renderer Settings modal; the focused window's renderer subscribes via
+          // onOpenSettings and opens at the General section. Sends on no other channel.
+          click: () => BrowserWindow.getFocusedWindow()?.webContents.send(CH.openSettings),
+        },
+      ],
+    },
     {
       label: 'View',
       submenu: [

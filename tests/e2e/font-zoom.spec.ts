@@ -29,7 +29,7 @@ test('Ctrl+wheel zooms the terminal font size', async () => {
   })
 
   // The global terminal font size should now read 14 in Appearance settings.
-  await win.getByTestId('settings-button').click()
+  await win.keyboard.press('Control+Comma')
   await win.getByTestId('settings-nav-appearance').click()
   await expect(win.getByTestId('theme-termFontSize')).toHaveValue('14', { timeout: 5_000 })
   const pid = app.process().pid; await app.close().catch(() => {}); killTree(pid)

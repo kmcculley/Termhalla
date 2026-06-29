@@ -69,6 +69,7 @@ export const CH = {
   searchSetMuted: 'search:setMuted',
   shellOpenExternal: 'shell:openExternal',  // renderer -> main (open a URL in the default browser)
   previewLoadImage: 'preview:loadImage',    // renderer -> main (read file / fetch url -> data URL)
+  openSettings: 'menu:open-settings',       // main -> renderer event (native Edit ▸ Settings… clicked)
 } as const
 
 export interface NotifyArgs { title: string; body: string }
@@ -168,4 +169,6 @@ export interface TermhallaApi {
   searchSetMuted(paneId: string, muted: boolean): void
   openExternal(url: string): void
   previewLoadImage(src: ImageSource): Promise<ImageResult>
+  /** The native Edit ▸ Settings… menu item was clicked; open the Settings modal at General. */
+  onOpenSettings(cb: () => void): () => void
 }

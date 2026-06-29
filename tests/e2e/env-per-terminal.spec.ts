@@ -17,7 +17,7 @@ test('a per-terminal var is written under the pane and persists', async () => {
   const win = await app.firstWindow()
 
   // Create a fresh encrypted vault (unlocked in-session) via the global settings.
-  await win.getByTestId('settings-button').click()
+  await win.keyboard.press('Control+Comma')
   await win.getByTestId('settings-nav-environment').click()
   await expect(win.getByTestId('settings-environment')).toBeVisible()
   await win.getByTestId('env-passphrase').fill('pw')

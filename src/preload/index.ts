@@ -100,6 +100,7 @@ const api: TermhallaApi = {
   searchSetMuted: (paneId, muted) => ipcRenderer.send(CH.searchSetMuted, paneId, muted),
   openExternal: (url) => ipcRenderer.send(CH.shellOpenExternal, url),
   previewLoadImage: (src) => ipcRenderer.invoke(CH.previewLoadImage, src),
+  onOpenSettings: pushChannel<[]>(CH.openSettings),
 }
 
 contextBridge.exposeInMainWorld('termhalla', api)

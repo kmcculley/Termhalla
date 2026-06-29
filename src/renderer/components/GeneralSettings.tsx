@@ -13,6 +13,8 @@ export function GeneralSettings() {
   const setAutoResumeClaude = useStore(s => s.setAutoResumeClaude)
   const copyOnSelect = useStore(s => s.quick.copyOnSelect)
   const setCopyOnSelect = useStore(s => s.setCopyOnSelect)
+  const toastsEnabled = useStore(s => s.quick.toastsEnabled)
+  const setToastsEnabled = useStore(s => s.setToastsEnabled)
   return (
     <div data-testid="settings-general" style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
       <label style={{ display: 'flex', gap: 8, alignItems: 'center', justifyContent: 'space-between' }}>
@@ -35,6 +37,11 @@ export function GeneralSettings() {
         <input data-testid="copy-on-select" type="checkbox" checked={copyOnSelect !== false}
           onChange={e => setCopyOnSelect(e.target.checked)} />
         Copy terminal selection to clipboard on select
+      </label>
+      <label style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+        <input data-testid="toasts-enabled" type="checkbox" checked={toastsEnabled === true}
+          onChange={e => setToastsEnabled(e.target.checked)} />
+        Show success and info toast notifications (errors always show)
       </label>
       <div>
         <button data-testid="rec-folder" onClick={() => api.recReveal()}>Open recordings folder</button>

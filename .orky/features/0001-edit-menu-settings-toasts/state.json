@@ -1,0 +1,175 @@
+{
+  "feature": "0001-edit-menu-settings-toasts",
+  "phase": "doc-sync",
+  "gates": {
+    "brainstorm": {
+      "passed": true,
+      "at": "2026-06-29T15:23:05.559Z",
+      "evidence": "Iteration 1: ESC-001 resolved by human. Concept refined — error toasts always render; only success/info gated by toastsEnabled (default OFF). See 01-brainstorm.md addendum.",
+      "external": true
+    },
+    "spec": {
+      "passed": true,
+      "at": "2026-06-29T15:25:08.809Z",
+      "tokens": [
+        {
+          "token": "findings",
+          "pass": true,
+          "evidence": "no open blocking findings (CRITICAL/HIGH or contract-violation) for this gate"
+        }
+      ]
+    },
+    "plan": {
+      "passed": true,
+      "at": "2026-06-29T15:27:15.775Z",
+      "tokens": [
+        {
+          "token": "spec-freeze",
+          "pass": true,
+          "evidence": "spec unchanged since the spec gate"
+        },
+        {
+          "token": "traceability-plan",
+          "pass": true,
+          "evidence": "all 10 REQ(s) trace to TASK"
+        },
+        {
+          "token": "findings",
+          "pass": true,
+          "evidence": "no open blocking findings (CRITICAL/HIGH or contract-violation) for this gate"
+        }
+      ]
+    },
+    "tests": {
+      "passed": true,
+      "at": "2026-06-29T15:30:32.869Z",
+      "tokens": [
+        {
+          "token": "spec-freeze",
+          "pass": true,
+          "evidence": "spec unchanged since the spec gate"
+        },
+        {
+          "token": "tests-red",
+          "pass": true,
+          "evidence": "tests are RED (exit 1) — freeze snapshot captured"
+        }
+      ]
+    },
+    "implement": {
+      "passed": true,
+      "at": "2026-06-29T15:32:30.041Z",
+      "tokens": [
+        {
+          "token": "spec-freeze",
+          "pass": true,
+          "evidence": "spec unchanged since the spec gate"
+        },
+        {
+          "token": "build",
+          "pass": true,
+          "evidence": "build exited 0"
+        },
+        {
+          "token": "test",
+          "pass": true,
+          "evidence": "test exited 0"
+        },
+        {
+          "token": "test-freeze",
+          "pass": true,
+          "evidence": "test files unchanged since freeze"
+        }
+      ]
+    },
+    "review": {
+      "passed": true,
+      "at": "2026-06-29T15:35:30.928Z",
+      "tokens": [
+        {
+          "token": "spec-freeze",
+          "pass": true,
+          "evidence": "spec unchanged since the spec gate"
+        },
+        {
+          "token": "findings",
+          "pass": true,
+          "evidence": "no open blocking findings (CRITICAL/HIGH or contract-violation) for this gate"
+        }
+      ]
+    },
+    "doc-sync": {
+      "passed": true,
+      "at": "2026-06-29T15:42:52.766Z",
+      "tokens": [
+        {
+          "token": "spec-freeze",
+          "pass": true,
+          "evidence": "spec unchanged since the spec gate"
+        },
+        {
+          "token": "traceability",
+          "pass": true,
+          "evidence": "all 10 REQ(s) trace to TASK+TEST"
+        },
+        {
+          "token": "findings",
+          "pass": true,
+          "evidence": "no open blocking findings (CRITICAL/HIGH or contract-violation) for this gate"
+        }
+      ]
+    },
+    "human-review": {
+      "passed": true,
+      "at": "2026-06-29T17:45:22.415Z",
+      "evidence": "Human approved feature 0001 (Edit menu + toast preference, error-bypass per ESC-001). Approved commit + release.",
+      "external": true
+    }
+  },
+  "iterations": {
+    "brainstorm": 1
+  },
+  "escalations": [
+    {
+      "id": "ESC-001",
+      "phase": "review",
+      "reason": "Default-OFF toasts suppress error/failure feedback too, including the editor Save-failed toast (only signal of a failed write) -> silent data-loss path; breaks documented runOp guarantee. Need human decision: should error toasts bypass the disable toggle?",
+      "kind": "judgment",
+      "finding": "FINDING-DA-001",
+      "status": "resolved",
+      "at": "2026-06-29T15:21:33.085Z",
+      "decision": "Errors always show: the toast disable toggle silences only success/info toasts; kind==='error' toasts ALWAYS render regardless of the toastsEnabled setting. Add an explicit error-bypass requirement + a test pinning it. Default for non-error toasts stays OFF.",
+      "resolvedAt": "2026-06-29T15:22:34.574Z"
+    }
+  ],
+  "concerns": [
+    "ux",
+    "qol",
+    "doc-drift"
+  ],
+  "attempts": {
+    "spec": 0,
+    "plan": 0,
+    "tests": 0,
+    "implement": 0,
+    "review": 0,
+    "doc-sync": 0
+  },
+  "implementer": {
+    "mode": "claude",
+    "agents": [
+      "orky:implementer"
+    ],
+    "winner": "orky:implementer",
+    "reason": "iter1 error-bypass passed implement gate",
+    "at": "2026-06-29T15:32:36.832Z"
+  },
+  "loopbacks": [
+    {
+      "to": "brainstorm",
+      "from": "review",
+      "reason": "Human resolved ESC-001 (FINDING-DA-001): error toasts must bypass the disable toggle. Re-propagate from brainstorm -> spec adds error-bypass REQ, tests pin it, implement adds the kind==='error' carve-out.",
+      "at": "2026-06-29T15:22:40.275Z"
+    }
+  ]
+}
