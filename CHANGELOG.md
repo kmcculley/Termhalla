@@ -6,6 +6,8 @@ All notable changes to Termhalla are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-06-29
+
 ### Changed
 - **Settings moved to a native Edit menu.** A new top-level **Edit ▸ Settings…** menu item
   (accelerator `Ctrl+,`) opens the Settings modal at the General section, via a new
