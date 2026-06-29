@@ -167,3 +167,22 @@ subagent-driven implementation → review → merge). Specs and plans live in
 `docs/superpowers/`; per-feature deferred work is tracked in
 `docs/superpowers/*-review-followups.md`. When you finish a unit of work, update
 the [changelog](CHANGELOG.md) and the relevant feature/follow-up doc.
+
+### Orky baseline (`.orky/`)
+
+The repo is also adopted into Orky (gated spec→plan→tests→implement→review
+pipeline). `.orky/profiles/node-app.json` is the verified gate profile
+(`npm run build` + `npm test`); `.orky/baseline/` holds a **confirmed inferred
+baseline** — an architecture map, 24 `REQ-` requirements recovered from the code,
+and a REQ→CHAR traceability matrix. New features run via `/orky:new` build against
+this baseline.
+
+- **`tests/characterization-*.test.ts` (CHAR-001..020) are change-detectors, not
+  ordinary tests.** They pin *current* behavior (bugs included). A failure means
+  behavior **changed** — decide whether that's intended (update the CHAR test
+  through the tests phase) or a regression (fix the code). Don't blindly "fix" a
+  CHAR assertion to make it pass.
+- **`.orky/baseline/architecture.md` records four confirmed known bugs** (unanchored
+  AI-detection substrings, whitespace-strict input-prompt catch-all, undercounted
+  git merge-conflict entries, cursor-home output suppression) as candidate Orky
+  features. Issue #4 is load-bearing (ConPTY repaint-eviction guard) — fix with care.
