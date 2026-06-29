@@ -1,0 +1,17 @@
+{
+  "lenses": {
+    "security":        { "agent": "security-code-auditor",   "focus": "Injection, authn/authz gaps, secret handling, unsafe deserialization, SSRF, supply-chain and dependency risk." },
+    "quality":         { "agent": "code-practices-reviewer", "focus": "SOLID violations, god objects, code smells, dead code, naming, testability and maintainability." },
+    "devils-advocate": { "agent": "orky:reviewer",           "focus": "Challenge the core assumption. Argue the design is wrong. Find the missing requirement or the case the spec and tests ignore." },
+    "determinism":     { "agent": "orky:reviewer",           "focus": "Nondeterministic ordering, wall-clock/RNG use, float drift, map/set iteration order, platform-dependent behavior." },
+    "networking":      { "agent": "orky:reviewer",           "focus": "Timeouts, retries/idempotency, partial failure, serialization/versioning, backpressure, connection lifecycle." },
+    "multiplayer":     { "agent": "orky:reviewer",           "focus": "State sync, authority/ownership, rollback/reconciliation, cheat surface, latency compensation, join/leave." },
+    "performance":     { "agent": "orky:reviewer",           "focus": "Hot-path allocations, N+1, blocking I/O on critical paths, algorithmic complexity, unnecessary work." },
+    "enterprise-arch": { "agent": "orky:reviewer",           "focus": "Module boundaries, coupling/cohesion, scalability, operability, observability, compliance and audit." },
+    "qol":             { "agent": "orky:reviewer",           "focus": "Developer and operator quality of life: ergonomics, sane defaults, error messages, debuggability." },
+    "ux":              { "agent": "orky:reviewer",           "focus": "User-facing clarity, accessibility, friction, consistency, empty/error/loading states." },
+    "doc-drift":       { "agent": "orky:reviewer",           "focus": "Docs vs code/tests divergence, stale references, undocumented behavior, traceability gaps." },
+    "data-provenance": { "agent": "orky:reviewer",           "focus": "Bundled/embedded reference data (datasets, lookup tables, 'known' constants): is the cited provenance real and verifiable, or recalled/approximated? Do the values match the source? Is the displayed precision justified? Flag confidently-presented data that nothing verifies against reality." },
+    "compliance":      { "agent": "orky:reviewer",           "focus": "Governing framework controls (.orky/compliance/framework.json) assigned to this feature: is each assigned CTRL-NNN encoded as a testable REQ and actually satisfied by the spec/code/tests? Flag any assigned control that is unmet, weakly tested, or only superficially addressed — cite the CTRL-id. Read the control statements; do not assume." }
+  }
+}

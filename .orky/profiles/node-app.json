@@ -1,0 +1,22 @@
+{
+  "profile": "node-app",
+  "description": "Gate profile for a Node.js project WITH dependencies and a real test runner. The Gatekeeper runs `setup` (npm install) once, idempotently, before any ground-truth command — re-running only when package.json / the lockfile change (tracked via setupManifests). Same pipeline as the zero-dep `node` profile (ADR-007); only the commands differ. Tests live in separate dirs (test-freeze is directory-based; co-located *.test.js next to source is not yet supported).",
+  "commands": {
+    "setup": "npm install --no-audit --no-fund",
+    "build": "npm run build --if-present",
+    "test": "npm test",
+    "coverage": "npx --yes c8 --check-coverage --lines 80 npm test",
+    "lint": "npm run lint --if-present",
+    "typecheck": "npm run typecheck --if-present"
+  },
+  "setupManifests": ["package.json", "package-lock.json"],
+  "testRoots": ["tests"],
+  "gates": {
+    "spec": ["findings"],
+    "plan": ["spec-freeze", "traceability-plan", "findings"],
+    "tests": ["spec-freeze", "tests-red"],
+    "implement": ["spec-freeze", "build", "test", "test-freeze"],
+    "review": ["spec-freeze", "findings"],
+    "doc-sync": ["spec-freeze", "traceability", "findings"]
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "mode": "thorough",
+  "autonomy": "full-auto",
+  "escalation_threshold": "HIGH",
+  "iteration_caps": { "implement": 3, "review": 3, "global": 10 },
+  "lenses": {
+    "always_on": ["security", "quality", "devils-advocate"],
+    "available": ["networking", "multiplayer", "determinism", "enterprise-arch",
+                  "qol", "ux", "performance", "doc-drift", "data-provenance", "compliance"]
+  },
+  "codex": {
+    "enabled": true,
+    "timeout_seconds": 600,
+    "roles": ["verifier", "implementer"],
+    "implementer_policy": {
+      "takeover_after_failed_attempts": 2,
+      "ab_on_concerns": ["determinism", "networking"]
+    }
+  },
+  "budget": { "warn_tokens": 500000, "hard_cap_tokens": null },
+  "feedback": { "enabled": false, "mode": "file", "dir": ".orky/feedback" },
+  "watchdog": { "enabled": false, "idle_threshold_seconds": 3600, "mode": "monitor" }
+}

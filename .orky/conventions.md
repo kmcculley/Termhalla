@@ -1,0 +1,28 @@
+# Project conventions
+
+Durable, project-wide rules every feature must honor — Orky's growing memory of what
+"done right" means *here*. The **spec-writer** reads it (so specs encode these rules up
+front), the **reviewer** reads it (so reviews flag violations), and **doc-sync** appends
+to it when a review surfaces a lesson general enough to outlive its feature.
+
+## How this file is maintained
+- **Read** at spec time and review time. Treat each entry as a standing requirement /
+  review-checklist item, not a suggestion.
+- **Appended** only by doc-sync, and only when a finding reflects a *general* project rule
+  (not a one-off bug). Give each a stable `CONV-NNN` id; never renumber, and don't delete —
+  to retire a rule mark it `(retired: <reason>)`. The history is the point.
+- Keep each entry to one crisp, checkable sentence.
+- Cite the origin (`from FINDING-... in <feature>`) so the lesson is traceable.
+
+## Conventions
+- **CONV-001** — Every error surfaced to a user or caller MUST be specific and actionable
+  (what failed, which input, how to fix); no bare `"invalid input"` / `"error"` strings. *(seed)*
+- **CONV-002** — Every public function documents *and tests* its behavior on empty, boundary,
+  and malformed input — the failure modes, not only the happy path. *(seed)*
+- **CONV-003** — No silent truncation, rounding, or capping: if a limit is enforced, the spec
+  states it and a test asserts it. *(seed)*
+
+## Principles
+Higher-level stances that inform specs and reviews but are too broad to gate mechanically.
+- Prefer explicit, total functions over ones that depend on ambient state or throw on ordinary input.
+- A requirement that cannot be made testable is not yet understood — escalate it, don't guess.
