@@ -3,6 +3,7 @@ import { execSync } from 'child_process'
 import { mkdtempSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
+import { splitSecondTerminal } from './split-helper'
 
 function killTree(pid: number): void {
   try {
@@ -46,18 +47,20 @@ test('split menu creates a second terminal tile', async ({ app }) => {
   const win = await app.firstWindow()
   await win.getByTestId('add-first-terminal').click()
   await expect(win.locator('[data-testid^="terminal-"]')).toHaveCount(1, { timeout: 15_000 })
-  await win.locator('[data-testid^="split-"]').first().click()      // opens the split menu
-  await win.locator('[data-testid^="split-terminal-"]').first().click()
+  await splitSecondTerminal(win) // open split popover → Terminal kind → activate a direction
   await expect(win.locator('[data-testid^="terminal-"]')).toHaveCount(2, { timeout: 15_000 })
   await win.screenshot({ path: 'test-results/smoke-split.png' })
 })
 
-test('vertical split menu creates a second terminal tile', async ({ app }) => {
+test('compass popover creates a second terminal tile (down direction)', async ({ app }) => {
   const win = await app.firstWindow()
   await win.getByTestId('add-first-terminal').click()
   await expect(win.locator('[data-testid^="terminal-"]')).toHaveCount(1, { timeout: 15_000 })
-  await win.locator('[data-testid^="split-col-"]').first().click() // opens the split-down menu
-  await win.locator('[data-testid^="split-terminal-"]').first().click()
+  // The single split button opens the combined popover; a downward (column) split commits a terminal.
+  await win.locator('[data-testid^="split-"]').first().click()
+  await expect(win.getByTestId('split-menu')).toBeVisible()
+  await win.locator('[data-testid^="split-kind-terminal-"]').first().click()
+  await win.locator('[data-testid^="split-dir-down-"]').first().click()
   await expect(win.locator('[data-testid^="terminal-"]')).toHaveCount(2, { timeout: 15_000 })
 })
 

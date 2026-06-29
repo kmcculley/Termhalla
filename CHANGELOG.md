@@ -6,6 +6,27 @@ All notable changes to Termhalla are recorded here. The format follows
 
 ## [Unreleased]
 
+### Changed
+- **Pane toolbar cleanup + unified split-direction control.** The per-pane Record toggle (the ⏺
+  button) was removed from the pane toolbar and moved into the pane title-bar **context menu**
+  (right-click menu) as a terminal-only **Start recording / Stop recording** item that reflects the
+  same recording state. The two separate split buttons (split-right ⬌ and split-down ⬍) were
+  collapsed into a single **split** button that opens one combined popover: a four-direction
+  **compass** offering **up**, **down**, **left**, and **right** plus a Terminal/Editor/Explorer
+  kind selector. Pick a kind, then activate a direction (mouse or keyboard — the compass is fully
+  arrow-key navigable with the right direction highlighted by default) to commit the split.
+- **`splitPane` supports before/after insertion.** The pure layout helper now accepts a
+  `position: 'before' | 'after'` argument (default **after**, byte-for-byte today's output). A
+  `left`/`up` compass split inserts the new pane **before** the source (as the parent's `first`
+  child); `right`/`down` inserts it **after** (`second`). The persisted `MosaicNode` shape is
+  unchanged (no schema bump).
+- **Settings reachable from the native Edit menu.** The **Edit ▸ Settings…** item (accelerator
+  `Ctrl+,`) opens the Settings modal via the `menu:open-settings` main→renderer IPC push; the
+  redundant gear button in the workspace tab bar was removed.
+- **Success/info toast notifications default off.** Bottom-right success and info toasts are
+  suppressed unless explicitly enabled in Settings → General; **error toasts always render** so
+  failure feedback is never silenced.
+
 ## [0.5.0] - 2026-06-29
 
 ### Changed

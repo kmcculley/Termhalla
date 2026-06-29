@@ -7,14 +7,14 @@ import type { PaneMenu } from './PaneTile'
  *  folder menu, split controls, a maximize toggle, and close. Env/terminal/appearance settings moved
  *  to the title-bar right-click menu (see PaneContextMenu). */
 export function PaneToolbar(
-  { wsId, paneId, isTerminal, chipText, gitStatus, recording, toggle }: {
+  { wsId, paneId, isTerminal, chipText, gitStatus, toggle, splitOpen }: {
     wsId: string
     paneId: string
     isTerminal: boolean
     chipText: string
     gitStatus: GitStatus | undefined
-    recording: boolean
     toggle: (menu: PaneMenu) => void
+    splitOpen: boolean
   }
 ) {
   const closePane = useStore(s => s.closePane)
@@ -36,10 +36,6 @@ export function PaneToolbar(
             onClick={() => toggle('run')}>▷</button>
           <button type="button" data-testid={`schedule-chip-${paneId}`} title="Schedule a command"
             onClick={() => toggle('schedule')}>⏱</button>
-          <button type="button" data-testid={`rec-${paneId}`}
-            title={recording ? 'Stop recording' : 'Record session'}
-            style={{ color: recording ? '#ff6b6b' : undefined }}
-            onClick={() => recording ? api.recStop(paneId) : api.recStart(paneId)}>⏺</button>
           {gitStatus && (
             <button type="button" data-testid={`git-chip-${paneId}`} title="Git status"
               style={{ maxWidth: 140, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
@@ -57,8 +53,8 @@ export function PaneToolbar(
         </>
       )}
       <button data-testid={`cwd-${paneId}`} title="Folder actions" onClick={() => toggle('cwd')}>📁</button>
-      <button data-testid={`split-${paneId}`} title="Split right (terminal / editor / explorer)" onClick={() => toggle('split-row')}>⬌</button>
-      <button data-testid={`split-col-${paneId}`} title="Split down (terminal / editor / explorer)" onClick={() => toggle('split-col')}>⬍</button>
+      <button data-testid={`split-${paneId}`} title="Split (compass: up / left / right / down)"
+        aria-haspopup="dialog" aria-expanded={splitOpen} onClick={() => toggle('split')}>⬌</button>
       <button data-testid={`max-${paneId}`} title={isMax ? 'Restore pane' : 'Maximize pane'}
         onClick={() => toggleMaximize(wsId, paneId)}>{isMax ? '🗗' : '🗖'}</button>
       <button data-testid={`close-${paneId}`} onClick={() => closePane(wsId, paneId)}>✕</button>

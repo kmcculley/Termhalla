@@ -96,14 +96,19 @@ test('move to a new workspace keeps the pane alive', async () => {
   const pid = app.process().pid; await app.close().catch(() => {}); killTree(pid)
 })
 
-test('maximize hides siblings; restore brings them back', async () => {
+// TEST-023 — REQ-014: updated to the combined-popover contract — select the Terminal kind THEN
+// activate a direction to commit the sibling split (no kind-click-immediately-commits, no
+// `split-col-`). The portal guarantee for the popover is asserted by split-compass.spec.ts TEST-007.
+test('TEST-023 REQ-014 maximize hides siblings; restore brings them back', async () => {
   test.setTimeout(40_000)
   const { app, paneId: a } = await launchWithTerminal()
   const win = await app.firstWindow()
 
-  // Split to create a sibling
+  // Split to create a sibling: open the combined popover, pick Terminal, then activate a direction.
   await win.getByTestId(`split-${a}`).click()
-  await win.getByTestId(`split-terminal-${a}`).click()
+  await expect(win.getByTestId('split-menu')).toBeVisible()
+  await win.getByTestId(`split-kind-terminal-${a}`).click()
+  await win.getByTestId(`split-dir-right-${a}`).click()
   await expect(win.locator('[data-testid^="tile-"]')).toHaveCount(2, { timeout: 10_000 })
   const siblingTile = win.locator('[data-testid^="tile-"]').nth(1)
   const siblingTestId = await siblingTile.getAttribute('data-testid')

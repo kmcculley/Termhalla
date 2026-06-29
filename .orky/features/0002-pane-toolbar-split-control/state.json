@@ -1,0 +1,193 @@
+{
+  "feature": "0002-pane-toolbar-split-control",
+  "phase": "doc-sync",
+  "gates": {
+    "brainstorm": {
+      "passed": true,
+      "at": "2026-06-29T20:28:20.640Z",
+      "evidence": "human confirmed concept",
+      "external": true
+    },
+    "spec": {
+      "passed": true,
+      "at": "2026-06-29T20:32:48.191Z",
+      "tokens": [
+        {
+          "token": "findings",
+          "pass": true,
+          "evidence": "no open blocking findings (CRITICAL/HIGH or contract-violation) for this gate"
+        }
+      ]
+    },
+    "plan": {
+      "passed": true,
+      "at": "2026-06-29T20:37:07.216Z",
+      "tokens": [
+        {
+          "token": "spec-freeze",
+          "pass": true,
+          "evidence": "spec unchanged since the spec gate"
+        },
+        {
+          "token": "traceability-plan",
+          "pass": true,
+          "evidence": "all 15 REQ(s) trace to TASK"
+        },
+        {
+          "token": "findings",
+          "pass": true,
+          "evidence": "no open blocking findings (CRITICAL/HIGH or contract-violation) for this gate"
+        }
+      ]
+    },
+    "tests": {
+      "passed": true,
+      "at": "2026-06-29T21:53:58.631Z",
+      "tokens": [
+        {
+          "token": "spec-freeze",
+          "pass": true,
+          "evidence": "spec unchanged since the spec gate"
+        },
+        {
+          "token": "tests-red",
+          "pass": true,
+          "evidence": "tests are RED (exit 1) — freeze snapshot captured"
+        }
+      ]
+    },
+    "implement": {
+      "passed": true,
+      "at": "2026-06-29T22:42:49.751Z",
+      "tokens": [
+        {
+          "token": "spec-freeze",
+          "pass": true,
+          "evidence": "spec unchanged since the spec gate"
+        },
+        {
+          "token": "build",
+          "pass": true,
+          "evidence": "build exited 0"
+        },
+        {
+          "token": "test",
+          "pass": true,
+          "evidence": "test exited 0"
+        },
+        {
+          "token": "test-freeze",
+          "pass": true,
+          "evidence": "test files unchanged since freeze"
+        }
+      ]
+    },
+    "review": {
+      "passed": true,
+      "at": "2026-06-29T23:45:33.437Z",
+      "tokens": [
+        {
+          "token": "spec-freeze",
+          "pass": true,
+          "evidence": "spec unchanged since the spec gate"
+        },
+        {
+          "token": "findings",
+          "pass": true,
+          "evidence": "no open blocking findings (CRITICAL/HIGH or contract-violation) for this gate"
+        }
+      ]
+    },
+    "doc-sync": {
+      "passed": true,
+      "at": "2026-06-29T23:54:21.062Z",
+      "tokens": [
+        {
+          "token": "spec-freeze",
+          "pass": true,
+          "evidence": "spec unchanged since the spec gate"
+        },
+        {
+          "token": "traceability",
+          "pass": true,
+          "evidence": "all 15 REQ(s) trace to TASK+TEST"
+        },
+        {
+          "token": "findings",
+          "pass": true,
+          "evidence": "no open blocking findings (CRITICAL/HIGH or contract-violation) for this gate"
+        }
+      ]
+    },
+    "human-review": {
+      "passed": true,
+      "at": "2026-06-29T23:55:28.599Z",
+      "evidence": "human approved at human-review checkpoint; approve + commit checkpoint",
+      "external": true
+    }
+  },
+  "iterations": {
+    "tests": 1,
+    "implement": 1
+  },
+  "escalations": [
+    {
+      "id": "ESC-001",
+      "phase": "review",
+      "reason": "Two HIGH a11y contract violations against the spec's accessibility MUSTs: UX-001 (REQ-010) the compass has no VISIBLE highlight for the focused/default/hovered direction because the focus-ring/hover CSS allow-list in index.css excludes the portalled split-menu; UX-002 (REQ-011) the kind selector declares an ARIA radiogroup but the container onKeyDown hijacks arrow keys so radio selection is non-functional and the radios are 3 tab stops not one roving stop. Decision: fix (loop back to implement) vs waive/relax the accessibility requirement.",
+      "kind": "judgment",
+      "finding": "FINDING-UX-001",
+      "status": "resolved",
+      "at": "2026-06-29T22:03:42.436Z",
+      "decision": "Fix. Loop back to implement: make the compass focus/default/hover highlight visible (add split-menu to the index.css focus-visible/hover allow-list, paint-only) to satisfy REQ-010.",
+      "resolvedAt": "2026-06-29T22:32:34.835Z"
+    },
+    {
+      "id": "ESC-002",
+      "phase": "review",
+      "reason": "See ESC for FINDING-UX-001 — both HIGH a11y contract violations decided together.",
+      "kind": "judgment",
+      "finding": "FINDING-UX-002",
+      "status": "resolved",
+      "at": "2026-06-29T22:03:42.499Z",
+      "decision": "Fix. Loop back to implement: fix the kind selector keyboard/ARIA contract for REQ-011 (working roving selection or aria-pressed toggle-buttons; one tab stop) without editing frozen tests.",
+      "resolvedAt": "2026-06-29T22:32:34.899Z"
+    }
+  ],
+  "concerns": [
+    "ux",
+    "qol",
+    "doc-drift"
+  ],
+  "attempts": {
+    "spec": 0,
+    "plan": 0,
+    "tests": 0,
+    "implement": 0,
+    "review": 0,
+    "doc-sync": 0
+  },
+  "loopbacks": [
+    {
+      "to": "tests",
+      "from": "implement",
+      "reason": "REQ-014 reconciliation incomplete: 7 pre-existing e2e specs (smoke, ui-polish, broadcast, notepad, persistence, run-commands, workspace-templates) still spawn a 2nd terminal via removed split-terminal-/split-col- testids; frozen-suite contradiction TEST-006 (split-col- count 0) vs smoke.spec.ts clicking split-col-. phase_of_origin=tests.",
+      "at": "2026-06-29T21:11:16.260Z"
+    },
+    {
+      "to": "implement",
+      "from": "review",
+      "reason": "Human decision (ESC-001/ESC-002 resolved=fix): fix 2 HIGH a11y contract violations UX-001 (no visible compass highlight, REQ-010) + UX-002 (broken radiogroup keyboard/ARIA, REQ-011), plus fold in DEV-002 (popover vertical clamp/flip) and DEV-004 (focus trap + return-focus). No test edits (frozen).",
+      "at": "2026-06-29T22:33:15.685Z"
+    }
+  ],
+  "implementer": {
+    "mode": "claude",
+    "agents": [
+      "orky:implementer"
+    ],
+    "winner": "orky:implementer",
+    "reason": "iteration 2: a11y fixes UX-001/UX-002 + DEV-002/DEV-004",
+    "at": "2026-06-29T22:42:25.318Z"
+  }
+}

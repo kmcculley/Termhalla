@@ -27,6 +27,13 @@ to it when a review surfaces a lesson general enough to outlive its feature.
 - **CONV-005** — A native menu-item accelerator MUST be derived from (or kept in sync with) the
   user-customizable keybinding registry, never hard-coded to duplicate a rebindable command.
   *(from FINDING-UX-002 in 0001-edit-menu-settings-toasts)*
+- **CONV-006** — A function MUST NOT expose two parameters that encode the same concept where one
+  silently overrides the other; thread one canonical value instead of a primary+override pair.
+  *(from FINDING-QOL-001 in 0002-pane-toolbar-split-control)*
+- **CONV-007** — Any new chrome popover/menu portalled to `<body>` MUST carry visible paint-only
+  focus and hover styling (or be added to the focus-visible/hover style allow-lists) so keyboard
+  focus and hover are always visible outside the `.mosaic` subtree.
+  *(from FINDING-UX-001 in 0002-pane-toolbar-split-control)*
 
 ## Principles
 Higher-level stances that inform specs and reviews but are too broad to gate mechanically.

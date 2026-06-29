@@ -47,10 +47,13 @@ export function teardownPanes(paneIds: string[]) {
 /** Add a pane holding `cfg` to a workspace: the first pane when the layout is empty or no
  *  split target is given, otherwise split `target` in `dir`. Centralizes the branch that was
  *  copy-pasted across every "open a pane" action. */
-export function placePane(ws: Workspace, cfg: PaneConfig, target: string | null, dir: MosaicDirection) {
+export function placePane(
+  ws: Workspace, cfg: PaneConfig, target: string | null, dir: MosaicDirection,
+  position: 'before' | 'after' = 'after'
+) {
   return ws.layout === null || target === null
     ? addFirstPane(ws, cfg, uuid)
-    : splitPane(ws, target, dir, cfg, uuid)
+    : splitPane(ws, target, dir, cfg, uuid, position)
 }
 
 // `firstTarget` lives in the api-free `pane-ops` module (so it's unit-testable); re-exported here

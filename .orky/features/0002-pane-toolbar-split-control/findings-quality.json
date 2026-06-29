@@ -1,0 +1,57 @@
+[
+  {
+    "id": "FINDING-QUA-001",
+    "lens": "quality",
+    "severity": "MEDIUM",
+    "location": "src/renderer/components/SplitMenu.tsx:45-47",
+    "claim": "The `dir='row'` argument passed to addTerminal/addEditor/addExplorer in commit() is dead at this call site: the store silently discards it whenever splitDir is provided.",
+    "evidence": "commit() always calls e.g. addTerminal(wsId, paneId, 'row', dir) where dir is a SplitDir4. The store implementation is `const lay = splitDir ? splitDirToLayout(splitDir) : { direction: dir, position: 'after' }`, so the positional 'row' is unreachable whenever splitDir is set — which SplitMenu always does. A maintainer changing 'row' to 'column' here would have no observable effect and no compiler error.",
+    "recommendation": "Remove the dual-mode interface ambiguity. The simplest fix is to drop the required `dir: MosaicDirection` parameter from addTerminal/addEditor/addExplorer when a SplitDir4 covers the intent — make dir optional (defaulting to 'row') so call sites that genuinely need MosaicDirection still work, and SplitMenu can omit it entirely: addTerminal(wsId, paneId, undefined, dir). Alternatively, document the dummy value with an inline comment at each call site so the override is obvious to the next reader.",
+    "phase_of_origin": "implementation",
+    "contract_violation": false
+  },
+  {
+    "id": "FINDING-QUA-002",
+    "lens": "quality",
+    "severity": "LOW",
+    "location": "src/renderer/components/SplitMenu.tsx:32",
+    "claim": "`dirRefs` is typed as `Record<string, HTMLButtonElement | null>` instead of `Partial<Record<SplitDir4, HTMLButtonElement | null>>`, losing compile-time key-type enforcement.",
+    "evidence": "Line 32: `const dirRefs = useRef<Record<string, HTMLButtonElement | null>>({})`. Accesses like `dirRefs.current['right']` and `dirRefs.current[d]` (where d is SplitDir4) are unchecked: a typo such as 'righ' silently produces undefined and the subsequent `?.focus()` no-ops without any TypeScript error.",
+    "recommendation": "Type the ref as `useRef<Partial<Record<SplitDir4, HTMLButtonElement | null>>>({})`. This makes the compiler verify that only SplitDir4 keys are stored and looked up, surfacing any key mismatch at the write site (ref assignment) and read site (focus call).",
+    "phase_of_origin": "implementation",
+    "contract_violation": false
+  },
+  {
+    "id": "FINDING-QUA-003",
+    "lens": "quality",
+    "severity": "LOW",
+    "location": "src/renderer/components/SplitMenu.tsx:57",
+    "claim": "Roving tabindex is only half-implemented: `tabIndex` attributes are not updated when arrow-key navigation moves focus, so the Tab-away-then-back re-entry point is always 'right' instead of the last active direction.",
+    "evidence": "dirButton() sets tabIndex statically: `tabIndex={d === 'right' ? 0 : -1}`. The onKeyDown handler calls `dirRefs.current[d]?.focus()` but never updates tabIndex on the newly focused button. After pressing ArrowDown (focus now on 'down', tabIndex still -1) and then Tab (leaves group), Tab-back returns to 'right' (the only tabIndex=0 button). The full roving-tabindex pattern requires setting tabIndex=0 on the incoming element and -1 on the outgoing one so that re-entry restores the last position. REQ-010 names the pattern explicitly.",
+    "recommendation": "Track the active direction in a ref (e.g. `activeDir`). In onKeyDown, after calling focus(), also set `dirRefs.current[prev]?.setAttribute('tabindex', '-1')` and `dirRefs.current[d]?.setAttribute('tabindex', '0')` (or drive it via state and re-render). A simpler alternative is to omit the tabIndex entirely from non-active buttons and use a single tabIndex=0 on the active one, managed via state.",
+    "phase_of_origin": "implementation",
+    "contract_violation": false
+  },
+  {
+    "id": "FINDING-QUA-004",
+    "lens": "quality",
+    "severity": "LOW",
+    "location": "src/renderer/components/SplitMenu.tsx:44-49",
+    "claim": "When kind='explorer' and cwd is falsy, commit() silently closes the popover without performing a split — an undefended invariant.",
+    "evidence": "commit() branches: `if (kind === 'terminal') ... else if (kind === 'editor') ... else if (cwd) addExplorer(...)`. The explorer branch falls through when cwd is falsy; onClose() is called unconditionally, so the menu closes with no action. The disabled prop on the Explorer kind button prevents reaching this state via normal UI, but commit() has no guard — a future code path that calls commit() with kind='explorer' and no cwd (e.g., cwd clearing between kind-select and direction-click in a race) would silently swallow the action.",
+    "recommendation": "Add an early-return guard: `if (kind === 'explorer' && !cwd) return` before the onClose() call, or an assertion comment explaining the invariant. Alternatively, disable direction buttons when kind='explorer' and !cwd, making the invariant enforced at the interaction layer.",
+    "phase_of_origin": "implementation",
+    "contract_violation": false
+  },
+  {
+    "id": "FINDING-QUA-005",
+    "lens": "quality",
+    "severity": "LOW",
+    "location": "src/renderer/components/SplitMenu.tsx:36",
+    "claim": "Production positioning logic is coupled to the testid string 'split-${paneId}' via a raw document.querySelector call, creating a hidden dependency between the split menu's render position and the testid contract.",
+    "evidence": "useLayoutEffect: `document.querySelector('[data-testid=\"split-${paneId}\"]')`. Testids are test-infrastructure by convention; here they double as a production anchor mechanism. If the testid is renamed (e.g. in a refactor or after a split-button redesign), the popover silently renders at null and returns early (`if (!pos) return null`), with no error surfaced to the developer. The coupling also makes it impossible to render SplitMenu without the testid being present in the DOM.",
+    "recommendation": "Pass the anchor's position from the parent as a prop — either a `DOMRect` or a React ref. PaneTile already controls the toggle() that opens the menu; it can forward the split button's ref to SplitMenu. This removes the testid dependency from production code and makes the positioning relationship explicit in the component API.",
+    "phase_of_origin": "design",
+    "contract_violation": false
+  }
+]

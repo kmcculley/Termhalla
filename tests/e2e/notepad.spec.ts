@@ -3,6 +3,7 @@ import { execSync, execFileSync } from 'child_process'
 import { mkdtempSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
+import { splitSecondTerminal } from './split-helper'
 
 function killTree(pid: number): void {
   try { if (process.platform === 'win32') execSync(`taskkill /F /T /PID ${pid}`, { stdio: 'ignore' }) } catch {}
@@ -47,8 +48,7 @@ test('per-project notepad: take a note, persist across relaunch, scope by projec
   await expect(win.getByTestId('notes-textarea')).toHaveValue('PROJECT-A-NOTE', { timeout: 15_000 })
 
   // Split a second terminal, cd into project B, focus it -> notes are empty (different project).
-  await win.locator('[data-testid^="split-"]').first().click()
-  await win.locator('[data-testid^="split-terminal-"]').first().click()
+  await splitSecondTerminal(win)
   await expect(win.locator('[data-testid^="terminal-"]')).toHaveCount(2, { timeout: 15_000 })
   await win.locator('.xterm-screen').nth(1).click()
   await win.keyboard.type(`Set-Location '${projB}'`)

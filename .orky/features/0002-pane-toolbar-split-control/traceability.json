@@ -1,0 +1,89 @@
+{
+  "REQ-001": {
+    "tasks": ["TASK-006"],
+    "tests": ["TEST-018"],
+    "files": ["src/renderer/components/PaneToolbar.tsx"]
+  },
+  "REQ-002": {
+    "tasks": ["TASK-007"],
+    "tests": ["TEST-019", "TEST-020"],
+    "files": ["src/renderer/components/PaneContextMenu.tsx"]
+  },
+  "REQ-003": {
+    "tasks": ["TASK-006"],
+    "tests": ["TEST-006"],
+    "files": ["src/renderer/components/PaneToolbar.tsx", "src/renderer/components/PaneTile.tsx"]
+  },
+  "REQ-004": {
+    "tasks": ["TASK-003", "TASK-006"],
+    "tests": ["TEST-007", "TEST-009"],
+    "files": ["src/renderer/components/SplitMenu.tsx", "src/renderer/components/PaneTile.tsx"]
+  },
+  "REQ-005": {
+    "tasks": ["TASK-003"],
+    "tests": ["TEST-005", "TEST-008"],
+    "files": ["src/renderer/components/SplitMenu.tsx"]
+  },
+  "REQ-006": {
+    "tasks": ["TASK-003"],
+    "tests": ["TEST-009", "TEST-010"],
+    "files": ["src/renderer/components/SplitMenu.tsx"]
+  },
+  "REQ-007": {
+    "tasks": ["TASK-001", "TASK-002", "TASK-003"],
+    "tests": ["TEST-002", "TEST-005", "TEST-011", "TEST-012", "TEST-021", "TEST-022"],
+    "files": ["src/shared/workspace-model.ts", "src/renderer/store.ts", "src/renderer/components/SplitMenu.tsx"]
+  },
+  "REQ-008": {
+    "tasks": ["TASK-001"],
+    "tests": ["TEST-001", "TEST-002", "TEST-003", "TEST-004", "TEST-005"],
+    "files": ["src/shared/workspace-model.ts", "src/shared/types.ts"]
+  },
+  "REQ-009": {
+    "tasks": ["TASK-002"],
+    "tests": ["TEST-001", "TEST-005", "TEST-012"],
+    "files": ["src/renderer/store/internals.ts", "src/renderer/store.ts", "src/renderer/store/types.ts", "src/renderer/store/pane-ops.ts"]
+  },
+  "REQ-010": {
+    "tasks": ["TASK-004"],
+    "tests": ["TEST-013", "TEST-014", "TEST-015"],
+    "files": ["src/renderer/components/SplitMenu.tsx"]
+  },
+  "REQ-011": {
+    "tasks": ["TASK-005"],
+    "tests": ["TEST-016"],
+    "files": ["src/renderer/components/SplitMenu.tsx"]
+  },
+  "REQ-012": {
+    "tasks": ["TASK-003", "TASK-006", "TASK-007"],
+    "tests": ["TEST-017"],
+    "files": ["src/renderer/components/SplitMenu.tsx", "src/renderer/components/PaneToolbar.tsx", "src/renderer/components/PaneContextMenu.tsx", "src/renderer/index.css"]
+  },
+  "REQ-013": {
+    "tasks": ["TASK-003", "TASK-006", "TASK-007"],
+    "tests": ["TEST-006", "TEST-007", "TEST-018"],
+    "files": ["src/renderer/components/SplitMenu.tsx", "src/renderer/components/PaneToolbar.tsx", "src/renderer/components/PaneContextMenu.tsx"]
+  },
+  "REQ-014": {
+    "tasks": ["TASK-008"],
+    "tests": ["TEST-021", "TEST-022", "TEST-023"],
+    "files": [
+      "tests/e2e/split-menu.spec.ts",
+      "tests/e2e/pane-actions.spec.ts",
+      "tests/e2e/split-helper.ts",
+      "tests/e2e/smoke.spec.ts",
+      "tests/e2e/broadcast.spec.ts",
+      "tests/e2e/ui-polish.spec.ts",
+      "tests/e2e/notepad.spec.ts",
+      "tests/e2e/persistence.spec.ts",
+      "tests/e2e/run-commands.spec.ts",
+      "tests/e2e/workspace-templates.spec.ts",
+      "tests/e2e/recording.spec.ts"
+    ]
+  },
+  "REQ-015": {
+    "tasks": ["TASK-009"],
+    "tests": ["TEST-024"],
+    "files": ["CHANGELOG.md", "docs/features/workspaces.md", "CLAUDE.md"]
+  }
+}

@@ -151,6 +151,11 @@ export interface MosaicParent {
 }
 export type MosaicNode = string | MosaicParent
 
+/** The four UI split directions a pane's compass control offers. Maps to orientation × insertion
+ *  position via `splitDirToLayout` (workspace-model.ts): right→{row,after}, down→{column,after},
+ *  left→{row,before}, up→{column,before}. */
+export type SplitDir4 = 'up' | 'down' | 'left' | 'right'
+
 export interface Workspace {
   id: string
   name: string

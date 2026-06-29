@@ -135,7 +135,8 @@ option {
   [data-testid="settings-panel"], [data-testid="broadcast-dialog"], [data-testid="schedule-dialog"],
   [data-testid="connection-form-backdrop"], [data-testid="command-palette-backdrop"],
   [data-testid="terminal-settings"], [data-testid="templates-menu"],
-  [data-testid="ws-menu"], [data-testid="proc-menu"], [data-testid="cwd-menu"], [data-testid^="cloud-menu-"]
+  [data-testid="ws-menu"], [data-testid="proc-menu"], [data-testid="cwd-menu"], [data-testid^="cloud-menu-"],
+  [data-testid="split-menu"]
 ) :is(button, select):hover:not(:disabled) {
   background: rgba(255, 255, 255, 0.13);
   border-color: var(--accent, #1e88e5);
@@ -146,7 +147,8 @@ option {
   [data-testid="settings-panel"], [data-testid="broadcast-dialog"], [data-testid="schedule-dialog"],
   [data-testid="connection-form-backdrop"], [data-testid="command-palette-backdrop"],
   [data-testid="terminal-settings"], [data-testid="templates-menu"],
-  [data-testid="ws-menu"], [data-testid="proc-menu"], [data-testid="cwd-menu"], [data-testid^="cloud-menu-"]
+  [data-testid="ws-menu"], [data-testid="proc-menu"], [data-testid="cwd-menu"], [data-testid^="cloud-menu-"],
+  [data-testid="split-menu"]
 ) :is(button, select):active:not(:disabled) {
   background: rgba(255, 255, 255, 0.18);
 }
@@ -156,7 +158,8 @@ option {
   [data-testid="settings-panel"], [data-testid="broadcast-dialog"], [data-testid="schedule-dialog"],
   [data-testid="connection-form-backdrop"], [data-testid="command-palette-backdrop"],
   [data-testid="terminal-settings"], [data-testid="templates-menu"],
-  [data-testid="ws-menu"], [data-testid="proc-menu"], [data-testid="cwd-menu"], [data-testid^="cloud-menu-"]
+  [data-testid="ws-menu"], [data-testid="proc-menu"], [data-testid="cwd-menu"], [data-testid^="cloud-menu-"],
+  [data-testid="split-menu"]
 ) :is(button, select):disabled {
   opacity: 0.4;
   cursor: default;
@@ -183,7 +186,8 @@ option {
   [data-testid="settings-panel"],
   [data-testid="broadcast-dialog"], [data-testid="schedule-dialog"], [data-testid="connection-form-backdrop"],
   [data-testid="command-palette-backdrop"], [data-testid="terminal-settings"], [data-testid="templates-menu"],
-  [data-testid="ws-menu"], [data-testid="proc-menu"], [data-testid="cwd-menu"], [data-testid^="cloud-menu-"]
+  [data-testid="ws-menu"], [data-testid="proc-menu"], [data-testid="cwd-menu"], [data-testid^="cloud-menu-"],
+  [data-testid="split-menu"]
 ) :is(button, select, input, textarea):focus-visible {
   outline: 2px solid var(--accent, #1e88e5);
   outline-offset: 1px;

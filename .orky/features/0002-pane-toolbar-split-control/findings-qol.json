@@ -1,0 +1,58 @@
+[
+  {
+    "id": "FINDING-QOL-001",
+    "lens": "qol",
+    "severity": "MEDIUM",
+    "gate": "review",
+    "location": "src/renderer/components/SplitMenu.tsx:45-47 (+ store.ts:288-316, store/types.ts:157, store/pane-ops.ts:8-11, internals.ts:50)",
+    "claim": "The split call chain now carries TWO direction parameters for one concept: the legacy `dir: MosaicDirection` and the new `splitDir?: SplitDir4`, where `splitDir` silently overrides `dir` (store: `const lay = splitDir ? splitDirToLayout(splitDir) : { direction: dir, position: 'after' }`). After this change EVERY call site hardcodes `'row'` for `dir` (SplitMenu passes `addTerminal(wsId, paneId, 'row', dir)`; WorkspaceView, dispatchAddPane, openExplorerHere all pass `'row'`), so `dir` is now effectively a dead/vestigial param while the real direction rides `splitDir`. A maintainer reading `addTerminal(wsId, paneId, 'row', dir)` is actively misled: the literal `'row'` looks load-bearing but is ignored whenever the 4th arg is set, and the local var is even named `dir` (a SplitDir4) colliding with the function's MosaicDirection `dir`. Passing a meaningful `dir='column'` together with `splitDir='right'` would silently drop the column with no warning.",
+    "evidence": "Grep shows all 9 add* call sites pass `'row'` as the MosaicDirection arg; only `splitDir` ever varies. `splitDir` fully subsumes `dir` (splitDirToLayout returns both direction AND position), so `dir` could be deleted from addTerminal/addEditor/addExplorer/commitPane/placePane in favor of threading `splitDir` (or `{direction,position}`) alone.",
+    "fix": "Collapse the redundant param: thread a single `splitDir?: SplitDir4` (defaulting to 'right'/after) or a single `{direction, position}` through addTerminal/addEditor/addExplorer/commitPane/placePane and drop the now-always-'row' MosaicDirection arg; or at minimum rename the SplitMenu local so it doesn't shadow `dir` and document the override precedence at each signature. propose CONV: a function MUST NOT expose two parameters that encode the same concept where one silently overrides the other; thread one canonical value instead of a primary+override pair.",
+    "phase_of_origin": "spec",
+    "status": "open",
+    "verified_by": "qol",
+    "contract_violation": false
+  },
+  {
+    "id": "FINDING-QOL-002",
+    "lens": "qol",
+    "severity": "LOW",
+    "gate": "review",
+    "location": "src/renderer/components/PaneToolbar.tsx:55",
+    "claim": "The single combined split button still renders the old `⬌` (left-right double-arrow) glyph, which signals a horizontal-only split and undercuts discoverability of the new four-way compass (up/left/right/down + before-insertion). The capability grew but the affordance icon still says 'horizontal split'. The tooltip text was updated ('Split (compass: up / left / right / down)') but the visible glyph — the only thing a user sees before hovering — was not.",
+    "evidence": "PaneToolbar split button: `data-testid={`split-${paneId}`} title=\"Split (compass: up / left / right / down)\" ...>⬌`. The popover now offers 4 directions and a kind selector; the glyph implies only the old right-split.",
+    "fix": "Use a glyph that reads as multi-directional / 'split menu' (e.g. ✛, ⊞, ⊹, or a compass/plus icon) so the four-way capability is discoverable at a glance, not only on hover. Keep it paint-only per REQ-012.",
+    "phase_of_origin": "implement",
+    "status": "open",
+    "verified_by": "qol",
+    "contract_violation": false
+  },
+  {
+    "id": "FINDING-QOL-003",
+    "lens": "qol",
+    "severity": "LOW",
+    "gate": "review",
+    "location": "src/renderer/components/SplitMenu.tsx:38",
+    "claim": "Popover horizontal anchoring uses a hardcoded magic offset `r.right - 168` while the popover itself declares `minWidth: 156` and padding 6. The `168` is not derived from the rendered width, so any future restyle of the popover width silently mis-anchors it relative to the split button (drift to the left/right of the trigger). This is a debuggability/maintainability footgun: the relationship between the anchor math and the box dimensions is implicit.",
+    "evidence": "`if (r) setPos({ left: Math.max(4, r.right - 168), top: r.bottom + 4 })` with the surface styled `minWidth: 156, padding: 6`. 168 != 156 and is unexplained.",
+    "fix": "Derive the offset from the popover's measured width (or a shared named constant referenced by both the anchor math and the style), and add a brief comment tying 168 to the intended width so a restyle stays aligned.",
+    "phase_of_origin": "implement",
+    "status": "open",
+    "verified_by": "qol",
+    "contract_violation": false
+  },
+  {
+    "id": "FINDING-QOL-004",
+    "lens": "qol",
+    "severity": "LOW",
+    "gate": "review",
+    "location": "src/shared/workspace-model.ts:53-61",
+    "claim": "`splitDirToLayout` is a bare `switch` over the four SplitDir4 cases with no `default` branch. It is type-safe at the typed boundary, but if an out-of-type value ever reaches it (untyped IPC/persisted/test input) the function returns `undefined`, and the caller's `lay.direction` / `lay.position` access then throws a cryptic `Cannot read properties of undefined`, with no value named in the error (CONV-001 — specific/actionable errors). The direction plumbing has no debug breadcrumb identifying the offending input.",
+    "evidence": "switch(dir){ case 'right'...case 'up'... } with no default; callers immediately destructure `lay.direction`/`lay.position`.",
+    "fix": "Add a `default` that throws naming the bad value (e.g. `throw new Error(`splitDirToLayout: unknown direction '${dir}'`)`) or an exhaustiveness `assertNever`, so a bad direction fails loudly and debuggably instead of producing a downstream undefined dereference.",
+    "phase_of_origin": "implement",
+    "status": "open",
+    "verified_by": "qol",
+    "contract_violation": false
+  }
+]

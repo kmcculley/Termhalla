@@ -4,6 +4,7 @@ import { mkdtempSync, writeFileSync, readFileSync, existsSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { seedWorkspace } from './seed'
+import { splitSecondTerminal } from './split-helper'
 
 function killTree(pid: number | undefined): void {
   if (pid && process.platform === 'win32') { try { execSync(`taskkill /F /T /PID ${pid}`, { stdio: 'ignore' }) } catch {} }
@@ -19,8 +20,7 @@ test('broadcast: Shift+Enter sends, and quick-key buttons are present', async ()
   const win = await app.firstWindow()
   await win.getByTestId('add-first-terminal').click()
   await expect(win.locator('[data-testid^="terminal-"]')).toHaveCount(1, { timeout: 15_000 })
-  await win.locator('[data-testid^="split-"]').first().click()
-  await win.locator('[data-testid^="split-terminal-"]').first().click()
+  await splitSecondTerminal(win)
   await expect(win.locator('[data-testid^="terminal-"]')).toHaveCount(2, { timeout: 15_000 })
 
   await win.getByTestId('broadcast-button').click()
@@ -44,8 +44,7 @@ test('schedule dialog spans the full window (not clipped by an adjacent terminal
   const win = await app.firstWindow()
   await win.getByTestId('add-first-terminal').click()
   await expect(win.locator('[data-testid^="terminal-"]')).toHaveCount(1, { timeout: 15_000 })
-  await win.locator('[data-testid^="split-"]').first().click()
-  await win.locator('[data-testid^="split-terminal-"]').first().click()
+  await splitSecondTerminal(win)
   await expect(win.locator('[data-testid^="terminal-"]')).toHaveCount(2, { timeout: 15_000 })
 
   await win.locator('[data-testid^="schedule-chip-"]').first().click()

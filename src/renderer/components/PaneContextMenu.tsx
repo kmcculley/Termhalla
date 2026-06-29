@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { createPortal } from 'react-dom'
 import { useShallow } from 'zustand/react/shallow'
 import { useStore } from '../store'
+import { api } from '../api'
 import { Z, SURFACE } from './Modal'
 
 /** Right-click menu for a pane's title bar: Rename, Move to workspace ▸ (other workspaces this
@@ -19,6 +20,7 @@ export function PaneContextMenu(
   const moveToWorkspace = useStore(s => s.movePaneToWorkspace)
   const moveToNew = useStore(s => s.movePaneToNewWorkspace)
   const kind = useStore(s => s.workspaces[wsId]?.panes[paneId]?.config.kind)
+  const recording = useStore(s => !!s.recording[paneId])
   const [view, setView] = useState<'root' | 'move'>('root')
 
   // Terminals open the terminal section (name + alerts + env); editors/explorers have no terminal
@@ -40,6 +42,11 @@ export function PaneContextMenu(
         {view === 'root' ? (
           <>
             <button data-testid="pane-menu-rename" onClick={() => { onClose(); onRename() }}>Rename</button>
+            {kind === 'terminal' && (
+              <button data-testid="pane-menu-record"
+                onClick={() => { recording ? api.recStop(paneId) : api.recStart(paneId); onClose() }}>
+                {recording ? 'Stop recording' : 'Start recording'}</button>
+            )}
             <button data-testid="pane-menu-move" onClick={() => setView('move')}>Move to workspace ▸</button>
             <button data-testid="pane-menu-settings"
               onClick={() => { openSettings({ section: settingsSection, paneId }); onClose() }}>Settings</button>

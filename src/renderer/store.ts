@@ -2,7 +2,7 @@ import { create } from 'zustand'
 import { v4 as uuid } from 'uuid'
 import type { Workspace, PaneConfig, EditorConfig } from '@shared/types'
 import { EMPTY_QUICK } from '@shared/types'
-import { createWorkspace, removePane, reorderIds, movePane, carryTheme } from '@shared/workspace-model'
+import { createWorkspace, removePane, reorderIds, movePane, carryTheme, splitDirToLayout } from '@shared/workspace-model'
 import { encodeBroadcast, terminalPaneIds } from '@shared/broadcast'
 import { schedulesWithout } from '@shared/schedule'
 import { api } from './api'
@@ -56,9 +56,9 @@ export const useStore = create<State>((set, get) => {
    *  new pane id. Centralizes the get-ws / placePane / set-workspaces / autosave sequence that
    *  was copy-pasted across every "open a pane" action (and unifies their persistence on the
    *  debounced autosave rather than a mix of immediate saveAll and scheduleAutosave). */
-  const commitPane = (wsId: string, cfg: PaneConfig, target: string | null, dir: import('@shared/types').MosaicDirection, markEditor = false): string => {
+  const commitPane = (wsId: string, cfg: PaneConfig, target: string | null, dir: import('@shared/types').MosaicDirection, markEditor = false, position: 'before' | 'after' = 'after'): string => {
     const ws = get().workspaces[wsId]
-    const r = placePane(ws, cfg, target, dir)
+    const r = placePane(ws, cfg, target, dir, position)
     set(s => {
       const maximized = { ...s.maximized }
       delete maximized[wsId]
@@ -285,10 +285,11 @@ export const useStore = create<State>((set, get) => {
     },
 
     // ---- core: pane management ----
-    addTerminal: (wsId, targetPaneId, dir) => {
+    addTerminal: (wsId, targetPaneId, dir, splitDir) => {
       const shellId = defaultShellId(get())
       const cwd = targetPaneId ? paneCwd(get(), targetPaneId) : ''
-      return commitPane(wsId, { kind: 'terminal', shellId, cwd }, targetPaneId, dir)
+      const lay = splitDir ? splitDirToLayout(splitDir) : { direction: dir, position: 'after' as const }
+      return commitPane(wsId, { kind: 'terminal', shellId, cwd }, targetPaneId, lay.direction, false, lay.position)
     },
 
     addPaneOfKind: (wsId, kind) => dispatchAddPane(get(), wsId, kind, () => api.openFolder()),
@@ -304,9 +305,15 @@ export const useStore = create<State>((set, get) => {
       scheduleAutosave()
     },
 
-    addEditor: (wsId, targetPaneId, dir) => commitPane(wsId, { kind: 'editor', files: [] }, targetPaneId, dir, true),
+    addEditor: (wsId, targetPaneId, dir, splitDir) => {
+      const lay = splitDir ? splitDirToLayout(splitDir) : { direction: dir, position: 'after' as const }
+      return commitPane(wsId, { kind: 'editor', files: [] }, targetPaneId, lay.direction, true, lay.position)
+    },
 
-    addExplorer: (wsId, targetPaneId, dir, root) => commitPane(wsId, { kind: 'explorer', root }, targetPaneId, dir),
+    addExplorer: (wsId, targetPaneId, dir, root, splitDir) => {
+      const lay = splitDir ? splitDirToLayout(splitDir) : { direction: dir, position: 'after' as const }
+      return commitPane(wsId, { kind: 'explorer', root }, targetPaneId, lay.direction, false, lay.position)
+    },
 
     openExplorerHere: (wsId, paneId) => {
       const root = paneCwd(get(), paneId)

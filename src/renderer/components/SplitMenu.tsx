@@ -1,28 +1,162 @@
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { useStore, paneCwd } from '../store'
 import { Z, SURFACE } from './Modal'
-import type { MosaicDirection } from '@shared/types'
+import type { SplitDir4 } from '@shared/types'
 
-/** In-tile popover for the split buttons: choose what kind of pane the split opens. The new pane
- *  splits the source pane in `dir` and inherits its cwd (terminals via addTerminal, explorers via
- *  the cwd as root; editors have no cwd). Replaces the old "split always opens a terminal". */
+type Kind = 'terminal' | 'editor' | 'explorer'
+
+const DIR_LABEL: Record<SplitDir4, string> = {
+  up: 'Split up', down: 'Split down', left: 'Split left', right: 'Split right'
+}
+const DIR_GLYPH: Record<SplitDir4, string> = { up: '▲', down: '▼', left: '◀', right: '▶' }
+const KIND_LABEL: Record<Kind, string> = { terminal: 'Terminal', editor: 'Editor', explorer: 'Explorer' }
+
+// Estimated popover box (compass grid + 3 kind buttons + padding/gaps). Used only to clamp/flip the
+// anchor into the viewport; a few px of drift here just shifts the popover, never clips it.
+const EST_W = 168
+const EST_H = 200
+
+/** Combined split popover: a four-direction compass (up/left/right/down) plus a Terminal/Editor/
+ *  Explorer kind selector. Opening commits nothing; picking a kind sets the selection; activating a
+ *  direction (click or keyboard) commits a split of that kind in that direction, then closes.
+ *
+ *  Portalled to <body> (like PaneContextMenu/Modal): a position-ed child of a react-mosaic tile is
+ *  clipped/mis-stacked by the tile's transform. The compass is fully keyboard-operable via a roving
+ *  tabindex — focus opens on the right ▶ target (the visibly highlighted default); arrow keys move
+ *  it; Enter/Space (native button activation) commits the focused direction; Esc dismisses without
+ *  splitting. Tab is trapped within the popover and on close focus returns to the split trigger. */
 export function SplitMenu(
-  { wsId, paneId, dir, onClose }: { wsId: string; paneId: string; dir: MosaicDirection; onClose: () => void }
+  { wsId, paneId, onClose }: { wsId: string; paneId: string; onClose: () => void }
 ) {
   const addTerminal = useStore(s => s.addTerminal)
   const addEditor = useStore(s => s.addEditor)
   const addExplorer = useStore(s => s.addExplorer)
   const cwd = useStore(s => paneCwd(s, paneId))
-  const pick = (fn: () => void) => { fn(); onClose() }
-  return (
-    <div data-testid="split-menu" onClick={e => e.stopPropagation()}
-      style={{ ...SURFACE, position: 'absolute', right: 4, top: 28, zIndex: Z.popover, padding: 4,
-        display: 'flex', flexDirection: 'column', gap: 2 }}>
-      <button data-testid={`split-terminal-${paneId}`}
-        onClick={() => pick(() => addTerminal(wsId, paneId, dir))}>Terminal</button>
-      <button data-testid={`split-editor-${paneId}`}
-        onClick={() => pick(() => addEditor(wsId, paneId, dir))}>Editor</button>
-      <button data-testid={`split-explorer-${paneId}`} disabled={!cwd}
-        onClick={() => pick(() => addExplorer(wsId, paneId, dir, cwd))}>Explorer</button>
-    </div>
+  const [kind, setKind] = useState<Kind>('terminal')
+  // The visibly highlighted / roving-tabindex direction. Defaults to right (today's primary). Tracked
+  // in state so the highlight is painted regardless of pointer-vs-keyboard (programmatic .focus() does
+  // not match :focus-visible on a mouse-opened popover).
+  const [active, setActive] = useState<SplitDir4>('right')
+  const [pos, setPos] = useState<{ left: number; top: number } | null>(null)
+  const dirRefs = useRef<Partial<Record<SplitDir4, HTMLButtonElement | null>>>({})
+  const popoverRef = useRef<HTMLDivElement | null>(null)
+  const triggerRef = useRef<HTMLElement | null>(null)
+
+  // Anchor the portalled popover under the source pane's split button (which lives inside the tile),
+  // clamping/flipping BOTH axes so the whole popover stays on-screen even for a bottom-row pane.
+  useLayoutEffect(() => {
+    const btn = document.querySelector(`[data-testid="split-${paneId}"]`) as HTMLElement | null
+    triggerRef.current = btn
+    const r = btn?.getBoundingClientRect()
+    if (!r) return
+    const left = Math.max(4, Math.min(r.right - EST_W, window.innerWidth - EST_W - 4))
+    let top = r.bottom + 4
+    if (top + EST_H > window.innerHeight) {
+      const above = r.top - EST_H - 4
+      top = above >= 4 ? above : Math.max(4, window.innerHeight - EST_H - 4)
+    }
+    setPos({ left, top })
+  }, [paneId])
+
+  // Default focus / highlight = the active (right) target, via roving tabindex.
+  useEffect(() => { dirRefs.current[active]?.focus() }, [pos]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Close: restore focus to the split trigger that opened the popover, then drop the menu (cancel,
+  // Esc, click-away, and commit all route through here so the keyboard user is never stranded).
+  const close = () => { triggerRef.current?.focus(); onClose() }
+
+  const commit = (dir: SplitDir4) => {
+    if (kind === 'terminal') addTerminal(wsId, paneId, 'row', dir)
+    else if (kind === 'editor') addEditor(wsId, paneId, 'row', dir)
+    else if (cwd) addExplorer(wsId, paneId, 'row', cwd, dir)
+    close()
+  }
+
+  // Container-level keys: Esc closes from anywhere within the popover; Tab is trapped so focus cannot
+  // escape behind the click-away overlay.
+  const onKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Escape') { e.preventDefault(); close(); return }
+    if (e.key !== 'Tab') return
+    const root = popoverRef.current
+    if (!root) return
+    const focusables = Array.from(root.querySelectorAll<HTMLElement>('button'))
+      .filter(el => !el.hasAttribute('disabled') && el.tabIndex !== -1)
+    if (focusables.length === 0) return
+    const first = focusables[0]
+    const last = focusables[focusables.length - 1]
+    const act = document.activeElement
+    if (e.shiftKey && act === first) { e.preventDefault(); last.focus() }
+    else if (!e.shiftKey && act === last) { e.preventDefault(); first.focus() }
+  }
+
+  // Arrow handling is scoped to the compass group so the kind toggle-buttons keep native keyboard
+  // behavior (Tab/Space) — the container no longer hijacks every arrow key.
+  const onCompassKeyDown = (e: React.KeyboardEvent) => {
+    const map: Record<string, SplitDir4> = {
+      ArrowUp: 'up', ArrowDown: 'down', ArrowLeft: 'left', ArrowRight: 'right'
+    }
+    const d = map[e.key]
+    if (d) { e.preventDefault(); setActive(d); dirRefs.current[d]?.focus() }
+  }
+
+  const dirButton = (d: SplitDir4, gridArea: string) => (
+    <button key={d} ref={el => { dirRefs.current[d] = el }} type="button"
+      data-testid={`split-dir-${d}-${paneId}`} aria-label={DIR_LABEL[d]}
+      data-active={d === active ? '' : undefined}
+      tabIndex={d === active ? 0 : -1}
+      onClick={() => commit(d)}
+      style={{
+        gridArea, width: 28, height: 28, ...PAINT,
+        ...(d === active
+          ? { background: 'rgba(30, 136, 229, 0.35)', borderColor: 'var(--accent, #1e88e5)' }
+          : null)
+      }}>{DIR_GLYPH[d]}</button>
   )
+
+  const kindButton = (k: Kind) => (
+    <button key={k} type="button" data-testid={`split-kind-${k}-${paneId}`}
+      aria-pressed={kind === k} aria-label={KIND_LABEL[k]}
+      disabled={k === 'explorer' && !cwd}
+      onClick={() => setKind(k)}
+      style={{
+        ...PAINT, fontWeight: kind === k ? 700 : 400, opacity: kind === k ? 1 : 0.7,
+        ...(kind === k ? { background: 'rgba(30, 136, 229, 0.25)', borderColor: 'var(--accent, #1e88e5)' } : null)
+      }}>
+      {KIND_LABEL[k]}</button>
+  )
+
+  if (!pos) return null
+  return createPortal(
+    <>
+      <div onClick={close} onContextMenu={e => { e.preventDefault(); close() }}
+        style={{ position: 'fixed', inset: 0, zIndex: Z.popover }} />
+      <div ref={popoverRef} data-testid="split-menu" onKeyDown={onKeyDown} onClick={e => e.stopPropagation()}
+        style={{ ...SURFACE, position: 'fixed', left: pos.left, top: pos.top, zIndex: Z.popover + 1,
+          padding: 6, display: 'flex', flexDirection: 'column', gap: 6, minWidth: 156 }}>
+        <div role="group" aria-label="Split direction" onKeyDown={onCompassKeyDown}
+          style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 28px)', gridTemplateRows: 'repeat(3, 28px)',
+            gap: 2, justifyContent: 'center' }}>
+          {dirButton('up', '1 / 2 / 2 / 3')}
+          {dirButton('left', '2 / 1 / 3 / 2')}
+          {dirButton('right', '2 / 3 / 3 / 4')}
+          {dirButton('down', '3 / 2 / 4 / 3')}
+        </div>
+        <div role="group" aria-label="Split kind"
+          style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+          {kindButton('terminal')}
+          {kindButton('editor')}
+          {kindButton('explorer')}
+        </div>
+      </div>
+    </>,
+    document.body
+  )
+}
+
+// Paint-only chrome (background/color/border-radius) — scoped to this popover's own elements, never
+// reaching editor-tabs children or Monaco/xterm hosts (the sibling-box gotcha).
+const PAINT: React.CSSProperties = {
+  background: 'transparent', color: 'inherit', borderRadius: 4,
+  border: '1px solid var(--border, #3a3a3a)', cursor: 'pointer'
 }
