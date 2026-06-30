@@ -2,7 +2,8 @@ import type { StoreApi } from 'zustand'
 import type {
   Workspace, ShellInfo, MosaicNode, MosaicDirection, SplitDir4, TerminalConfig, TerminalStatus,
   PaneConfig, EditorConfig, ExplorerConfig, QuickStore, SshConnection, ProcInfo, CloudStatus,
-  TerminalLaunch, AiSession, UsageMetrics, EditorDraft, ScheduledTask, Theme, EnvVaultState, GitStatus, RunCommand
+  TerminalLaunch, AiSession, UsageMetrics, EditorDraft, ScheduledTask, Theme, EnvVaultState, GitStatus, RunCommand,
+  OrkyPaneStatus
 } from '@shared/types'
 import type { Chord, CommandId } from '@shared/keybindings'
 import type { ImageSource } from '@shared/ipc-contract'
@@ -75,6 +76,9 @@ export interface State {
   setAiSession: (id: string, ai: AiSession | null) => void
   usage: Record<string, UsageMetrics>
   setUsage: (id: string, metrics: UsageMetrics | null) => void
+  // Per-pane live Orky run status (feature 0004). A `null` push clears the key (cwd left .orky/).
+  orky: Record<string, OrkyPaneStatus>
+  setOrky: (id: string, status: OrkyPaneStatus | null) => void
   recording: Record<string, boolean>
   setRecording: (id: string, on: boolean) => void
   // A terminal whose shell process exited. A minimized pane is NOT auto-closed on exit (its

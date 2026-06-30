@@ -1,4 +1,4 @@
-import type { Workspace, AiSession, TerminalStatus } from '@shared/types'
+import type { Workspace, AiSession, TerminalStatus, OrkyPaneStatus } from '@shared/types'
 import { resolveAlerts } from '@shared/alerts'
 import { aiState } from '../store/pane-ops'
 
@@ -15,7 +15,8 @@ export interface BadgeState {
 export function workspaceBadgeState(
   ws: Workspace,
   statuses: Record<string, TerminalStatus>,
-  aiSessions: Record<string, AiSession>
+  aiSessions: Record<string, AiSession>,
+  orky?: Record<string, OrkyPaneStatus>
 ): BadgeState {
   let needs = 0, busy = false, ai = false, aiAwaiting = false
   for (const paneId of Object.keys(ws.panes)) {
@@ -24,6 +25,10 @@ export function workspaceBadgeState(
     const as = aiState({ aiSessions, statuses }, paneId)
     if (as) { ai = true; if (as === 'awaiting') aiAwaiting = true }
     if (!resolveAlerts(cfg.alerts).tabBadge) continue
+    // An Orky run wanting a human folds into `needs` exactly like a terminal needs-input pane, gated
+    // by the SAME tabBadge opt-in (REQ-009 / REQ-016). The opt-in governs only this badge summary —
+    // the pane's own Orky chip + failure border stay visible regardless (handled in PaneTile).
+    if (orky?.[paneId]?.needsHuman) { needs++; continue }
     const st = statuses[paneId]?.state
     if (st === 'needs-input') needs++
     else if (st === 'busy') busy = true
@@ -43,7 +48,8 @@ export function formatBadge(s: BadgeState): string {
 export function tabBadge(
   ws: Workspace,
   statuses: Record<string, TerminalStatus>,
-  aiSessions: Record<string, AiSession>
+  aiSessions: Record<string, AiSession>,
+  orky?: Record<string, OrkyPaneStatus>
 ): string {
-  return formatBadge(workspaceBadgeState(ws, statuses, aiSessions))
+  return formatBadge(workspaceBadgeState(ws, statuses, aiSessions, orky))
 }

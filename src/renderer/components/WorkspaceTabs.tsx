@@ -27,7 +27,7 @@ export function WorkspaceTabs() {
   // when a badge's *text* actually changes.
   const badges = useStore(useShallow(s => {
     const out: Record<string, string> = {}
-    for (const id of s.order) { const ws = s.workspaces[id]; if (ws) out[id] = tabBadge(ws, s.statuses, s.aiSessions) }
+    for (const id of s.order) { const ws = s.workspaces[id]; if (ws) out[id] = tabBadge(ws, s.statuses, s.aiSessions, s.orky) }
     return out
   }))
 

@@ -9,6 +9,7 @@ import { registerDrafts } from './register-drafts'
 import { registerNotes } from './register-notes'
 import { registerCloud } from './register-cloud'
 import { registerUsage } from './register-usage'
+import { registerOrky } from './register-orky'
 import { registerRecording } from './register-recording'
 import { registerEnv } from './register-env'
 import { registerClipboard } from './register-clipboard'
@@ -60,6 +61,7 @@ export function registerHandlers(services: Services, wm: WindowManager): PtyMana
     registerPreview(),
     registerCloud(win, send),
     registerUsage(send),
+    registerOrky(send),
     registerRecording({ pty, recorder, userDataDir: dir, send }),
     disposeGit,
     disposeSearch

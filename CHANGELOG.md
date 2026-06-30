@@ -7,6 +7,20 @@ All notable changes to Termhalla are recorded here. The format follows
 ## [Unreleased]
 
 ### Added
+- **Orky status awareness in the pane chrome.** A terminal pane whose tracked cwd sits inside an
+  `.orky/` project (an [Orky](https://github.com/) gated-pipeline run) now surfaces that run's live
+  **status** directly in the pane chrome — a read-only mirror, derived purely from reading the
+  on-disk `.orky/` JSON (`active.json`, `features/*/state.json`, `findings.json`); it never spawns a
+  CLI and never writes into `.orky/`. The pane toolbar gains an **Orky chip** labelled
+  `feature · phase · gate N/M · ●k open`, and clicking it opens a detail popover listing every active
+  feature with its phase, gate progress, open-blocking findings, and "needs you" reason. A run that
+  needs a human (parked in `human-review`, an open escalation, or a stalled heartbeat) takes
+  **precedence** over the byte-derived terminal status for the pane border and lights the workspace
+  tab's 🔔 needs-you badge (gated by the same tab-badge opt-in); a halted gate failure surfaces as
+  failure styling. Status is pushed over a new pane-scoped `orky:status` IPC channel from a bounded,
+  debounced, disposable main-process watcher and held as live runtime state (nothing persisted;
+  `SCHEMA_VERSION` unchanged). The canonical phase list (`ORKY_PHASES`) is a hardcoded mirror of
+  Orky's pipeline — see `docs/features/orky-status.md` for the data-provenance note.
 - **Minimize / restore panes.** A pane can now be **minimized** out of the visible tiled layout
   while staying fully alive in the background (its PTY keeps running, xterm scrollback / Monaco
   models / live TUIs are preserved — kept mounted off-layout, never unmounted). Minimizing reflows

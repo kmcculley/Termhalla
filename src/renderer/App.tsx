@@ -11,6 +11,7 @@ import { CommandPalette } from './components/CommandPalette'
 import { SshConnectionForm } from './components/SshConnectionForm'
 import { StatusBar } from './components/StatusBar'
 import { UsageWatcher } from './components/UsageWatcher'
+import { OrkyWatcher } from './components/OrkyWatcher'
 import { Scheduler } from './components/Scheduler'
 import { Toasts } from './components/Toasts'
 import { ImageLightbox } from './components/ImageLightbox'
@@ -52,6 +53,7 @@ export default function App() {
       api.onCloudStatus(statuses => s().setCloud(statuses)),
       api.onAiSession((id, ai) => s().setAiSession(id, ai)),
       api.onUsageMetrics((id, m) => s().setUsage(id, m)),
+      api.onOrkyStatus((id, st) => s().setOrky(id, st)),
       api.onRecState((id, state) => s().setRecording(id, state.recording)),
       api.onEnvState(state => s().setEnvState(state)),
       api.onWinAssignment(a => { void s().applyAssignment(a) }),
@@ -152,6 +154,7 @@ export default function App() {
       </div>
       <StatusBar />
       <UsageWatcher />
+      <OrkyWatcher />
       <Scheduler />
       <Toasts />
       <ImageLightbox />

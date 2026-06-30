@@ -14,9 +14,17 @@ import { CwdMenu } from './CwdMenu'
 import { GitPopover } from './GitPopover'
 import { RunCommandsMenu } from './RunCommandsMenu'
 import { SplitMenu } from './SplitMenu'
+import { OrkyPopover } from './OrkyPopover'
 import { setTileSize, clearTileSize } from './pane-geometry'
+import type { OrkyKind } from '@shared/types'
 
-export type PaneMenu = 'proc' | 'cwd' | 'schedule' | 'git' | 'run' | 'split'
+export type PaneMenu = 'proc' | 'cwd' | 'schedule' | 'git' | 'run' | 'split' | 'orky'
+
+/** Map an Orky run's kind onto the byte-status border model so the Orky precedence (REQ-014) reuses
+ *  the existing `term-busy` / `term-needs-input` border treatment. `done`/`cleared` read as `idle`. */
+const ORKY_KIND_TO_TERM: Record<OrkyKind, 'idle' | 'busy' | 'needs-input'> = {
+  busy: 'busy', 'needs-input': 'needs-input', idle: 'idle', done: 'idle', cleared: 'idle'
+}
 
 const SHELL_CHIP_LABEL: Record<string, string> = {
   'Windows PowerShell': 'pwsh',
@@ -31,6 +39,7 @@ export function PaneTile({ wsId, paneId, path }: { wsId: string; paneId: string;
   const usage = useStore(s => s.usage[paneId])
   const cwd = useStore(s => paneCwd(s, paneId))
   const gitStatus = useStore(s => s.gitStatus[paneId])
+  const orky = useStore(s => s.orky[paneId])
   const shells = useStore(s => s.shells)
   const isMax = useStore(s => s.maximized[wsId] === paneId)
   const setFocusedPane = useStore(s => s.setFocusedPane)
@@ -51,8 +60,14 @@ export function PaneTile({ wsId, paneId, path }: { wsId: string; paneId: string;
     : procInfo && procInfo.foreground ? `▶ ${procInfo.foreground}` : shellLabel
 
   const alerts = resolveAlerts(termCfg?.alerts)
-  const state = status?.state ?? 'idle'
-  const statusClass = alerts.border ? `term-status term-${state}` : ''
+  // Orky precedence (REQ-014): for a bound Orky run the Orky-derived kind drives the border + badge,
+  // taking precedence over the byte-derived (OSC 133) status; the byte status itself is NOT recomputed
+  // (baseline REQ-004 untouched) — this is a pure render-time composition. Falls back to byte-status
+  // when the pane is not a bound Orky run (cleared). The failed flag maps to failure styling (REQ-006).
+  const byteState = status?.state ?? 'idle'
+  const state = orky ? ORKY_KIND_TO_TERM[orky.kind] : byteState
+  const failed = orky ? orky.failed : status?.lastExit === 'failure'
+  const statusClass = alerts.border ? `term-status term-${state}${failed ? ' term-failure' : ''}` : ''
   const needsInput = state === 'needs-input'
   const baseName = pane?.config.name ?? pane?.config.kind ?? 'Pane'
   const title = (needsInput ? '🔔 ' : '') + baseName
@@ -111,7 +126,7 @@ export function PaneTile({ wsId, paneId, path }: { wsId: string; paneId: string;
       )}
       <div className="mosaic-window-controls" style={{ display: 'flex', alignItems: 'center' }}>
         <PaneToolbar wsId={wsId} paneId={paneId} isTerminal={!!termCfg} chipText={chipText}
-          gitStatus={gitStatus} toggle={toggle} splitOpen={menu === 'split'} />
+          gitStatus={gitStatus} orky={orky} toggle={toggle} splitOpen={menu === 'split'} />
       </div>
     </div>
   )
@@ -130,6 +145,7 @@ export function PaneTile({ wsId, paneId, path }: { wsId: string; paneId: string;
         {menu === 'cwd' && <CwdMenu wsId={wsId} paneId={paneId} cwd={cwd} onClose={close} />}
         {menu === 'split' && <SplitMenu wsId={wsId} paneId={paneId} onClose={close} />}
         {menu === 'git' && gitStatus && <GitPopover status={gitStatus} />}
+        {menu === 'orky' && orky && <OrkyPopover paneId={paneId} status={orky} onClose={close} />}
         {pane?.config.kind === 'terminal' && termCfg && <TerminalPane paneId={paneId} wsId={wsId} config={termCfg} />}
         {pane?.config.kind === 'editor' && <EditorPane paneId={paneId} wsId={wsId} config={pane.config} />}
         {pane?.config.kind === 'explorer' && <ExplorerPane paneId={paneId} wsId={wsId} config={pane.config} />}

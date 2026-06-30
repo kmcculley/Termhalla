@@ -105,6 +105,7 @@ export const useStore = create<State>((set, get) => {
     gitStatus: {},
     aiSessions: {},
     usage: {},
+    orky: {},
     recording: {},
     exited: {},
     drafts: {},

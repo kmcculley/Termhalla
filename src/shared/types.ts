@@ -14,6 +14,42 @@ export interface TerminalStatus {
   since: number
 }
 
+// ── Orky status awareness (feature 0004) — live runtime wire types (NOT persisted; no SCHEMA bump).
+/** The canonical Orky pipeline phases, in order. `human-review` is the final real gate. The single
+ *  source of truth for the literal list is `ORKY_PHASES` in `@shared/orky-status`; this type mirrors it. */
+export type OrkyPhase = 'brainstorm' | 'spec' | 'plan' | 'tests' | 'implement' | 'review' | 'doc-sync' | 'human-review'
+
+/** The Orky run's kind, mapped onto the terminal-status model (+ `done`/`cleared`). */
+export type OrkyKind = 'busy' | 'idle' | 'needs-input' | 'done' | 'cleared'
+
+/** Structured needs-you discriminator the chip selector ranks on (escalation > stalled > human-review). */
+export type OrkyReason = 'escalation' | 'stalled' | 'human-review' | null
+
+/** One feature's rolled-up Orky status (the unit the selector ranks + the popover lists). */
+export interface OrkyFeatureStatus {
+  feature: string            // slug / id
+  kind: OrkyKind
+  phase: OrkyPhase | null    // current phase
+  gateN: number              // gates passed
+  gateM: number              // total gates (= ORKY_PHASES.length)
+  openBlocking: number       // open CRITICAL/HIGH or contract-violation findings
+  needsHuman: boolean
+  failed: boolean            // a halted gate failure (drives lastExit:'failure' styling)
+  reason: OrkyReason         // why it needs a human (null when needsHuman is false)
+  lastActivityAt: number
+  detail: string             // human-readable, actionable
+}
+
+/** The per-pane Orky roll-up emitted over `orky:status`. `null` over the wire = cleared. */
+export interface OrkyPaneStatus {
+  kind: OrkyKind                  // the chip-feature's kind
+  label: string                  // `feature · phase · gate N/M · ●k open`
+  needsHuman: boolean
+  failed: boolean
+  features: OrkyFeatureStatus[]   // ALL non-Idle features, ranked, for the popover
+  chipFeature: string | null      // selectChipFeature result; null when no features
+}
+
 export interface AlertConfig {
   border?: boolean
   tabBadge?: boolean

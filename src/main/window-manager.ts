@@ -36,7 +36,7 @@ const NEW_WINDOW_SIZE = { width: 900, height: 640 }
  *  else (cloud:status, env:state, fs:change, …) is app-global and broadcasts to every window. */
 const PANE_SCOPED = new Set<string>([
   CH.ptyData, CH.ptyExit, CH.ptyStatus, CH.ptyCwd, CH.ptyProcs, CH.gitStatus,
-  CH.aiSession, CH.usageMetrics, CH.recState, CH.termSerialize
+  CH.aiSession, CH.usageMetrics, CH.orkyStatus, CH.recState, CH.termSerialize
 ])
 
 /** A move currently in flight (moves are serialized): the workspace being moved, its destination

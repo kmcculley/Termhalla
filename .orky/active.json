@@ -2,6 +2,6 @@
   "feature": ".orky/features/0004-orky-status-awareness",
   "projectRoot": "C:/dev/Termhalla",
   "phase": "implement",
-  "lastTickAt": "2026-06-30T15:24:10.048Z",
-  "lastAction": "router:implementer"
+  "lastTickAt": "2026-06-30T15:26:31.775Z",
+  "lastAction": "dispatch:implementer-A(claude) A/B-determinism"
 }

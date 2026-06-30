@@ -1,4 +1,4 @@
-import type { ShellInfo, Workspace, AppState, TerminalStatus, DirEntry, ReadResult, StatResult, FsChange, TerminalLaunch, QuickStore, ProcInfo, CloudStatus, AiSession, UsageMetrics, EditorDraft, EnvVaultData, RecState, EnvVaultState, GitStatus, SearchHit, SearchStats } from './types'
+import type { ShellInfo, Workspace, AppState, TerminalStatus, DirEntry, ReadResult, StatResult, FsChange, TerminalLaunch, QuickStore, ProcInfo, CloudStatus, AiSession, UsageMetrics, EditorDraft, EnvVaultData, RecState, EnvVaultState, GitStatus, SearchHit, SearchStats, OrkyPaneStatus } from './types'
 
 export const CH = {
   listShells: 'shells:list',
@@ -43,6 +43,9 @@ export const CH = {
   usageWatch: 'usage:watch',
   usageUnwatch: 'usage:unwatch',
   usageMetrics: 'usage:metrics',    // main -> renderer event
+  orkyWatch: 'orky:watch',          // renderer -> main
+  orkyUnwatch: 'orky:unwatch',      // renderer -> main
+  orkyStatus: 'orky:status',        // main -> renderer event (pane-scoped; null payload = cleared)
   draftsLoad: 'drafts:load',
   draftsSet: 'drafts:set',
   notesLoad: 'notes:load',
@@ -129,6 +132,11 @@ export interface TermhallaApi {
   usageWatch(id: string, cwd: string): void
   usageUnwatch(id: string): void
   onUsageMetrics(cb: (id: string, metrics: UsageMetrics | null) => void): () => void
+  /** Start/stop the per-pane Orky `.orky/` status watch (auto-bound from the pane's tracked cwd). */
+  orkyWatch(id: string, cwd: string): void
+  orkyUnwatch(id: string): void
+  /** Live per-pane Orky status push; a `null` payload means the pane is no longer a bound Orky run. */
+  onOrkyStatus(cb: (paneId: string, status: OrkyPaneStatus | null) => void): () => void
   revealPath(path: string): Promise<void>
   fsRename(oldPath: string, newPath: string): Promise<void>
   fsTrash(path: string): Promise<void>

@@ -50,6 +50,11 @@ body { background: var(--bg, #1e1e1e); color: var(--fg, #eee); font-family: var(
   background-color: var(--status-needs, #ff8f00);
 }
 @keyframes term-bar-needs { 0%, 50% { filter: none } 51%, 100% { filter: brightness(0.7) } }
+/* A halted Orky gate failure surfaces as failure styling on the pane border (REQ-006), independent
+   of needs-human. Paint-only: a red toolbar accent, never a box change. */
+.mosaic-window.term-failure .mosaic-window-toolbar {
+  background-color: var(--status-failure, #c62828);
+}
 
 /* =====================================================================
    UI polish — cohesive dark chrome.
@@ -107,6 +112,7 @@ body { background: var(--bg, #1e1e1e); color: var(--fg, #eee); font-family: var(
   [data-testid="ws-menu"],
   [data-testid="proc-menu"],
   [data-testid="cwd-menu"],
+  [data-testid="orky-menu"],
   [data-testid^="cloud-menu-"]
 ) :is(button, select) {
   font: inherit;
@@ -135,7 +141,7 @@ option {
   [data-testid="settings-panel"], [data-testid="broadcast-dialog"], [data-testid="schedule-dialog"],
   [data-testid="connection-form-backdrop"], [data-testid="command-palette-backdrop"],
   [data-testid="terminal-settings"], [data-testid="templates-menu"],
-  [data-testid="ws-menu"], [data-testid="proc-menu"], [data-testid="cwd-menu"], [data-testid^="cloud-menu-"],
+  [data-testid="ws-menu"], [data-testid="proc-menu"], [data-testid="cwd-menu"], [data-testid="orky-menu"], [data-testid^="cloud-menu-"],
   [data-testid="split-menu"], [data-testid="pane-menu"]
 ) :is(button, select):hover:not(:disabled) {
   background: rgba(255, 255, 255, 0.13);
@@ -147,7 +153,7 @@ option {
   [data-testid="settings-panel"], [data-testid="broadcast-dialog"], [data-testid="schedule-dialog"],
   [data-testid="connection-form-backdrop"], [data-testid="command-palette-backdrop"],
   [data-testid="terminal-settings"], [data-testid="templates-menu"],
-  [data-testid="ws-menu"], [data-testid="proc-menu"], [data-testid="cwd-menu"], [data-testid^="cloud-menu-"],
+  [data-testid="ws-menu"], [data-testid="proc-menu"], [data-testid="cwd-menu"], [data-testid="orky-menu"], [data-testid^="cloud-menu-"],
   [data-testid="split-menu"], [data-testid="pane-menu"]
 ) :is(button, select):active:not(:disabled) {
   background: rgba(255, 255, 255, 0.18);
@@ -158,7 +164,7 @@ option {
   [data-testid="settings-panel"], [data-testid="broadcast-dialog"], [data-testid="schedule-dialog"],
   [data-testid="connection-form-backdrop"], [data-testid="command-palette-backdrop"],
   [data-testid="terminal-settings"], [data-testid="templates-menu"],
-  [data-testid="ws-menu"], [data-testid="proc-menu"], [data-testid="cwd-menu"], [data-testid^="cloud-menu-"],
+  [data-testid="ws-menu"], [data-testid="proc-menu"], [data-testid="cwd-menu"], [data-testid="orky-menu"], [data-testid^="cloud-menu-"],
   [data-testid="split-menu"], [data-testid="pane-menu"]
 ) :is(button, select):disabled {
   opacity: 0.4;
@@ -186,7 +192,7 @@ option {
   [data-testid="settings-panel"],
   [data-testid="broadcast-dialog"], [data-testid="schedule-dialog"], [data-testid="connection-form-backdrop"],
   [data-testid="command-palette-backdrop"], [data-testid="terminal-settings"], [data-testid="templates-menu"],
-  [data-testid="ws-menu"], [data-testid="proc-menu"], [data-testid="cwd-menu"], [data-testid^="cloud-menu-"],
+  [data-testid="ws-menu"], [data-testid="proc-menu"], [data-testid="cwd-menu"], [data-testid="orky-menu"], [data-testid^="cloud-menu-"],
   [data-testid="split-menu"], [data-testid="pane-menu"]
 ) :is(button, select, input, textarea):focus-visible {
   outline: 2px solid var(--accent, #1e88e5);

@@ -1,6 +1,6 @@
 import { useStore } from '../store'
 import { api } from '../api'
-import type { GitStatus } from '@shared/types'
+import type { GitStatus, OrkyPaneStatus } from '@shared/types'
 import { resolveBindings, formatChord } from '@shared/keybindings'
 import type { PaneMenu } from './PaneTile'
 
@@ -8,12 +8,13 @@ import type { PaneMenu } from './PaneTile'
  *  folder menu, split controls, a maximize toggle, and close. Env/terminal/appearance settings moved
  *  to the title-bar right-click menu (see PaneContextMenu). */
 export function PaneToolbar(
-  { wsId, paneId, isTerminal, chipText, gitStatus, toggle, splitOpen }: {
+  { wsId, paneId, isTerminal, chipText, gitStatus, orky, toggle, splitOpen }: {
     wsId: string
     paneId: string
     isTerminal: boolean
     chipText: string
     gitStatus: GitStatus | undefined
+    orky: OrkyPaneStatus | undefined
     toggle: (menu: PaneMenu) => void
     splitOpen: boolean
   }
@@ -41,6 +42,12 @@ export function PaneToolbar(
           <button type="button" data-testid={`proc-chip-${paneId}`} title="Running process"
             style={{ maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
             onClick={() => toggle('proc')}>{chipText}</button>
+          {orky && (
+            <button type="button" data-testid={`orky-chip-${paneId}`} title="Orky pipeline status"
+              data-needs-human={orky.needsHuman ? '' : undefined} data-failed={orky.failed ? '' : undefined}
+              style={{ maxWidth: 240, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+              onClick={() => toggle('orky')}>{orky.needsHuman ? '🔔 ' : ''}{orky.label}</button>
+          )}
           <button type="button" data-testid={`run-chip-${paneId}`} title="Run commands"
             onClick={() => toggle('run')}>▷</button>
           <button type="button" data-testid={`schedule-chip-${paneId}`} title="Schedule a command"
