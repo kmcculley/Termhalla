@@ -94,7 +94,40 @@ export const BUSY_HEARTBEAT = {
   feature: 'auth-login', phase: 'implement', gateN: 5, gateM: 8, needsHuman: false, reason: null, action: null
 }
 
-/** A complete (all gates passed) heartbeat — REQ-009's acceptance worked example (`phase: null`). */
+/** A busy heartbeat whose `phase` is `null` but whose gates are NOT all passed (`gateN < gateM`) — the
+ *  FINDING-DA-004 regression guard (spec iteration 3 / ESC-002): `phase` being `null` must NOT, by
+ *  itself, trigger `kind === 'done'`. Only gate fullness (`gateN >= gateM`) may do that. This is the
+ *  inverse edge of `DONE_PAYLOAD`/`DONE_HEARTBEAT` below — same `phase: null`, but incomplete gates — and
+ *  pins the half of the old (corrected) buggy rule (`phase == null && gateN >= gateM`) that this fixture
+ *  alone can catch: a regression back to reading `phase` in the `kind` derivation at all. */
+export const BUSY_PHASE_NULL_PAYLOAD = {
+  v: 1, feature: 'auth-login', phase: null, gate: '5/8', needsHuman: false
+} as const
+export const BUSY_PHASE_NULL_MARKER = buildOrkyMarker(BUSY_PHASE_NULL_PAYLOAD)
+export const BUSY_PHASE_NULL_HEARTBEAT = {
+  feature: 'auth-login', phase: null, gateN: 5, gateM: 8, needsHuman: false, reason: null, action: null
+}
+
+/** The complete-feature PRIMARY acceptance example (REQ-009, spec iteration 3 / ESC-002): the REAL
+ *  Orky emitter's actual shape for a genuinely finished feature — `phase: "doc-sync"`, never `null`
+ *  (`gatekeeper.js:904`'s `state.phase || d.phase || null`; `human-review` is a separate external gate
+ *  never written into `state.json.phase`). Done-detection is purely gate-based
+ *  (`gateN >= gateM`) and MUST NOT key off `phase` — this fixture is the one that catches a regression
+ *  back to the prior iteration's wrong `phase == null AND gateN >= gateM` rule (FINDING-DA-004), since
+ *  that rule can never fire against this real-emitter shape. */
+export const DONE_DOC_SYNC_PAYLOAD = {
+  v: 1, feature: 'auth-login', phase: 'doc-sync', gate: '8/8', needsHuman: false
+} as const
+export const DONE_DOC_SYNC_MARKER = buildOrkyMarker(DONE_DOC_SYNC_PAYLOAD)
+export const DONE_DOC_SYNC_HEARTBEAT = {
+  feature: 'auth-login', phase: 'doc-sync', gateN: 8, gateM: 8, needsHuman: false, reason: null, action: null
+}
+
+/** A complete (all gates passed) heartbeat with `phase: null` — REQ-009's PHASE-INDEPENDENCE companion
+ *  example (no longer the sole "done" case — see `DONE_DOC_SYNC_HEARTBEAT` above for the PRIMARY,
+ *  real-emitter-shaped example). Proves the gate-based done-rule fires identically regardless of
+ *  `phase`'s value: this heartbeat and `DONE_DOC_SYNC_HEARTBEAT` differ ONLY in `phase` and MUST map to
+ *  the identical `kind === 'done'` clean roll-up. */
 export const DONE_PAYLOAD = {
   v: 1, feature: 'auth-login', phase: null, gate: '8/8', needsHuman: false
 } as const

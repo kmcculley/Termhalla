@@ -1,10 +1,20 @@
 # 0014 — Orky OSC heartbeat parse + render (read) — Plan (Phase 3, RE-PLAN)
 
-**Status:** plan iteration 1 against the **re-drafted, FROZEN** spec (`02-spec.md`, frozen
-2026-06-30T21:14:18, **17 REQs, REQ-001…REQ-017**), which fully replaces the prior iteration's
-placeholder OSC contract (code `8888`, `;`-delimited `key=value` body) with Orky's **real, shipped**
-wire contract — **ADR-026** (code `9999`, single-line compact JSON payload, BEL terminator; see
-`orky-adr-026-osc-heartbeat.md`). This loopback was driven by ESC-001 (ground-truth correction, see
+**Status:** plan iteration 2, correcting iteration 1's TASK-005 `kind` derivation to match `02-spec.md`'s
+spec iteration 3 (frozen, REQ-001…REQ-017 unchanged in count/shape except REQ-009's wording). Spec
+iteration 3 applies one further, human-approved correction (ESC-002, see `state.json`'s
+`escalations[1]`/`loopbacks[1]`): REQ-009's `kind` done-detection is now **purely gate-based**
+(`gateN >= gateM`), independent of the `phase` field's value — it is no longer
+`phase == null AND gateN >= gateM`. This plan iteration touches ONLY TASK-005's `kind`-derivation bullet
+(and this status note); every other task, the file/module layout, and the sequencing/risk sections below
+are unchanged from iteration 1 because they were written against the same ADR-026 wire contract, which
+iteration 3 of the spec does not alter.
+
+Plan iteration 1 (superseded by this note) was written against the **re-drafted, FROZEN** spec
+(`02-spec.md`, frozen 2026-06-30T21:14:18, **17 REQs, REQ-001…REQ-017**), which fully replaced the prior
+iteration's placeholder OSC contract (code `8888`, `;`-delimited `key=value` body) with Orky's **real,
+shipped** wire contract — **ADR-026** (code `9999`, single-line compact JSON payload, BEL terminator; see
+`orky-adr-026-osc-heartbeat.md`). That loopback was driven by ESC-001 (ground-truth correction, see
 `state.json`'s `escalations[0]`/`loopbacks[0]`).
 
 **This is a REPLACEMENT plan, not an incremental patch.** The previous `03-plan.md`, `04-tests.md`, and
@@ -49,8 +59,9 @@ What changes vs. the stale implementation:
   policy, resolving FINDING-DA-003).
 - The `OrkyHeartbeat` wire shape: drops `kind`/`openBlocking`/`failed` (the old key=value grammar
   carried them explicitly; ADR-026's JSON payload does not) and adds `action` (REQ-011, the app-loop
-  liveness field). `kind` is now **derived** in the mapper from `needsHuman`/`phase`/`gateN`/`gateM`
-  (REQ-009), never read off the wire.
+  liveness field). `kind` is now **derived** in the mapper, purely from `needsHuman`/`gateN`/`gateM`
+  (REQ-009, corrected in spec iteration 3 — `phase` plays NO role in `kind` derivation), never read off
+  the wire.
 
 ## Target file / module layout
 
@@ -228,13 +239,20 @@ them (REQ-009); writes nothing (REQ-017)
   - `heartbeatToFeatureStatus(hb: OrkyHeartbeat): OrkyFeatureStatus` now DERIVES rather than passes
     through `kind`/`openBlocking`/`failed` (the wire no longer carries them):
     - `phase`: `hb.phase` verbatim (already `string | null`; a `null`/absent phase maps to the `null`
-      "done"-rendered phase — same convention `gateFrontier`/`chipLabel`'s `?? 'done'` guard already use,
-      FINDING-DA-007 guard, explicitly required by REQ-009).
+      "done"-rendered chip LABEL only — same convention `gateFrontier`/`chipLabel`'s `?? 'done'` guard
+      already use, FINDING-DA-007 guard — this is purely a label fallback and is explicitly NOT part of
+      `kind`'s derivation, REQ-009 as corrected in spec iteration 3).
     - `openBlocking = 0` (deterministic default — the label simply omits the `· ●k open` suffix).
     - `failed = false` (deterministic default — the wire carries no halted-gate signal).
-    - `kind`: `hb.needsHuman === true ? 'needs-input' : (hb.phase == null && hb.gateN >= hb.gateM) ?
-      'done' : 'busy'` — exactly REQ-009's acceptance-defined derivation (the presence of a per-feature
-      heartbeat means the run is actively ticking, so the fallback is `'busy'`, never `'idle'`).
+    - `kind`: `hb.needsHuman === true ? 'needs-input' : hb.gateN >= hb.gateM ? 'done' : 'busy'` — exactly
+      REQ-009's acceptance-defined derivation **as corrected by ESC-002 in spec iteration 3**: done-
+      detection is **purely gate-based** (`gateN >= gateM`, i.e. all 8 work-phase gates passed) and is
+      **completely independent of `hb.phase`'s value** — `phase` MUST NOT be read or branched on anywhere
+      in this derivation (the prior iteration's `hb.phase == null && hb.gateN >= hb.gateM` rule is WRONG
+      and must not be implemented: the real Orky emitter sends `phase: "doc-sync"` — never `null` — for a
+      genuinely complete feature, so a phase-null-gated rule can never fire against real output,
+      FINDING-DA-004). The presence of a per-feature heartbeat means the run is actively ticking, so the
+      fallback (neither needs-human nor done) is always `'busy'`, never `'idle'`.
     - `reason`: `hb.reason` (now a free-form `string | null`, not the closed `OrkyReason` union — update
       `OrkyFeatureStatus.reason`'s usage here accordingly; `OrkyFeatureStatus`'s own `reason: OrkyReason`
       field type is for the FILESYSTEM (0004) path and is unaffected — this mapper's locally-built
@@ -259,7 +277,8 @@ them (REQ-009); writes nothing (REQ-017)
     roll-up (chip selection, label, `inPopover` filter) exactly as before (REQ-009) — no
     reimplementation of `chipLabel`/`inPopover`/`selectChipFeature`.
 - Update the section's header comment to describe the ADR-026 wire shape (no `kind`/`openBlocking`/
-  `failed` carried; `action`/feature-less app-loop case) instead of the stale key=value description.
+  `failed` carried; `action`/feature-less app-loop case) instead of the stale key=value description, and
+  to note that `kind`'s done-branch is gate-based only (REQ-009, spec iteration 3 / ESC-002).
 
 ### TASK-006 — Rewrite synthetic/golden OSC byte fixture helper for the JSON/`9999` contract
 **Satisfies:** REQ-014
@@ -309,7 +328,9 @@ starts no `.orky/` filesystem watch
   the wiring.
 - Confirm `src/main/orky/orky-stream-status.ts`'s `OrkyStreamStatusBridge.setStreamHeartbeat(id, hb)`
   likewise only ever calls `orkyHeartbeatToPaneStatus(hb)` and never destructures `hb`'s fields itself —
-  no change expected; if the implementer finds a field-shape leak, fix it minimally.
+  no change expected; if the implementer finds a field-shape leak, fix it minimally. (TASK-005's
+  kind-derivation correction is internal to `heartbeatToFeatureStatus`/`orkyHeartbeatToPaneStatus`'s own
+  body, not its signature, so this bridge requires no edit either way.)
 - Confirm `src/main/ipc/register.ts`'s existing composition (routing `OrkyTracker`'s emit through
   `bridge.setFsStatus`, `StatusEngine`'s `onOrkyHeartbeat` through `bridge.setStreamHeartbeat`) is
   unaffected — this is the REQ-013 acceptance surface ("a code check confirms
@@ -372,7 +393,7 @@ TASK-001 (ORKY_OSC=9999 contract constant + parser skeleton + OrkyHeartbeat type
   ├─ TASK-002 (bounded carry-over ceiling, FINDING-SEC-001)        [needs 001]
   ├─ TASK-003 (payload byte-length cap before JSON.parse, FINDING-CODEX-001)  [needs 001]
   │     └─ TASK-004 (strict-but-tolerant JSON decode, thin-client mapping)  [needs 001, 003]
-  ├─ TASK-005 (heartbeat → OrkyPaneStatus mapper, derived kind, app-loop cleared shape)  [type-only dep on 001]
+  ├─ TASK-005 (heartbeat → OrkyPaneStatus mapper, gate-based derived kind, app-loop cleared shape)  [type-only dep on 001]
   └─ TASK-006 (synthetic/golden JSON fixture helper)                [needs 001]
         └─ TASK-007 (wiring regression check: status-engine / bridge / register.ts)  [needs 001..006]
               └─ TASK-008 (docs: ADR-026 contract block, drift caveat, scope correction, CLAUDE.md, CHANGELOG)
@@ -402,6 +423,15 @@ TASK-001 (ORKY_OSC=9999 contract constant + parser skeleton + OrkyHeartbeat type
    (mapper) must land together conceptually even though they're separate tasks/files — TASK-007 exists
    specifically to catch any consumer (`status-engine.ts`, `orky-stream-status.ts`, `register.ts`) that
    assumed the old shape.
+4a. **`kind`'s done-derivation is gate-based only, NOT phase-based (FINDING-DA-004 / ESC-002)** — the
+   prior plan iteration's TASK-005 encoded `hb.phase == null && hb.gateN >= hb.gateM` as the `done`
+   branch, matching the (since-corrected) spec iteration 2's REQ-009 wording verbatim. That rule is
+   **wrong** and can never fire against the real Orky emitter (`gatekeeper.js:904`'s
+   `phase: state.phase || d.phase || null` sends `phase: "doc-sync"`, never `null`, for a genuinely
+   complete feature). TASK-005 now implements `hb.needsHuman === true ? 'needs-input' : hb.gateN >=
+   hb.gateM ? 'done' : 'busy'` — `phase` is read ONLY for the chip `label`'s own `?? 'done'` text
+   fallback (a separate, still-correct mechanism, FINDING-DA-007), never for `kind`. Do not reintroduce a
+   `phase` check into the `kind` derivation.
 5. **Coexistence (REQ-013)** — unchanged from the prior iteration's design: `orky-tracker.ts` and
    `selectOrkyPaneStatus` are not expected to need any edit; TASK-007 is a verification pass, not new
    logic, confirming the re-plan didn't silently regress this guarantee.
@@ -412,4 +442,6 @@ TASK-001 (ORKY_OSC=9999 contract constant + parser skeleton + OrkyHeartbeat type
 ## Open issues (under-specified REQs)
 
 None. Every REQ-001..REQ-017 maps to ≥1 TASK (see `traceability.md` / `traceability.json`). The spec is
-frozen at 17 REQs (`spec-freeze.json`, frozen 2026-06-30T21:14:18).
+frozen at 17 REQs, spec iteration 3 (`spec-freeze.json`); REQ-009's wording was corrected per ESC-002
+without changing its REQ-ID, TASK mapping, or REQ count.
+</content>

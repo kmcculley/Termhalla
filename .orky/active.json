@@ -1,7 +1,7 @@
 {
   "feature": ".orky/features/0014-orky-osc-heartbeat",
   "projectRoot": "C:/dev/Termhalla/.claude/worktrees/agent-ab11ac825d6caf9fc",
-  "phase": "review",
-  "lastTickAt": "2026-06-30T22:45:53.219Z",
-  "lastAction": "implement gate passed (build/test/test-freeze green, ground truth verified with clean TEMP to bypass unrelated OS-temp .orky debris); dispatching review lens fan-out"
+  "phase": "implement",
+  "lastTickAt": "2026-06-30T23:23:20.294Z",
+  "lastAction": "tests gate passed (RED for TEST-040); flowing to implement to fix gate-based kind derivation in src/shared/orky-status.ts"
 }

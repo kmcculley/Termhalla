@@ -18,10 +18,19 @@
 // pass the stale `kind`/`openBlocking`/`failed` wire fields straight through (the old 8888 shape) rather
 // than deriving `kind` and defaulting `openBlocking`/`failed` per the new ADR-026 contract, so the
 // shapes asserted below do not match.
+//
+// ITERATION NOTE (ESC-002 / FINDING-DA-004, spec iteration 3): REQ-009's done-detection was corrected
+// from `phase == null AND gateN >= gateM` to PURELY gate-based (`gateN >= gateM`, completely independent
+// of `phase`). TEST-040 is the new PRIMARY done-case assertion (the real emitter's `phase: "doc-sync"`
+// shape — the rule the old buggy version could never satisfy); TEST-025 is retained and reworded to
+// prove the rule is also phase-INDEPENDENT in the other direction (a `phase: null` complete heartbeat
+// ALSO yields `done`, not because `phase` is null, but because the gates are full); TEST-041 is the
+// inverse regression guard (a `phase: null` INCOMPLETE heartbeat must NOT yield `done`).
 import { describe, it, expect } from 'vitest'
 import { orkyHeartbeatToPaneStatus, selectOrkyPaneStatus } from '@shared/orky-status'
 import {
-  AWAITING_HUMAN_HEARTBEAT, BUSY_HEARTBEAT, DONE_HEARTBEAT, APP_LOOP_HEARTBEAT
+  AWAITING_HUMAN_HEARTBEAT, BUSY_HEARTBEAT, BUSY_PHASE_NULL_HEARTBEAT, DONE_HEARTBEAT,
+  DONE_DOC_SYNC_HEARTBEAT, APP_LOOP_HEARTBEAT
 } from '../fixtures/orky-osc-fixtures'
 
 describe('orkyHeartbeatToPaneStatus — reuses 0004\'s orkyPaneStatus presentation, kind derived not carried (REQ-009)', () => {
@@ -41,9 +50,20 @@ describe('orkyHeartbeatToPaneStatus — reuses 0004\'s orkyPaneStatus presentati
     expect(out.needsHuman).toBe(false)
   })
 
-  it('TEST-025 REQ-009 a complete heartbeat (phase null, gateN===gateM, needsHuman false) maps to the same clean-done roll-up 0004 returns for an all-clean project', () => {
+  it('TEST-040 REQ-009 PRIMARY: a complete heartbeat carrying the REAL emitter shape (phase "doc-sync", gateN===gateM, needsHuman false) maps to kind done with the same clean-done roll-up 0004 returns for an all-clean project (ESC-002/FINDING-DA-004 — done-detection is purely gate-based, never keyed off phase)', () => {
+    const out = orkyHeartbeatToPaneStatus(DONE_DOC_SYNC_HEARTBEAT as never)
+    expect(out).toEqual({ kind: 'idle', label: '', needsHuman: false, failed: false, features: [], chipFeature: null })
+  })
+
+  it('TEST-025 REQ-009 phase-independence companion: a complete heartbeat (phase null, gateN===gateM, needsHuman false) ALSO maps to the identical clean-done roll-up — proving the gate-based done-rule fires regardless of phase\'s value, not because phase happens to be null', () => {
     const out = orkyHeartbeatToPaneStatus(DONE_HEARTBEAT as never)
     expect(out).toEqual({ kind: 'idle', label: '', needsHuman: false, failed: false, features: [], chipFeature: null })
+  })
+
+  it('TEST-041 REQ-009 regression guard (FINDING-DA-004 inverse): a heartbeat whose phase IS null but whose gates are NOT all passed (gateN < gateM) MUST NOT map to kind done — phase being null does not, by itself, trigger done; only gate fullness does', () => {
+    const out = orkyHeartbeatToPaneStatus(BUSY_PHASE_NULL_HEARTBEAT as never)
+    expect(out.kind).toBe('busy')
+    expect(out.kind).not.toBe('done')
   })
 })
 

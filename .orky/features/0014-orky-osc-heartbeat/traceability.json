@@ -110,7 +110,9 @@
     "tests": [
       "TEST-023",
       "TEST-024",
-      "TEST-025"
+      "TEST-040",
+      "TEST-025",
+      "TEST-041"
     ],
     "files": [
       "src/shared/orky-status.ts"

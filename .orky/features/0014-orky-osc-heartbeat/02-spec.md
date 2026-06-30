@@ -1,12 +1,14 @@
 # 0014 — Orky OSC heartbeat parse + render (read)
 
-## Phase 2 — Specification (loopback iteration 2 — full replacement)
+## Phase 2 — Specification (loopback iteration 3 — targeted REQ-009 correction)
 
 **Status:** re-drafted after ESC-001's resolution + the spec→spec loopback (see `state.json`). This
 revision **fully replaces** the prior iteration's *placeholder* OSC contract (code `8888`, `;`-delimited
 `key=value` body) with Orky's **real, shipped** wire contract, **ADR-026** (code `9999`, single-line
 compact JSON payload, BEL terminator), reproduced verbatim below from
 `orky-adr-026-osc-heartbeat.md`. No trace of the `8888`/`key=value` placeholder survives in this spec.
+Iteration 3 applies one further, human-approved correction (ESC-002): REQ-009's done-detection is now
+**purely gate-based** (`gateN >= gateM`), never keyed off `phase === null` — see REQ-009.
 
 This feature remains **Termhalla-side only**: it builds the Termhalla **parser** (extends
 `osc-scanner.ts`) + the heartbeat→`OrkyPaneStatus` **mapper** (reusing feature 0004's presentation
@@ -142,7 +144,7 @@ export const ORKY_OSC = '\x1b]9999;'   // the ADR-026 contract prefix (introduce
  *  (openBlocking, failed) default rather than being re-derived from pipeline state. */
 export interface OrkyHeartbeat {
   feature: string | null          // payload.feature; null for an app-loop tick (REQ-011)
-  phase: OrkyPhase | string | null // payload.phase, verbatim; null → rendered "done"
+  phase: OrkyPhase | string | null // payload.phase, verbatim; a null phase ONLY falls back to the chip LABEL "done" (chipLabel's ?? 'done') — it does NOT imply kind==='done' (kind is purely gate-based, REQ-009)
   gateN: number                   // parsed from payload.gate "<N>/<M>"
   gateM: number                   // parsed from payload.gate; default ORKY_PHASES.length
   needsHuman: boolean             // payload.needsHuman === true
@@ -282,20 +284,34 @@ valid heartbeat from the second.
 chip `label` (`feature · phase · gateN/gateM[ · ●k open]`), the `inPopover` filter, the chip-kind
 mapping, and the empty/cleared shape are the **same logic** 0004 uses. It MUST NOT reimplement
 `chipLabel`/`inPopover`/`selectChipFeature`. The field mapping is direct (REQ-004): `feature`→slug,
-`phase`→live phase (a `null`/absent phase maps to the `null` "done"-rendered phase — same convention as
-`gateFrontier`, with `chipLabel`'s `?? 'done'` guard so the chip never shows a literal `"null"`,
-FINDING-DA-007 guard), `gate` `"N/M"`→`gateN`/`gateM`, `needsHuman`→`needsHuman`. Presentation-only
+`phase`→live phase (a `null`/absent phase falls back to the `?? 'done'` chip **label** only — same
+`chipLabel` convention 0004 uses for `gateFrontier`, so the chip never shows a literal `"null"`,
+FINDING-DA-007 guard — this is a *label* fallback, NOT a `kind` derivation; see below),
+`gate` `"N/M"`→`gateN`/`gateM`, `needsHuman`→`needsHuman`. Presentation-only
 fields the wire does not carry default deterministically: `openBlocking` = `0` (so the label simply omits
-the `· ●k open` suffix), `failed` = `false`. `kind` is derived only from the carried signal:
-`needsHuman === true` → `needs-input`; else a complete feature (`phase` null AND `gateN >= gateM`) →
-`done`; else `busy` (the presence of a per-feature heartbeat means the run is actively ticking).
+the `· ●k open` suffix), `failed` = `false`. `kind` is derived only from the carried signal and its
+done-detection is **purely gate-based, completely independent of the `phase` field's value**: a genuinely
+complete Orky feature emits `phase: "doc-sync"` (`state.phase || d.phase || null`, never `null` — verified
+against the real emitter `gatekeeper.js:904`; `human-review` is a separate external gate never written into
+`state.json.phase`), so done-detection MUST NOT key off `phase`. The derivation is:
+`needsHuman === true` → `needs-input`; else `gateN >= gateM` (all 8 work-phase gates passed) → `done`;
+else `busy` (the presence of a per-feature heartbeat means the run is actively ticking). This mirrors
+0004's actual gate-based `isComplete` (`human-review` gate passed), NOT 0004's *local* `phase===null`
+`gateFrontier` convention, which is a Termhalla-side computation never carried on the wire. (This corrects
+the prior iteration's `phase null AND gateN >= gateM` rule per the human-approved ESC-002 resolution — the
+same FINDING-DA-001 bug class already fixed in 0004.)
 **Acceptance:** the worked-example awaiting-human heartbeat →
 `OrkyPaneStatus.kind === 'needs-input'`, `label === '0004-orky-status-awareness · human-review · 7/8'`,
 `needsHuman === true`, `features.length === 1`, `chipFeature === '0004-orky-status-awareness'`; a busy
 heartbeat (`{"v":1,"feature":"auth-login","phase":"implement","gate":"5/8","needsHuman":false}`) →
-`kind === 'busy'`, `label === 'auth-login · implement · 5/8'`; a complete heartbeat
-(`{"v":1,"feature":"auth-login","phase":null,"gate":"8/8","needsHuman":false}`) → the same clean-`done`
-roll-up 0004 returns (excluded from the popover, `features:[]`, `chipFeature:null`).
+`kind === 'busy'`, `label === 'auth-login · implement · 5/8'`; a complete heartbeat carrying the **real
+emitter's** shape for a finished feature
+(`{"v":1,"feature":"auth-login","phase":"doc-sync","gate":"8/8","needsHuman":false}`) → `kind === 'done'`
+and the same clean-`done` roll-up 0004 returns (excluded from the popover, `features:[]`,
+`chipFeature:null`); and — proving the done-rule is gate-based and `phase`-independent either way — a
+`gateN >= gateM` heartbeat whose `phase` is `null`
+(`{"v":1,"feature":"auth-login","phase":null,"gate":"8/8","needsHuman":false}`) ALSO yields
+`kind === 'done'` and the identical clean-`done` roll-up (the done-derivation never reads `phase`).
 
 ### REQ-010 — Synthesized feature detail is actionable (CONV-001)
 The `OrkyFeatureStatus` that `orkyHeartbeatToPaneStatus` builds MUST carry a `detail` that names the
@@ -398,9 +414,12 @@ introduced; the parser modules contain no write API and emit nothing into any st
   (REQ-001/004/005/006/007/008/011), chunk-split carry-over equivalence over every byte offset (REQ-003),
   the `scanOsc`-reuse structure check (REQ-002), the bounded-ceiling assertion under a multi-MiB
   no-terminator stream (REQ-006), the byte-length-vs-`.length` cap check (REQ-007), the
-  heartbeat→`OrkyPaneStatus` mapping reusing 0004's `orkyPaneStatus` (REQ-009), the actionable `detail`
-  (REQ-010), the app-loop cleared shape (REQ-011), and `selectOrkyPaneStatus` precedence (REQ-013). Match
-  the style of `tests/*osc133*` / `*cwd-parser*` and the existing `orky-status` unit tests.
+  heartbeat→`OrkyPaneStatus` mapping reusing 0004's `orkyPaneStatus` with **gate-based done-detection**
+  (REQ-009 — assert the `phase:"doc-sync",gate:"8/8"` complete-feature fixture renders `done`, and that a
+  `phase:null,gate:"8/8"` fixture renders `done` too, so the rule is provably `phase`-independent), the
+  actionable `detail` (REQ-010), the app-loop cleared shape (REQ-011), and `selectOrkyPaneStatus`
+  precedence (REQ-013). Match the style of `tests/*osc133*` / `*cwd-parser*` and the existing
+  `orky-status` unit tests.
 - **Docs/integration:** the feature doc + ADR-026 contract block + drift caveat + scope correction
   (REQ-015/REQ-016), the CLAUDE.md table link, the CHANGELOG entry, and a check that `orky-tracker.ts` is
   unmodified and `SCHEMA_VERSION` unchanged (REQ-013/REQ-017). The optional live-Orky integration test
@@ -409,5 +428,7 @@ introduced; the parser modules contain no write API and emit nothing into any st
 ## Open questions
 
 None blocking. The wire contract is now Orky's authoritative ADR-026 (no longer a spec-writer placeholder);
-the only fields the wire does not carry (`openBlocking`, `failed`) are mapped to deterministic defaults
-(REQ-009) rather than re-derived, consistent with the thin-client stance (REQ-004).
+REQ-009's done-detection is now purely gate-based per the human-approved ESC-002 resolution (no longer keyed
+off `phase === null`, which never fires against the real emitter's `phase: "doc-sync"` complete-feature
+shape); the only fields the wire does not carry (`openBlocking`, `failed`) are mapped to deterministic
+defaults (REQ-009) rather than re-derived, consistent with the thin-client stance (REQ-004).

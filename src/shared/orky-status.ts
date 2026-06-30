@@ -338,20 +338,26 @@ export function orkyPaneStatus(features: OrkyFeatureStatus[] | undefined | null)
 // Wire shape per Orky ADR-026 (REQ-009/REQ-012): the JSON payload carries `feature`/`phase`/`gate`
 // ("N/M")/`needsHuman`/`reason`/`action` only — NOT `kind`/`openBlocking`/`failed`. Those three are
 // Termhalla-side DERIVATIONS/DEFAULTS, never read off the wire:
-//   - `kind` is derived from `needsHuman`/`phase`/`gateN`/`gateM` (`needsHuman` -> `needs-input`;
-//     else a complete feature (`phase` null AND `gateN >= gateM`) -> `done`; else `busy` — the
+//   - `kind` is derived from `needsHuman`/`gateN`/`gateM` ONLY (`needsHuman` -> `needs-input`; else a
+//     complete feature (`gateN >= gateM`, all 8 work-phase gates passed) -> `done`; else `busy` — the
 //     presence of a per-feature heartbeat means the run is actively ticking, so the fallback is
-//     never `idle`).
+//     never `idle`). Done-detection is purely gate-based and intentionally never reads `phase`: the
+//     real Orky emitter sends `phase: "doc-sync"`, never `null`, for a genuinely complete feature
+//     (REQ-009, ESC-002/FINDING-DA-004).
 //   - `openBlocking` defaults to `0` (the label simply omits the `· ●k open` suffix).
 //   - `failed` defaults to `false` (the wire carries no halted-gate signal).
 // A feature-less (app-loop) heartbeat (`hb.feature === null`) maps to the SAME cleared/empty shape
 // `orkyPaneStatus([])` already produces — never a fabricated chip from `hb.action` (REQ-011).
 
-/** Derive `kind` from the wire's carried signal — `needsHuman`/`phase`/`gateN`/`gateM` — exactly
- *  REQ-009's acceptance-defined derivation. Never re-derives Orky's own gate-counting logic. */
+/** Derive `kind` from the wire's carried signal — `needsHuman`/`gateN`/`gateM` — exactly REQ-009's
+ *  acceptance-defined derivation. Done-detection is PURELY gate-based and completely independent of
+ *  `phase`'s value (it MUST NOT read `phase`): the real Orky emitter sends `phase: "doc-sync"`, never
+ *  `null`, for a genuinely complete feature, so a phase-null-gated rule could never fire against real
+ *  output (REQ-009, corrected per ESC-002/FINDING-DA-004 — do not reintroduce a `phase` check here).
+ *  Never re-derives Orky's own gate-counting logic. */
 function heartbeatKind(hb: OrkyHeartbeat): OrkyKind {
   if (hb.needsHuman === true) return 'needs-input'
-  if (hb.phase == null && hb.gateN >= hb.gateM) return 'done'
+  if (hb.gateN >= hb.gateM) return 'done'
   return 'busy'
 }
 

@@ -1,13 +1,16 @@
-# 0014 — Orky OSC heartbeat parse + render (read) — Traceability (Phase 4, RE-PLAN)
+# 0014 — Orky OSC heartbeat parse + render (read) — Traceability (Phase 4, RE-PLAN, ESC-002 revision)
 
 Spec frozen at **17 REQs (REQ-001…REQ-017)**, ADR-026 wire contract (code `9999`, JSON payload, BEL
-terminator) — fully superseding the prior iteration's `8888`/key=value placeholder. Phase 4 (this
-revision) fills in the `tests` columns: **39 TESTs total (TEST-001…TEST-039)**, all newly authored
-against the ADR-026 contract. The phase-3 `tests: []` placeholders, and the prior iteration's
-`TEST-001…TEST-042` (built against the superseded `8888`/key=value contract), are gone — see
-`tests/main/orky-osc-parser.test.ts`, `tests/main/orky-osc-structural.test.ts`,
-`tests/shared/orky-heartbeat-status.test.ts`, and `tests/fixtures/orky-osc-fixtures.ts`, all fully
-rewritten (not patched) this phase.
+terminator) — fully superseding the prior iteration's `8888`/key=value placeholder. Spec iteration 3
+applies one further, human-approved correction (ESC-002/FINDING-DA-004): REQ-009's `kind` done-detection
+is now **purely gate-based** (`gateN >= gateM`), independent of `phase`'s value.
+
+Phase 4 (this revision) fills in the `tests` columns: **41 TESTs total (TEST-001…TEST-041)**, all
+authored against the ADR-026 contract — 39 from the original phase-4 pass, plus **TEST-040/TEST-041**
+added in this ESC-002-targeted revision to REQ-009's coverage only. The phase-3 `tests: []` placeholders,
+and the prior iteration's `TEST-001…TEST-042` (built against the superseded `8888`/key=value contract),
+are gone — see `tests/main/orky-osc-parser.test.ts`, `tests/main/orky-osc-structural.test.ts`,
+`tests/shared/orky-heartbeat-status.test.ts`, and `tests/fixtures/orky-osc-fixtures.ts`.
 
 | REQ | Summary | Tasks | Tests | Files |
 |---|---|---|---|---|
@@ -19,7 +22,7 @@ rewritten (not patched) this phase.
 | REQ-006 | Bounded carry-over ceiling on no-terminator path (FINDING-SEC-001, security) | TASK-002 | TEST-014, TEST-015 | `src/main/status/orky-osc-parser.ts` |
 | REQ-007 | Payload size cap = actual UTF-8 byte length, checked before `JSON.parse` (FINDING-CODEX-001) | TASK-003 | TEST-016, TEST-017 | `src/main/status/orky-osc-parser.ts` |
 | REQ-008 | Strict-but-tolerant JSON validation; `push` total, never throws | TASK-004 | TEST-018, TEST-019, TEST-020, TEST-021, TEST-022 | `src/main/status/orky-osc-parser.ts` |
-| REQ-009 | Map heartbeat → `OrkyPaneStatus` by reusing 0004's `orkyPaneStatus` (derived `kind`, defaulted `openBlocking`/`failed`) | TASK-005 | TEST-023, TEST-024, TEST-025 | `src/shared/orky-status.ts` |
+| REQ-009 | Map heartbeat → `OrkyPaneStatus` by reusing 0004's `orkyPaneStatus` (derived `kind`, defaulted `openBlocking`/`failed`) — **done-detection is purely gate-based (`gateN >= gateM`), independent of `phase` (ESC-002/FINDING-DA-004 correction)** | TASK-005 | TEST-023, TEST-024, **TEST-040** (primary done case, real-emitter `phase:"doc-sync"` shape), TEST-025 (phase-independence companion, `phase:null`), **TEST-041** (regression guard: `phase:null` + incomplete gates must NOT be `done`) | `src/shared/orky-status.ts` |
 | REQ-010 | Synthesized feature `detail` is actionable (CONV-001) | TASK-005 | TEST-026, TEST-027, TEST-028 | `src/shared/orky-status.ts` |
 | REQ-011 | A feature-less (app-loop) heartbeat is a valid liveness tick → cleared `OrkyPaneStatus`, not a failure | TASK-004, TASK-005 | TEST-029, TEST-030 | `src/main/status/orky-osc-parser.ts`, `src/shared/orky-status.ts` |
 | REQ-012 | Second SOURCE only — no new pane-status type/presentation/IPC channel | TASK-001, TASK-005 | TEST-031 | `src/main/status/orky-osc-parser.ts`, `src/shared/types.ts`, `src/shared/orky-status.ts` |
@@ -34,7 +37,8 @@ rewritten (not patched) this phase.
 - 17/17 REQs have ≥1 TASK; **15/17 REQs have ≥1 TEST.** Uncovered-by-design: REQ-015, REQ-016 (see below).
 - 8 TASKs total (TASK-001…TASK-008); see `03-plan.md` for full descriptions, file lists, dependencies,
   and the sequencing diagram.
-- 39 TESTs total (TEST-001…TEST-039); see `04-tests.md` for the per-file breakdown and design notes.
+- **41 TESTs total (TEST-001…TEST-041)**; see `04-tests.md` for the per-file breakdown, the ESC-002
+  revision notes, and design notes.
 
 ## REQ-015 / REQ-016 are not unit-testable
 
