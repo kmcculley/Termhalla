@@ -118,6 +118,12 @@
           "evidence": "no open blocking findings (CRITICAL/HIGH or contract-violation) for this gate"
         }
       ]
+    },
+    "human-review": {
+      "passed": true,
+      "at": "2026-06-30T17:52:31.939Z",
+      "evidence": "Human reviewed at the review checkpoint and elected to fix FINDING-DA-007 before approval; DA-007 fixed + verified (TEST-018/056/057 green, devils-advocate+determinism verify PASS). Approved.",
+      "external": true
     }
   },
   "iterations": {
