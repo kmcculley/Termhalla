@@ -53,7 +53,7 @@ function OrkyFeatureRow({ f }: { f: OrkyFeatureStatus }) {
     <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}>
         <strong>{f.feature}</strong>
-        <span style={{ color: 'var(--fg-dim, #aaa)' }}>{f.phase} · {f.gateN}/{f.gateM}</span>
+        <span style={{ color: 'var(--fg-dim, #aaa)' }}>{f.phase ?? 'done'} · {f.gateN}/{f.gateM}</span>
       </div>
       <div style={{ color: 'var(--fg-dim, #aaa)' }}>
         {f.openBlocking > 0 ? `●${f.openBlocking} open · ` : ''}{f.detail}

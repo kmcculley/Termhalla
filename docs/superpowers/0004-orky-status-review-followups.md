@@ -9,31 +9,17 @@ keyed on a `state.json.phase` the real pipeline never sets) was fixed and pinned
 truth. See the per-finding records in
 `.orky/features/0004-orky-status-awareness/findings.json`.
 
-The 14 non-blocking items below were **deferred, not fixed**, and are tracked here so they are not
+A third loop-back (tests→implement, iteration 2) then **fixed FINDING-DA-007** (MEDIUM — the
+clean-DONE `null`-phase chip over an empty popover) at the human's election before approval:
+`chipLabel`/`OrkyFeatureRow` now render `phase ?? 'done'`, and the chip is selected from the
+`inPopover`-eligible set so it is always consistent with the popover (pinned by TEST-018/056/057).
+
+The 13 non-blocking items below were **deferred, not fixed**, and are tracked here so they are not
 lost. None is release-blocking; none is a contract violation.
 
 ## Deferred follow-ups
 
 ### MEDIUM
-
-- **Clean-DONE project renders a `null` live-phase chip over an empty popover** (FINDING-DA-007,
-  `src/shared/orky-status.ts` — `chipLabel` / `OrkyFeatureRow` / chip selection, REQ-007/008/020/023).
-  A new hole introduced by the gate-based rewrite: `selectChipFeature` ranks over the FULL feature
-  list (incl. clean-done/idle) while `inPopover` now EXCLUDES clean-done (the DA-003 fix). When every
-  feature is done/idle — the steady state of THIS repo once 0004 merges (0001/0002/0003 all
-  clean-done) — the chip RENDERS (a clean-done chip-feature) yet clicking it opens an empty
-  `No active Orky features` popover: the chip names a feature its own popover omits. Separately, a
-  non-active done feature's live phase is `gateFrontier(allPassed) === null`, and neither `chipLabel`
-  nor `OrkyFeatureRow` guards null, so the chip renders the literal string `"<slug> · null · 8/8"`
-  (the `detail` builder already guards null with `?? 'idle'/'running'/'gate'`, proving the null path
-  was known and missed here). **Recommended fix:** guard the null live phase in the user-facing
-  renderers (`f.phase ?? 'done'`, or omit the phase segment when null), and resolve the chip/popover
-  set mismatch — select the chip ONLY from the `inPopover`-eligible set, OR have `orkyPaneStatus`
-  return the cleared/no-chip shape when the popover-eligible set is empty so an all-done project shows
-  no chip rather than a `null`-phase chip over an empty popover. Add tests asserting (a) a done
-  (null-phase) feature's chip label contains no literal `'null'`, and (b)
-  `orkyPaneStatus([doneOpen, doneClean]).chipFeature` is present in `.features` (or the roll-up
-  clears). This is the dogfood steady-state, so it is visible but cosmetic (no data/security impact).
 
 - **`findOrkyRoot` uses synchronous `statSync` on the main event loop** (FINDING-QUAL-004 /
   FINDING-PERF-004, `src/main/orky/find-orky-root.ts:13`). The bounded upward walk (up to maxDepth+1 =

@@ -452,8 +452,9 @@
     "recommendation": "Guard the null live phase in the user-facing renderers exactly as `detail` already does: in `chipLabel` use `f.phase ?? 'done'` (or omit the phase segment when null), and in `OrkyFeatureRow` render `{f.phase ?? 'done'} · …`. Separately, resolve the chip/popover set mismatch: either select the chip ONLY from the popover-eligible (`inPopover`) set so the chip always corresponds to a listed feature, OR have `orkyPaneStatus` return the idle/cleared shape (no chip) when the popover-eligible set is empty so an all-done/idle project shows no chip rather than a `null`-phase done chip over an empty popover. Add a test asserting (a) chipLabel of a done (null-phase) feature contains no literal `'null'`, and (b) `orkyPaneStatus([doneOpen, doneClean]).chipFeature` is present in `.features` (or the roll-up clears).",
     "phase_of_origin": "implement",
     "contract_violation": false,
-    "status": "open",
-    "gate": "review"
+    "status": "resolved",
+    "gate": "review",
+    "resolution": "FIXED+verified (loopback iter2): chipLabel/OrkyFeatureRow render f.phase ?? \"done\" (no null leak); orkyPaneStatus selects chip from inPopover-eligible set so chipFeature is null or in .features (chip/popover consistent). Pinned by TEST-018/056/057 (green); devils-advocate+determinism verify PASS, no actionable feature dropped."
   },
   {
     "id": "FINDING-SEC-006",

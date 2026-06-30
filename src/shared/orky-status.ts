@@ -289,7 +289,10 @@ export function selectChipFeature(features: OrkyFeatureStatus[] | undefined | nu
 
 // ── Pane roll-up + chip label (REQ-007/008/020/021) ───────────────────────────────────────────────
 function chipLabel(f: OrkyFeatureStatus): string {
-  const base = `${f.feature} · ${f.phase} · ${f.gateN}/${f.gateM}`
+  // `f.phase` is the LIVE phase and is `null` for a complete feature (gateFrontier(allPassed) === null).
+  // Guard it the way `detail` already does so the chip never renders the literal string "null"
+  // (FINDING-DA-007) — the actionable gate fraction always survives.
+  const base = `${f.feature} · ${f.phase ?? 'done'} · ${f.gateN}/${f.gateM}`
   return f.openBlocking > 0 ? `${base} · ●${f.openBlocking} open` : base
 }
 
@@ -306,11 +309,15 @@ function inPopover(f: OrkyFeatureStatus): boolean {
 /** Total + pure pane roll-up. The popover `features` exclude clean-done + idle, ranked by the selector. */
 export function orkyPaneStatus(features: OrkyFeatureStatus[] | undefined | null): OrkyPaneStatus {
   const list = Array.isArray(features) ? features.filter(isObject) as OrkyFeatureStatus[] : []
-  const chip = selectChipFeature(list)
+  // Select the chip from the SAME popover-eligible set the roll-up lists (FINDING-DA-007): ranking over
+  // the full list could surface a clean-done feature that `inPopover` excludes, so the chip would name a
+  // feature its own popover omits. When the eligible set is empty (e.g. an all-clean-done project sitting
+  // between runs) there is no chip → the cleared/idle shape (no `null`-phase chip over an empty popover).
+  const shown = list.filter(inPopover).sort(compareFeatures)
+  const chip = selectChipFeature(shown)
   if (!chip) {
     return { kind: 'idle', label: '', needsHuman: false, failed: false, features: [], chipFeature: null }
   }
-  const shown = list.filter(inPopover).sort(compareFeatures)
   return {
     kind: chip.kind,
     label: chipLabel(chip),

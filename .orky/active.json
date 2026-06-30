@@ -2,6 +2,6 @@
   "feature": ".orky/features/0004-orky-status-awareness",
   "projectRoot": "C:/dev/Termhalla",
   "phase": "doc-sync",
-  "lastTickAt": "2026-06-30T17:18:38.343Z",
-  "lastAction": "dispatch:doc-sync"
+  "lastTickAt": "2026-06-30T17:51:11.119Z",
+  "lastAction": "reconcile DA-007 resolution in followups"
 }

@@ -342,7 +342,49 @@ describe('orkyPaneStatus — roll-up, chip label, clean-done exclusion, determin
     // Direct clean-done exclusion: two done features, only the one WITH open blocking items is listed.
     const doneOpen = feat({ feature: 'd1', kind: 'done', openBlocking: 2, lastActivityAt: 5 })
     const doneClean = feat({ feature: 'd2', kind: 'done', openBlocking: 0, lastActivityAt: 6 })
-    expect(orkyPaneStatus([doneOpen, doneClean] as never).features.map((x: { feature: string }) => x.feature)).toEqual(['d1'])
+    const dd = orkyPaneStatus([doneOpen, doneClean] as never)
+    expect(dd.features.map((x: { feature: string }) => x.feature)).toEqual(['d1'])
+    // FINDING-DA-007 (chip/popover consistency): selectChipFeature ranks over the FULL list and would
+    // pick the clean-done 'd2' (newer activity) — but inPopover EXCLUDES clean-done, so the chip would
+    // name a feature its own popover omits. The chip MUST be either null or a feature the popover lists.
+    expect(dd.chipFeature === null || dd.features.some((x: { feature: string }) => x.feature === dd.chipFeature)).toBe(true)
+  })
+})
+
+describe('orkyPaneStatus — clean-DONE chip: no `null` label, chip/popover consistency (FINDING-DA-007, REQ-008/020/023)', () => {
+  // The steady state of THIS repo once 0004 merges: every feature clean-done — every gate (incl.
+  // human-review) passed, ZERO open blocking findings. Built through orkyFeatureStatus so the on-disk
+  // reality is pinned: a non-active done feature's LIVE phase is gateFrontier(allPassed) === null.
+  const cleanDone = (slug: string) =>
+    orkyFeatureStatus(raw({ feature: slug, phase: 'doc-sync', gates: allPassed() }), [], false, null, null, NOW, 120_000)
+
+  it('TEST-056 REQ-008/REQ-023 a clean-done feature has a null live phase, yet its chip label MUST NOT render the literal string "null"', () => {
+    const d1 = cleanDone('0002-panes')
+    const d2 = cleanDone('0003-minimize')
+    // sanity: these are exactly the clean-done shape the defect targets (done, null live phase, 0 open).
+    expect(d1.kind).toBe('done')
+    expect(d1.phase).toBeNull()       // gateFrontier(allPassed) === null — the source of the bad label
+    expect(d1.openBlocking).toBe(0)
+
+    const out = orkyPaneStatus([d1, d2] as never)
+    // (1) FINDING-DA-007 defect 1: chipLabel/OrkyFeatureRow do NOT guard the null phase, so the chip
+    // currently reads "<slug> · null · 8/8". The user-facing label MUST NOT leak the literal "null".
+    expect(out.label).not.toContain('null')
+    // If a chip IS rendered (the fix guards the null phase rather than clearing the chip), the actionable
+    // gate fraction MUST survive — the label is `feature · <done-token> · 8/8`, never a `null` segment.
+    if (out.chipFeature !== null) expect(out.label).toContain('8/8')
+  })
+
+  it('TEST-057 REQ-020/REQ-007 an all-clean-done project keeps chip and popover consistent (chip is null OR a feature the popover lists)', () => {
+    const d1 = cleanDone('0002-panes')
+    const d2 = cleanDone('0003-minimize')
+    const out = orkyPaneStatus([d1, d2] as never)
+    // FINDING-DA-007 defect 2: selectChipFeature ranks over the FULL list (incl. clean-done), but the
+    // popover's inPopover EXCLUDES clean-done — so the chip currently names '0002-panes' while .features
+    // is []. Post-fix the roll-up MUST either show no chip, or a chip the popover actually lists.
+    expect(out.chipFeature === null || out.features.some((x: { feature: string }) => x.feature === out.chipFeature)).toBe(true)
+    // And whenever the chip clears, the label clears with it (no orphan label over an empty popover).
+    if (out.chipFeature === null) expect(out.label).toBe('')
   })
 })
 

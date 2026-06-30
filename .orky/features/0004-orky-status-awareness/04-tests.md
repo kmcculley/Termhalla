@@ -14,6 +14,13 @@ total (never throws) and pure: `now`, `thresholdMs`, and `activePhase` are ALWAY
 
 ## What changed vs. iteration 1 (the loop-back corrections)
 
+> **Loop-back 2 (FINDING-DA-007, MEDIUM):** added **TEST-056/057** and augmented **TEST-018** to pin the
+> clean-done chip defect introduced by the gate-based rewrite — a done feature's live phase is `null`, so the
+> chip label rendered `"<slug> · null · 8/8"`, and `selectChipFeature` could name a clean-done feature the
+> popover's `inPopover` now excludes (chip over an empty popover). Both run RED against the current code and
+> are FROZEN. The fix may EITHER guard the null phase in the label (e.g. `f.phase ?? 'done'` / omit the
+> segment) AND keep the chip, OR clear the chip for an all-popover-empty project — the tests pass for either.
+
 The current implementation ON DISK is the PRIOR pass (old `state.json.phase` model), so the updated/new
 tests run **RED against it** — that is correct and expected (the implementer fixes the code next).
 
@@ -121,9 +128,11 @@ viable contract — the implementer MUST match it:
 | TEST-015 | REQ-007 | shared/orky-status | `selectChipFeature([])` === null. |
 | TEST-016 | REQ-008 | shared/orky-status | Chip label `feature · phase · gate N/M · ●k open`; `●k` omitted only at k=0; never a wrong number. |
 | TEST-017 | REQ-021 | shared/orky-status | `orkyPaneStatus` pure + order-independent; defined empty shape; total on `undefined`. |
-| TEST-018 | REQ-020 | shared/orky-status | Popover lists busy/needs-input/failed/done-WITH-open; clean-`done` AND idle EXCLUDED; ranked; `chipFeature`=top. |
+| TEST-018 | REQ-020 | shared/orky-status | Popover lists busy/needs-input/failed/done-WITH-open; clean-`done` AND idle EXCLUDED; ranked; `chipFeature`=top; **+ chip/popover consistency: `chipFeature` is null OR a listed feature (FINDING-DA-007)**. |
 | TEST-019 | REQ-019 | shared/orky-status | Mappers + `normalizeFindings`/`normalizeFeatureRaw` total over empty/malformed input. |
 | TEST-020 | REQ-018 | shared/orky-status | `SCHEMA_VERSION` is NOT bumped by this feature (stays 7). |
+| TEST-056 | REQ-008, REQ-023 | shared/orky-status | A clean-done feature's LIVE phase is `null`, yet the chip label MUST NOT contain the literal `"null"`; if a chip renders, the `8/8` gate fraction survives (FINDING-DA-007 defect 1). |
+| TEST-057 | REQ-020, REQ-007 | shared/orky-status | An all-clean-done project keeps chip↔popover consistent: `chipFeature` is `null` OR present in `.features` (never a clean-done feature the popover excludes); if cleared, `label===''` (FINDING-DA-007 defect 2). |
 | TEST-021 | REQ-010 | shared/orky-chip-status | `orkyChipStatus` surfaces the Orky kind, maps needsHuman→needsInput; existing `chipStatus` unchanged. |
 | TEST-022 | REQ-009 | renderer/orky-tab-badge | Orky `needsHuman` pane folds into `needs` (opt-in on); idle/busy/done → no contribution. |
 | TEST-023 | REQ-009, REQ-016 | renderer/orky-tab-badge | The Orky needs contribution respects the `tabBadge` opt-in (off → needs 0). |

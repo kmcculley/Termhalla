@@ -42,7 +42,7 @@
     },
     "tests": {
       "passed": true,
-      "at": "2026-06-30T17:08:40.381Z",
+      "at": "2026-06-30T17:44:55.822Z",
       "tokens": [
         {
           "token": "spec-freeze",
@@ -52,13 +52,13 @@
         {
           "token": "tests-red",
           "pass": true,
-          "evidence": "tests are GREEN on a tests loopback (coverage augmentation; implementation already exists) — freeze re-captured"
+          "evidence": "tests are RED (exit 1) — freeze snapshot captured"
         }
       ]
     },
     "implement": {
       "passed": true,
-      "at": "2026-06-30T17:09:38.556Z",
+      "at": "2026-06-30T17:47:45.777Z",
       "tokens": [
         {
           "token": "spec-freeze",
@@ -84,7 +84,7 @@
     },
     "review": {
       "passed": true,
-      "at": "2026-06-30T17:18:12.359Z",
+      "at": "2026-06-30T17:50:46.635Z",
       "tokens": [
         {
           "token": "spec-freeze",
@@ -100,7 +100,7 @@
     },
     "doc-sync": {
       "passed": true,
-      "at": "2026-06-30T17:23:55.364Z",
+      "at": "2026-06-30T17:51:55.378Z",
       "tokens": [
         {
           "token": "spec-freeze",
@@ -122,7 +122,7 @@
   },
   "iterations": {
     "spec": 1,
-    "tests": 1
+    "tests": 2
   },
   "escalations": [
     {
@@ -160,8 +160,8 @@
       "orky:implementer"
     ],
     "winner": "orky:implementer",
-    "reason": "loopback re-implement: gate-based detection model + all review fixes (REQ-006/020/010/024-029 + non-blocking hardening). single claude (human chose no A/B). vitest 749/0, build green.",
-    "at": "2026-06-30T17:09:01.681Z"
+    "reason": "loopback iter2: fix FINDING-DA-007 (null-guard live phase in chipLabel+OrkyFeatureRow; chip selected from popover-eligible set). vitest 751/0.",
+    "at": "2026-06-30T17:47:45.906Z"
   },
   "loopbacks": [
     {
@@ -175,6 +175,12 @@
       "from": "implement",
       "reason": "Frozen e2e spec typing defect (phase_of_origin=tests): tests/e2e/orky-status.spec.ts uses raw DOM globals (document/getComputedStyle) inside Playwright evaluate callbacks, breaking 'npm run typecheck' (4 TS errors, exit 2) — sibling specs (status.spec.ts:54) cast through 'globalThis as unknown as {...}'. Type-only fix, no assertion change; impl untouched and vitest already 749/0 green. Loop back to tests to correct + re-freeze the spec.",
       "at": "2026-06-30T17:07:51.361Z"
+    },
+    {
+      "to": "tests",
+      "from": "doc-sync",
+      "reason": "Human elected to fix FINDING-DA-007 (MEDIUM) before approval: a clean-DONE project renders a chip 'slug · null · 8/8' (chipLabel/OrkyFeatureRow don't null-guard a done feature's null live phase) and the chip selects a feature the popover excludes. Needs a pinning test (TEST-018 only asserts .features, passes over the label) + the null-guard/consistency fix. Loop tests->implement->review->doc-sync.",
+      "at": "2026-06-30T17:40:23.792Z"
     }
   ]
 }
