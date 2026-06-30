@@ -1,106 +1,16 @@
 {
   "feature": "0014-orky-osc-heartbeat",
-  "phase": "review",
+  "phase": "spec",
   "gates": {
     "brainstorm": {
       "passed": true,
       "at": "2026-06-30T19:34:22.585Z",
       "evidence": "human confirmed concept via /orky:app-run AskUserQuestion round (D1: Termhalla-side only this run; OSC emission on Orky CLI confirmed as a separate human follow-up)",
       "external": true
-    },
-    "spec": {
-      "passed": true,
-      "at": "2026-06-30T21:14:18.780Z",
-      "tokens": [
-        {
-          "token": "findings",
-          "pass": true,
-          "evidence": "no open blocking findings (CRITICAL/HIGH or contract-violation) for this gate"
-        }
-      ]
-    },
-    "plan": {
-      "passed": true,
-      "at": "2026-06-30T21:28:36.504Z",
-      "tokens": [
-        {
-          "token": "spec-freeze",
-          "pass": true,
-          "evidence": "spec unchanged since the spec gate"
-        },
-        {
-          "token": "traceability-plan",
-          "pass": true,
-          "evidence": "all 17 REQ(s) trace to TASK"
-        },
-        {
-          "token": "findings",
-          "pass": true,
-          "evidence": "no open blocking findings (CRITICAL/HIGH or contract-violation) for this gate"
-        }
-      ]
-    },
-    "tests": {
-      "passed": true,
-      "at": "2026-06-30T21:40:32.757Z",
-      "tokens": [
-        {
-          "token": "spec-freeze",
-          "pass": true,
-          "evidence": "spec unchanged since the spec gate"
-        },
-        {
-          "token": "tests-red",
-          "pass": true,
-          "evidence": "tests are RED (exit 1) — freeze snapshot captured"
-        }
-      ]
-    },
-    "implement": {
-      "passed": true,
-      "at": "2026-06-30T22:45:34.404Z",
-      "tokens": [
-        {
-          "token": "spec-freeze",
-          "pass": true,
-          "evidence": "spec unchanged since the spec gate"
-        },
-        {
-          "token": "build",
-          "pass": true,
-          "evidence": "build exited 0"
-        },
-        {
-          "token": "test",
-          "pass": true,
-          "evidence": "test exited 0"
-        },
-        {
-          "token": "test-freeze",
-          "pass": true,
-          "evidence": "test files unchanged since freeze"
-        }
-      ]
-    },
-    "review": {
-      "passed": false,
-      "at": "2026-06-30T23:00:49.200Z",
-      "tokens": [
-        {
-          "token": "spec-freeze",
-          "pass": true,
-          "evidence": "spec unchanged since the spec gate"
-        },
-        {
-          "token": "findings",
-          "pass": false,
-          "evidence": "1 open blocking finding(s): FINDING-DA-004(contract)"
-        }
-      ]
     }
   },
   "iterations": {
-    "spec": 1
+    "spec": 2
   },
   "escalations": [
     {
@@ -120,8 +30,10 @@
       "reason": "Review gate blocked by 1 open contract-violation finding (HIGH, escalation_threshold per config): FINDING-DA-004 -- src/shared/orky-status.ts's heartbeatKind() derives kind='done' only when hb.phase==null && hb.gateN>=hb.gateM (matching the FROZEN 02-spec.md REQ-009 acceptance criteria verbatim, which the implementation correctly satisfies). But this was independently verified by the orchestrator directly against the REAL Orky emitter source (C:/dev/Orky/plugin/gatekeeper/gatekeeper.js:904, oscHeartbeat()): phase: state.phase || d.phase || null. Per this repo's own CLAUDE.md gotcha ('Orky status reads active.json.phase + gate topology -- NEVER state.json.phase ... completed features terminate at state.json.phase === doc-sync with human-review recorded only as an external gate'), a genuinely COMPLETE feature's state.json.phase is the truthy string 'doc-sync', never null/unset -- so the real emitter sends {phase:\"doc-sync\", gate:\"8/8\", needsHuman:false} for a fully complete feature, NEVER {phase:null}. heartbeatKind's done-branch can therefore never fire against real Orky output: a bare-SSH pane streaming a completed feature's heartbeat renders 'busy' forever, never 'done' -- defeating a core scenario this feature exists for. The defect is in the FROZEN SPEC itself (REQ-009's phase-null-based done-derivation vs. ADR-026/the real emitter's actual state.phase||d.phase||null formula), not the implementation, which correctly implements what REQ-009 says. RECOMMENDATION (not a self-resolution -- reported for human go/no-go per escalation_threshold:HIGH): loopback to spec to correct REQ-009's done-derivation to be gate-based (gateN>=gateM) regardless of phase value -- mirroring 0004's actual gate-based isComplete (f.gates['human-review']?.passed===true) rather than 0004's LOCAL phase-null gateFrontier convention, which is a Termhalla-side computation never carried on the wire -- then re-flow plan/tests/implement/review with a corrected REQ-009 acceptance fixture reflecting the real emitter's phase:'doc-sync',gate:'8/8' shape for a complete feature instead of the current literal-null fixture. Five review lenses (security, quality, devils-advocate, determinism, doc-drift) ran in full; all other findings are MEDIUM/LOW/non-blocking and recorded in findings.json (notably FINDING-SEC-001 and FINDING-CODEX-001, the two findings carried forward from the prior ESC-001 loopback as binding REQ-006/REQ-007, are independently VERIFIED CORRECTLY IMPLEMENTED by the security lens with file:line evidence -- not part of this escalation).",
       "kind": "judgment",
       "finding": "FINDING-DA-004",
-      "status": "open",
-      "at": "2026-06-30T23:01:13.170Z"
+      "status": "resolved",
+      "at": "2026-06-30T23:01:13.170Z",
+      "decision": "Approved. Fix REQ-009's done-detection to be purely gate-based (gateN >= gateM, i.e. all 8 work-phase gates passed), independent of the phase field's value -- never key off phase===null, since a genuinely complete Orky feature's state.json.phase is always 'doc-sync' (verified against the real emitter, gatekeeper.js:904), not null. This is the same fix class already proven correct for Termhalla's own 0004 feature (its original FINDING-DA-001). Loop back to spec.",
+      "resolvedAt": "2026-06-30T23:06:52.316Z"
     }
   ],
   "concerns": [
@@ -210,6 +122,12 @@
       "from": "review",
       "reason": "ESC-001 resolved: Orky shipped real OSC heartbeat emission (ADR-026) with an authoritative contract (OSC 9999, JSON payload, BEL-terminated) superseding this feature's 8888/key=value placeholder. Full contract + binding spec requirements written to .orky/features/0014-orky-osc-heartbeat/orky-adr-026-osc-heartbeat.md. Also carry forward FINDING-SEC-001 (unbounded carry-over buffer) and FINDING-CODEX-001 (byte-length cap correctness) as binding REQs in the corrected spec.",
       "at": "2026-06-30T21:05:45.392Z"
+    },
+    {
+      "to": "spec",
+      "from": "review",
+      "reason": "ESC-002 resolved: human approved gate-based done-detection (gateN>=gateM regardless of phase value) to replace the buggy phase===null check in REQ-009. Re-flow plan/tests/implement/review against the corrected REQ.",
+      "at": "2026-06-30T23:06:52.392Z"
     }
   ]
 }
