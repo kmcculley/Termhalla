@@ -63,6 +63,43 @@ All notable changes to Termhalla are recorded here. The format follows
   suppressed unless explicitly enabled in Settings → General; **error toasts always render** so
   failure feedback is never silenced.
 
+### Fixed
+- **Restoring a minimized Claude pane no longer re-issues `claude --resume`.** Minimizing then
+  restoring a terminal running Claude Code — and any other re-adoption of a still-running PTY (a
+  same-window cross-workspace move or a multi-window handoff) — kept the live session running but
+  *also* re-fired the auto-resume, typing `claude --resume` into the already-running agent, where it
+  landed as a prompt instead of a command. Auto-resume now fires **only on a genuinely fresh shell
+  spawn** (app start, or a newly opened pane restoring a persisted Claude session), never when
+  re-adopting a live PTY — detected by the consumed scrollback snapshot that marks a re-adoption.
+
+## [0.8.0] - 2026-06-30
+
+### Added
+- **Orky status awareness in the pane chrome.** A terminal pane whose tracked cwd sits inside an
+  `.orky/` project (an Orky gated-pipeline run) now surfaces that run's live **status** directly in
+  the pane chrome — a read-only mirror, derived purely from reading the on-disk `.orky/` JSON
+  (`active.json`, `features/*/state.json`, `findings.json`); it never spawns a CLI and never writes
+  into `.orky/`. The pane toolbar gains an **Orky chip** labelled `feature · phase · gate N/M · ●k
+  open` with a detail popover listing every active feature's phase, gate progress, open-blocking
+  findings, and "needs you" reason. Detection is **gate-based**: the live phase is `active.json.phase`
+  for the active feature and the gate frontier for the rest, and "needs a human" is derived from the
+  gates (autonomous gates through `doc-sync` passed while `human-review` is pending), an open
+  escalation, or a stalled heartbeat — taking **precedence** over the byte-derived terminal status for
+  the pane border and lighting the workspace tab's 🔔 needs-you badge; a halted gate failure surfaces
+  as a rendered failure accent. Status is pushed over a new pane-scoped `orky:status` IPC channel
+  (validated + per-window scoped) from a bounded, debounced, disposable main-process watcher (one
+  watcher/read per `.orky/` root); nothing is persisted (`SCHEMA_VERSION` unchanged). See
+  `docs/features/orky-status.md`.
+
+### Fixed
+- **Restoring a minimized Claude pane no longer re-issues `claude --resume`.** Minimizing then
+  restoring a terminal running Claude Code — and any other re-adoption of a still-running PTY (a
+  same-window cross-workspace move or a multi-window handoff) — kept the live session running but
+  *also* re-fired the auto-resume, typing `claude --resume` into the already-running agent, where it
+  landed as a prompt instead of a command. Auto-resume now fires **only on a genuinely fresh shell
+  spawn**, never when re-adopting a live PTY — detected by the consumed scrollback snapshot that marks
+  a re-adoption.
+
 ## [0.7.0] - 2026-06-30
 
 ### Added

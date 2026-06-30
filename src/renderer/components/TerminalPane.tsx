@@ -13,6 +13,7 @@ import { useResolvedPaneTheme } from '../use-resolved-theme'
 import { handleClipboardKey } from './terminal-clipboard'
 import { registerSerializer, unregisterSerializer, consumeSnapshot, registerFocuser, unregisterFocuser, registerRedrawer, unregisterRedrawer } from './terminal-registry'
 import { redraw } from './redraw'
+import { shouldAutoResumeClaude } from '../store/pane-ops'
 import { registerTerminalLinks } from '../terminal/links'
 
 /** Scrollback lines captured when serializing a terminal for a window-handoff replay. */
@@ -70,7 +71,15 @@ export function TerminalPane({ paneId, wsId, config }: { paneId: string; wsId: s
     // `claude --resume` once — after the restored shell has printed its prompt and gone quiet. Using
     // an output-quiet timer (reset on each data chunk) is shell-agnostic: it fires shortly after the
     // prompt appears, not before the shell is ready. Off when the setting is disabled.
-    const wantResume = config.resumeAi === 'claude' && useStore.getState().quick.autoResumeClaude !== false
+    // CRITICAL: only on a genuinely FRESH spawn — NOT when re-adopting a still-running PTY
+    // (minimize/restore, cross-workspace move, window handoff), where Claude is already alive and the
+    // command would land as a prompt into the live agent. `restored` (a consumed scrollback snapshot)
+    // is exactly the re-adoption signal; a fresh spawn has none. See shouldAutoResumeClaude.
+    const wantResume = shouldAutoResumeClaude({
+      resumeAi: config.resumeAi,
+      autoResumeEnabled: useStore.getState().quick.autoResumeClaude !== false,
+      isReadoption: !!restored,
+    })
     let resumeTimer: ReturnType<typeof setTimeout> | undefined
     let resumed = false
     const scheduleResume = () => {

@@ -1,4 +1,4 @@
-import type { ShellInfo, Workspace, MosaicDirection, SplitDir4, AiSession, TerminalStatus } from '@shared/types'
+import type { ShellInfo, Workspace, MosaicDirection, SplitDir4, AiSession, AiTool, TerminalStatus } from '@shared/types'
 
 export type PaneKind = 'terminal' | 'editor' | 'explorer'
 
@@ -61,6 +61,19 @@ export function applyResumeAi(ws: Workspace, aiSessions: Record<string, AiSessio
     }
   }
   return changed ? { ...ws, panes } : ws
+}
+
+/** Whether a freshly-mounted terminal pane should auto-type `claude --resume`. TRUE only for a
+ *  genuinely fresh shell spawn of a pane that had Claude at last save (`resumeAi === 'claude'`) with
+ *  the setting on. MUST be FALSE for a re-adoption of a still-running PTY — minimize/restore, a
+ *  same-window cross-workspace move, or a multi-window handoff — because Claude is still alive there
+ *  and the command would land as a prompt into the live agent (the restore-types-`claude --resume`
+ *  bug). The caller passes `isReadoption` = "a stashed scrollback snapshot was consumed on this
+ *  mount", which is exactly the re-adoption signal (a fresh spawn has no stash). Pure + api-free. */
+export function shouldAutoResumeClaude(
+  o: { resumeAi?: AiTool; autoResumeEnabled: boolean; isReadoption: boolean }
+): boolean {
+  return o.resumeAi === 'claude' && o.autoResumeEnabled && !o.isReadoption
 }
 
 /** Display state for an AI session pane: 'working' when busy, 'awaiting' when quiet, null if not
