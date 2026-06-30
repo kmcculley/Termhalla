@@ -1,7 +1,7 @@
 {
   "feature": ".orky/features/0014-orky-osc-heartbeat",
   "projectRoot": "C:/dev/Termhalla/.claude/worktrees/agent-ab11ac825d6caf9fc",
-  "phase": "review",
-  "lastTickAt": "2026-06-30T20:41:23.210Z",
-  "lastAction": "review gate failed: 2 open blocking findings (FINDING-SEC-001 HIGH/contract, FINDING-CODEX-001 MEDIUM/contract)"
+  "phase": "spec",
+  "lastTickAt": "2026-06-30T21:06:43.588Z",
+  "lastAction": "resuming after ESC-001 resolution: ADR-026 real OSC contract supersedes placeholder; re-driving spec"
 }
