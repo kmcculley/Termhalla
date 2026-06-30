@@ -20,6 +20,9 @@ export function registerPty(
     // re-spawns into a new window) adopt the live pty by replaying its snapshot instead of respawning.
     claimPane?: (paneId: string, sender: WebContents) => void
     replayInto?: (paneId: string) => void
+    // Same-window minimize/restore: arm the buffered transit so gap-window pty:data isn't dropped.
+    // Takes the sender so main can verify the caller actually owns the pane (C5 / FINDING-SEC-003).
+    beginTransit?: (paneId: string, sender: WebContents) => void
     // Git status hooks: forward the cwd + command-done + pane-gone signals the engine already emits.
     onCwd?: (paneId: string, cwd: string) => void
     onCommandDone?: (paneId: string) => void
@@ -69,6 +72,9 @@ export function registerPty(
   // ai/tracker unregister here is synchronous; the async pty onExit fires them again but
   // both are idempotent (Map.delete returns false), so the renderer sees a single clear.
   ipcMain.on(CH.ptyKill, (_e, id: string) => { pty.kill(id); tracker.unregister(id); ai.unregister(id); deps.onPaneGone?.(id); deps.indexer.remove(id) })
+  // Same-window minimize/restore: arm the buffered transit BEFORE the source TerminalPane unmounts,
+  // so pty:data emitted during the unmount→remount gap is buffered and replayed on re-adoption.
+  ipcMain.on(CH.ptyTransitBegin, (e, id: string) => deps.beginTransit?.(id, e.sender))
 
   ipcMain.on(CH.notify, (e, a: NotifyArgs) => {
     if (!Notification.isSupported()) return

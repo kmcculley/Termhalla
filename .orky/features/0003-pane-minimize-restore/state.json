@@ -1,0 +1,201 @@
+{
+  "feature": "0003-pane-minimize-restore",
+  "phase": "doc-sync",
+  "gates": {
+    "brainstorm": {
+      "passed": true,
+      "at": "2026-06-30T10:51:53.514Z",
+      "evidence": "human confirmed concept",
+      "external": true
+    },
+    "spec": {
+      "passed": true,
+      "at": "2026-06-30T11:13:36.062Z",
+      "tokens": [
+        {
+          "token": "findings",
+          "pass": true,
+          "evidence": "no open blocking findings (CRITICAL/HIGH or contract-violation) for this gate"
+        }
+      ]
+    },
+    "plan": {
+      "passed": true,
+      "at": "2026-06-30T12:57:15.706Z",
+      "tokens": [
+        {
+          "token": "spec-freeze",
+          "pass": true,
+          "evidence": "spec unchanged since the spec gate"
+        },
+        {
+          "token": "traceability-plan",
+          "pass": true,
+          "evidence": "all 19 REQ(s) trace to TASK"
+        },
+        {
+          "token": "findings",
+          "pass": true,
+          "evidence": "no open blocking findings (CRITICAL/HIGH or contract-violation) for this gate"
+        }
+      ]
+    },
+    "tests": {
+      "passed": true,
+      "at": "2026-06-30T13:47:24.856Z",
+      "tokens": [
+        {
+          "token": "spec-freeze",
+          "pass": true,
+          "evidence": "spec unchanged since the spec gate"
+        },
+        {
+          "token": "tests-red",
+          "pass": true,
+          "evidence": "tests are GREEN on a tests loopback (coverage augmentation; implementation already exists) — freeze re-captured"
+        }
+      ]
+    },
+    "implement": {
+      "passed": true,
+      "at": "2026-06-30T14:07:46.987Z",
+      "tokens": [
+        {
+          "token": "spec-freeze",
+          "pass": true,
+          "evidence": "spec unchanged since the spec gate"
+        },
+        {
+          "token": "build",
+          "pass": true,
+          "evidence": "build exited 0"
+        },
+        {
+          "token": "test",
+          "pass": true,
+          "evidence": "test exited 0"
+        },
+        {
+          "token": "test-freeze",
+          "pass": true,
+          "evidence": "test files unchanged since freeze"
+        }
+      ]
+    },
+    "review": {
+      "passed": true,
+      "at": "2026-06-30T14:08:38.738Z",
+      "tokens": [
+        {
+          "token": "spec-freeze",
+          "pass": true,
+          "evidence": "spec unchanged since the spec gate"
+        },
+        {
+          "token": "findings",
+          "pass": true,
+          "evidence": "no open blocking findings (CRITICAL/HIGH or contract-violation) for this gate"
+        }
+      ]
+    },
+    "doc-sync": {
+      "passed": true,
+      "at": "2026-06-30T14:14:49.221Z",
+      "tokens": [
+        {
+          "token": "spec-freeze",
+          "pass": true,
+          "evidence": "spec unchanged since the spec gate"
+        },
+        {
+          "token": "traceability",
+          "pass": true,
+          "evidence": "all 19 REQ(s) trace to TASK+TEST"
+        },
+        {
+          "token": "findings",
+          "pass": true,
+          "evidence": "no open blocking findings (CRITICAL/HIGH or contract-violation) for this gate"
+        }
+      ]
+    },
+    "human-review": {
+      "passed": true,
+      "at": "2026-06-30T14:21:45.393Z",
+      "evidence": "human reviewed and approved; record gate + commit + cut release",
+      "external": true
+    }
+  },
+  "iterations": {
+    "tests": 2,
+    "plan": 1,
+    "implement": 1
+  },
+  "escalations": [
+    {
+      "id": "ESC-001",
+      "phase": "review",
+      "reason": "Review found 7 blocking findings (6 contract violations). Two are design-level (route_to=plan, same root cause): minimize prunes the pane's leaf from the mosaic and REMOUNTS its body in an off-layout host, so React unmounts/remounts the pane. CODEX-001 (HIGH,cv): PTY output emitted during the unmount->remount gap is dropped (no main-side transit buffer armed for same-window minimize, unlike multi-window handoff) -> violates REQ-003/C2 keep-alive. DA-001 (HIGH,cv): Explorer view-state (expanded folders/scroll) is lost across the remount (only terminal scrollback + editor drafts are bridged) -> violates REQ-012. DECISION NEEDED: (A) harden the remount path (arm buffered transit for same-window minimize + bridge explorer view-state), keeping true 100% sibling reflow; or (B) change the mechanism to keep all panes mounted in-place (never remount) and reflow without pruning the tree (revisits brainstorm D1). The other 5 blocking findings (QUAL-002, SEC-001, QOL-001, UX-001, CODEX-002) are unambiguous mechanical fixes to apply on the same loopback.",
+      "kind": "judgment",
+      "finding": "FINDING-CODEX-001",
+      "status": "resolved",
+      "at": "2026-06-30T12:47:46.121Z",
+      "decision": "Option A: harden the remount path. Keep the off-layout-host + true-100%-reflow design (brainstorm D1 stands), but (1) arm the existing buffered transit machinery (main-side buffer + idempotent pty:spawn re-adoption) for SAME-WINDOW minimize/restore so PTY output emitted during the unmount->remount gap is buffered and replayed, never dropped (fixes CODEX-001/REQ-003); (2) bridge Explorer pane view-state (expanded folders + scroll) across the remount, sibling to the terminal-snapshot/editor-draft transit (fixes DA-001/REQ-012); (3) enforce REQ-010 mutual exclusion on BOTH the toggleMaximize runtime path (SEC-001) and the normalizeViewState load path (CODEX-002); (4) apply the mechanical fixes QUAL-002, QOL-001, UX-001. Loop back to plan to encode the hardened transit + explorer bridging as tasks, then deepen the frozen tests (output-during-transition, multi-tile, explorer-expanded round-trip, same-pane min+max load), then re-implement.",
+      "resolvedAt": "2026-06-30T12:50:14.772Z"
+    }
+  ],
+  "concerns": [
+    "ux",
+    "state-management",
+    "persistence/migration",
+    "accessibility",
+    "qol",
+    "doc-drift",
+    "security",
+    "quality",
+    "devils-advocate"
+  ],
+  "attempts": {
+    "spec": 0,
+    "plan": 0,
+    "tests": 0,
+    "implement": 0,
+    "review": 0,
+    "doc-sync": 0
+  },
+  "loopbacks": [
+    {
+      "to": "tests",
+      "from": "implement",
+      "reason": "Two frozen-suite test-authoring defects (phase_of_origin=tests), not impl bugs: (1) tests/main/quick-store-toasts.test.ts TEST-008 asserts SCHEMA_VERSION===6 (stale feature-0001 assertion) which contradicts feature-0003 TEST-001/REQ-009 mandated bump to 7 — mutually unsatisfiable; the phase-4 CHAR reconciliation only searched characterization-*.test.ts and missed this. (2) tests/e2e/minimize-tray-status.spec.ts TEST-033 drives a minimized pane with bare Read-Host, which never reaches needs-input because needs-input.ts requires a recognized prompt pattern (e.g. [y/N], password:); must mirror status.spec.ts (Write-Host -NoNewline '...? [y/N] '; [Console]::ReadLine()). e2e was never executed in phase 4 so it went undetected. Implementer touched no tests (freeze intact); impl is otherwise green (23/23 unit feature tests, 11/12 e2e).",
+      "at": "2026-06-30T12:21:48.949Z"
+    },
+    {
+      "to": "plan",
+      "from": "review",
+      "reason": "ESC-001 resolved (Option A). Design-level findings DA-001 (explorer state loss) + CODEX-001 (PTY output dropped in remount gap) route to plan: plan's TASK-004 off-layout-host reuses the cross-workspace move path but does NOT arm a main-side buffered transit for the same-window unmount->remount gap and does NOT bridge explorer view-state. Plan must add: hardened buffered transit for same-window minimize, explorer view-state bridging, REQ-010 enforcement on the load path, and the corresponding new test obligations. Then tests deepen, then re-implement to clear all 7 blocking findings.",
+      "at": "2026-06-30T12:50:14.848Z"
+    },
+    {
+      "to": "tests",
+      "from": "implement",
+      "reason": "Frozen test TEST-042 (tests/minimize-pane-menu-style.test.ts) has an off-by-one in its OWN helper groupBefore(): start=css.lastIndexOf(':is(', end) where end=css.indexOf(anchor) and the anchor itself begins with ':is(' (':is(button, select):hover:not(:disabled)' and ':is(button, select, input, textarea):focus-visible'), so lastIndexOf returns end and css.slice(start,end) is ALWAYS '' for any css -> toContain can never be true. Must be lastIndexOf(':is(', end-1) to skip the anchor's own ':is(' and capture the preceding allow-list group. phase_of_origin=tests. Production fix (FINDING-UX-001/TASK-015: pane-menu added to hover/active/disabled/focus-visible allow-lists in index.css) is correctly applied and verified; implementer touched no tests. All other 8 loop-back-2 tests pass (TEST-036/037/038/041/043/044 e2e green; TEST-039/040 unit green).",
+      "at": "2026-06-30T13:46:07.240Z"
+    },
+    {
+      "to": "implement",
+      "from": "review",
+      "reason": "Re-review confirmed all 7 prior blocking findings closed, but found a NEW blocking finding SEC-003 (MEDIUM, contract_violation, phase_of_origin=implement): the iter-2 pty:transit-begin IPC handler lacks sender-ownership validation (cross-window output withholding + unbounded-buffer memory DoS), violating C5 single-owner. MEDIUM<HIGH threshold and a mechanical fix (add windowIdOf guard like claimPane + buffer cap) -> loop back to implement, not escalate. Also fix QUAL-008 (LOW: clearTileSize never called). DA-005 (MEDIUM non-cv, inherited handoff limitation) and DOC-001/002 (doc-sync) left open non-blocking.",
+      "at": "2026-06-30T14:01:27.147Z"
+    }
+  ],
+  "implementer": {
+    "mode": "claude",
+    "agents": [
+      "orky:implementer"
+    ],
+    "winner": "orky:implementer",
+    "reason": "iter3: fix SEC-003 (transit-begin ownership guard + bounded buffer) + QUAL-008",
+    "at": "2026-06-30T14:08:14.039Z"
+  }
+}

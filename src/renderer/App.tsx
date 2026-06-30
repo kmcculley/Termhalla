@@ -43,6 +43,9 @@ export default function App() {
     const s = () => useStore.getState()
     const offs = [
       api.onPtyStatus((id, status) => s().setStatus(id, status)),
+      // A minimized terminal isn't auto-closed on shell exit; record it so its tray chip can show an
+      // `exited` indicator distinct from a live idle pane (REQ-005 / FINDING-DA-003).
+      api.onPtyExit(id => s().setExited(id, true)),
       api.onPtyCwd((id, cwd) => s().setCwd(id, cwd)),
       api.onPtyProcs((id, info) => s().setProcs(id, info)),
       api.onGitStatus((id, g) => s().setGitStatus(id, g)),
@@ -103,6 +106,11 @@ export default function App() {
         case 'toggle-maximize-pane': {
           const pane = s.focusedPaneId
           if (pane && activeId && s.workspaces[activeId]?.panes[pane]) s.toggleMaximize(activeId, pane)
+          break
+        }
+        case 'toggle-minimize-pane': {
+          const pane = s.focusedPaneId
+          if (pane && activeId && s.workspaces[activeId]?.panes[pane]) s.toggleMinimize(activeId, pane)
           break
         }
         case 'toggle-notes': s.setNotesOpen(!s.notesOpen); break

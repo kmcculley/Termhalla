@@ -26,15 +26,34 @@ export function applyCwds(ws: Workspace, cwds: Record<string, string>): Workspac
   return changed ? { ...ws, panes } : ws
 }
 
+/** Fold the renderer's per-workspace view-state maps back onto a workspace record before it is
+ *  serialized to disk (sibling of applyCwds). The view-state rides the per-workspace record
+ *  (workspaces/<id>.json), NOT app-state — the renderer never writes app-state (C5). Only paneId
+ *  references / flags are stored (REQ-016: no content/secrets).
+ *
+ *  Empty view-state is written as ABSENT fields (not `[]`/`null`), matching `normalizeViewState`'s
+ *  load-side representation so a clean workspace round-trips byte-identical (QUAL-004 / SEC-002).
+ *  Any stale `minimized`/`maximized` already on the record is dropped before re-applying. */
+export function applyViewState(
+  ws: Workspace, minimized: string[] | undefined, maximized: string | undefined
+): Workspace {
+  const next: Workspace = { ...ws }
+  delete next.minimized
+  delete next.maximized
+  if (minimized && minimized.length) next.minimized = minimized
+  if (maximized) next.maximized = maximized
+  return next
+}
+
 /** Drop every per-pane runtime entry for `paneIds`. The runtime is spread across several maps
  *  all keyed by pane id; clearing them in one helper (rather than duplicating the deletes in
  *  closePane and closeWorkspace, where they had already drifted) means a new per-pane map only
  *  needs to be added in one place. */
-export function clearPaneRuntime(s: State, paneIds: string[]): Pick<State, 'statuses' | 'cwds' | 'procs' | 'aiSessions' | 'usage' | 'recording' | 'gitStatus'> {
+export function clearPaneRuntime(s: State, paneIds: string[]): Pick<State, 'statuses' | 'cwds' | 'procs' | 'aiSessions' | 'usage' | 'recording' | 'gitStatus' | 'exited'> {
   const statuses = { ...s.statuses }, cwds = { ...s.cwds }, procs = { ...s.procs }
-  const aiSessions = { ...s.aiSessions }, usage = { ...s.usage }, recording = { ...s.recording }, gitStatus = { ...s.gitStatus }
-  for (const pid of paneIds) { delete statuses[pid]; delete cwds[pid]; delete procs[pid]; delete aiSessions[pid]; delete usage[pid]; delete recording[pid]; delete gitStatus[pid] }
-  return { statuses, cwds, procs, aiSessions, usage, recording, gitStatus }
+  const aiSessions = { ...s.aiSessions }, usage = { ...s.usage }, recording = { ...s.recording }, gitStatus = { ...s.gitStatus }, exited = { ...s.exited }
+  for (const pid of paneIds) { delete statuses[pid]; delete cwds[pid]; delete procs[pid]; delete aiSessions[pid]; delete usage[pid]; delete recording[pid]; delete gitStatus[pid]; delete exited[pid] }
+  return { statuses, cwds, procs, aiSessions, usage, recording, gitStatus, exited }
 }
 
 /** Stop the main-side resources for the given panes: PTY, usage watch, recording. All three

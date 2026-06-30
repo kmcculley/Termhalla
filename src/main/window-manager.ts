@@ -21,6 +21,11 @@ const STRIP_HEIGHT = 36
  *  un-buffered, so a dropped/failed handoff can't leak memory or wedge the terminal forever. */
 const TRANSIT_GC_MS = 10_000
 
+/** Hard cap on events buffered for one pane mid-transit. A wedged or maliciously re-armed transit
+ *  (FINDING-SEC-003) must not grow the buffer without bound: once exceeded we flush via the existing
+ *  `replayInto` drain and resume live delivery, rather than buffer forever. */
+const TRANSIT_BUFFER_MAX = 1024
+
 /** Debounce for persisting window bounds during a resize/move drag (which fires continuously). */
 const PERSIST_DEBOUNCE_MS = 300
 
@@ -198,7 +203,13 @@ export class WindowManager {
     // While a pane is mid-handoff, buffer EVERY pane-scoped event (data, status, cwd, exit, …) so
     // nothing is delivered to the destination before its xterm mounts and nothing is lost.
     const buf = this.transit.get(paneId)
-    if (buf) { buf.push({ channel, args }); return }
+    if (buf) {
+      buf.push({ channel, args })
+      // Bound the buffer (FINDING-SEC-003): a transit that never re-attaches — or is re-armed
+      // repeatedly — must not accumulate pty:data without limit. Flush+resume once over the cap.
+      if (buf.length > TRANSIT_BUFFER_MAX) this.replayInto(paneId)
+      return
+    }
     // An unowned pane (sender vanished between spawn and route) defaults to the main window. Resolve
     // the id without mainWindow()'s `!` assertion: a late pty:data chunk can arrive during shutdown
     // after the window list is already main-less, and safeSend() no-ops on an undefined window.
@@ -222,6 +233,30 @@ export class WindowManager {
   claimPane(paneId: string, sender: WebContents): void {
     const id = this.windowIdOf(sender)
     if (id) this.paneOwner.set(paneId, id)
+  }
+
+  /** Arm the buffered transit for a SAME-WINDOW minimize/restore: the renderer is about to unmount
+   *  the pane's TerminalPane and remount a fresh one (in the off-layout host, or back in a tile), and
+   *  during that gap there is no `pty:data` subscriber, so without buffering the gap bytes are dropped
+   *  (FINDING-CODEX-001). This REUSES the multi-window `transit` buffer + `replayInto` drain: while a
+   *  buffer is set, `routeToPane` buffers every pane-scoped event; the destination's idempotent
+   *  `pty:spawn` re-adoption drains it via `replayInto`. NO snapshot is captured here and the pane is
+   *  NOT re-owned (same window — C5: main still owns windows[]); only the gap bytes are buffered.
+   *
+   *  Ownership is validated against the calling window (FINDING-SEC-003): mirroring `claimPane`/
+   *  `winReady`, the caller is resolved via `windowIdOf(sender)` and the arm is a SILENT no-op when
+   *  the sender is unknown, the pane is unowned, or it is owned by a DIFFERENT window — so one
+   *  renderer can never arm (and thereby withhold output from) another window's pane (C5).
+   *
+   *  A re-arm while a buffer is still pending flushes the stale buffer via the existing `replayInto`
+   *  drain before arming a fresh one, so repeated arms can't extend an old buffer without bound. */
+  beginSameWindowTransit(paneId: string, sender: WebContents): void {
+    const winId = this.windowIdOf(sender)
+    if (!winId || this.paneOwner.get(paneId) !== winId) return   // unknown sender / unowned / foreign pane
+    if (this.transit.has(paneId)) this.replayInto(paneId)        // flush any pending buffer before re-arming
+    this.transit.set(paneId, [])
+    this.endTransit(paneId)
+    this.transitTimers.set(paneId, setTimeout(() => this.replayInto(paneId), TRANSIT_GC_MS))
   }
 
   /** A moved pane re-spawned in its new window: it already has a live pty, so instead of spawning

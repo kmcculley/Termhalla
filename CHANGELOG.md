@@ -6,6 +6,24 @@ All notable changes to Termhalla are recorded here. The format follows
 
 ## [Unreleased]
 
+### Added
+- **Minimize / restore panes.** A pane can now be **minimized** out of the visible tiled layout
+  while staying fully alive in the background (its PTY keeps running, xterm scrollback / Monaco
+  models / live TUIs are preserved — kept mounted off-layout, never unmounted). Minimizing reflows
+  the remaining panes to fill the freed space. Minimize from the pane toolbar button, the title-bar
+  right-click menu, or the rebindable **Minimize pane** keybinding (`Ctrl+Shift+H` by default). Each
+  workspace shows a per-workspace **tray** of restore chips — one chip per minimized pane, surfacing
+  its live status (running/idle, **needs-input**, recording, AI session) — and clicking (or
+  keyboard-activating) a chip restores the pane, split to the right. Minimizing every pane shows an
+  all-minimized empty state with the tray as the restore home. Minimize and maximize are mutually
+  exclusive on the same pane. Minimize and maximize view-state are now **persisted** across reload
+  (`SCHEMA_VERSION` 6 → 7 with an explicit, lossless migration); only pane id references / flags are
+  stored — never any pane content or secrets. Output produced *during* the minimize↔restore
+  transition is buffered and replayed so nothing is dropped from scrollback; an Explorer's expanded
+  folders survive a minimize/restore; a backgrounded terminal whose shell exits shows a distinct
+  **exited** chip rather than reading as idle; and the tray strip never swallows clicks meant for the
+  reflowed terminal beneath it.
+
 ### Changed
 - **Pane toolbar cleanup + unified split-direction control.** The per-pane Record toggle (the ⏺
   button) was removed from the pane toolbar and moved into the pane title-bar **context menu**
@@ -26,6 +44,26 @@ All notable changes to Termhalla are recorded here. The format follows
 - **Success/info toast notifications default off.** Bottom-right success and info toasts are
   suppressed unless explicitly enabled in Settings → General; **error toasts always render** so
   failure feedback is never silenced.
+
+## [0.7.0] - 2026-06-30
+
+### Added
+- **Minimize / restore panes.** A pane can now be **minimized** out of the visible tiled layout
+  while staying fully alive in the background (its PTY keeps running, xterm scrollback / Monaco
+  models / live TUIs are preserved — kept mounted off-layout, never unmounted). Minimizing reflows
+  the remaining panes to fill the freed space. Minimize from the pane toolbar button, the title-bar
+  right-click menu, or the rebindable **Minimize pane** keybinding (`Ctrl+Shift+H` by default). Each
+  workspace shows a per-workspace **tray** of restore chips — one chip per minimized pane, surfacing
+  its live status (running/idle, **needs-input**, recording, AI session) — and clicking (or
+  keyboard-activating) a chip restores the pane, split to the right. Minimizing every pane shows an
+  all-minimized empty state with the tray as the restore home. Minimize and maximize are mutually
+  exclusive on the same pane. Minimize and maximize view-state are now **persisted** across reload
+  (`SCHEMA_VERSION` 6 → 7 with an explicit, lossless migration); only pane id references / flags are
+  stored — never any pane content or secrets. Output produced *during* the minimize↔restore
+  transition is buffered and replayed so nothing is dropped from scrollback; an Explorer's expanded
+  folders survive a minimize/restore; a backgrounded terminal whose shell exits shows a distinct
+  **exited** chip rather than reading as idle; and the tray strip never swallows clicks meant for the
+  reflowed terminal beneath it.
 
 ## [0.6.0] - 2026-06-29
 

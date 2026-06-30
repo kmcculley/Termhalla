@@ -46,9 +46,12 @@ export interface State {
   closeWorkspace: (id: string) => void
   moveWorkspace: (fromId: string, toId: string) => void
   setActive: (id: string) => void
-  maximized: Record<string, string>   // wsId -> the paneId currently maximized in that workspace
+  maximized: Record<string, string>   // wsId -> the paneId currently maximized in that workspace (persisted)
+  minimized: Record<string, string[]> // wsId -> paneIds minimized off-layout in that workspace (persisted)
   focusedPaneId: string | null
   toggleMaximize: (wsId: string, paneId: string) => void
+  toggleMinimize: (wsId: string, paneId: string) => void
+  restorePane: (wsId: string, paneId: string) => void
   setFocusedPane: (paneId: string) => void
   refocusActivePane: () => void
   movePaneToWorkspace: (paneId: string, fromWsId: string, toWsId: string) => void
@@ -74,11 +77,18 @@ export interface State {
   setUsage: (id: string, metrics: UsageMetrics | null) => void
   recording: Record<string, boolean>
   setRecording: (id: string, on: boolean) => void
+  // A terminal whose shell process exited. A minimized pane is NOT auto-closed on exit (its
+  // scrollback stays restorable), so its tray chip needs an `exited` indicator distinct from a live
+  // idle pane (REQ-005 / FINDING-DA-003). Set on pty:exit, cleared when the pane is closed.
+  exited: Record<string, boolean>
+  setExited: (id: string, on: boolean) => void
   setRecordByDefault: (on: boolean) => void
   setAutoResumeClaude: (on: boolean) => void
   setCopyOnSelect: (on: boolean) => void
   setToastsEnabled: (on: boolean) => void
   drafts: Record<string, EditorDraft>
+  setDraft: (key: string, draft: EditorDraft) => void
+  deleteDraft: (key: string) => void
   notes: Record<string, string>
   notesOpen: boolean
   notesProjectKey: string | null

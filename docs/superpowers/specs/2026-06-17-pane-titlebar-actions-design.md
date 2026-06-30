@@ -138,6 +138,11 @@ them and dispose their xterm scrollback / live TUIs / Monaco models — the card
 
 - Transient (non-persisted) UI state: `maximized: Record<wsId, paneId | null>` in
   the store. Toggled by the title-bar button and a keybinding.
+  > **Superseded [2026-06, feature 0003-pane-minimize-restore]:** this `maximized`
+  > view-state is **no longer transient** — it is now persisted per-workspace
+  > (schema `v6→v7`, alongside the new `minimized` list). This dated design doc records
+  > the original decision as made; see `docs/decisions.md` and
+  > `docs/features/workspaces.md` for the current behavior.
 - When set, `WorkspaceView` marks its host with `data-maximized="<paneId>"`. CSS
   makes the maximized `.mosaic-tile` fill the container (`inset: 0; width: 100%;
   height: 100%` with the necessary `!important` to override react-mosaic's inline

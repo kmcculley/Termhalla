@@ -34,6 +34,10 @@ to it when a review surfaces a lesson general enough to outlive its feature.
   focus and hover styling (or be added to the focus-visible/hover style allow-lists) so keyboard
   focus and hover are always visible outside the `.mosaic` subtree.
   *(from FINDING-UX-001 in 0002-pane-toolbar-split-control)*
+- **CONV-008** — When retiring or changing a documented claim, `grep` the WHOLE `docs/` tree (plus
+  `CLAUDE.md` and `.orky/baseline/`) for every phrasing of the old claim — never only the files a
+  spec enumerated — so no stale copy is left to contradict the new behavior.
+  *(from FINDING-DOC-001 in 0003-pane-minimize-restore)*
 
 ## Principles
 Higher-level stances that inform specs and reviews but are too broad to gate mechanically.

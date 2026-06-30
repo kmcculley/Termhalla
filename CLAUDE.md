@@ -122,11 +122,36 @@ related area:
   popover) `createPortal` to escape it; a menu rendered inline silently mis-positions and intercepts no
   clicks. Guarded by `tests/e2e/pane-actions.spec.ts` (and `tests/e2e/split-compass.spec.ts` TEST-007 for
   the split popover).
-- **Pane maximize hides siblings, never unmounts them.** `toggleMaximize` sets transient (non-persisted)
-  `maximized[wsId]`; `PaneTile` marks its tile with a `data-max` attribute (imperatively, so react-mosaic
-  re-renders don't strip it) and CSS fills it with `!important` while siblings get `visibility: hidden`
-  (the keep-mounted pattern — `display:none` would thrash xterm). Swapping `ws.layout` to maximize would
-  unmount siblings and dispose their scrollback/TUIs — don't.
+- **Pane maximize hides siblings, never unmounts them.** `toggleMaximize` sets `maximized[wsId]` — now a
+  **persisted** per-workspace view-state field (it rides the workspace record via `applyViewState` and is
+  derived back on load in `applyAssignment`, so a maximized pane survives reload). `PaneTile` marks its
+  tile with a `data-max` attribute (imperatively, so react-mosaic re-renders don't strip it) and CSS fills
+  it with `!important` while siblings get `visibility: hidden` (the keep-mounted pattern — `display:none`
+  would thrash xterm). Swapping `ws.layout` to maximize would unmount siblings and dispose their
+  scrollback/TUIs — don't.
+- **Pane minimize prunes the *visible* tree but keeps the body mounted off-layout.** Unlike maximize (CSS
+  hides siblings in place), minimize must let the survivors **reflow**: `WorkspaceView` feeds `<Mosaic>`
+  `computeVisibleLayout(ws)` (`workspace-model.ts`) — `ws.layout` with every `minimized` leaf removed — so
+  the freed area is filled. Each minimized pane's body is rendered in a kept-mounted `MinimizedPaneHost`
+  (`visibility:hidden`, sized non-zero, off-layout — NEVER `display:none`, NEVER unmounted: that disposes
+  xterm scrollback / Monaco models and kills the live PTY). The minimize/restore transition REUSES the
+  same-window cross-workspace move machinery (snapshot stash + `beginPaneTransit` + idempotent `pty:spawn`
+  re-adoption); it MUST NOT call `api.ptyKill`/`closePane`/`teardownPanes`. View-state (`minimized` list +
+  `maximized` id) is persisted per-workspace (`SCHEMA_VERSION` 7); the renderer derives the maps on load and
+  folds them back on save — it never writes app-state. The per-workspace tray (`MinimizedTray`) is a
+  workspace-body sibling of `.mosaic` (not inside a tile), so it needs no portal; its chips carry
+  focus/hover styling in `index.css` (the portalled `pane-menu` Minimize item must be in those allow-lists
+  too). Guarded by `tests/e2e/minimize-*.spec.ts`. **Two non-obvious gotchas within minimize** (each a real
+  review finding — don't regress): (1) unlike the *same-window cross-workspace move*, minimize/restore is
+  NOT one synchronous commit — the source `TerminalPane` unmounts (dropping its `onPtyData` sub) before the
+  destination mounts, so `pty:data` in that gap WOULD be dropped. The store arms the main-side `transit`
+  buffer for the same window via `api.ptyTransitBegin` BEFORE the unmount (reusing `WindowManager.transit` +
+  `replayInto`, drained on the idempotent `pty:spawn` re-adoption — no pane re-ownership; main still owns
+  `windows[]`); never remove that arm. (2) An Explorer pane keeps its expanded-folder set + scroll in LOCAL
+  React state, lost on the remount — `explorer-registry.ts` bridges it (sibling of the terminal snapshot /
+  editor draft), stashed by the store before unmount and consumed by the remounting `ExplorerPane`. The
+  off-layout host is sized to the pane's pre-minimize tile size (`pane-geometry.ts`) so a multi-tile
+  minimize doesn't force an avoidable ConPTY repaint (status-tail eviction).
 - **Native `node-pty`** is patched (Spectre off) and must be `electron-rebuild`'d
   for Electron's ABI. See README → Native modules. The patch must be a real
   `patch-package`-generated diff (regenerate with `npx patch-package node-pty --include

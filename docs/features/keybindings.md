@@ -58,6 +58,8 @@ Changes flow via the keybindings slice (debounced `scheduleQuickSave`) identical
 
 `App.tsx` registers a global `keydown` listener on mount. It reads the live `quick.keybindings` from the store via `useStore.getState()` (imperative, not reactive — the listener is wired once) and resolves them with `resolveBindings`. The returned bindings are passed to `matchShortcut`, and on a hit `preventDefault` is called and the shortcut type is dispatched in a `switch`.
 
+The pane view-state commands `toggle-maximize-pane` (default `Ctrl+Shift+M`) and `toggle-minimize-pane` (default `Ctrl+Shift+H`) act on the focused pane in the active workspace (guarded by `s.workspaces[activeId]?.panes[pane]`). The pane toolbar / context-menu tooltips for these affordances derive their displayed accelerator from the registry via `formatChord` over the resolved binding (never a hard-coded literal), so rebinding the command updates the surfaced tooltip.
+
 ## Store slice
 
 `src/renderer/store/keybindings-slice.ts` exports `createKeybindingsSlice`, composed into the root store. It provides:

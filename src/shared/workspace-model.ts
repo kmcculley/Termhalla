@@ -72,7 +72,72 @@ export function removePane(ws: Workspace, paneId: string): Workspace {
   const layout = ws.layout === null ? null : removeLeaf(ws.layout, paneId)
   const panes = { ...ws.panes }
   delete panes[paneId]
-  return { ...ws, layout, panes }
+  // Prune the pane's view-state so a closed/moved pane leaves no orphan reference (REQ-017).
+  return pruneViewState({ ...ws, layout, panes }, paneId)
+}
+
+/** Drop `paneId` from a workspace's persisted view-state: remove it from `minimized` and clear
+ *  `maximized` if it held it. Used by removePane and the cross-workspace move so no view-state
+ *  entry dangles past the pane it referenced. */
+function pruneViewState(ws: Workspace, paneId: string): Workspace {
+  let next = ws
+  if (ws.minimized?.includes(paneId)) next = { ...next, minimized: ws.minimized.filter(id => id !== paneId) }
+  if (ws.maximized === paneId) next = { ...next, maximized: null }
+  return next
+}
+
+/** The visible layout = `ws.layout` with every minimized leaf pruned so the remaining panes reflow
+ *  to fill the freed area (REQ-002). Returns `null` when every pane is minimized (the all-minimized
+ *  empty-state branch, REQ-011). Pure — the reflow source of truth the renderer feeds to <Mosaic>. */
+export function computeVisibleLayout(ws: Workspace): MosaicNode | null {
+  let layout: MosaicNode | null = ws.layout
+  if (layout === null) return null
+  for (const id of ws.minimized ?? []) {
+    if (layout === null) break
+    layout = removeLeaf(layout, id)
+  }
+  return layout
+}
+
+/** Minimize a pane: add it to `minimized` (idempotent — no duplicate) and, per the minimize↔maximize
+ *  mutual exclusion (REQ-010), clear `maximized` iff this pane held it. The pane stays in `panes` and
+ *  in `layout` — it is only pruned from the *visible* tree by computeVisibleLayout, so it remains
+ *  alive off-layout (kept-mounted). No-op (returns the same ref) on an unknown or already-minimized
+ *  pane (REQ-017).
+ *
+ *  NOTE (split-state contract, QUAL-003): this pure reducer writes `ws.minimized` on the record, but
+ *  the runtime store does NOT call it — the live minimize/maximize state is the store's per-workspace
+ *  `minimized`/`maximized` maps (store.ts `toggleMinimize`/`toggleMaximize`), folded back onto the
+ *  record only at save time (`applyViewState`). So a workspace record's `minimized`/`maximized` fields
+ *  are stale in memory between save/load. This function is the pure-reducer / unit-test surface
+ *  (mirrors the store's precedence so the two agree); it is not a store action. */
+export function minimizePane(ws: Workspace, paneId: string): Workspace {
+  if (!ws.panes[paneId]) return ws
+  const minimized = ws.minimized ?? []
+  if (minimized.includes(paneId)) return ws
+  const next: Workspace = { ...ws, minimized: [...minimized, paneId] }
+  if (ws.maximized === paneId) next.maximized = null
+  return next
+}
+
+/** Restore a minimized pane: drop it from `minimized` and re-insert it into the visible layout split
+ *  to the RIGHT of the current visible layout — `{ direction:'row', first:<prev visible>, second:paneId }`
+ *  (mirrors movePane), or as the sole leaf when the visible layout was empty (all-minimized branch).
+ *  The pane id is unchanged so its live PTY is re-adopted by the idempotent pty:spawn (REQ-006).
+ *  No-op (same ref) when the pane is unknown or not minimized (REQ-017). */
+export function restorePane(ws: Workspace, paneId: string): Workspace {
+  const minimized = ws.minimized ?? []
+  if (!ws.panes[paneId] || !minimized.includes(paneId)) return ws
+  const nextMin = minimized.filter(id => id !== paneId)
+  // Base = the visible layout with this pane removed (it may still linger in ws.layout) AND the
+  // remaining minimized panes pruned, so the restored pane lands as a clean right split.
+  let base: MosaicNode | null = ws.layout === null ? null : removeLeaf(ws.layout, paneId)
+  for (const id of nextMin) {
+    if (base === null) break
+    base = removeLeaf(base, id)
+  }
+  const layout: MosaicNode = base === null ? paneId : { direction: 'row', first: base, second: paneId }
+  return { ...ws, layout, minimized: nextMin }
 }
 
 /** Move a pane (with its config + any per-pane theme) from one workspace to another, returning
@@ -85,7 +150,9 @@ export function movePane(from: Workspace, to: Workspace, paneId: string): { from
   if (!pane) return { from, to }
   const nextFrom = removePane(from, paneId)
   const layout: MosaicNode = to.layout === null ? paneId : { direction: 'row', first: to.layout, second: paneId }
-  const nextTo: Workspace = { ...to, layout, panes: { ...to.panes, [paneId]: pane } }
+  // The moved pane lands in the destination's VISIBLE layout — clear any stale view-state for it so
+  // it is never minimized/maximized on arrival (REQ-015: avoids an unreachable mid-move pane).
+  const nextTo: Workspace = pruneViewState({ ...to, layout, panes: { ...to.panes, [paneId]: pane } }, paneId)
   return { from: nextFrom, to: nextTo }
 }
 
@@ -111,7 +178,7 @@ export function deserializeWorkspace(json: string): Workspace {
   if (typeof ws.id !== 'string' || typeof ws.panes !== 'object') {
     throw new Error('Invalid workspace file: bad shape')
   }
-  return ws
+  return normalizeViewState(ws)
 }
 
 // Future versions add cases here; v1 is identity.
@@ -119,7 +186,33 @@ function migrate(ws: Workspace, version: number): Workspace {
   if (version > SCHEMA_VERSION) {
     throw new Error(`Workspace schemaVersion ${version} is newer than supported (${SCHEMA_VERSION})`)
   }
-  return ws
+  let w = ws
+  // v6 -> v7: persisted pane view-state (minimized/maximized) was introduced. A pre-v7 record has
+  // none, so it loads with empty view-state — never an identity that leaves the fields undefined to
+  // be guessed at downstream (REQ-009: explicit, no silent data loss).
+  if (version < 7) w = { ...w, minimized: [], maximized: null }
+  return w
+}
+
+/** Normalize a workspace's persisted view-state on load: drop dangling paneId references (an entry
+ *  not present in `panes`), tolerate a malformed shape by collapsing it to empty (no throw), and
+ *  impose NO cap on the minimized list (CONV-002/CONV-003, REQ-009). Pure and total. Empty view-state
+ *  is represented by ABSENT fields (not `[]`/`null`) so a workspace with no minimized/maximized panes
+ *  round-trips byte-identical — readers treat an absent field as empty (`?? []` / `?? null`). */
+function normalizeViewState(ws: Workspace): Workspace {
+  const ids = new Set(Object.keys(ws.panes ?? {}))
+  const minimized = Array.isArray(ws.minimized)
+    ? ws.minimized.filter(id => typeof id === 'string' && ids.has(id))
+    : []
+  // REQ-010 mutual exclusion on the LOAD path: a record with the same valid pane in BOTH fields is
+  // incoherent — minimize wins (the same precedence `minimizePane` uses), so runtime and load agree
+  // and a pane is never loaded as minimized AND maximized at once (FINDING-CODEX-002 / TEST-039).
+  const maximized = typeof ws.maximized === 'string' && ids.has(ws.maximized) && !minimized.includes(ws.maximized)
+    ? ws.maximized : null
+  const next = { ...ws }
+  if (minimized.length) next.minimized = minimized; else delete next.minimized
+  if (maximized !== null) next.maximized = maximized; else delete next.maximized
+  return next
 }
 
 /** Move `fromId` to the index currently held by `toId`, returning a new array.

@@ -19,6 +19,7 @@ export type Shortcut =
   | { type: 'jump-workspace'; index: number }
   | { type: 'open-settings' }
   | { type: 'toggle-maximize-pane' }
+  | { type: 'toggle-minimize-pane' }
   | { type: 'toggle-notes' }
   | { type: 'toggle-search' }
   | { type: 'redraw-terminal' }
@@ -26,7 +27,7 @@ export type Shortcut =
 export type CommandId =
   | 'toggle-palette' | 'toggle-broadcast' | 'new-terminal' | 'close-workspace'
   | 'next-workspace' | 'prev-workspace' | 'open-settings' | 'toggle-maximize-pane'
-  | 'toggle-notes' | 'toggle-search' | 'redraw-terminal'
+  | 'toggle-minimize-pane' | 'toggle-notes' | 'toggle-search' | 'redraw-terminal'
 
 export interface Command { id: CommandId; label: string; category: string; defaultChord: Chord; tip?: string }
 
@@ -37,6 +38,7 @@ export const COMMANDS: Command[] = [
   { id: 'toggle-palette',       label: 'Command palette',    category: 'General',    defaultChord: c(true, false, 'k'),    tip: 'open the command palette' },
   { id: 'new-terminal',         label: 'New terminal pane',  category: 'Panes',      defaultChord: c(true, true, 't'),     tip: 'open a new pane' },
   { id: 'toggle-maximize-pane', label: 'Maximize pane',      category: 'Panes',      defaultChord: c(true, true, 'm'),     tip: 'maximize the focused pane' },
+  { id: 'toggle-minimize-pane', label: 'Minimize pane',      category: 'Panes',      defaultChord: c(true, true, 'h'),     tip: 'minimize the focused pane to the tray' },
   { id: 'toggle-broadcast',     label: 'Broadcast to all',   category: 'Panes',      defaultChord: c(true, true, 'enter'), tip: 'broadcast to every terminal' },
   { id: 'open-settings',        label: 'Settings',           category: 'General',    defaultChord: c(true, false, ','),    tip: 'open settings' },
   { id: 'next-workspace',       label: 'Next workspace',     category: 'Workspaces', defaultChord: c(true, false, 'tab') },
@@ -139,7 +141,7 @@ export function isValidRebind(ch: Chord): boolean {
 }
 
 /** Commands surfaced as rotating status-bar tips, in rotation order. */
-export const TIP_COMMANDS: CommandId[] = ['new-terminal', 'toggle-palette', 'open-settings', 'toggle-maximize-pane', 'toggle-broadcast']
+export const TIP_COMMANDS: CommandId[] = ['new-terminal', 'toggle-palette', 'open-settings', 'toggle-maximize-pane', 'toggle-minimize-pane', 'toggle-broadcast']
 
 /** Next rotation index (wraps; 0 for an empty list). */
 export const nextTipIndex = (i: number, len: number): number => len === 0 ? 0 : (i + 1) % len

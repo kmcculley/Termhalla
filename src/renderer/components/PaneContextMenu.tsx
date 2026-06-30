@@ -1,8 +1,9 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { useShallow } from 'zustand/react/shallow'
 import { useStore } from '../store'
 import { api } from '../api'
+import { resolveBindings, formatChord } from '@shared/keybindings'
 import { Z, SURFACE } from './Modal'
 
 /** Right-click menu for a pane's title bar: Rename, Move to workspace ▸ (other workspaces this
@@ -17,11 +18,27 @@ export function PaneContextMenu(
   const names = useStore(useShallow(s => Object.fromEntries(s.order.map(id => [id, s.workspaces[id]?.name ?? id]))))
   const openSettings = useStore(s => s.openSettings)
   const closePane = useStore(s => s.closePane)
+  const toggleMinimize = useStore(s => s.toggleMinimize)
   const moveToWorkspace = useStore(s => s.movePaneToWorkspace)
   const moveToNew = useStore(s => s.movePaneToNewWorkspace)
   const kind = useStore(s => s.workspaces[wsId]?.panes[paneId]?.config.kind)
   const recording = useStore(s => !!s.recording[paneId])
+  // CONV-005 / REQ-013: the menu item's chord derives from the keybinding registry (never a literal),
+  // mirroring PaneToolbar — so it tracks a rebind (FINDING-QUAL-002 / TEST-044). Select the STABLE
+  // `quick.keybindings` ref and resolve in render: `resolveBindings(...)[id]` returns a fresh object
+  // each call once an override exists, which as a zustand selector result loops forever (React #185).
+  const keybindings = useStore(s => s.quick.keybindings)
+  const minChord = resolveBindings(keybindings)['toggle-minimize-pane']
+  const minTitle = minChord ? `Minimize pane (${formatChord(minChord)})` : 'Minimize pane'
   const [view, setView] = useState<'root' | 'move'>('root')
+
+  // Dismiss on Escape (keyboard parity with the click-outside backdrop). Without this the menu's
+  // full-viewport backdrop stays mounted and intercepts the next click after a keyboard dismiss.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') { e.preventDefault(); onClose() } }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [onClose])
 
   // Terminals open the terminal section (name + alerts + env); editors/explorers have no terminal
   // settings, so open Appearance — the section that applies to every pane kind.
@@ -42,6 +59,8 @@ export function PaneContextMenu(
         {view === 'root' ? (
           <>
             <button data-testid="pane-menu-rename" onClick={() => { onClose(); onRename() }}>Rename</button>
+            <button data-testid="pane-menu-minimize" title={minTitle}
+              onClick={() => { toggleMinimize(wsId, paneId); onClose() }}>Minimize</button>
             {kind === 'terminal' && (
               <button data-testid="pane-menu-record"
                 onClick={() => { recording ? api.recStop(paneId) : api.recStart(paneId); onClose() }}>

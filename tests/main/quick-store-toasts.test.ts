@@ -8,8 +8,9 @@ import { SCHEMA_VERSION } from '@shared/types'
 /**
  * Feature 0001 — REQ-007 (persistence half).
  * `toastsEnabled` is an additive optional QuickStore field: it round-trips through
- * save/load, a legacy quick.json that predates it loads clean as effectively OFF, and
- * SCHEMA_VERSION is NOT bumped for it.
+ * save/load and a legacy quick.json that predates it loads clean as effectively OFF.
+ * (The toastsEnabled field itself did not bump SCHEMA_VERSION; later features may. TEST-008
+ * pins the current SCHEMA_VERSION constant value.)
  */
 let dir: string
 beforeEach(() => { dir = mkdtempSync(join(tmpdir(), 'termh-quick-toast-')) })
@@ -37,7 +38,7 @@ describe('QuickStore — toastsEnabled (additive optional)', () => {
     expect(loaded.toastsEnabled === true).toBe(false)
   })
 
-  it('TEST-008: SCHEMA_VERSION is unchanged by this additive field', () => {
-    expect(SCHEMA_VERSION).toBe(6)
+  it('TEST-008: SCHEMA_VERSION is the current persisted schema version', () => {
+    expect(SCHEMA_VERSION).toBe(7)
   })
 })

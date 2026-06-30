@@ -477,9 +477,20 @@ layout mutation, re-parent the `PaneNode` between workspaces, and let the destin
 `pty:spawn` re-adopt the still-running PTY (`pty.has`) and replay the stash. No main-side `transit`
 buffer (unlike the cross-*window* undock handoff). Editors flush their hot-exit draft (not delete it)
 while in transit; moving to a new workspace clones the source workspace's theme override (`carryTheme`).
-**Maximize** keeps every sibling mounted and uses CSS — a transient `maximized[wsId]` flag, a
-`data-max` attribute set imperatively on the tile, and `!important` rules that fill it while siblings
-get `visibility: hidden` — rather than swapping `ws.layout` to the single pane.
+**Maximize** keeps every sibling mounted and uses CSS — a `maximized[wsId]` flag, a `data-max`
+attribute set imperatively on the tile, and `!important` rules that fill it while siblings get
+`visibility: hidden` — rather than swapping `ws.layout` to the single pane.
+
+> **Update [2026-06] — minimize/restore (feature 0003):** the pane view-state (`maximized` *and* the
+> new per-workspace `minimized` list) is now **persisted** (schema `v6→v7`): it rides each
+> per-workspace record (`workspaces/<id>.json`), folded on at save (`applyViewState`) and re-derived
+> on load (`normalizeViewState`), so a maximized/minimized pane survives reload (REQ-007/008). The
+> runtime store maps (`minimized`/`maximized`) remain the live source of truth; the record's fields
+> are stale in memory between save/load and `minimize`/`maximize` are kept mutually exclusive on both
+> the runtime and load paths (minimize wins). Minimize reuses the *same-window move* plumbing AND — to
+> avoid dropping output during the unmount→remount gap — arms the main-side `transit` buffer for the
+> same window (`pty:transit-begin`), draining it on the destination's idempotent `pty:spawn`
+> re-adoption (no pane re-ownership; main still owns `windows[]`).
 **Rationale:** The same-window unmount→remount is a single synchronous React commit, so no `pty:data`
 can interleave — the main-side transit machinery the undock path needs is unnecessary here, and
 omitting it keeps the feature in one layer. Layout-swap maximize was rejected because it unmounts
@@ -490,8 +501,9 @@ inactive-workspace `visibility:hidden` pattern and leaves the layout tree (and a
 Overlays opened from inside a mosaic tile must `createPortal` to `<body>` to escape the tile's
 transform containing block (a real bug caught in review — the menu rendered under the toolbar).
 A pre-existing `WindowManager.routeToPane` crash (asserted a main window during teardown) was hardened
-in passing. `maximized`/`focusedPaneId` are transient and never serialized (`serializeWorkspace` only
-writes `{id,name,layout,panes,theme}`).
+in passing. `focusedPaneId` is transient and never serialized; the pane view-state (`minimized`/
+`maximized`) is serialized as of feature 0003 (see the 2026-06 update above) — `serializeWorkspace`
+now also writes `minimized`/`maximized` when non-empty (absent fields = empty, round-trip identical).
 
 ### [2026-06-17] CI/build/releases on GitHub Actions; auto-update from GitHub Releases
 

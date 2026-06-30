@@ -163,6 +163,13 @@ export interface Workspace {
   panes: Record<string, PaneNode>   // paneId -> pane
   theme?: Partial<Theme>
   runCommands?: RunCommand[]   // workspace-scoped saved run commands (shown on every terminal)
+  // Persisted pane view-state (SCHEMA_VERSION 7+). Holds ONLY pane id references / flags — never
+  // scrollback, output, or secrets (see no-secrets posture). `minimized` lists the panes hidden
+  // off-layout (still alive, restorable from the tray); `maximized` is the pane filling the body
+  // (null = none). Both are derived into the renderer store's per-ws maps on load and folded back
+  // onto the record on save (applyViewState) — never written to app-state from the renderer.
+  minimized?: string[]
+  maximized?: string | null
 }
 
 /** One OS window: which workspaces it hosts (tab order), its active tab, and its bounds. */
@@ -278,7 +285,7 @@ export interface SearchStats {
   oldest: number | null
 }
 
-export const SCHEMA_VERSION = 6
+export const SCHEMA_VERSION = 7
 
 /** A saved, named command a user can run on click in a terminal. Persisted (pane- or
  *  workspace-scoped). Runtime sending reuses encodeBroadcast(command, 'keys', true). */

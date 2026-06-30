@@ -34,6 +34,7 @@ const api: TermhallaApi = {
   ptyWrite: (a) => ipcRenderer.send(CH.ptyWrite, a),
   ptyResize: (a) => ipcRenderer.send(CH.ptyResize, a),
   ptyKill: (id) => ipcRenderer.send(CH.ptyKill, id),
+  ptyTransitBegin: (id) => ipcRenderer.send(CH.ptyTransitBegin, id),
   onPtyData: pushChannel<[string, string]>(CH.ptyData),
   onPtyExit: pushChannel<[string, number]>(CH.ptyExit),
   notify: (a) => ipcRenderer.send(CH.notify, a),

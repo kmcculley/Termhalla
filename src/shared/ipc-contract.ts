@@ -11,6 +11,7 @@ export const CH = {
   ptyWrite: 'pty:write',
   ptyResize: 'pty:resize',
   ptyKill: 'pty:kill',
+  ptyTransitBegin: 'pty:transit-begin',   // renderer -> main (arm the same-window minimize/restore buffer)
   ptyData: 'pty:data',     // main -> renderer event
   ptyExit: 'pty:exit',     // main -> renderer event
   ptyStatus: 'pty:status',  // main -> renderer event
@@ -97,6 +98,11 @@ export interface TermhallaApi {
   ptyWrite(args: PtyWriteArgs): void
   ptyResize(args: PtyResizeArgs): void
   ptyKill(id: string): void
+  /** Arm the main-side buffered transit for a pane that is about to unmount→remount in the SAME
+   *  window (minimize/restore). Any pane-scoped push (esp. pty:data) emitted during the gap is
+   *  buffered and replayed when the destination re-adopts the live PTY via the idempotent pty:spawn,
+   *  so no output is dropped (REQ-003 / FINDING-CODEX-001). No pane re-ownership (C5). */
+  ptyTransitBegin(paneId: string): void
   onPtyData(cb: (id: string, data: string) => void): () => void
   onPtyExit(cb: (id: string, code: number) => void): () => void
   onPtyStatus(cb: (id: string, status: TerminalStatus) => void): () => void

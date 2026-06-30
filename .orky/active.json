@@ -1,7 +1,7 @@
 {
-  "feature": ".orky/features/0002-pane-toolbar-split-control",
+  "feature": ".orky/features/0003-pane-minimize-restore",
   "projectRoot": "C:/dev/Termhalla",
-  "phase": "doc-sync",
-  "lastTickAt": "2026-06-29T23:54:20.992Z",
-  "lastAction": "gate:doc-sync"
+  "phase": "human-review",
+  "lastTickAt": "2026-06-30T14:15:14.331Z",
+  "lastAction": "await-human: final review"
 }

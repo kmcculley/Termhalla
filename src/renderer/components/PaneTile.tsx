@@ -1,4 +1,4 @@
-import { useLayoutEffect, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { MosaicWindow, type MosaicBranch } from 'react-mosaic-component'
 import { resolveAlerts } from '@shared/alerts'
 import { themeCssVarsPartial } from '@shared/theme'
@@ -14,6 +14,7 @@ import { CwdMenu } from './CwdMenu'
 import { GitPopover } from './GitPopover'
 import { RunCommandsMenu } from './RunCommandsMenu'
 import { SplitMenu } from './SplitMenu'
+import { setTileSize, clearTileSize } from './pane-geometry'
 
 export type PaneMenu = 'proc' | 'cwd' | 'schedule' | 'git' | 'run' | 'split'
 
@@ -66,6 +67,22 @@ export function PaneTile({ wsId, paneId, path }: { wsId: string; paneId: string;
     else tile.removeAttribute('data-max')
     return () => { tile.removeAttribute('data-max') }
   }, [isMax])
+
+  // Report this tile's content size so a later minimize can size the off-layout host to it (keeping
+  // the xterm grid unchanged → no avoidable ConPTY repaint — FINDING-DA-002). Skip while maximized
+  // (the tile is forced full-body by CSS; that geometry isn't the pane's normal tile size).
+  useEffect(() => {
+    const el = tileRef.current
+    if (!el) return
+    const ro = new ResizeObserver(() => {
+      if (!isMax) setTileSize(paneId, { width: el.clientWidth, height: el.clientHeight })
+    })
+    ro.observe(el)
+    // Honor the teardown contract the sibling registries model: when this tile unmounts (pane
+    // closed), drop its sizes entry so the off-layout-host geometry map doesn't leak per closed
+    // pane (FINDING-QUAL-008).
+    return () => { ro.disconnect(); clearTileSize(paneId) }
+  }, [paneId, isMax])
 
   const startRename = () => { setRenameText(pane?.config.name ?? '') ; setRenaming(true) }
   const commitRename = () => {

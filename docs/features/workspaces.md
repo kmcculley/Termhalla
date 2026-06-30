@@ -38,9 +38,14 @@ Workspaces are saved to disk and restored on the next launch: layout tree, per-p
 | `src/main/window-state.ts` | Window-bounds clamping + persistence |
 | `src/renderer/store.ts` | zustand mirror store + debounced autosave |
 | `src/renderer/App.tsx` | Tab strip + mosaic host + keep-mounted lifecycle |
-| `src/renderer/components/WorkspaceView.tsx` | react-mosaic rendering of the layout tree |
+| `src/renderer/components/WorkspaceView.tsx` | react-mosaic rendering of the (visible) layout tree + minimized hosts + tray |
 | `src/renderer/components/WorkspaceTabs.tsx` | Workspace tabs, shell picker, add-pane menu |
 | `src/renderer/components/TerminalPane.tsx` | xterm.js wired to a PTY over IPC |
+| `src/renderer/components/MinimizedPaneHost.tsx` | Off-layout, kept-mounted host for a minimized pane's body (sized to its pre-minimize tile) |
+| `src/renderer/components/MinimizedTray.tsx` | Per-workspace tray of restore chips with live status (incl. `exited`) |
+| `src/renderer/components/explorer-registry.ts` | Renderer stash bridging an Explorer's expanded-set/scroll across a minimize remount |
+| `src/renderer/components/pane-geometry.ts` | Last-known per-pane tile size, so the minimized host avoids an avoidable PTY resize |
+| `src/shared/chip-status.ts` | Pure live-status → tray-chip indicator map (REQ-005 surface) |
 
 ## Behaviors & edge cases
 
@@ -90,7 +95,42 @@ sibling panes while the maximized pane takes the full space.
 
 The store action is `toggleMaximize(wsId, paneId)` in `src/renderer/store.ts`.
 Restoring (clicking the button again or pressing Ctrl+Shift+M) returns all siblings
-to their previous layout positions.
+to their previous layout positions. Maximize view-state is **persisted** per
+workspace (it rides the workspace record), so a maximized pane stays maximized across
+a reload.
+
+### Minimize / restore
+
+A **Minimize** button (🗕) sits in every pane's title bar next to Maximize; a pane can
+also be minimized from the title-bar right-click menu or with the rebindable
+**Minimize pane** keybinding (**Ctrl+Shift+H** by default). Minimizing applies
+uniformly to Terminal, Editor, and Explorer panes.
+
+Unlike maximize (which hides siblings in place), minimizing removes the pane's leaf
+from the **visible** mosaic so the remaining panes **reflow** to fill the freed area.
+The minimized pane is **not** unmounted — its body is kept mounted off-layout
+(`MinimizedPaneHost`, `visibility: hidden`), so its PTY keeps running, output keeps
+accumulating, and xterm scrollback / Monaco models / unsaved drafts are preserved. The
+transition reuses the same-window cross-workspace move machinery (snapshot stash +
+draft flush + idempotent `pty:spawn` re-adoption) — the PTY is never torn down.
+
+Each workspace shows a per-workspace **tray** of restore chips along the bottom of the
+workspace body — one chip per minimized pane, shown only when at least one pane is
+minimized. Each chip surfaces the minimized pane's **live** status (running/idle,
+needs-input, recording, AI session) and is a real focusable, keyboard-activatable
+control; clicking or pressing Enter restores the pane, split to the right of the current
+visible layout. When **every** pane in a workspace is minimized, the body shows an
+all-minimized empty state alongside the tray (the restore home), so no pane becomes
+unreachable.
+
+Minimize and maximize are **mutually exclusive on the same pane**: minimizing a
+maximized pane clears its maximize first. Minimize view-state (the `minimized` list and
+the `maximized` id) is **persisted** per workspace with an explicit `SCHEMA_VERSION`
+6 → 7 migration; only pane id references / flags are stored — never pane content or
+secrets. The store actions are `toggleMinimize(wsId, paneId)` and
+`restorePane(wsId, paneId)` in `src/renderer/store.ts`; the pure reducers
+(`minimizePane`, `restorePane`, `computeVisibleLayout`) live in
+`src/shared/workspace-model.ts`.
 
 ### Cross-workspace move
 
@@ -138,9 +178,11 @@ Vitest (in `tests/`):
 - `tests/main/store.test.ts` — `WorkspaceStore` save/load/list workspaces, app-state round-trip, missing-workspace returns null.
 - `tests/main/window-state.test.ts` — `clampWindowState` defaults, on-screen passthrough, off-screen recenter, maximized preservation.
 - `tests/main/env.test.ts` — `sanitizeShellEnv` strips Electron vars; `tests/main/spawn-spec.test.ts` — `resolveSpawnSpec` launch-override vs. integrated paths; `tests/shared/pane-union.test.ts` — `PaneConfig` discriminated-union handling.
+- Minimize/restore (feature 0003): `tests/shared/minimize-persistence.test.ts` (schema v6→v7 migration, dangling-ref prune, malformed tolerance, load-path minimize/maximize mutual exclusion), `tests/shared/minimize-view-state.test.ts` (pure `minimizePane`/`restorePane`/`computeVisibleLayout`/`movePane` reducers), `tests/shared/chip-status.test.ts` (live-status → chip map incl. `exited`), `tests/shared/minimize-keybinding.test.ts` (`toggle-minimize-pane` command + rebind), `tests/minimize-pane-menu-style.test.ts` (portalled `pane-menu` focus/hover allow-list), `tests/docs-feature-0003.test.ts` (doc reconciliation).
 
 Playwright-for-Electron (in `tests/e2e/`):
 - `tests/e2e/smoke.spec.ts` — launch, open a terminal, type and see echoed output, split into a second tile.
+- Minimize/restore: `tests/e2e/minimize-restore.spec.ts`, `minimize-uniform.spec.ts`, `minimize-persistence.spec.ts`, `minimize-tray-status.spec.ts`, `minimize-undock.spec.ts`, and `minimize-hardening.spec.ts` (transit-gap output retention, multi-tile geometry, explorer state bridge, runtime mutual exclusion, tray click-through, context-menu chord).
 - `tests/e2e/persistence.spec.ts` — create two tiled terminals, save, relaunch with the same `--user-data-dir`, assert the 2-terminal layout restores with no empty state.
 - `tests/e2e/workspace-switch.spec.ts` — leave a marker in a terminal, create a second workspace (switching away), switch back, assert scrollback survives (regression test for the keep-mounted decision).
 - `tests/e2e/clipboard.spec.ts` — copy a selected line with Ctrl+C (asserts the system clipboard via `app.evaluate`), and paste with Ctrl+V and right-click.

@@ -105,7 +105,12 @@ thin around it. That pure core is what this baseline characterizes (see CHAR ids
   update the maps; `clearPaneRuntime` is the single cleanup site.
 - **`src/main/persistence/`** — `paths.ts` (userData locations), `store.ts` (workspaces + app-state),
   `quick-store.ts` (`normalizeQuick` sanitize), `draft-store.ts` (hot-exit buffers), `notes-store.ts`,
-  `atomic-write.ts`. `SCHEMA_VERSION` in `src/shared/types.ts` gates migrations.
+  `atomic-write.ts`. `SCHEMA_VERSION` in `src/shared/types.ts` gates migrations. *(Bumped 6 → 7 by
+  feature 0003-pane-minimize-restore, which added persisted per-workspace pane view-state —
+  `Workspace.minimized` + `Workspace.maximized`. Pane **maximize** view-state, previously transient,
+  is now persisted alongside minimize; the renderer derives the maps on load and folds them back on
+  save via `applyViewState`, never writing app-state. This is a deliberate behavior change to the
+  inferred baseline, reconciled through the tests phase.)*
 - **`src/main/window-manager.ts`** + **`-core.ts`** — multi-window / undock; main owns the `windows[]`
   arrangement, renderer syncs via `win:report`.
 

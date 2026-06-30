@@ -39,6 +39,7 @@ export function registerHandlers(services: Services, wm: WindowManager): PtyMana
     shells, recorder, envVault, scriptDir, send, indexer,
     claimPane: (id, sender) => wm.claimPane(id, sender),
     replayInto: (id) => wm.replayInto(id),
+    beginTransit: (id, sender) => wm.beginSameWindowTransit(id, sender),
     onCwd: (id, cwd) => { void git.setCwd(id, cwd) },
     onCommandDone: (id) => git.onCommandDone(id),
     onPaneGone: (id) => git.removePane(id)

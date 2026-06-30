@@ -2,6 +2,7 @@ import { useCallback, useRef } from 'react'
 import { api } from '../api'
 import { draftKey } from '@shared/editor-draft'
 import { AUTOSAVE_DEBOUNCE_MS } from '../timing'
+import { useStore } from '../store'
 import type { Tab } from './tabs'
 
 /** Owns hot-exit draft persistence for one editor pane: one debounced timer per path.
@@ -18,8 +19,10 @@ export function useEditorDrafts(paneId: string, getTab: (path: string) => Tab | 
     if (!t || t.tooLarge) return
     const key = draftKey(paneId, path)
     const value = t.model.getValue()
-    if (value === t.saved) api.draftsDelete(key)
-    else api.draftsSet(key, { content: value, baseline: t.saved })
+    // Mirror the write into the renderer store so a same-session remount (pane transit) sees the
+    // current draft, not the stale init snapshot — then persist to disk.
+    if (value === t.saved) { useStore.getState().deleteDraft(key); api.draftsDelete(key) }
+    else { const draft = { content: value, baseline: t.saved }; useStore.getState().setDraft(key, draft); api.draftsSet(key, draft) }
   }, [paneId])
 
   // Debounced persist on edit (shares the workspace autosave cadence).

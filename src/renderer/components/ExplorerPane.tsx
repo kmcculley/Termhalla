@@ -6,6 +6,7 @@ import { basename as base, relativeTo } from '@shared/paths'
 import type { DirEntry, ExplorerConfig } from '@shared/types'
 import { INDENT_PX } from '../ui-tokens'
 import { Z, SURFACE } from './Modal'
+import { registerExplorerState, unregisterExplorerState, consumeExplorerState } from './explorer-registry'
 
 export function ExplorerPane({ paneId, wsId, config }: { paneId: string; wsId: string; config: ExplorerConfig }) {
   const openFileInEditor = useStore(s => s.openFileInEditor)
@@ -17,6 +18,10 @@ export function ExplorerPane({ paneId, wsId, config }: { paneId: string; wsId: s
   const [renameText, setRenameText] = useState('')
   const [errored, setErrored] = useState<Set<string>>(new Set())
   const watchedRef = useRef<Set<string>>(new Set())
+  const containerRef = useRef<HTMLDivElement>(null)
+  const expandedRef = useRef(expanded)
+  const pendingScrollRef = useRef<number | null>(null)
+  useEffect(() => { expandedRef.current = expanded }, [expanded])
 
   const loadDir = useCallback(async (dir: string) => {
     try {
@@ -65,12 +70,38 @@ export function ExplorerPane({ paneId, wsId, config }: { paneId: string; wsId: s
     void loadDir(dir)
   }, [expanded, collapse, loadDir])
 
-  // root: load + watch on mount / when root changes
+  // root: load + watch on mount / when root changes. A minimize/restore remount rehydrates the
+  // stashed expanded set + scroll so the tree restores exactly (REQ-012 / FINDING-DA-001 — kept-
+  // mounted parity); otherwise (first mount or an actual root change, when no stash exists) reset to
+  // root-only. The stash is paneId-scoped renderer memory, set by the store just before the unmount.
   useEffect(() => {
-    setExpanded(new Set([config.root]))
-    void loadDir(config.root)
+    const stashed = consumeExplorerState(paneId)
+    if (stashed && stashed.expanded.length) {
+      setExpanded(new Set(stashed.expanded))
+      for (const dir of stashed.expanded) void loadDir(dir)
+      pendingScrollRef.current = stashed.scroll
+    } else {
+      setExpanded(new Set([config.root]))
+      void loadDir(config.root)
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [config.root])
+
+  // Expose this instance's live view-state (expanded folders + scroll) so the store can stash it
+  // before a minimize/restore unmount; expandedRef mirrors the latest state for the getter.
+  useEffect(() => {
+    registerExplorerState(paneId, () => ({ expanded: [...expandedRef.current], scroll: containerRef.current?.scrollTop ?? 0 }))
+    return () => unregisterExplorerState(paneId)
+  }, [paneId])
+
+  // After rehydrating expanded dirs, restore the stashed scroll once the tree has rendered tall
+  // enough to accept it (best-effort; runs after each render until the scrollTop sticks).
+  useEffect(() => {
+    const el = containerRef.current
+    if (pendingScrollRef.current == null || !el) return
+    el.scrollTop = pendingScrollRef.current
+    if (el.scrollTop === pendingScrollRef.current || el.scrollTop >= el.scrollHeight - el.clientHeight) pendingScrollRef.current = null
+  })
 
   // live updates
   useEffect(() => {
@@ -116,7 +147,7 @@ export function ExplorerPane({ paneId, wsId, config }: { paneId: string; wsId: s
   }
 
   return (
-    <div data-testid={`explorer-${paneId}`} style={{ height: '100%', overflow: 'auto', background: 'var(--elevated, #252526)', fontFamily: 'var(--mono)', fontSize: 13 }}>
+    <div ref={containerRef} data-testid={`explorer-${paneId}`} style={{ height: '100%', overflow: 'auto', background: 'var(--elevated, #252526)', fontFamily: 'var(--mono)', fontSize: 13 }}>
       <div style={{ padding: '4px 6px', color: 'var(--fg-dim, #aaa)' }}>{base(config.root)}</div>
       {renderDir(config.root, 0)}
       {menu && (
