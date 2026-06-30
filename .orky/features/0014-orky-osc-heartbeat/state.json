@@ -1,6 +1,6 @@
 {
   "feature": "0014-orky-osc-heartbeat",
-  "phase": "spec",
+  "phase": "review",
   "gates": {
     "brainstorm": {
       "passed": true,
@@ -16,6 +16,85 @@
           "token": "findings",
           "pass": true,
           "evidence": "no open blocking findings (CRITICAL/HIGH or contract-violation) for this gate"
+        }
+      ]
+    },
+    "plan": {
+      "passed": true,
+      "at": "2026-06-30T21:28:36.504Z",
+      "tokens": [
+        {
+          "token": "spec-freeze",
+          "pass": true,
+          "evidence": "spec unchanged since the spec gate"
+        },
+        {
+          "token": "traceability-plan",
+          "pass": true,
+          "evidence": "all 17 REQ(s) trace to TASK"
+        },
+        {
+          "token": "findings",
+          "pass": true,
+          "evidence": "no open blocking findings (CRITICAL/HIGH or contract-violation) for this gate"
+        }
+      ]
+    },
+    "tests": {
+      "passed": true,
+      "at": "2026-06-30T21:40:32.757Z",
+      "tokens": [
+        {
+          "token": "spec-freeze",
+          "pass": true,
+          "evidence": "spec unchanged since the spec gate"
+        },
+        {
+          "token": "tests-red",
+          "pass": true,
+          "evidence": "tests are RED (exit 1) — freeze snapshot captured"
+        }
+      ]
+    },
+    "implement": {
+      "passed": true,
+      "at": "2026-06-30T22:45:34.404Z",
+      "tokens": [
+        {
+          "token": "spec-freeze",
+          "pass": true,
+          "evidence": "spec unchanged since the spec gate"
+        },
+        {
+          "token": "build",
+          "pass": true,
+          "evidence": "build exited 0"
+        },
+        {
+          "token": "test",
+          "pass": true,
+          "evidence": "test exited 0"
+        },
+        {
+          "token": "test-freeze",
+          "pass": true,
+          "evidence": "test files unchanged since freeze"
+        }
+      ]
+    },
+    "review": {
+      "passed": false,
+      "at": "2026-06-30T23:00:49.200Z",
+      "tokens": [
+        {
+          "token": "spec-freeze",
+          "pass": true,
+          "evidence": "spec unchanged since the spec gate"
+        },
+        {
+          "token": "findings",
+          "pass": false,
+          "evidence": "1 open blocking finding(s): FINDING-DA-004(contract)"
         }
       ]
     }
@@ -34,6 +113,15 @@
       "at": "2026-06-30T20:42:00.442Z",
       "decision": "Approved with updated ground truth: Orky has shipped real OSC heartbeat emission (ADR-026) with an authoritative wire contract superseding this feature's placeholder. REAL CONTRACT: introducer ESC ] (0x1b 0x5d), code 9999 (NOT this feature's invented 8888), single ; separator after the code (parser splits on FIRST ; only), payload = single-line compact JSON object (NOT semicolon-delimited key=value pairs), terminator BEL 0x07 (parser MUST accept BEL, MAY additionally accept ST for robustness; Orky only ever sends BEL). Payload schema v1: {v:int always; feature?:string; phase?:string|null; gate?:string N/M of 8 work-phase gates; needsHuman?:boolean; reason?:string only when needsHuman; action?:string|null only when no feature resolvable}. Emitted via gatekeeper CLI 'osc-heartbeat' subcommand, opt-in via config.heartbeat.osc, best-effort/never-throws/writes-nothing. Loop back to SPEC (not just plan/tests/implement) to: (1) replace the OSC contract section with this real documented one verbatim, citing Orky ADR-026, (2) keep FINDING-SEC-001's fix as a binding REQ -- explicit bounded ceiling on the no-terminator carry-over path in the parser, not reliance on scanOsc's unbounded carry-over, (3) keep FINDING-CODEX-001's fix as a binding REQ -- the payload size/charset cap must be validated correctly (byte-accurate, not JS string .length used loosely) for whatever the new JSON-payload validation path looks like. Re-flow plan/tests/implement/review against the corrected contract.",
       "resolvedAt": "2026-06-30T21:03:47.818Z"
+    },
+    {
+      "id": "ESC-002",
+      "phase": "review",
+      "reason": "Review gate blocked by 1 open contract-violation finding (HIGH, escalation_threshold per config): FINDING-DA-004 -- src/shared/orky-status.ts's heartbeatKind() derives kind='done' only when hb.phase==null && hb.gateN>=hb.gateM (matching the FROZEN 02-spec.md REQ-009 acceptance criteria verbatim, which the implementation correctly satisfies). But this was independently verified by the orchestrator directly against the REAL Orky emitter source (C:/dev/Orky/plugin/gatekeeper/gatekeeper.js:904, oscHeartbeat()): phase: state.phase || d.phase || null. Per this repo's own CLAUDE.md gotcha ('Orky status reads active.json.phase + gate topology -- NEVER state.json.phase ... completed features terminate at state.json.phase === doc-sync with human-review recorded only as an external gate'), a genuinely COMPLETE feature's state.json.phase is the truthy string 'doc-sync', never null/unset -- so the real emitter sends {phase:\"doc-sync\", gate:\"8/8\", needsHuman:false} for a fully complete feature, NEVER {phase:null}. heartbeatKind's done-branch can therefore never fire against real Orky output: a bare-SSH pane streaming a completed feature's heartbeat renders 'busy' forever, never 'done' -- defeating a core scenario this feature exists for. The defect is in the FROZEN SPEC itself (REQ-009's phase-null-based done-derivation vs. ADR-026/the real emitter's actual state.phase||d.phase||null formula), not the implementation, which correctly implements what REQ-009 says. RECOMMENDATION (not a self-resolution -- reported for human go/no-go per escalation_threshold:HIGH): loopback to spec to correct REQ-009's done-derivation to be gate-based (gateN>=gateM) regardless of phase value -- mirroring 0004's actual gate-based isComplete (f.gates['human-review']?.passed===true) rather than 0004's LOCAL phase-null gateFrontier convention, which is a Termhalla-side computation never carried on the wire -- then re-flow plan/tests/implement/review with a corrected REQ-009 acceptance fixture reflecting the real emitter's phase:'doc-sync',gate:'8/8' shape for a complete feature instead of the current literal-null fixture. Five review lenses (security, quality, devils-advocate, determinism, doc-drift) ran in full; all other findings are MEDIUM/LOW/non-blocking and recorded in findings.json (notably FINDING-SEC-001 and FINDING-CODEX-001, the two findings carried forward from the prior ESC-001 loopback as binding REQ-006/REQ-007, are independently VERIFIED CORRECTLY IMPLEMENTED by the security lens with file:line evidence -- not part of this escalation).",
+      "kind": "judgment",
+      "finding": "FINDING-DA-004",
+      "status": "open",
+      "at": "2026-06-30T23:01:13.170Z"
     }
   ],
   "concerns": [
@@ -47,7 +135,7 @@
     "plan": 0,
     "tests": 0,
     "implement": 0,
-    "review": 1
+    "review": 2
   },
   "traceability": {
     "testIds": [
@@ -113,8 +201,8 @@
       "codex:codex-rescue"
     ],
     "winner": "orky:implementer",
-    "reason": "A/B per router (determinism concern). Codex candidate B (isolated worktree .claude/worktrees/orky-0014-codex-candidate) was blocked entirely by the codex-companion sandbox, which only permits writes to the original worktree (agent-ab11ac825d6caf9fc) -- it made zero changes (apply_patch + direct write probe both denied). Claude candidate A (orky:implementer) fully implemented the feature: implement gate passed (build/test/test-freeze green, 119 files / 797 tests, no frozen test touched). Winner by default since B never produced a comparable artifact.",
-    "at": "2026-06-30T20:29:28.193Z"
+    "reason": "Router selected A/B mode again (determinism concern), same as the prior cycle. Skipped re-running codex:codex-rescue: this exact feature's immediately prior cycle (recorded in state.json, 2026-06-30T20:29:28) already proved the codex-companion sandbox denies all writes outside the original worktree, so candidate B made zero changes there. Re-running that ~600s experiment under identical conditions (same feature, same worktree) would almost certainly reproduce the identical block, so per orchestrator instruction to treat a non-returning/unavailable codex path as skippable with reason recorded, candidate B was not re-dispatched this cycle. Claude candidate A (orky:implementer) fully implemented the ADR-026 contract (code 9999, JSON payload): build + full test suite green (792/794, the 2 failures are pre-existing environment debris unrelated to this feature, confirmed via git stash reproduction), no frozen test file modified. Winner by default/by merit.",
+    "at": "2026-06-30T21:53:53.461Z"
   },
   "loopbacks": [
     {

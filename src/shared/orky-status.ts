@@ -332,64 +332,80 @@ export function orkyPaneStatus(features: OrkyFeatureStatus[] | undefined | null)
 // PTY marker (`src/main/status/orky-osc-parser.ts`'s `OrkyOscParser`/`decodeHeartbeat`) rather than
 // from a filesystem `.orky/` read. These functions add no new presentation: they build ONE
 // `OrkyFeatureStatus` from the already-validated heartbeat and delegate to the EXISTING
-// `orkyPaneStatus` roll-up above (REQ-006) — the chip label, `inPopover` filter, chip-kind mapping,
+// `orkyPaneStatus` roll-up above (REQ-009) — the chip label, `inPopover` filter, chip-kind mapping,
 // and empty/cleared shape are byte-for-byte the same logic 0004 uses for every other source.
+//
+// Wire shape per Orky ADR-026 (REQ-009/REQ-012): the JSON payload carries `feature`/`phase`/`gate`
+// ("N/M")/`needsHuman`/`reason`/`action` only — NOT `kind`/`openBlocking`/`failed`. Those three are
+// Termhalla-side DERIVATIONS/DEFAULTS, never read off the wire:
+//   - `kind` is derived from `needsHuman`/`phase`/`gateN`/`gateM` (`needsHuman` -> `needs-input`;
+//     else a complete feature (`phase` null AND `gateN >= gateM`) -> `done`; else `busy` — the
+//     presence of a per-feature heartbeat means the run is actively ticking, so the fallback is
+//     never `idle`).
+//   - `openBlocking` defaults to `0` (the label simply omits the `· ●k open` suffix).
+//   - `failed` defaults to `false` (the wire carries no halted-gate signal).
+// A feature-less (app-loop) heartbeat (`hb.feature === null`) maps to the SAME cleared/empty shape
+// `orkyPaneStatus([])` already produces — never a fabricated chip from `hb.action` (REQ-011).
 
-/** Actionable `detail` (REQ-007/CONV-001) — always names the feature and a concrete reason, mirroring
- *  `orkyFeatureStatus`'s phrasing above (`phase` here is the ALREADY-MAPPED live phase — `null` for
- *  `done`, same convention as that function's `livePhase`). Priority mirrors it too: a structured
- *  needs-you `reason` first, then a halted-gate failure, then "busy", then a phase-naming fallback —
- *  NEVER a bare `"needs input"`/`"error"`. */
-function heartbeatDetail(hb: OrkyHeartbeat, phase: OrkyPhase | null): string {
-  if (hb.reason === 'human-review') {
-    return `${hb.feature}: awaiting human-review (gates ${hb.gateN}/${hb.gateM}) — needs you`
-  }
-  if (hb.reason === 'escalation') {
-    return `${hb.feature}: open escalation — needs you`
-  }
-  if (hb.reason === 'stalled') {
-    return `${hb.feature}: stalled — no heartbeat — needs you`
-  }
-  if (hb.failed) {
-    return `${hb.feature}: ${phase ?? 'gate'} gate failed`
-  }
-  if (hb.kind === 'busy') {
-    return `${hb.feature}: ${phase ?? 'running'} in progress`
-  }
-  if (hb.kind === 'done') {
-    return `${hb.feature}: pipeline complete`
-  }
-  return `${hb.feature}: ${phase ?? 'idle'}`
+/** Derive `kind` from the wire's carried signal — `needsHuman`/`phase`/`gateN`/`gateM` — exactly
+ *  REQ-009's acceptance-defined derivation. Never re-derives Orky's own gate-counting logic. */
+function heartbeatKind(hb: OrkyHeartbeat): OrkyKind {
+  if (hb.needsHuman === true) return 'needs-input'
+  if (hb.phase == null && hb.gateN >= hb.gateM) return 'done'
+  return 'busy'
 }
 
-/** Build the wire `OrkyFeatureStatus` directly from the ALREADY-VALIDATED heartbeat fields — no
- *  re-derivation (`kind`/`gateN`/`gateM`/`openBlocking`/`needsHuman`/`failed`/`reason` map 1:1 from
- *  `hb`). `phase:'done'` maps to `null`, the SAME "complete" convention `gateFrontier`/
- *  `orkyFeatureStatus` already use, so `chipLabel`'s `f.phase ?? 'done'` guard renders identically
- *  (no literal `"done"`/`"null"` chip bug — FINDING-DA-007 guard, REQ-006). Total + pure: no clock,
- *  no I/O. `lastActivityAt` is not carried by the heartbeat (Orky derives it on its side) — `0` is a
- *  deterministic placeholder that only matters for ranking AMONG multiple features, and a single
+/** Actionable `detail` (REQ-010/CONV-001) — always names the feature and a concrete reason, mirroring
+ *  `orkyFeatureStatus`'s phrasing above (`phase` here is `hb.phase` verbatim — `null` renders as
+ *  `'done'`, same `?? 'done'` convention `chipLabel`/`gateFrontier` already use, FINDING-DA-007
+ *  guard). `reason` is now free-form prose straight from Orky (REQ-004) — not a closed enum — so the
+ *  priority is simply "needsHuman with a reason" > "needsHuman with no reason" > phase-naming
+ *  fallback (busy/complete), never a bare `"needs input"`/`"error"`. */
+function heartbeatDetail(hb: OrkyHeartbeat, kind: OrkyKind): string {
+  if (hb.needsHuman === true && hb.reason) {
+    return `${hb.feature}: ${hb.reason}`
+  }
+  if (hb.needsHuman === true) {
+    return `${hb.feature}: needs a human`
+  }
+  if (kind === 'done') {
+    return `${hb.feature}: pipeline complete`
+  }
+  return `${hb.feature}: ${hb.phase ?? 'done'} in progress`
+}
+
+/** Build the wire `OrkyFeatureStatus` from the ALREADY-VALIDATED heartbeat fields (REQ-009): `phase`/
+ *  `gateN`/`gateM`/`needsHuman` map 1:1 from `hb`; `kind` is DERIVED (`heartbeatKind`, never carried);
+ *  `openBlocking`/`failed` default deterministically (the wire does not carry them); `reason` is set
+ *  to `null` for `OrkyFeatureStatus` purposes — that field is typed to the closed `OrkyReason` union
+ *  (the FILESYSTEM/0004 path's vocabulary) and `hb.reason` is free-form prose, not a member of that
+ *  union, so it is never coerced into it; the actionable free-form text lives entirely in `detail`
+ *  (REQ-010). Total + pure: no clock, no I/O. `lastActivityAt = 0` — heartbeats aren't ranked against
+ *  each other across multiple simultaneous panes the way the filesystem roll-up is, and a single
  *  heartbeat always maps to a roll-up of exactly one feature. */
 export function heartbeatToFeatureStatus(hb: OrkyHeartbeat): OrkyFeatureStatus {
-  const phase = hb.phase === 'done' ? null : hb.phase
+  const kind = heartbeatKind(hb)
   return {
-    feature: hb.feature,
-    kind: hb.kind,
-    phase,
+    feature: hb.feature ?? '(unknown)',
+    kind,
+    phase: hb.phase as OrkyPhase | null,
     gateN: hb.gateN,
     gateM: hb.gateM,
-    openBlocking: hb.openBlocking,
+    openBlocking: 0,
     needsHuman: hb.needsHuman,
-    failed: hb.failed,
-    reason: hb.reason,
+    failed: false,
+    reason: null,
     lastActivityAt: 0,
-    detail: heartbeatDetail(hb, phase)
+    detail: heartbeatDetail(hb, kind)
   }
 }
 
 /** Map ONE decoded heartbeat to the SAME `OrkyPaneStatus` shape feature 0004 renders, by building a
- *  single `OrkyFeatureStatus` and delegating to `orkyPaneStatus([fs])`. Total + pure (REQ-006/007). */
+ *  single `OrkyFeatureStatus` and delegating to `orkyPaneStatus([fs])`. Total + pure (REQ-009/REQ-010).
+ *  A feature-less (app-loop) heartbeat maps to the cleared/empty pane status (REQ-011) — never a
+ *  fabricated chip from `hb.action`. */
 export function orkyHeartbeatToPaneStatus(hb: OrkyHeartbeat): OrkyPaneStatus {
+  if (hb.feature === null) return orkyPaneStatus([])
   return orkyPaneStatus([heartbeatToFeatureStatus(hb)])
 }
 

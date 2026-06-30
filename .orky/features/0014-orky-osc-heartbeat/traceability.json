@@ -1,85 +1,227 @@
 {
   "REQ-001": {
-    "tasks": ["TASK-001"],
-    "tests": ["TEST-001", "TEST-002", "TEST-003"],
-    "files": ["src/main/status/orky-osc-parser.ts"]
+    "tasks": [
+      "TASK-001"
+    ],
+    "tests": [
+      "TEST-001",
+      "TEST-002",
+      "TEST-003",
+      "TEST-004"
+    ],
+    "files": [
+      "src/main/status/orky-osc-parser.ts"
+    ]
   },
   "REQ-002": {
-    "tasks": ["TASK-001"],
-    "tests": ["TEST-022", "TEST-023"],
-    "files": ["src/main/status/orky-osc-parser.ts", "src/main/status/osc-scanner.ts"]
+    "tasks": [
+      "TASK-001"
+    ],
+    "tests": [
+      "TEST-005",
+      "TEST-006"
+    ],
+    "files": [
+      "src/main/status/orky-osc-parser.ts",
+      "src/main/status/osc-scanner.ts"
+    ]
   },
   "REQ-003": {
-    "tasks": ["TASK-001"],
-    "tests": ["TEST-004", "TEST-005"],
-    "files": ["src/main/status/orky-osc-parser.ts", "src/main/status/osc-scanner.ts"]
+    "tasks": [
+      "TASK-001",
+      "TASK-002"
+    ],
+    "tests": [
+      "TEST-007",
+      "TEST-008"
+    ],
+    "files": [
+      "src/main/status/orky-osc-parser.ts"
+    ]
   },
   "REQ-004": {
-    "tasks": ["TASK-002"],
-    "tests": [
-      "TEST-006", "TEST-007", "TEST-008", "TEST-009", "TEST-010", "TEST-011",
-      "TEST-012", "TEST-013", "TEST-014", "TEST-015", "TEST-016", "TEST-024"
+    "tasks": [
+      "TASK-004"
     ],
-    "files": ["src/main/status/orky-osc-parser.ts"]
+    "tests": [
+      "TEST-009",
+      "TEST-010"
+    ],
+    "files": [
+      "src/main/status/orky-osc-parser.ts"
+    ]
   },
   "REQ-005": {
-    "tasks": ["TASK-003"],
-    "tests": ["TEST-017", "TEST-018", "TEST-019", "TEST-020", "TEST-021"],
-    "files": ["src/main/status/orky-osc-parser.ts"]
+    "tasks": [
+      "TASK-004"
+    ],
+    "tests": [
+      "TEST-011",
+      "TEST-012",
+      "TEST-013"
+    ],
+    "files": [
+      "src/main/status/orky-osc-parser.ts"
+    ]
   },
   "REQ-006": {
-    "tasks": ["TASK-004"],
-    "tests": ["TEST-032", "TEST-033", "TEST-034", "TEST-035", "TEST-036"],
-    "files": ["src/shared/orky-status.ts"]
+    "tasks": [
+      "TASK-002"
+    ],
+    "tests": [
+      "TEST-014",
+      "TEST-015"
+    ],
+    "files": [
+      "src/main/status/orky-osc-parser.ts"
+    ]
   },
   "REQ-007": {
-    "tasks": ["TASK-004"],
-    "tests": ["TEST-037", "TEST-038", "TEST-039"],
-    "files": ["src/shared/orky-status.ts"]
+    "tasks": [
+      "TASK-003"
+    ],
+    "tests": [
+      "TEST-016",
+      "TEST-017"
+    ],
+    "files": [
+      "src/main/status/orky-osc-parser.ts"
+    ]
   },
   "REQ-008": {
-    "tasks": ["TASK-006", "TASK-007", "TASK-008"],
-    "tests": ["TEST-025", "TEST-026"],
+    "tasks": [
+      "TASK-004"
+    ],
+    "tests": [
+      "TEST-018",
+      "TEST-019",
+      "TEST-020",
+      "TEST-021",
+      "TEST-022"
+    ],
     "files": [
-      "src/main/status/status-engine.ts",
-      "src/main/orky/orky-stream-status.ts",
-      "src/main/ipc/register-pty.ts",
-      "src/main/ipc/register-orky.ts",
-      "src/main/services.ts"
+      "src/main/status/orky-osc-parser.ts"
     ]
   },
   "REQ-009": {
-    "tasks": ["TASK-005", "TASK-007", "TASK-008"],
-    "tests": ["TEST-027", "TEST-028", "TEST-040", "TEST-041", "TEST-042"],
+    "tasks": [
+      "TASK-005"
+    ],
+    "tests": [
+      "TEST-023",
+      "TEST-024",
+      "TEST-025"
+    ],
     "files": [
-      "src/shared/orky-status.ts",
-      "src/main/orky/orky-stream-status.ts",
-      "src/main/ipc/register-orky.ts",
-      "src/main/orky/orky-tracker.ts"
+      "src/shared/orky-status.ts"
     ]
   },
   "REQ-010": {
-    "tasks": ["TASK-009"],
-    "tests": ["TEST-029"],
-    "files": ["tests/fixtures/orky-osc-fixtures.ts"]
+    "tasks": [
+      "TASK-005"
+    ],
+    "tests": [
+      "TEST-026",
+      "TEST-027",
+      "TEST-028"
+    ],
+    "files": [
+      "src/shared/orky-status.ts"
+    ]
   },
   "REQ-011": {
-    "tasks": ["TASK-010"],
-    "tests": [],
-    "files": ["docs/features/orky-osc-heartbeat.md"]
-  },
-  "REQ-012": {
-    "tasks": ["TASK-010"],
-    "tests": [],
-    "files": ["docs/features/orky-osc-heartbeat.md", "CLAUDE.md", "CHANGELOG.md"]
-  },
-  "REQ-013": {
-    "tasks": ["TASK-001", "TASK-006", "TASK-008"],
-    "tests": ["TEST-030", "TEST-031"],
+    "tasks": [
+      "TASK-004",
+      "TASK-005"
+    ],
+    "tests": [
+      "TEST-029",
+      "TEST-030"
+    ],
     "files": [
       "src/main/status/orky-osc-parser.ts",
+      "src/shared/orky-status.ts"
+    ]
+  },
+  "REQ-012": {
+    "tasks": [
+      "TASK-001",
+      "TASK-005"
+    ],
+    "tests": [
+      "TEST-031"
+    ],
+    "files": [
+      "src/main/status/orky-osc-parser.ts",
+      "src/shared/types.ts",
+      "src/shared/orky-status.ts"
+    ]
+  },
+  "REQ-013": {
+    "tasks": [
+      "TASK-007"
+    ],
+    "tests": [
+      "TEST-032",
+      "TEST-033",
+      "TEST-034",
+      "TEST-035",
+      "TEST-036"
+    ],
+    "files": [
       "src/main/status/status-engine.ts",
-      "src/main/orky/orky-stream-status.ts"
+      "src/main/orky/orky-stream-status.ts",
+      "src/main/ipc/register.ts",
+      "src/main/orky/orky-tracker.ts",
+      "src/shared/orky-status.ts"
+    ]
+  },
+  "REQ-014": {
+    "tasks": [
+      "TASK-006"
+    ],
+    "tests": [
+      "TEST-037"
+    ],
+    "files": [
+      "tests/fixtures/orky-osc-fixtures.ts"
+    ]
+  },
+  "REQ-015": {
+    "tasks": [
+      "TASK-008"
+    ],
+    "tests": [],
+    "files": [
+      "docs/features/orky-osc-heartbeat.md"
+    ]
+  },
+  "REQ-016": {
+    "tasks": [
+      "TASK-008"
+    ],
+    "tests": [],
+    "files": [
+      "docs/features/orky-osc-heartbeat.md",
+      "CLAUDE.md",
+      "CHANGELOG.md"
+    ]
+  },
+  "REQ-017": {
+    "tasks": [
+      "TASK-001",
+      "TASK-005",
+      "TASK-008"
+    ],
+    "tests": [
+      "TEST-038",
+      "TEST-039"
+    ],
+    "files": [
+      "src/main/status/orky-osc-parser.ts",
+      "src/shared/orky-status.ts",
+      "src/shared/types.ts",
+      "docs/features/orky-osc-heartbeat.md"
     ]
   }
 }

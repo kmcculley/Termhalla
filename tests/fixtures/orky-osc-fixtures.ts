@@ -1,72 +1,104 @@
-// Synthetic/golden OSC byte fixtures for feature 0014-orky-osc-heartbeat (TASK-009 / REQ-010).
+// Synthetic/golden OSC byte fixtures for feature 0014-orky-osc-heartbeat (REQ-014).
+//
+// REWRITTEN against the REAL, shipped wire contract — Orky ADR-026 (introducer `\x1b]`, code `9999`,
+// single `;` separator, single-line compact JSON payload, BEL terminator, MAY also accept ST) — which
+// supersedes this feature's earlier, now-superseded placeholder (OSC `8888`, `;`-delimited key=value
+// body, see ESC-001 in `state.json`). ALL bytes below are reproduced from `orky-adr-026-osc-heartbeat.md`
+// / `02-spec.md`'s "OSC marker CONTRACT" section, never re-derived.
 //
 // PURE byte-string builders only — this file performs NO process/network/filesystem access, and must
-// never gain any (REQ-010: every 0014 test constructs its marker bytes itself; zero live-Orky
+// never gain any (REQ-014: every 0014 test constructs its marker bytes itself; zero live-Orky
 // dependency). It deliberately does NOT import anything from `src/main/status/orky-osc-parser.ts` (the
-// not-yet-implemented module under test) — the contract bytes below are reproduced independently, as a
-// true "golden" fixture, so every phase-4 test file can build OSC marker bytes from the SAME source
-// without coupling to the implementation.
-//
-// The 12-byte prefix + body grammar are copied byte-for-byte from `02-spec.md`'s "OSC marker CONTRACT"
-// section (REQ-001/REQ-012).
+// not-yet-implemented module under test) — the contract prefix/terminator bytes below are reproduced
+// independently, as a true "golden" fixture, so every phase-4 test file can build OSC marker bytes from
+// the SAME source without coupling to the implementation. (The one exception is `ORKY_PHASES` from
+// `@shared/orky-status` — that module is PRE-EXISTING, Electron-free, pure shared code from feature 0004,
+// not part of this not-yet-implemented feature, so importing it to compute the app-loop heartbeat's
+// default `gateM` does not violate the "independent of the implementation" intent.)
 
-/** The 12-byte contract prefix (REQ-001), reproduced here independently of the implementation. */
-export const ORKY_OSC = '\x1b]8888;orky='
-const BEL = '\x07'
-const ST = '\x1b\\'
+import { ORKY_PHASES } from '@shared/orky-status'
 
-export type OrkyMarkerKey = 'v' | 'f' | 'k' | 'ph' | 'g' | 'm' | 'o' | 'h' | 'x' | 'r'
-export type OrkyMarkerFields = Partial<Record<OrkyMarkerKey, string>>
+/** The ADR-026 contract prefix (REQ-001): introducer `\x1b]` + code `9999` + the single `;` separator.
+ *  `scanOsc`'s literal prefix match on this string is what implements "split on the FIRST `;` only" —
+ *  everything after it, up to the terminator, is the opaque JSON payload (the payload may itself contain
+ *  `;` characters, e.g. inside a `reason` string). Reproduced here independently of the implementation. */
+export const ORKY_OSC = '\x1b]9999;'
 
-/** Wrap an already-formed raw body string in the ORKY_OSC prefix + chosen terminator. The lowest-level
- *  builder — used for malformed/edge-case bodies (oversized, >32 pairs, garbage text, missing the
- *  prefix's required `orky=` sub-tag, etc.) that the typed builders below cannot express. */
-export function wrapOrkyBody(body: string, terminator: 'BEL' | 'ST' = 'BEL'): string {
-  return `${ORKY_OSC}${body}${terminator === 'BEL' ? BEL : ST}`
+export const BEL = '\x07'
+export const ST = '\x1b\\'
+
+/** Wrap an already-formed raw payload string (JSON or deliberately-not-JSON, for malformed/edge-case
+ *  fixtures) in the ORKY_OSC prefix + chosen terminator. The lowest-level builder. */
+export function wrapOrkyPayload(rawPayload: string, terminator: 'BEL' | 'ST' = 'BEL'): string {
+  return `${ORKY_OSC}${rawPayload}${terminator === 'BEL' ? BEL : ST}`
 }
 
-/** Join arbitrary key/value pairs (insertion order preserved) into a `;`-delimited body and wrap it.
- *  Unlike `buildOrkyMarker`, this is NOT restricted to the known grammar keys — it also accepts unknown
- *  keys (e.g. `z`) and lets a caller omit any "required" key, for grammar-violation fixtures (REQ-004). */
-export function buildOrkyMarkerFromPairs(
-  fields: Record<string, string | undefined>,
-  terminator: 'BEL' | 'ST' = 'BEL'
-): string {
-  const body = Object.entries(fields)
-    .filter((e): e is [string, string] => e[1] !== undefined)
-    .map(([k, v]) => `${k}=${v}`)
-    .join(';')
-  return wrapOrkyBody(body, terminator)
+/** Build a well-formed marker from a JS value via `JSON.stringify` (ADR-026's "single-line compact JSON
+ *  object" payload), BEL- or ST-terminated. The common-path builder for valid markers. */
+export function buildOrkyMarker(payload: unknown, terminator: 'BEL' | 'ST' = 'BEL'): string {
+  return wrapOrkyPayload(JSON.stringify(payload), terminator)
 }
 
-/** Join the contract's known `key=value` pairs (insertion order preserved) into a marker, BEL- or
- *  ST-terminated. The common-path builder for well-formed markers (TASK-009's specified signature). */
-export function buildOrkyMarker(fields: OrkyMarkerFields, terminator: 'BEL' | 'ST' = 'BEL'): string {
-  return buildOrkyMarkerFromPairs(fields as Record<string, string | undefined>, terminator)
+// ── Malformed / edge-case payload builders (REQ-005/REQ-008) ───────────────────────────────────────
+/** A payload that is not valid JSON at all (REQ-008's "malformed JSON" acceptance). */
+export const MALFORMED_JSON_MARKER = wrapOrkyPayload('not json')
+
+/** A payload that IS valid JSON but not an object (array/string/number/boolean/null — REQ-008's
+ *  "non-object JSON payload" acceptance). One marker per JSON primitive kind. */
+export const NON_OBJECT_JSON_MARKERS: Record<string, string> = {
+  array: buildOrkyMarker([1, 2, 3]),
+  string: buildOrkyMarker('just a string'),
+  number: buildOrkyMarker(42),
+  boolean: buildOrkyMarker(true),
+  null: buildOrkyMarker(null)
 }
 
-/** The spec's worked-example field set (02-spec.md "Worked example"), in the exact key order shown
- *  there. `buildOrkyMarker(WORKED_EXAMPLE_FIELDS)` MUST reproduce `WORKED_EXAMPLE_MARKER` byte-for-byte
- *  (asserted by TEST-001 in tests/main/orky-osc-parser.test.ts, which catches drift between the two). */
-export const WORKED_EXAMPLE_FIELDS: OrkyMarkerFields = {
-  v: '1', f: 'auth-login', k: 'busy', ph: 'implement', g: '5', m: '8', o: '2', h: '0', x: '0'
+/** An empty payload (REQ-008's "empty payload" acceptance). */
+export const EMPTY_PAYLOAD_MARKER = wrapOrkyPayload('')
+
+// ── Worked examples (ADR-026 / 02-spec.md, reproduced byte-for-byte) ───────────────────────────────
+/** The minimal app-loop tick — no resolvable feature, carries `action` instead (REQ-011). */
+export const APP_LOOP_PAYLOAD = { v: 1, action: 'app-loop' } as const
+export const APP_LOOP_MARKER = buildOrkyMarker(APP_LOOP_PAYLOAD)
+/** Verbatim byte string from ADR-026 / 02-spec.md — catches drift between the hand-copied literal and
+ *  the builder above (both independently reproduced from the spec). */
+export const APP_LOOP_MARKER_LITERAL = '\x1b]9999;{"v":1,"action":"app-loop"}\x07'
+export const APP_LOOP_HEARTBEAT = {
+  feature: null, phase: null, gateN: 0, gateM: ORKY_PHASES.length, needsHuman: false, reason: null, action: 'app-loop'
 }
 
-/** The exact worked-example marker bytes (BEL-terminated), copied byte-for-byte from 02-spec.md's
- *  "Worked example" section (REQ-001 acceptance). */
-export const WORKED_EXAMPLE_MARKER =
-  '\x1b]8888;orky=v=1;f=auth-login;k=busy;ph=implement;g=5;m=8;o=2;h=0;x=0\x07'
+/** A feature awaiting human review (ADR-026 / 02-spec.md's other worked example). */
+export const AWAITING_HUMAN_PAYLOAD = {
+  v: 1,
+  feature: '0004-orky-status-awareness',
+  phase: 'human-review',
+  gate: '7/8',
+  needsHuman: true,
+  reason: 'human-review is a human gate'
+} as const
+export const AWAITING_HUMAN_MARKER = buildOrkyMarker(AWAITING_HUMAN_PAYLOAD)
+/** Verbatim byte string from ADR-026 / 02-spec.md. */
+export const AWAITING_HUMAN_MARKER_LITERAL =
+  '\x1b]9999;{"v":1,"feature":"0004-orky-status-awareness","phase":"human-review","gate":"7/8","needsHuman":true,"reason":"human-review is a human gate"}\x07'
+export const AWAITING_HUMAN_HEARTBEAT = {
+  feature: '0004-orky-status-awareness', phase: 'human-review', gateN: 7, gateM: 8,
+  needsHuman: true, reason: 'human-review is a human gate', action: null
+}
 
-/** The decoded heartbeat the worked-example marker MUST yield (02-spec.md REQ-001 acceptance) — the
- *  exact shape of `OrkyHeartbeat` (feature/kind/phase/gateN/gateM/openBlocking/needsHuman/failed/reason). */
-export const WORKED_EXAMPLE_HEARTBEAT = {
-  feature: 'auth-login',
-  kind: 'busy',
-  phase: 'implement',
-  gateN: 5,
-  gateM: 8,
-  openBlocking: 2,
-  needsHuman: false,
-  failed: false,
-  reason: null
+/** A plain busy heartbeat — REQ-009's acceptance worked example. */
+export const BUSY_PAYLOAD = {
+  v: 1, feature: 'auth-login', phase: 'implement', gate: '5/8', needsHuman: false
+} as const
+export const BUSY_MARKER = buildOrkyMarker(BUSY_PAYLOAD)
+export const BUSY_HEARTBEAT = {
+  feature: 'auth-login', phase: 'implement', gateN: 5, gateM: 8, needsHuman: false, reason: null, action: null
+}
+
+/** A complete (all gates passed) heartbeat — REQ-009's acceptance worked example (`phase: null`). */
+export const DONE_PAYLOAD = {
+  v: 1, feature: 'auth-login', phase: null, gate: '8/8', needsHuman: false
+} as const
+export const DONE_MARKER = buildOrkyMarker(DONE_PAYLOAD)
+export const DONE_HEARTBEAT = {
+  feature: 'auth-login', phase: null, gateN: 8, gateM: 8, needsHuman: false, reason: null, action: null
 }

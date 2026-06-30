@@ -55,18 +55,25 @@ export interface OrkyPaneStatus {
 // orky-osc-heartbeat.md). Declared here (not in src/main/status/orky-osc-parser.ts) so this
 // Electron-free shared module can reference it without a main->shared->main import cycle; the
 // parser module re-exports it for its documented public-interface surface.
-/** A single decoded, validated heartbeat — the strict-grammar result of one OSC marker body
- *  (`src/main/status/orky-osc-parser.ts`'s `decodeHeartbeat`). */
+//
+// Wire shape per Orky ADR-026 (the REAL, shipped contract — supersedes this feature's earlier
+// placeholder OSC 8888/key=value grammar): `\x1b]9999;<single-line compact JSON>BEL`. The JSON
+// payload does NOT carry `kind`/`openBlocking`/`failed` the way the old key=value grammar did —
+// those are Termhalla-side derivations/defaults computed in `src/shared/orky-status.ts`'s
+// `heartbeatToFeatureStatus` (REQ-009), never read off the wire. `action` is new (the app-loop
+// liveness field, carried only when no feature is resolvable).
+/** A single decoded, validated heartbeat — the strict-but-tolerant JSON-decode result of one ADR-026
+ *  OSC marker payload (`src/main/status/orky-osc-parser.ts`'s `decodeHeartbeat`). Field mapping is
+ *  direct/verbatim from the payload (thin client, REQ-004) — Termhalla never re-derives `drive()`
+ *  semantics from these bytes. */
 export interface OrkyHeartbeat {
-  feature: string
-  kind: 'busy' | 'idle' | 'needs-input' | 'done'
-  phase: OrkyPhase | 'done'
-  gateN: number
-  gateM: number
-  openBlocking: number
-  needsHuman: boolean
-  failed: boolean
-  reason: OrkyReason
+  feature: string | null           // payload.feature; null for an app-loop tick (REQ-011)
+  phase: OrkyPhase | string | null // payload.phase, verbatim; null -> rendered "done"
+  gateN: number                    // parsed from payload.gate "<N>/<M>"
+  gateM: number                    // parsed from payload.gate; default ORKY_PHASES.length
+  needsHuman: boolean              // payload.needsHuman === true
+  reason: string | null            // payload.reason verbatim (free-form prose), null when absent
+  action: string | null            // payload.action (only meaningful when feature is null)
 }
 
 export interface AlertConfig {
