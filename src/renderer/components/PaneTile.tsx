@@ -15,7 +15,7 @@ import { GitPopover } from './GitPopover'
 import { RunCommandsMenu } from './RunCommandsMenu'
 import { SplitMenu } from './SplitMenu'
 
-export type PaneMenu = 'proc' | 'cwd' | 'schedule' | 'git' | 'run' | 'split-row' | 'split-col'
+export type PaneMenu = 'proc' | 'cwd' | 'schedule' | 'git' | 'run' | 'split'
 
 const SHELL_CHIP_LABEL: Record<string, string> = {
   'Windows PowerShell': 'pwsh',
@@ -28,7 +28,6 @@ export function PaneTile({ wsId, paneId, path }: { wsId: string; paneId: string;
   const procInfo = useStore(s => s.procs[paneId])
   const aiSession = useStore(s => s.aiSessions[paneId])
   const usage = useStore(s => s.usage[paneId])
-  const recording = useStore(s => !!s.recording[paneId])
   const cwd = useStore(s => paneCwd(s, paneId))
   const gitStatus = useStore(s => s.gitStatus[paneId])
   const shells = useStore(s => s.shells)
@@ -95,7 +94,7 @@ export function PaneTile({ wsId, paneId, path }: { wsId: string; paneId: string;
       )}
       <div className="mosaic-window-controls" style={{ display: 'flex', alignItems: 'center' }}>
         <PaneToolbar wsId={wsId} paneId={paneId} isTerminal={!!termCfg} chipText={chipText}
-          gitStatus={gitStatus} recording={recording} toggle={toggle} />
+          gitStatus={gitStatus} toggle={toggle} splitOpen={menu === 'split'} />
       </div>
     </div>
   )
@@ -112,8 +111,7 @@ export function PaneTile({ wsId, paneId, path }: { wsId: string; paneId: string;
         {menu === 'schedule' && <ScheduleDialog paneId={paneId} onClose={close} />}
         {menu === 'run' && <RunCommandsMenu wsId={wsId} paneId={paneId} onClose={close} />}
         {menu === 'cwd' && <CwdMenu wsId={wsId} paneId={paneId} cwd={cwd} onClose={close} />}
-        {menu === 'split-row' && <SplitMenu wsId={wsId} paneId={paneId} dir="row" onClose={close} />}
-        {menu === 'split-col' && <SplitMenu wsId={wsId} paneId={paneId} dir="column" onClose={close} />}
+        {menu === 'split' && <SplitMenu wsId={wsId} paneId={paneId} onClose={close} />}
         {menu === 'git' && gitStatus && <GitPopover status={gitStatus} />}
         {pane?.config.kind === 'terminal' && termCfg && <TerminalPane paneId={paneId} wsId={wsId} config={termCfg} />}
         {pane?.config.kind === 'editor' && <EditorPane paneId={paneId} wsId={wsId} config={pane.config} />}

@@ -15,6 +15,11 @@ function castContents(userData: string): string {
   return readdirSync(dir).filter(f => f.endsWith('.cast')).map(f => readFileSync(join(dir, f), 'utf8')).join('\n')
 }
 
+/** Right-click the title text (left side of the bar, away from the toolbar buttons). */
+async function rightClickTitlebar(win: import('@playwright/test').Page, paneId: string): Promise<void> {
+  await win.getByTestId(`titlebar-${paneId}`).click({ button: 'right', position: { x: 30, y: 13 } })
+}
+
 test('records a terminal session to a .cast file', async () => {
   test.setTimeout(60_000)
   const userData = mkdtempSync(join(tmpdir(), 'termh-rec-'))
@@ -24,15 +29,25 @@ test('records a terminal session to a .cast file', async () => {
   const win = await app.firstWindow()
   await win.getByTestId('add-first-terminal').click()
   await expect(win.locator('[data-testid^="terminal-"]')).toBeVisible({ timeout: 15_000 })
+  const tileTestId = await win.locator('[data-testid^="tile-"]').first().getAttribute('data-testid')
+  const paneId = tileTestId!.replace('tile-', '')
 
-  const rec = win.locator('[data-testid^="rec-"]').first()
-  await rec.click() // start
+  // Record moved off the toolbar onto the title-bar context menu (feature 0002). Start via the menu.
+  await rightClickTitlebar(win, paneId)
+  await expect(win.getByTestId('pane-menu-record')).toContainText('Start recording')
+  await win.getByTestId('pane-menu-record').click() // start, closes the menu
+  await expect(win.getByTestId('pane-menu')).toHaveCount(0)
+
   await win.locator('.xterm-screen').click()
   await win.keyboard.type('echo rec-7788')
   await win.keyboard.press('Enter')
   await expect(win.locator('.xterm-rows')).toContainText('rec-7788', { timeout: 15_000 })
   await win.waitForTimeout(600)
-  await rec.click() // stop -> finalize the .cast
+
+  // Stop via the menu (now labelled "Stop recording") -> finalize the .cast.
+  await rightClickTitlebar(win, paneId)
+  await expect(win.getByTestId('pane-menu-record')).toContainText('Stop recording')
+  await win.getByTestId('pane-menu-record').click()
 
   await expect.poll(() => castContents(userData), { timeout: 10_000 }).toContain('rec-7788')
   // It's a valid asciinema v2 cast (header line parses with version 2).

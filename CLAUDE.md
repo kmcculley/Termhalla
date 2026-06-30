@@ -118,8 +118,10 @@ related area:
   (those `api.ptyKill`). Don't add a transit buffer here thinking it's a missing piece.
 - **Overlays opened from inside a mosaic tile must portal to `<body>`.** A `position: fixed` child of a
   react-mosaic tile is positioned/clipped relative to the tile (its transform is a containing block) and
-  stacks *under* the tile toolbar. `PaneContextMenu` and `Modal` `createPortal` to escape it; a menu
-  rendered inline silently mis-positions and intercepts no clicks. Guarded by `tests/e2e/pane-actions.spec.ts`.
+  stacks *under* the tile toolbar. `PaneContextMenu`, `Modal`, and `SplitMenu` (the combined split/compass
+  popover) `createPortal` to escape it; a menu rendered inline silently mis-positions and intercepts no
+  clicks. Guarded by `tests/e2e/pane-actions.spec.ts` (and `tests/e2e/split-compass.spec.ts` TEST-007 for
+  the split popover).
 - **Pane maximize hides siblings, never unmounts them.** `toggleMaximize` sets transient (non-persisted)
   `maximized[wsId]`; `PaneTile` marks its tile with a `data-max` attribute (imperatively, so react-mosaic
   re-renders don't strip it) and CSS fills it with `!important` while siblings get `visibility: hidden`

@@ -3,6 +3,7 @@ import { execSync } from 'child_process'
 import { mkdtempSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
+import { splitSecondTerminal } from './split-helper'
 
 function killTree(pid: number): void {
   try { if (process.platform === 'win32') execSync(`taskkill /F /T /PID ${pid}`, { stdio: 'ignore' }) } catch {}
@@ -41,8 +42,7 @@ test('saves, runs, and persists pane + workspace run commands', async () => {
   await win.getByTestId('run-commands-dialog').click({ position: { x: 5, y: 5 } })
 
   // Split a second terminal; its run menu shows the workspace command.
-  await win.locator('[data-testid^="split-"]').first().click()
-  await win.locator('[data-testid^="split-terminal-"]').first().click()
+  await splitSecondTerminal(win)
   await expect(win.locator('[data-testid^="terminal-"]')).toHaveCount(2, { timeout: 15_000 })
   await win.locator('[data-testid^="run-chip-"]').nth(1).click()
   await expect(win.getByTestId('run-commands-dialog')).toContainText('workspace-cmd')

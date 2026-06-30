@@ -1,5 +1,5 @@
 import type {
-  Workspace, PaneConfig, MosaicNode, MosaicParent, MosaicDirection, PaneNode, WorkspaceTemplate
+  Workspace, PaneConfig, MosaicNode, MosaicParent, MosaicDirection, SplitDir4, PaneNode, WorkspaceTemplate
 } from '@shared/types'
 import { SCHEMA_VERSION } from '@shared/types'
 
@@ -28,17 +28,34 @@ function replaceLeaf(node: MosaicNode, target: string, replacement: MosaicNode):
 
 export function splitPane(
   ws: Workspace, targetPaneId: string, direction: MosaicDirection,
-  config: PaneConfig, id: IdGen
+  config: PaneConfig, id: IdGen, position: 'before' | 'after' = 'after'
 ) {
   if (ws.layout === null) return addFirstPane(ws, config, id)
   const paneId = id()
-  const parent: MosaicParent = { direction, first: targetPaneId, second: paneId }
+  // 'after' (default) keeps today's shape byte-for-byte: target stays `first`, new pane is `second`.
+  // 'before' only swaps which child is new — the node stays a { direction, first, second } parent,
+  // so persisted layouts deserialize unchanged (no SCHEMA_VERSION bump).
+  const parent: MosaicParent = position === 'before'
+    ? { direction, first: paneId, second: targetPaneId }
+    : { direction, first: targetPaneId, second: paneId }
   const layout = replaceLeaf(ws.layout, targetPaneId, parent)
   const workspace: Workspace = {
     ...ws, layout,
     panes: { ...ws.panes, [paneId]: { paneId, config } }
   }
   return { workspace, paneId }
+}
+
+/** Map a compass UI direction to the orientation + insertion position `splitPane` needs.
+ *  right → { row, after }, down → { column, after }, left → { row, before }, up → { column, before }.
+ *  Pure and unit-tested (TEST-005) so the store can thread the geometry without re-deriving it. */
+export function splitDirToLayout(dir: SplitDir4): { direction: MosaicDirection; position: 'before' | 'after' } {
+  switch (dir) {
+    case 'right': return { direction: 'row', position: 'after' }
+    case 'left': return { direction: 'row', position: 'before' }
+    case 'down': return { direction: 'column', position: 'after' }
+    case 'up': return { direction: 'column', position: 'before' }
+  }
 }
 
 function removeLeaf(node: MosaicNode, target: string): MosaicNode | null {

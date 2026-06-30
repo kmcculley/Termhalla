@@ -1,0 +1,13 @@
+[
+  {
+    "id": "FINDING-SEC-001",
+    "lens": "security",
+    "severity": "LOW",
+    "location": "src/renderer/components/SplitMenu.tsx:36",
+    "claim": "Unsanitized paneId interpolated into a CSS attribute selector passed to document.querySelector; malformed pane IDs from crafted workspace files can cause a DOMException (popover silently fails to render) or unintended element selection (popover anchors at wrong coordinates).",
+    "evidence": "Line 36 of the new SplitMenu.tsx: `document.querySelector(`[data-testid=\"split-${paneId}\"]`)`. The paneId prop originates from the Mosaic layout tree, which is populated from deserialized workspace data. deserializeWorkspace in src/shared/workspace-model.ts (lines 103-115) validates `typeof ws.panes !== 'object'` but does NOT validate that individual pane-ID keys conform to the UUID format; any string key is accepted. A crafted workspace file with a pane ID containing CSS attribute-selector metacharacters (e.g. a double-quote `\"` splits the attribute value and produces an invalid selector like `[data-testid=\"split-evil\" extra]`) causes querySelector to throw a DOMException. Because no try/catch wraps the useLayoutEffect callback, the exception propagates to React's error boundary and `pos` stays null, so the split popover never appears. This is a new code path introduced by this feature: the prior SplitMenu was positioned absolutely inside the tile and never queried the DOM by paneId.",
+    "recommendation": "Sanitize `paneId` before interpolating it into the CSS selector, or avoid the querySelector pattern entirely. Preferred: use a React ref on the toolbar split button and pass it down to SplitMenu via a prop or a RefObject stored in a context, eliminating the DOM query. If document.querySelector is retained, validate the paneId matches `/^[0-9a-f-]+$/i` (UUID format) before using it in the selector; fall back to a safe default position (e.g. center-screen) when validation fails. Additionally, harden deserializeWorkspace to validate pane ID keys as UUID strings so the invariant is enforced at ingestion time rather than at each use site.",
+    "phase_of_origin": "implementation",
+    "contract_violation": false
+  }
+]

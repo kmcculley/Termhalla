@@ -1,4 +1,4 @@
-import type { ShellInfo, Workspace, MosaicDirection, AiSession, TerminalStatus } from '@shared/types'
+import type { ShellInfo, Workspace, MosaicDirection, SplitDir4, AiSession, TerminalStatus } from '@shared/types'
 
 export type PaneKind = 'terminal' | 'editor' | 'explorer'
 
@@ -6,9 +6,9 @@ export type PaneKind = 'terminal' | 'editor' | 'explorer'
  *  (the renderer `api` module touches `window`, so anything importing it can't run under vitest). */
 export interface PaneActions {
   workspaces: Record<string, Workspace>
-  addTerminal: (wsId: string, target: string | null, dir: MosaicDirection) => unknown
-  addEditor: (wsId: string, target: string | null, dir: MosaicDirection) => unknown
-  addExplorer: (wsId: string, target: string | null, dir: MosaicDirection, root: string) => unknown
+  addTerminal: (wsId: string, target: string | null, dir: MosaicDirection, splitDir?: SplitDir4) => unknown
+  addEditor: (wsId: string, target: string | null, dir: MosaicDirection, splitDir?: SplitDir4) => unknown
+  addExplorer: (wsId: string, target: string | null, dir: MosaicDirection, root: string, splitDir?: SplitDir4) => unknown
 }
 
 /** The shell a new terminal should use: the user's explicit pick, else the first detected shell,

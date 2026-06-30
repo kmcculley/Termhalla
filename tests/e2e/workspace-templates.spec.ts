@@ -3,6 +3,7 @@ import { execSync } from 'child_process'
 import { mkdtempSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
+import { splitSecondTerminal } from './split-helper'
 
 function killTree(pid: number | undefined): void {
   if (pid && process.platform === 'win32') { try { execSync(`taskkill /F /T /PID ${pid}`, { stdio: 'ignore' }) } catch {} }
@@ -17,8 +18,7 @@ test('saves a 2-terminal workspace as a template and creates a new workspace fro
   const win = await app.firstWindow()
   await win.getByTestId('add-first-terminal').click()
   await expect(win.locator('[data-testid^="terminal-"]')).toHaveCount(1, { timeout: 15_000 })
-  await win.locator('[data-testid^="split-"]').first().click()
-  await win.locator('[data-testid^="split-terminal-"]').first().click()
+  await splitSecondTerminal(win)
   await expect(win.locator('[data-testid^="terminal-"]')).toHaveCount(2, { timeout: 15_000 })
 
   // Open templates menu and save current layout as a template.

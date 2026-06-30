@@ -1,7 +1,7 @@
 {
-  "feature": ".orky/features/0001-edit-menu-settings-toasts",
+  "feature": ".orky/features/0002-pane-toolbar-split-control",
   "projectRoot": "C:/dev/Termhalla",
   "phase": "doc-sync",
-  "lastTickAt": "2026-06-29T15:41:17.188Z",
-  "lastAction": "retry: add REQ-009 doc-traceability test"
+  "lastTickAt": "2026-06-29T23:54:20.992Z",
+  "lastAction": "gate:doc-sync"
 }

@@ -1,0 +1,50 @@
+[
+  {
+    "id": "FINDING-DOC-001",
+    "lens": "doc-drift",
+    "severity": "MEDIUM",
+    "gate": "review",
+    "location": ".orky/features/0002-pane-toolbar-split-control/traceability.json:69",
+    "claim": "REQ-014 cites TEST-025 in traceability.json (and 04-tests.md describes it as the loop-back reconciliation marker), but no test file carries a `TEST-025` id. A repo-wide search for `TEST-025` finds it only inside this feature's own docs, never in any test name/comment. This contradicts 04-tests.md's own contract: \"Each test carries its `TEST-NNN` id in its describe/test name so the Gatekeeper can confirm it exists.\" The reconciliation it names (smoke/broadcast/ui-polish/notepad/persistence/run-commands/workspace-templates via tests/e2e/split-helper.ts, and recording via pane-menu-record) genuinely happened, but is unlabeled, so the cited test id is unverifiable.",
+    "evidence": "grep -rEoh 'TEST-[0-9]{3}' tests/ yields TEST-001..TEST-024 only (no TEST-025). traceability.json REQ-014.tests = [TEST-021,TEST-022,TEST-023,TEST-025]. 04-tests.md lines 13-17, 47, 77 reference TEST-025. The reconciled specs use split-helper.ts (confirmed) but none contain a TEST-025 marker. REQ-014 itself remains covered by the real TEST-021/022/023 markers.",
+    "recommendation": "Either add a `TEST-025` marker (e.g. in tests/e2e/split-helper.ts's leading comment and/or one reconciled spec) so the cited id is machine-discoverable, or drop TEST-025 from traceability.json REQ-014.tests and reword 04-tests.md to record the reconciliation as prose under the existing TEST ids rather than a phantom test id.",
+    "phase_of_origin": "tests",
+    "contract_violation": false
+  },
+  {
+    "id": "FINDING-DOC-002",
+    "lens": "doc-drift",
+    "severity": "LOW",
+    "gate": "review",
+    "location": ".orky/features/0002-pane-toolbar-split-control/02-spec.md:156",
+    "claim": "REQ-008's acceptance criteria name `tests/shared/workspace-model.test.ts` as the home of the splitPane before/after default-after pins and the splitDirToLayout mapping test, but those unit tests were actually authored in `tests/shared/split-direction.test.ts` (17 splitPane/splitDirToLayout references). workspace-model.test.ts contains zero `position`/`before`/`splitDirToLayout` assertions. The cited file does not host the cited tests.",
+    "evidence": "grep -c 'splitPane|splitDirToLayout' tests/shared/split-direction.test.ts = 17; grep for 'position|before|splitDirToLayout' in tests/shared/workspace-model.test.ts = no matches. 04-tests.md line 41 places TEST-001..005 in split-direction.test.ts. The REQ is still covered, only the spec's file pointer is stale.",
+    "recommendation": "At doc-sync, update REQ-008's acceptance text to point at tests/shared/split-direction.test.ts (where TEST-001..005 live), or move/duplicate the assertions into workspace-model.test.ts to match the spec.",
+    "phase_of_origin": "spec",
+    "contract_violation": false
+  },
+  {
+    "id": "FINDING-DOC-003",
+    "lens": "doc-drift",
+    "severity": "LOW",
+    "gate": "review",
+    "location": "docs/features/workspaces.md:135",
+    "claim": "The workspaces.md test inventory still lists only `tests/shared/workspace-model.test.ts` for layout-op coverage; the feature's new pure test file `tests/shared/split-direction.test.ts` (the splitPane before/after + splitDirToLayout coverage, TEST-001..005) is not added to the doc's test list, even though the prose above it now documents the new splitDirToLayout helper and the before/after position parameter.",
+    "evidence": "grep for 'split-direction' in docs/features/workspaces.md = no matches, while the same doc (line 19, edited by this feature) now describes splitDirToLayout. The Tests section (line 135) names workspace-model.test.ts but omits the new sibling test file.",
+    "recommendation": "Add a one-line entry for tests/shared/split-direction.test.ts to the workspaces.md Tests inventory so the doc's test list matches the shipped tests.",
+    "phase_of_origin": "tests",
+    "contract_violation": false
+  },
+  {
+    "id": "FINDING-DOC-004",
+    "lens": "doc-drift",
+    "severity": "LOW",
+    "gate": "review",
+    "location": "CLAUDE.md:121",
+    "claim": "The load-bearing \"Overlays opened from inside a mosaic tile must portal to <body>\" gotcha lists only `PaneContextMenu` and `Modal` as the components that `createPortal` to escape the tile's transform/clip. As of this feature `SplitMenu.tsx` (the combined split/compass popover) is now ALSO a fixed-position child of a mosaic tile that portals to document.body for exactly this reason, but it is not named in the gotcha. A future maintainer reading the gotcha would not learn that the split popover relies on the same pattern.",
+    "evidence": "SplitMenu.tsx now ends with `createPortal(..., document.body)` and its own doc-comment cites the tile-transform clipping rationale; CLAUDE.md lines 119-121 enumerate only PaneContextMenu and Modal as the escapees. REQ-004 made the split popover a portalled overlay. Note: CLAUDE.md has NO stale rec-/split-col- testid references (grep clean), so it needed no removals — only this additive mention is missing.",
+    "recommendation": "Add SplitMenu to the CLAUDE.md portal gotcha (e.g. \"PaneContextMenu, Modal, and SplitMenu createPortal to escape it\") at doc-sync.",
+    "phase_of_origin": "implement",
+    "contract_violation": false
+  }
+]

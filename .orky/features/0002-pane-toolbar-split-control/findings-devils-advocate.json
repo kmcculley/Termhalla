@@ -1,0 +1,62 @@
+[
+  {
+    "id": "FINDING-DEV-001",
+    "lens": "devils-advocate",
+    "severity": "MEDIUM",
+    "gate": "review",
+    "location": "src/renderer/components/PaneToolbar.tsx:55 (Record removed) + PaneContextMenu.tsx:45-49",
+    "claim": "Moving Record out of the always-visible toolbar (REQ-001/002) silently deleted the ONLY ambient indicator that a terminal is actively recording. The old toolbar button rendered a persistent red glyph (`style={{ color: recording ? '#ff6b6b' : undefined }}` on `⏺`), so a running recording was visible at all times. The new design exposes recording state ONLY inside the right-click context menu label ('Stop recording' vs 'Start recording'): a session that is recording — a background process that accumulates files on disk — now has zero on-screen cue. A user can leave a terminal recording indefinitely with no way to notice short of right-clicking each pane. The spec treated this as a pure relocation ('only its location changes', REQ-002 / concept decision 1) and never required a replacement ongoing-state indicator. This is the classic 'missing requirement' the spec ignored: feedback for a persistent, resource/disk-consuming background state was dropped, not merely relocated.",
+    "evidence": "git HEAD:PaneToolbar.tsx shows `<button data-testid={`rec-${paneId}`} title={recording ? 'Stop recording' : 'Record session'} style={{ color: recording ? '#ff6b6b' : undefined }} ...>⏺</button>` — a colored, state-reflecting toolbar control. The working-tree PaneToolbar has no recording element at all, and TEST-019 only round-trips state through the hidden context-menu label; no test/REQ requires a visible recording indicator. PaneTile's `chipText`/status chrome shows process/AI/git but never recording.",
+    "recommendation": "Add an unobtrusive but persistent recording indicator (e.g. a small red dot on the pane title bar / proc chip, or a `data-recording` attribute styled paint-only per REQ-012) so an active recording is discoverable at a glance, restoring the ambient feedback the toolbar button provided. File as a spec gap: REQ-001/002 should mandate a replacement indicator for the ongoing recording state, not just relocate the toggle.",
+    "phase_of_origin": "spec",
+    "contract_violation": false
+  },
+  {
+    "id": "FINDING-DEV-002",
+    "lens": "devils-advocate",
+    "severity": "MEDIUM",
+    "gate": "review",
+    "location": "src/renderer/components/SplitMenu.tsx:35-39",
+    "claim": "The compass popover is anchored at `top: r.bottom + 4` with NO vertical viewport clamp or upward flip (only the horizontal axis is guarded by `Math.max(4, ...)`). The popover is tall (3x28 compass grid + 3 stacked kind buttons + padding/gaps ≈ 170-190px). For any pane whose toolbar sits in the bottom row of the mosaic — the common case for a vertically-split or bottom-row pane — the split button's `r.bottom` is near the viewport bottom, so the popover renders off the bottom edge and the kind selector (and lower compass arrows) are clipped/unclickable by mouse. Unlike a click-anchored menu (PaneContextMenu uses the cursor coords), this popover is deterministically anchored to a fixed toolbar element that is always at the tile's top edge, so a bottom-row pane reliably opens the menu off-screen. REQ-004 only asserts the portal escapes the tile's clip; it never requires the popover to stay within the viewport, so no test catches this. This is exactly the 'surprising/lost geometry' case the lens hunts — here the lost geometry is the popover itself.",
+    "evidence": "`const r = btn?.getBoundingClientRect(); if (r) setPos({ left: Math.max(4, r.right - 168), top: r.bottom + 4 })` — `top` has no `Math.min` against `window.innerHeight - popoverHeight` and no flip-above-the-button fallback. e2e tests open the popover only on the top/first pane, so the bottom-row clip is never exercised.",
+    "recommendation": "Clamp/flip the vertical anchor: if `r.bottom + estimatedHeight > window.innerHeight`, render above the button (`top: r.top - height - 4`) or clamp `top` into the viewport; add an e2e that opens the compass on a bottom-row pane (after a `down` split) and asserts the `split-menu` bounding box is fully within the viewport.",
+    "phase_of_origin": "implement",
+    "contract_violation": false
+  },
+  {
+    "id": "FINDING-DEV-003",
+    "lens": "devils-advocate",
+    "severity": "MEDIUM",
+    "gate": "review",
+    "location": "src/renderer/components/SplitMenu.tsx:51-58,82",
+    "claim": "The combined-surface design forces one keydown handler to serve two controls with conflicting keyboard models, and the implementation resolves the conflict by globally hijacking the arrow keys for the compass. `onKeyDown` is bound to the whole `split-menu` container and maps EVERY ArrowUp/Down/Left/Right to `dirRefs.current[d].focus()` with `e.preventDefault()`. Consequence: when focus is on a `split-kind-*` radio (the kind selector is `role=radiogroup` with `role=radio` children), pressing an arrow key — the conventional, screen-reader-expected way to change a radio selection — does NOT move between kind options; it yanks focus out of the radiogroup onto a compass arrow. So the kind selector cannot be navigated by arrow keys at all; a user/AT that follows the radiogroup contract is silently broken and the selection can only be changed via Tab + Space. REQ-010's 'the kind selector MUST also be reachable/changeable by keyboard' is only marginally satisfied (Space works), but the design actively violates the ARIA radiogroup interaction it advertises via `role=radio`/`aria-checked`. The core assumption — that a spatial compass and a linear radiogroup can share one arrow-key space on one surface — is the flaw.",
+    "evidence": "`const map = { ArrowUp:'up', ArrowDown:'down', ArrowLeft:'left', ArrowRight:'right' }; const d = map[e.key]; if (d) { e.preventDefault(); dirRefs.current[d]?.focus() }` on the container `<div data-testid=\"split-menu\" onKeyDown={onKeyDown}>`, which also contains the `role=radiogroup` kind buttons. No branch checks whether the event target is a kind radio before consuming the arrow.",
+    "recommendation": "Scope the arrow handling to the compass group only (attach onKeyDown to the compass `role=group` element, or early-return when `e.target` is a kind radio so the radiogroup keeps native arrow semantics), and give the radiogroup proper roving arrow navigation. Or revisit the single-surface assumption.",
+    "phase_of_origin": "implement",
+    "contract_violation": false
+  },
+  {
+    "id": "FINDING-DEV-004",
+    "lens": "devils-advocate",
+    "severity": "MEDIUM",
+    "gate": "review",
+    "location": "src/renderer/components/SplitMenu.tsx:42,48,51-52,78-101",
+    "claim": "The popover's keyboard story (REQ-010) ignores focus containment and focus return, and the implementation has no focus trap. On open it `.focus()`es the right arrow, but: (1) there is no focus trap, and the only tabbable elements are the right arrow (tabIndex 0; the other three arrows are -1) plus the three kind radios — so a single Tab past the explorer radio moves focus OUT of the portalled popover to whatever follows `document.body`, landing the user behind the still-open overlay; (2) once focus has left the popover, the Esc handler (bound to the `split-menu` div) no longer receives the keydown, so Esc fails to dismiss — the popover is stuck open with focus lost behind it; (3) on Esc-dismiss `onClose()` only sets `menu=null` and never returns focus to the `split-${paneId}` trigger, dropping keyboard focus to `<body>`. Commit happens to refocus the new pane via `requestPaneFocus`, but the cancel path strands the keyboard user. REQ-010 specifies open-focus, arrows, Enter, Esc but never specifies focus trapping or return-focus — the case the spec ignored.",
+    "evidence": "`useEffect(() => { dirRefs.current['right']?.focus() }, [pos])` for open-focus; `onClose` in PaneTile is `() => setMenu(null)` with no focus restoration; the popover root has no focus-trap / `onKeyDown` Tab handling; Escape is handled only inside `onKeyDown` on the `split-menu` div, so it is unreachable once focus tabs out.",
+    "recommendation": "Trap focus within the popover (cycle Tab/Shift-Tab among the compass + kind controls) or listen for Escape at the document level, and on close (both commit and Esc) return focus to the `split-${paneId}` button. Add the missing focus-management requirement to REQ-010 and an e2e asserting focus returns to the trigger after Esc.",
+    "phase_of_origin": "spec",
+    "contract_violation": false
+  },
+  {
+    "id": "FINDING-DEV-005",
+    "lens": "devils-advocate",
+    "severity": "LOW",
+    "gate": "review",
+    "location": ".orky/features/0002-pane-toolbar-split-control/04-tests.md (TEST-005..023) vs REQ-007",
+    "claim": "REQ-007's MUST that 'up/down ⇒ column' (a vertical/stacked split) is never pinned end-to-end by an observable assertion. TEST-011 exercises right (editor), TEST-012 pins left with before-insertion DOM order, TEST-014 presses ArrowDown then Enter but only asserts the tile count rises to 2 — it never asserts the resulting parent is a `column` (vertical) split or the stacked DOM order; TEST-022 selects 'a downward direction' but asserts only that an explorer pane opens rooted at the cwd, not the orientation. The column orientation for up/down is therefore covered ONLY by the pure mapping unit test (TEST-005). Because the store derives geometry exclusively through `splitDirToLayout`, a regression that fed the wrong orientation in the UI commit path (e.g. SplitMenu passing the literal `'row'` if the `splitDir` override were ever dropped — see the dead-param risk in FINDING-QOL-001) would still pass every e2e: the suite proves a column mapping exists in isolation but never proves the compass actually produces a column split on screen.",
+    "evidence": "Test map: no e2e asserts a `column` MosaicDirection / vertically-stacked tile geometry resulting from an up or down compass activation; only TEST-005 (pure) covers column, and TEST-014/022 assert count/kind/cwd, not orientation.",
+    "recommendation": "Add an e2e that activates `split-dir-down`/`split-dir-up` and asserts the new pane is stacked vertically (column geometry / DOM order or the persisted layout `direction === 'column'`), mirroring TEST-012's before-insertion DOM-order check for the horizontal axis.",
+    "phase_of_origin": "tests",
+    "contract_violation": false
+  }
+]

@@ -1,6 +1,6 @@
 import type { StoreApi } from 'zustand'
 import type {
-  Workspace, ShellInfo, MosaicNode, MosaicDirection, TerminalConfig, TerminalStatus,
+  Workspace, ShellInfo, MosaicNode, MosaicDirection, SplitDir4, TerminalConfig, TerminalStatus,
   PaneConfig, EditorConfig, ExplorerConfig, QuickStore, SshConnection, ProcInfo, CloudStatus,
   TerminalLaunch, AiSession, UsageMetrics, EditorDraft, ScheduledTask, Theme, EnvVaultState, GitStatus, RunCommand
 } from '@shared/types'
@@ -54,7 +54,7 @@ export interface State {
   movePaneToWorkspace: (paneId: string, fromWsId: string, toWsId: string) => void
   movePaneToNewWorkspace: (paneId: string, fromWsId: string) => void
   setLayout: (wsId: string, layout: MosaicNode | null) => void
-  addTerminal: (wsId: string, targetPaneId: string | null, dir: MosaicDirection) => string
+  addTerminal: (wsId: string, targetPaneId: string | null, dir: MosaicDirection, splitDir?: SplitDir4) => string
   addPaneOfKind: (wsId: string, kind: PaneKind) => Promise<void>
   closePane: (wsId: string, paneId: string) => void
   setNewTerminalShell: (id: string) => void
@@ -94,8 +94,8 @@ export interface State {
   launchCommand: (launch: TerminalLaunch) => void
   updatePaneConfig: (wsId: string, paneId: string, patch: Partial<Omit<EditorConfig, 'kind'> & Omit<ExplorerConfig, 'kind'> & Omit<TerminalConfig, 'kind'>>) => void
   registerEditorPane: (paneId: string) => void
-  addEditor: (wsId: string, targetPaneId: string | null, dir: MosaicDirection) => string
-  addExplorer: (wsId: string, targetPaneId: string | null, dir: MosaicDirection, root: string) => string
+  addEditor: (wsId: string, targetPaneId: string | null, dir: MosaicDirection, splitDir?: SplitDir4) => string
+  addExplorer: (wsId: string, targetPaneId: string | null, dir: MosaicDirection, root: string, splitDir?: SplitDir4) => string
   openFileInEditor: (wsId: string, path: string) => void
   openExplorerHere: (wsId: string, paneId: string) => void
   schedules: Record<string, ScheduledTask>
@@ -157,5 +157,5 @@ export interface SliceDeps {
   scheduleAutosave: () => void
   scheduleQuickSave: () => void
   scheduleNotesSave: (key: string) => void
-  commitPane: (wsId: string, cfg: PaneConfig, target: string | null, dir: MosaicDirection, markEditor?: boolean) => string
+  commitPane: (wsId: string, cfg: PaneConfig, target: string | null, dir: MosaicDirection, markEditor?: boolean, position?: 'before' | 'after') => string
 }
