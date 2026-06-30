@@ -50,11 +50,22 @@ body { background: var(--bg, #1e1e1e); color: var(--fg, #eee); font-family: var(
   background-color: var(--status-needs, #ff8f00);
 }
 @keyframes term-bar-needs { 0%, 50% { filter: none } 51%, 100% { filter: brightness(0.7) } }
-/* A halted Orky gate failure surfaces as failure styling on the pane border (REQ-006), independent
-   of needs-human. Paint-only: a red toolbar accent, never a box change. */
+/* A halted Orky gate failure surfaces as failure styling on the pane border (REQ-006), independent of
+   needs-human. The canonical failed feature maps to kind:'idle', so this MUST win over the idle toolbar
+   `!important` background below — carried via `!important` here AND by excluding `.term-failure` from the
+   idle rule's selector, so the red accent renders for the failed-AND-idle pane (corrects FINDING-UX-001,
+   where the non-!important rule rendered nowhere). Paint-only: a red toolbar accent, never a box change. */
 .mosaic-window.term-failure .mosaic-window-toolbar {
-  background-color: var(--status-failure, #c62828);
+  background-color: var(--status-failure, #c62828) !important;
 }
+/* Non-color failure affordance (WCAG 1.4.1 / FINDING-UX-002): the failed Orky chip carries a visible
+   marker beyond color alone (a glyph + outline on its `data-failed` attribute), so a colorblind user can
+   distinguish a failed pane. */
+[data-testid^="orky-chip-"][data-failed] {
+  outline: 1px solid var(--status-failure, #c62828);
+  outline-offset: 1px;
+}
+[data-testid^="orky-chip-"][data-failed]::before { content: '✖ '; }
 
 /* =====================================================================
    UI polish — cohesive dark chrome.
@@ -67,7 +78,7 @@ body { background: var(--bg, #1e1e1e); color: var(--fg, #eee); font-family: var(
 /* The react-mosaic (blueprint) window toolbar defaults to a light bar that
    clashes with the dark app. Theme the idle toolbar (bar, title, buttons); the
    busy/needs-input rules above still win for those alert states. */
-.mosaic-blueprint-theme .mosaic-window:not(.term-busy):not(.term-needs-input) .mosaic-window-toolbar {
+.mosaic-blueprint-theme .mosaic-window:not(.term-busy):not(.term-needs-input):not(.term-failure) .mosaic-window-toolbar {
   background: var(--panel, #1e1e1e) !important;
   box-shadow: none;
   border-bottom: 1px solid var(--border, #444);

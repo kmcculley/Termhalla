@@ -61,7 +61,7 @@ export function registerHandlers(services: Services, wm: WindowManager): PtyMana
     registerPreview(),
     registerCloud(win, send),
     registerUsage(send),
-    registerOrky(send),
+    registerOrky(send, win),
     registerRecording({ pty, recorder, userDataDir: dir, send }),
     disposeGit,
     disposeSearch

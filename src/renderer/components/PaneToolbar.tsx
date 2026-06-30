@@ -42,7 +42,7 @@ export function PaneToolbar(
           <button type="button" data-testid={`proc-chip-${paneId}`} title="Running process"
             style={{ maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
             onClick={() => toggle('proc')}>{chipText}</button>
-          {orky && (
+          {orky && orky.chipFeature && (
             <button type="button" data-testid={`orky-chip-${paneId}`} title="Orky pipeline status"
               data-needs-human={orky.needsHuman ? '' : undefined} data-failed={orky.failed ? '' : undefined}
               style={{ maxWidth: 240, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}

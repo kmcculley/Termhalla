@@ -19,7 +19,9 @@ export function OrkyPopover(
   const [pos, setPos] = useState<{ left: number; top: number } | null>(null)
 
   useLayoutEffect(() => {
-    const btn = document.querySelector(`[data-testid="orky-chip-${paneId}"]`) as HTMLElement | null
+    // Escape the pane id (REQ-026 / FINDING-SEC-005): a CSS-reserved char (`"`, `]`, `\`, …) in the id
+    // would throw a DOMException out of this effect and blank the popover. No reliance on the UUID invariant.
+    const btn = document.querySelector(`[data-testid="orky-chip-${CSS.escape(paneId)}"]`) as HTMLElement | null
     const r = btn?.getBoundingClientRect()
     if (!r) { setPos({ left: 8, top: 40 }); return }
     const left = Math.max(4, Math.min(r.left, window.innerWidth - EST_W - 4))

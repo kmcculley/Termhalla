@@ -1,14 +1,24 @@
 // FROZEN unit suite — feature 0004-orky-status-awareness (phase 4 / pure-logic core).
-// These pin the determinism + data-provenance anchors of the Orky status mappers (TASK-001..007).
-// Every mapper is total (never throws on empty/malformed input) and pure (no Date.now / no I/O):
-// `now` and `thresholdMs` are ALWAYS injected, so there is ZERO wall-clock dependence here.
+// REVISED at the review LOOP-BACK (spec amended to 29 REQs, ESC-001): the detection model is now
+// GATE-BASED (full roll-up), not keyed on the lagging `state.json.phase`. The mapper signatures gained
+// an `activePhase` argument (the active feature's `active.json.phase`); `gateFrontier`,
+// `ORKY_AUTONOMOUS_PHASES`, and `parseOrkyTimestamp` are new exports. See 04-tests.md for the catalogue.
 //
-// Runs RED today: `@shared/orky-status` does not exist yet, so the whole file errors on import — that
-// IS the want-of-implementation signal (same convention as chip-status.test.ts for 0003).
+// Every mapper is total (never throws on empty/malformed input) and pure (no Date.now / no I/O):
+// `now`, `thresholdMs`, and `activePhase` are ALWAYS injected, so there is ZERO wall-clock or timezone
+// dependence here. The live phase is NEVER derived from the lagging `state.json.phase` inside a mapper.
+//
+// Runs RED against the prior-pass (old `state.json.phase`) implementation: the new 7-arg
+// `orkyFeatureStatus` / 6-arg `isStalled` positional contracts, the gate-based needs-human shape, the
+// clean-done popover exclusion, and the new `gateFrontier`/`parseOrkyTimestamp` exports all disagree
+// with the shipped code — exactly the want-of-correction signal.
 import { describe, it, expect } from 'vitest'
 import {
   ORKY_PHASES,
+  ORKY_AUTONOMOUS_PHASES,
   gateN,
+  gateFrontier,
+  parseOrkyTimestamp,
   openBlockingCount,
   isStalled,
   orkyFeatureStatus,
@@ -19,12 +29,13 @@ import {
 } from '@shared/orky-status'
 import { SCHEMA_VERSION } from '@shared/types'
 
-// A fixed, injected clock — no test reads the wall clock (REQ-003 / REQ-021 determinism anchor).
+// A fixed, injected clock — no test reads the wall clock (REQ-003 / REQ-021 / REQ-028 determinism anchor).
 const NOW = 1_700_000_000_000
 
-// Build an on-disk-shaped raw feature (mirrors state.json). `feature` is the slug, `phase` the
-// current phase, `gates` a map of phase -> { passed }, `escalations` the escalation list.
-type RawGate = { passed?: boolean }
+// Build an on-disk-shaped raw feature (mirrors state.json). `feature` is the slug, `phase` the lagging
+// state.json phase (which the gate-based model treats as a last-resort fallback ONLY), `gates` a map of
+// phase -> { passed, at }, `escalations` the escalation list.
+type RawGate = { passed?: boolean; at?: string }
 function raw(o: Partial<{
   feature: string
   phase: string
@@ -35,8 +46,6 @@ function raw(o: Partial<{
 }
 
 // Build an OrkyFeatureStatus (the mapped, wire-shaped per-feature status the selector ranks).
-// `reason` is the structured needs-you discriminator the REQ-007 ordering ranks on
-// (escalation > stalled > human-review); null when the feature does not need a human.
 function feat(o: Partial<{
   feature: string
   kind: string
@@ -57,8 +66,17 @@ function feat(o: Partial<{
 }
 
 const allPassed = (): Record<string, RawGate> => Object.fromEntries(ORKY_PHASES.map(p => [p, { passed: true }]))
+// Gates passed for every canonical phase up to AND INCLUDING `phase` (the real on-disk topology).
+function gatesThrough(phase: string): Record<string, RawGate> {
+  const idx = ORKY_PHASES.indexOf(phase as never)
+  return Object.fromEntries(ORKY_PHASES.slice(0, idx + 1).map(p => [p, { passed: true }]))
+}
+// The REAL "awaiting human-review" shape: every AUTONOMOUS gate (through doc-sync) passed, human-review
+// gate absent. The real pipeline leaves state.json.phase at 'doc-sync' here — it never says 'human-review'.
+const awaitingHumanGates = (): Record<string, RawGate> =>
+  Object.fromEntries(ORKY_AUTONOMOUS_PHASES.map(p => [p, { passed: true }]))
 
-describe('ORKY_PHASES + gate N/M (REQ-001)', () => {
+describe('ORKY_PHASES + ORKY_AUTONOMOUS_PHASES + gate N/M (REQ-001)', () => {
   it('TEST-001 REQ-001 defines the canonical 8-phase order with human-review counting toward M', () => {
     expect(ORKY_PHASES).toEqual(
       ['brainstorm', 'spec', 'plan', 'tests', 'implement', 'review', 'doc-sync', 'human-review']
@@ -72,6 +90,40 @@ describe('ORKY_PHASES + gate N/M (REQ-001)', () => {
     expect(gateN({} as never)).toBe(0)
     expect(gateN(undefined as never)).toBe(0)        // missing gates → 0, never throws
     expect(gateN(allPassed() as never)).toBe(8)      // all gates passed → 8/8
+  })
+
+  it('TEST-043 REQ-001/REQ-005 ORKY_AUTONOMOUS_PHASES = the 7 gates through doc-sync (ORKY_PHASES minus human-review)', () => {
+    expect(ORKY_AUTONOMOUS_PHASES).toEqual(
+      ['brainstorm', 'spec', 'plan', 'tests', 'implement', 'review', 'doc-sync']
+    )
+    expect(ORKY_AUTONOMOUS_PHASES.length).toBe(7)
+    expect(ORKY_AUTONOMOUS_PHASES).not.toContain('human-review') // human-review is NOT autonomous (it is the human gate)
+  })
+})
+
+describe('gateFrontier — live phase for a non-active feature (REQ-023)', () => {
+  it('TEST-039 REQ-023 frontier is the phase AFTER the highest passed canonical gate; total, never throws', () => {
+    expect(gateFrontier(gatesThrough('implement') as never)).toBe('review') // through implement → review
+    expect(gateFrontier({} as never)).toBe('brainstorm')                      // none passed → brainstorm
+    expect(gateFrontier(allPassed() as never)).toBeNull()                     // all 8 passed → complete (null)
+    expect(gateFrontier(gatesThrough('brainstorm') as never)).toBe('spec')    // only brainstorm → spec
+    expect(gateFrontier(undefined as never)).toBe('brainstorm')               // malformed → brainstorm, no throw
+    // "highest" passed gate wins even when gates are non-contiguous (brainstorm + plan passed, spec not):
+    expect(gateFrontier({ brainstorm: { passed: true }, plan: { passed: true } } as never)).toBe('tests')
+  })
+})
+
+describe('parseOrkyTimestamp — timezone-safe (REQ-028)', () => {
+  it('TEST-042 REQ-028 a tz-less ISO timestamp is interpreted as UTC, never local; offsets honored; garbage → null', () => {
+    // tz-less → UTC (NOT the machine local zone). Compared against Date.UTC, which is absolute/TZ-independent,
+    // so this pins the same epoch ms on any machine regardless of process.env.TZ (FINDING-DET-001).
+    expect(parseOrkyTimestamp('2026-06-30T12:04:00')).toBe(Date.UTC(2026, 5, 30, 12, 4, 0))
+    expect(parseOrkyTimestamp('2026-06-30T12:04:00Z')).toBe(Date.UTC(2026, 5, 30, 12, 4, 0))           // explicit Z unchanged
+    expect(parseOrkyTimestamp('2026-06-30T12:04:00.000Z')).toBe(Date.UTC(2026, 5, 30, 12, 4, 0))
+    expect(parseOrkyTimestamp('2026-06-30T12:04:00+02:00')).toBe(Date.UTC(2026, 5, 30, 10, 4, 0))       // +02:00 offset honored
+    expect(parseOrkyTimestamp('not a date')).toBeNull()
+    expect(parseOrkyTimestamp(undefined as never)).toBeNull()
+    expect(parseOrkyTimestamp(null as never)).toBeNull()
   })
 })
 
@@ -93,47 +145,61 @@ describe('openBlockingCount (REQ-002)', () => {
     expect(openBlockingCount('garbage' as never)).toBe(0)
     expect(openBlockingCount([{}] as never)).toBe(0)
     expect(openBlockingCount([{ status: 'open', severity: 'CRITICAL' }] as never)).toBe(1)
-    // MEDIUM/LOW by themselves are non-blocking, but a contract_violation pulls them in regardless of severity
     expect(openBlockingCount([{ status: 'open', severity: 'MEDIUM', contract_violation: true }] as never)).toBe(1)
-    // resolved / deferred are excluded even at CRITICAL/HIGH
     expect(openBlockingCount([{ status: 'deferred', severity: 'HIGH' }, { status: 'acknowledged', severity: 'CRITICAL' }] as never)).toBe(0)
-    // a missing `status` (i.e. not literally 'open') is non-blocking
     expect(openBlockingCount([{ severity: 'HIGH' }] as never)).toBe(0)
-    // no capping: five blocking findings count as five
     expect(openBlockingCount(Array.from({ length: 5 }, () => ({ status: 'open', severity: 'HIGH' })) as never)).toBe(5)
   })
 })
 
-describe('isStalled — finished-wins, active-only, 120s boundary (REQ-003)', () => {
-  const exec = raw({ feature: 'auth', phase: 'implement', gates: {} }) // executing: phase in flight, no gate entry yet
+describe('isStalled — finished-wins, active-only, off the LIVE phase, 120s boundary (REQ-003/REQ-023)', () => {
+  // executing: an in-flight phase with no gate entry yet.
+  const exec = raw({ feature: 'auth', phase: 'implement', gates: {} })
 
-  it('TEST-005 REQ-003 stalls strictly above the injected threshold; the boundary itself is not stalled', () => {
-    expect(isStalled('auth', exec, NOW - 121_000, NOW, 120_000)).toBe(true)
-    expect(isStalled('auth', exec, NOW - 119_000, NOW, 120_000)).toBe(false)
-    expect(isStalled('auth', exec, NOW - 120_000, NOW, 120_000)).toBe(false) // exactly 120s → NOT stalled (strict >)
+  it('TEST-005 REQ-003 stalls strictly above the injected threshold off the LIVE phase; the boundary is not stalled', () => {
+    // Signature: isStalled(activeSlug, feature, activePhase, lastTickAt, now, thresholdMs).
+    expect(isStalled('auth', exec, 'implement', NOW - 121_000, NOW, 120_000)).toBe(true)
+    expect(isStalled('auth', exec, 'implement', NOW - 119_000, NOW, 120_000)).toBe(false)
+    expect(isStalled('auth', exec, 'implement', NOW - 120_000, NOW, 120_000)).toBe(false) // exactly 120s → NOT stalled (strict >)
+
+    // LIVE-PHASE DIVERGENCE (FINDING-DA-002): state.json.phase lags at 'implement' (implement gate
+    // PASSED) but active.json.phase==='review' (review gate pending). Stall must key on the LIVE phase
+    // (review, still executing) — the prior code read executing-ness off state.json.phase and could
+    // never stall after the implement gate passed.
+    const diverged = raw({ feature: 'auth', phase: 'implement', gates: gatesThrough('implement') })
+    expect(isStalled('auth', diverged, 'review', NOW - 121_000, NOW, 120_000)).toBe(true)
   })
 
   it('TEST-006 REQ-003 finished-wins, non-active never stalls, null tick is false (total)', () => {
-    const finished = raw({ feature: 'auth', phase: 'human-review', gates: { 'human-review': { passed: true } } })
-    expect(isStalled('auth', finished, NOW - 10_000_000, NOW, 120_000)).toBe(false) // finished wins over an ancient tick
-    expect(isStalled('other', exec, NOW - 121_000, NOW, 120_000)).toBe(false)        // a non-active feature has no live heartbeat
-    expect(isStalled('auth', exec, null, NOW, 120_000)).toBe(false)                  // missing tick → false, no throw
+    const finished = raw({ feature: 'auth', phase: 'doc-sync', gates: allPassed() }) // human-review gate passed → complete
+    expect(isStalled('auth', finished, 'human-review', NOW - 10_000_000, NOW, 120_000)).toBe(false) // finished wins over an ancient tick
+    expect(isStalled('other', exec, null, NOW - 121_000, NOW, 120_000)).toBe(false)                  // a non-active feature has no live heartbeat
+    expect(isStalled('auth', exec, 'implement', null, NOW, 120_000)).toBe(false)                     // missing tick → false, no throw
   })
 })
 
-describe('orkyFeatureStatus — per-feature map into the terminal-status model (REQ-004/005/006)', () => {
-  it('TEST-007 REQ-004 a mid-execution feature with a recent tick maps to busy / not-needs-human', () => {
-    const r = raw({ feature: 'auth', phase: 'implement', gates: { brainstorm: { passed: true }, spec: { passed: true }, plan: { passed: true }, tests: { passed: true } } })
-    const st = orkyFeatureStatus(r, [], true, NOW - 1_000, NOW, 120_000)
+describe('orkyFeatureStatus — per-feature map, gate-based, live-phase aware (REQ-004/005/006/023)', () => {
+  it('TEST-007 REQ-004/REQ-023 an active mid-execution feature maps to busy; the LIVE phase wins over state.json.phase', () => {
+    const r = raw({ feature: 'auth', phase: 'implement', gates: gatesThrough('tests') })
+    const st = orkyFeatureStatus(r, [], true, 'implement', NOW - 1_000, NOW, 120_000)
     expect(st.kind).toBe('busy')
     expect(st.needsHuman).toBe(false)
     expect(st.gateN).toBe(4)
     expect(st.gateM).toBe(8)
+
+    // Divergence: state.json.phase lags at 'implement' but active.json.phase==='review' → the reported
+    // phase is the LIVE phase 'review' (not the lagging 'implement'), and it is busy in review.
+    const d = raw({ feature: 'auth', phase: 'implement', gates: gatesThrough('implement') })
+    const sd = orkyFeatureStatus(d, [], true, 'review', NOW - 1_000, NOW, 120_000)
+    expect(sd.phase).toBe('review')
+    expect(sd.kind).toBe('busy')
   })
 
-  it('TEST-008 REQ-004/REQ-005 the human-review phase maps to needs-input / needs-human with an actionable detail', () => {
-    const r = raw({ feature: 'auth', phase: 'human-review', gates: { brainstorm: { passed: true } } })
-    const st = orkyFeatureStatus(r, [], true, NOW - 1_000, NOW, 120_000)
+  it('TEST-008 REQ-004/REQ-005 the REAL awaiting-human shape (gates through doc-sync, NO human-review gate) → needs-input/needsHuman', () => {
+    // The real on-disk shape: state.json.phase is STILL 'doc-sync' here; human-review is recorded only
+    // as an external gate, which is absent while awaiting. Gate-based detection works for ANY feature.
+    const awaiting = raw({ feature: 'auth', phase: 'doc-sync', gates: awaitingHumanGates() })
+    const st = orkyFeatureStatus(awaiting, [], false, null, null, NOW, 120_000) // non-active: gate-based still fires
     expect(st.kind).toBe('needs-input')
     expect(st.needsHuman).toBe(true)
     expect(st.reason).toBe('human-review')
@@ -141,47 +207,71 @@ describe('orkyFeatureStatus — per-feature map into the terminal-status model (
     expect(st.detail.toLowerCase()).toContain('human-review')
   })
 
-  it('TEST-009 REQ-004 a feature whose human-review gate has passed maps to done', () => {
-    const r = raw({ feature: 'auth', phase: 'human-review', gates: allPassed() })
-    const st = orkyFeatureStatus(r, [], false, null, NOW, 120_000)
+  it('TEST-009 REQ-004 a feature whose human-review gate has passed maps to done (state.json.phase still doc-sync)', () => {
+    const r = raw({ feature: 'auth', phase: 'doc-sync', gates: allPassed() })
+    const st = orkyFeatureStatus(r, [], false, null, null, NOW, 120_000)
     expect(st.kind).toBe('done')
     expect(st.needsHuman).toBe(false)
   })
 
-  it('TEST-010 REQ-005 needsHuman = open-escalation OR stalled OR human-review; a quiet feature is false', () => {
+  it('TEST-010 REQ-005 needsHuman = open-escalation OR stalled OR awaiting-human; a quiet feature is false', () => {
     // (a) an open escalation mid-execution → needs-human, reason escalation
     const esc = raw({ feature: 'auth', phase: 'implement', gates: {}, escalations: [{ id: 'ESC-3', status: 'open', reason: 'judgment call' }] })
-    const s1 = orkyFeatureStatus(esc, [], true, NOW - 1_000, NOW, 120_000)
+    const s1 = orkyFeatureStatus(esc, [], true, 'implement', NOW - 1_000, NOW, 120_000)
     expect(s1.needsHuman).toBe(true)
     expect(s1.reason).toBe('escalation')
 
     // (b) a stalled active feature → needs-human, reason stalled
-    const s2 = orkyFeatureStatus(raw({ feature: 'auth', phase: 'implement', gates: {} }), [], true, NOW - 200_000, NOW, 120_000)
+    const s2 = orkyFeatureStatus(raw({ feature: 'auth', phase: 'implement', gates: {} }), [], true, 'implement', NOW - 200_000, NOW, 120_000)
     expect(s2.needsHuman).toBe(true)
     expect(s2.reason).toBe('stalled')
 
     // (c) an idle feature between two passed gates, no escalation, not active/stalled → NOT needs-human
-    const idle = raw({ feature: 'auth', phase: 'plan', gates: { brainstorm: { passed: true }, spec: { passed: true }, plan: { passed: true } } })
-    expect(orkyFeatureStatus(idle, [], false, NOW - 1_000, NOW, 120_000).needsHuman).toBe(false)
+    const idle = raw({ feature: 'auth', phase: 'plan', gates: gatesThrough('plan') })
+    expect(orkyFeatureStatus(idle, [], false, null, null, NOW, 120_000).needsHuman).toBe(false)
 
     // (d) a RESOLVED escalation must not trigger needs-human (only status==='open' counts)
     const resolved = raw({ feature: 'auth', phase: 'implement', gates: {}, escalations: [{ id: 'ESC-1', status: 'resolved' }] })
-    expect(orkyFeatureStatus(resolved, [], true, NOW - 1_000, NOW, 120_000).needsHuman).toBe(false)
+    expect(orkyFeatureStatus(resolved, [], true, 'implement', NOW - 1_000, NOW, 120_000).needsHuman).toBe(false)
   })
 
   it('TEST-011 REQ-006 a gate FAILURE sets `failed` independently and does NOT, by itself, set needs-human', () => {
     // The current phase has an explicit gate entry that did not pass (the gate ran and halted).
-    const failed = raw({ feature: 'auth', phase: 'review', gates: { brainstorm: { passed: true }, spec: { passed: true }, plan: { passed: true }, tests: { passed: true }, implement: { passed: true }, review: { passed: false } } })
-    const sf = orkyFeatureStatus(failed, [], false, NOW - 1_000, NOW, 120_000)
+    const failed = raw({ feature: 'auth', phase: 'review', gates: { ...gatesThrough('implement'), review: { passed: false } } })
+    const sf = orkyFeatureStatus(failed, [], false, null, null, NOW, 120_000)
     expect(sf.failed).toBe(true)
-    expect(sf.needsHuman).toBe(false) // surfaces as failure styling (REQ-014), not as needs-input
+    expect(sf.needsHuman).toBe(false) // surfaces as a RENDERED failure treatment (REQ-006), not as needs-input
     // a clean feature is not failed
-    expect(orkyFeatureStatus(raw({ feature: 'auth', phase: 'implement', gates: { brainstorm: { passed: true } } }), [], true, NOW - 1_000, NOW, 120_000).failed).toBe(false)
+    expect(orkyFeatureStatus(raw({ feature: 'auth', phase: 'implement', gates: gatesThrough('brainstorm') }), [], true, 'implement', NOW - 1_000, NOW, 120_000).failed).toBe(false)
+  })
+
+  it('TEST-040 REQ-023/REQ-004 a NON-active feature resolves its live phase from the gate frontier, never the lagging state.json.phase', () => {
+    // state.json.phase LAGS at 'implement' but gates run through implement → frontier is 'review'.
+    const r = raw({ feature: 'auth', phase: 'implement', gates: gatesThrough('implement') })
+    const st = orkyFeatureStatus(r, [], false, null, null, NOW, 120_000)
+    expect(st.phase).toBe('review') // the gate FRONTIER, not the lagging 'implement'
+    expect(st.kind).toBe('idle')    // a non-active feature is never busy (no per-project heartbeat)
+  })
+
+  it('TEST-041 REQ-004 a NON-active feature is never busy and sources lastActivityAt from its own gate timestamps (tz-safe)', () => {
+    // FINDING-DA-005: a non-active feature with an in-flight (gate-undefined) phase must be idle, not busy.
+    const inflight = raw({ feature: 'zzz', phase: 'implement', gates: { brainstorm: { passed: true } } })
+    expect(orkyFeatureStatus(inflight, [], false, null, null, NOW, 120_000).kind).toBe('idle')
+
+    // FINDING-DA-004: lastActivityAt is the max of the feature's own gates[*].at (tz-safe, REQ-028), so
+    // the REQ-007 recency tiebreak orders non-active features instead of collapsing them all to 0.
+    const dated = raw({ feature: 'auth', phase: 'plan', gates: {
+      brainstorm: { passed: true, at: '2026-01-01T00:00:00' },
+      spec: { passed: true, at: '2026-01-03T00:00:00' }, // the max
+      plan: { passed: true, at: '2026-01-02T00:00:00' }
+    } })
+    const st = orkyFeatureStatus(dated, [], false, null, null, NOW, 120_000)
+    expect(st.lastActivityAt).toBe(parseOrkyTimestamp('2026-01-03T00:00:00'))
   })
 
   it('TEST-012 REQ-004 the detail string is specific + actionable (CONV-001), never a bare "needs input"', () => {
     const esc = raw({ feature: 'auth-feature', phase: 'implement', gates: {}, escalations: [{ id: 'ESC-3', status: 'open', reason: 'design choice' }] })
-    const d = orkyFeatureStatus(esc, [], true, NOW - 1_000, NOW, 120_000).detail
+    const d = orkyFeatureStatus(esc, [], true, 'implement', NOW - 1_000, NOW, 120_000).detail
     expect(d).not.toBe('needs input')
     expect(d.toLowerCase()).toContain('auth-feature') // names the feature
     expect(d).toContain('ESC-3')                        // names the reason (the open escalation id)
@@ -199,15 +289,12 @@ describe('selectChipFeature — deterministic most-needs-you selector (REQ-007)'
   })
 
   it('TEST-014 REQ-007 ranks needsHuman-first, then activity, then feature-id as a stable final tiebreak', () => {
-    // (1) needsHuman beats a much-more-recent idle feature
     const needs = feat({ feature: 'n', needsHuman: true, reason: 'stalled', lastActivityAt: 1 })
     const idle = feat({ feature: 'i', needsHuman: false, reason: null, lastActivityAt: 999 })
     expect(selectChipFeature([idle, needs] as never)!.feature).toBe('n')
-    // (3) equal needsHuman + reason → most-recent activity wins
     const old = feat({ feature: 'old', needsHuman: true, reason: 'escalation', lastActivityAt: 1 })
     const fresh = feat({ feature: 'fresh', needsHuman: true, reason: 'escalation', lastActivityAt: 9 })
     expect(selectChipFeature([old, fresh] as never)!.feature).toBe('fresh')
-    // (4) identical on (1)-(3) → feature id ascending
     const zeta = feat({ feature: 'zeta', needsHuman: true, reason: 'escalation', lastActivityAt: 5 })
     const alpha = feat({ feature: 'alpha', needsHuman: true, reason: 'escalation', lastActivityAt: 5 })
     expect(selectChipFeature([zeta, alpha] as never)!.feature).toBe('alpha')
@@ -219,7 +306,7 @@ describe('selectChipFeature — deterministic most-needs-you selector (REQ-007)'
   })
 })
 
-describe('orkyPaneStatus — roll-up, chip label, and determinism (REQ-008/020/021)', () => {
+describe('orkyPaneStatus — roll-up, chip label, clean-done exclusion, determinism (REQ-008/020/021)', () => {
   it('TEST-016 REQ-008 renders `feature · phase · gate N/M · ●k open`, omitting the count only at k=0', () => {
     const f = feat({ feature: 'auth', kind: 'busy', phase: 'implement', gateN: 5, gateM: 8, openBlocking: 2, lastActivityAt: 1 })
     expect(orkyPaneStatus([f] as never).label).toBe('auth · implement · 5/8 · ●2 open')
@@ -240,21 +327,29 @@ describe('orkyPaneStatus — roll-up, chip label, and determinism (REQ-008/020/0
     expect(() => orkyPaneStatus(undefined as never)).not.toThrow() // total
   })
 
-  it('TEST-018 REQ-020 the popover feature list holds only non-Idle features, ranked by the selector order', () => {
-    const a = feat({ feature: 'a', kind: 'idle', needsHuman: false, lastActivityAt: 5 })
-    const b = feat({ feature: 'b', kind: 'busy', needsHuman: false, lastActivityAt: 3 })
-    const c = feat({ feature: 'c', kind: 'needs-input', needsHuman: true, reason: 'escalation', lastActivityAt: 1 })
-    const out = orkyPaneStatus([a, b, c] as never)
-    expect(out.features.map((f: { feature: string }) => f.feature)).toEqual(['c', 'b']) // idle 'a' dropped; needs-human 'c' ranked first
+  it('TEST-018 REQ-020 the popover lists busy / needs-input / failed / done-WITH-open; clean-done AND idle are EXCLUDED, ranked', () => {
+    const a = feat({ feature: 'a', kind: 'idle', needsHuman: false, lastActivityAt: 9 })                 // idle → excluded
+    const b = feat({ feature: 'b', kind: 'busy', needsHuman: false, lastActivityAt: 4 })                 // busy → kept
+    const c = feat({ feature: 'c', kind: 'needs-input', needsHuman: true, reason: 'escalation', lastActivityAt: 1 }) // needs-input → kept (ranked first)
+    const dClean = feat({ feature: 'd', kind: 'done', openBlocking: 0, lastActivityAt: 8 })              // CLEAN done → EXCLUDED
+    const eOpen = feat({ feature: 'e', kind: 'done', openBlocking: 2, lastActivityAt: 3 })               // done WITH open items → kept
+    const fFailed = feat({ feature: 'f', kind: 'idle', failed: true, lastActivityAt: 2 })                // failed-but-idle → kept
+    const out = orkyPaneStatus([a, b, c, dClean, eOpen, fFailed] as never)
+    // needs-human 'c' first; the rest are equal-needsHuman → ranked by newer activity then id: b(4) e(3) f(2).
+    expect(out.features.map((x: { feature: string }) => x.feature)).toEqual(['c', 'b', 'e', 'f'])
     expect(out.chipFeature).toBe('c')
+
+    // Direct clean-done exclusion: two done features, only the one WITH open blocking items is listed.
+    const doneOpen = feat({ feature: 'd1', kind: 'done', openBlocking: 2, lastActivityAt: 5 })
+    const doneClean = feat({ feature: 'd2', kind: 'done', openBlocking: 0, lastActivityAt: 6 })
+    expect(orkyPaneStatus([doneOpen, doneClean] as never).features.map((x: { feature: string }) => x.feature)).toEqual(['d1'])
   })
 })
 
 describe('totality on malformed Orky state (REQ-019)', () => {
   it('TEST-019 REQ-019 mappers + normalizers tolerate empty/malformed input without throwing', () => {
-    expect(() => orkyFeatureStatus(raw({}), [], false, null, NOW, 120_000)).not.toThrow()
-    expect(() => orkyFeatureStatus({} as never, undefined as never, false, null, NOW, 120_000)).not.toThrow()
-    // the parse/normalize layer degrades to defined safe defaults (gates:{}, escalations:[], findings:[])
+    expect(() => orkyFeatureStatus(raw({}), [], false, null, null, NOW, 120_000)).not.toThrow()
+    expect(() => orkyFeatureStatus({} as never, undefined as never, false, null, null, NOW, 120_000)).not.toThrow()
     expect(normalizeFindings(undefined as never)).toEqual([])
     expect(normalizeFindings('garbage' as never)).toEqual([])
     const nf = normalizeFeatureRaw(undefined as never)

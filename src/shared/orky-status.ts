@@ -1,18 +1,44 @@
 // Pure, Electron-free, `../api`-free status mappers for the Orky pipeline (feature 0004). Every
 // function here is TOTAL (never throws on empty/malformed input) and PURE (no Date.now, no I/O, no
-// Math.random — `now` and `thresholdMs` are ALWAYS injected by the caller). This is the determinism
-// + data-provenance anchor: the hardcoded ORKY_PHASES list is the single source of truth that mirrors
-// Orky's upstream pipeline (see docs/features/orky-status.md for the drift note).
+// Math.random — `now`, `thresholdMs`, and `activePhase` are ALWAYS injected by the caller). This is the
+// determinism + data-provenance anchor.
+//
+// DETECTION MODEL (ESC-001, gate-based full roll-up): the live phase of the ACTIVE feature is
+// `active.json.phase` (injected as `activePhase`); for a NON-active feature it is the gate frontier
+// (`gateFrontier`) — the lagging `state.json.phase` is a last-resort fallback only. "Needs a human" is
+// derived from GATES (every autonomous gate through `doc-sync` passed AND `human-review` not yet
+// passed), never from a `state.json.phase === 'human-review'` string the real pipeline never sets.
+//
+// PROVENANCE of the phase list (REQ-029 / FINDING-PROV-001): `ORKY_PHASES` mirrors the EXACT recorded
+// `state.json.gates` keys and the gatekeeper's `DRIVER_WORK_PHASES` (the driver/work phase list) — it is
+// deliberately NOT Orky's separate 9-entry constant `PHASE_ORDER` (which Orky's own source labels its
+// canonical ordering) = ['intake','brainstorm','spec','plan','tests','implement','review','doc-sync','human'].
+// Two intentional differences a future maintainer MUST NOT "re-sync" away:
+//   • `intake` (a pre-pipeline artifact step that records NO gate) is excluded — prepending it would
+//     wrongly make M = 9.
+//   • Orky's trailing `human` is recorded on disk as the `human-review` gate key, so it is renamed to
+//     `human-review` here — renaming it back to `human` would zero `gateN`'s match on the recorded key.
+// The tests verify only that the code matches THIS embedded list; upstream drift is a manual data-update
+// follow-up (see docs/features/orky-status.md), never something a test can catch.
 import type { OrkyPhase, OrkyKind, OrkyReason, OrkyFeatureStatus, OrkyPaneStatus } from './types'
 
 export type { OrkyPhase, OrkyKind, OrkyReason, OrkyFeatureStatus, OrkyPaneStatus } from './types'
 
-/** Canonical pipeline phase order; `human-review` is the final real gate and counts toward M (REQ-001). */
+/** The mirrored Orky gate phases, in order (= `DRIVER_WORK_PHASES` + the recorded gate keys; see the
+ *  provenance note above — NOT Orky's separate 9-entry `PHASE_ORDER` constant).
+ *  `human-review` is the final real gate and counts toward M (REQ-001). The single source of truth. */
 export const ORKY_PHASES: readonly OrkyPhase[] = [
   'brainstorm', 'spec', 'plan', 'tests', 'implement', 'review', 'doc-sync', 'human-review'
 ] as const
 
-/** Default stall threshold: a live executing phase with no heartbeat for >120s is stalled (REQ-003). */
+/** The 7 AUTONOMOUS gates through `doc-sync` (= `ORKY_PHASES` minus the human `human-review` gate).
+ *  When every one of these has passed and `human-review` has not, the run is awaiting a human (REQ-005). */
+export const ORKY_AUTONOMOUS_PHASES: readonly OrkyPhase[] = [
+  'brainstorm', 'spec', 'plan', 'tests', 'implement', 'review', 'doc-sync'
+] as const
+
+/** Default stall threshold (a Termhalla-side UI heuristic, NOT an Orky-derived value): a live executing
+ *  phase with no heartbeat for >120s reads as stalled (REQ-003). Injectable via the tracker's opts. */
 export const STALL_THRESHOLD_MS = 120_000
 
 // ── On-disk (parse-layer) raw shapes ────────────────────────────────────────────────────────────
@@ -38,6 +64,21 @@ export interface OrkyActive {
 
 function isObject(v: unknown): v is Record<string, unknown> {
   return typeof v === 'object' && v !== null && !Array.isArray(v)
+}
+
+// ── Timezone-safe timestamp parsing (REQ-028 / FINDING-DET-001) ───────────────────────────────────
+/** Parse an Orky ISO timestamp to epoch ms timezone-safely: a tz-less ISO datetime (no `Z`/offset) is
+ *  interpreted as UTC (NOT the machine-local zone that `Date.parse` would assume), so identical bytes
+ *  yield the same epoch ms — and the same stall (REQ-003) / recency (REQ-004/007) verdict — on any host.
+ *  A `Z`/offset is honored unchanged; a non-string or unparseable value → `null` (never throws). */
+export function parseOrkyTimestamp(s: unknown): number | null {
+  if (typeof s !== 'string') return null
+  let str = s.trim()
+  const hasTz = /[zZ]$/.test(str) || /[+-]\d{2}:?\d{2}$/.test(str)
+  // Only a tz-less ISO datetime (date + time) is normalized to UTC; everything else is left as-is.
+  if (!hasTz && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(str)) str += 'Z'
+  const t = Date.parse(str)
+  return Number.isNaN(t) ? null : t
 }
 
 // ── Normalizers (TASK-002) — totalize a raw JSON.parse result into a safe-defaulted shape ─────────
@@ -68,6 +109,21 @@ export function gateN(gates: Record<string, OrkyGate> | undefined | null): numbe
   return n
 }
 
+// ── Gate frontier / live phase for a non-active feature (REQ-023) ─────────────────────────────────
+/** The live phase of a non-active feature: the phase in `ORKY_PHASES` immediately AFTER the
+ *  highest-index canonical gate with `passed === true`. `{}`/malformed → `'brainstorm'`; all 8 passed →
+ *  `null` (complete). Total; never throws (FINDING-DA-002 — the lagging `state.json.phase` is NOT used). */
+export function gateFrontier(gates: unknown): OrkyPhase | null {
+  if (!isObject(gates)) return ORKY_PHASES[0]
+  let highest = -1
+  for (let i = 0; i < ORKY_PHASES.length; i++) {
+    const g = gates[ORKY_PHASES[i]] as OrkyGate | undefined
+    if (g?.passed === true) highest = i
+  }
+  if (highest === ORKY_PHASES.length - 1) return null
+  return ORKY_PHASES[highest + 1]
+}
+
 // ── Open-blocking findings (REQ-002) ──────────────────────────────────────────────────────────────
 const BLOCKING_SEVERITY = new Set(['CRITICAL', 'HIGH'])
 /** Count open findings that are CRITICAL/HIGH OR a contract violation. Total; no silent capping. */
@@ -82,43 +138,48 @@ export function openBlockingCount(findings: OrkyFinding[] | undefined | null): n
   return n
 }
 
-// ── Executing / complete / failed predicates over a normalized raw feature ────────────────────────
+// ── Executing / complete predicates ───────────────────────────────────────────────────────────────
+/** Pipeline complete = the `human-review` gate has passed (the real terminal state; `state.json.phase`
+ *  stays at `doc-sync`). */
 function isComplete(f: OrkyFeatureRaw): boolean {
   return f.gates['human-review']?.passed === true
 }
-/** Executing = a phase is in flight with no gate entry yet for the current phase (and not complete). */
-function isExecuting(f: OrkyFeatureRaw): boolean {
-  if (!f.phase) return false
+/** Executing-ness is read off the LIVE phase (REQ-023): a live phase is in flight when it is set, the
+ *  pipeline is not complete, and that phase has no gate entry yet (the gate has not run/passed). Keyed on
+ *  the live phase — NOT the lagging `state.json.phase` — so a hang in the long late phases can stall. */
+function isExecutingPhase(f: OrkyFeatureRaw, livePhase: OrkyPhase | null): boolean {
+  if (!livePhase) return false
   if (isComplete(f)) return false
-  return f.gates[f.phase] === undefined
-}
-function isFailed(f: OrkyFeatureRaw): boolean {
-  return !!f.phase && f.gates[f.phase]?.passed === false
+  return f.gates[livePhase] === undefined
 }
 
-// ── Stall detection (REQ-003) ─────────────────────────────────────────────────────────────────────
-/** `true` only when the ACTIVE feature has an executing phase, a live tick, and now-tick > threshold. */
+// ── Stall detection (REQ-003 / REQ-023) ───────────────────────────────────────────────────────────
+/** `true` only when the ACTIVE feature has a live executing phase, a live tick, and now-tick > threshold.
+ *  Executing-ness keys on `activePhase` (`active.json.phase`), the LIVE phase, not `state.json.phase`. */
 export function isStalled(
   activeFeatureSlug: string | null,
   feature: OrkyFeatureRaw,
+  activePhase: OrkyPhase | null,
   lastTickAt: number | null,
   now: number,
   thresholdMs: number = STALL_THRESHOLD_MS
 ): boolean {
-  if (!activeFeatureSlug) return false
-  const f = normalizeFeatureRaw(feature)
-  if (f.feature !== activeFeatureSlug) return false   // non-active feature has no live heartbeat
-  if (!isExecuting(f)) return false                   // finished / halted → never stalled (finished wins)
-  if (lastTickAt == null) return false                // no heartbeat to compare → not stalled, no throw
-  return now - lastTickAt > thresholdMs               // strict `>`: the boundary itself is not stalled
+  if (!activeFeatureSlug) return false                       // a non-active feature has no live heartbeat
+  if (feature.feature !== activeFeatureSlug) return false
+  if (!isExecutingPhase(feature, activePhase)) return false  // finished / not in flight → finished wins
+  if (lastTickAt == null) return false                       // no heartbeat to compare → not stalled, no throw
+  return now - lastTickAt > thresholdMs                      // strict `>`: the boundary itself is not stalled
 }
 
-// ── Per-feature mapping into the terminal-status model (REQ-004/005/006) ──────────────────────────
-/** Map a raw feature into the wire-shaped `OrkyFeatureStatus`. Total + pure (injected now/threshold). */
+// ── Per-feature mapping into the terminal-status model (REQ-004/005/006/023) ──────────────────────
+/** Map a raw feature into the wire-shaped `OrkyFeatureStatus`. Total + pure (injected now/threshold/
+ *  activePhase). `phase` is the LIVE phase: `activePhase` for the active feature, the gate frontier for
+ *  a non-active feature. A non-active feature is NEVER `busy` (no per-project heartbeat). */
 export function orkyFeatureStatus(
   raw: OrkyFeatureRaw,
   findings: OrkyFinding[] | undefined | null,
   isActive: boolean,
+  activePhase: OrkyPhase | null,
   lastTickAt: number | null,
   now: number,
   thresholdMs: number = STALL_THRESHOLD_MS
@@ -126,25 +187,48 @@ export function orkyFeatureStatus(
   const f = normalizeFeatureRaw(raw)
   const slug = f.feature || '(unknown)'
   const complete = isComplete(f)
-  const failed = isFailed(f)
   const openBlocking = openBlockingCount(normalizeFindings(findings))
 
-  const openEsc = f.escalations.find(e => isObject(e) && e.status === 'open')
-  const stalled = isStalled(isActive ? f.feature : null, f, isActive ? lastTickAt : null, now, thresholdMs)
-  const inHumanReview = f.phase === 'human-review' && !complete
+  // LIVE phase (REQ-023): active → active.json.phase; non-active → gate frontier. The lagging
+  // state.json.phase is a last-resort fallback ONLY (never overrides either).
+  const livePhase: OrkyPhase | null = isActive
+    ? (activePhase ?? gateFrontier(f.gates))
+    : gateFrontier(f.gates)
 
-  // needs-you priority: escalation > stalled > human-review (REQ-005 / structured `reason`).
+  // A halted gate failure = the live phase's gate ran and did NOT pass (explicit passed:false).
+  const failed = livePhase != null && f.gates[livePhase]?.passed === false
+
+  // needs-human is GATE-BASED (REQ-005): awaiting-human when every autonomous gate through doc-sync
+  // passed and human-review is not yet passed; OR an open escalation; OR a stall. Priority
+  // escalation > stalled > human-review. A complete feature is done → never needs-human.
+  const openEsc = f.escalations.find(e => isObject(e) && e.status === 'open')
+  const stalled = isStalled(isActive ? f.feature : null, f, activePhase, lastTickAt, now, thresholdMs)
+  const autonomousAllPassed = ORKY_AUTONOMOUS_PHASES.every(p => f.gates[p]?.passed === true)
+  const awaitingHuman = autonomousAllPassed && f.gates['human-review']?.passed !== true
+
   let reason: OrkyReason = null
-  if (openEsc) reason = 'escalation'
-  else if (stalled) reason = 'stalled'
-  else if (inHumanReview) reason = 'human-review'
+  if (!complete) {
+    if (openEsc) reason = 'escalation'
+    else if (stalled) reason = 'stalled'
+    else if (awaitingHuman) reason = 'human-review'
+  }
   const needsHuman = reason !== null
 
   let kind: OrkyKind
   if (complete) kind = 'done'
   else if (needsHuman) kind = 'needs-input'
-  else if (isExecuting(f)) kind = 'busy'
+  else if (isActive && isExecutingPhase(f, livePhase)) kind = 'busy' // non-active is never busy (REQ-004)
   else kind = 'idle'
+
+  // lastActivityAt (REQ-004 / FINDING-DA-004): max of the feature's own gate timestamps (tz-safe),
+  // falling back to / max'd with the active heartbeat for the active feature, so the recency tiebreak
+  // (REQ-007) orders non-active features rather than collapsing them all to 0.
+  let lastActivityAt = 0
+  for (const p of ORKY_PHASES) {
+    const t = parseOrkyTimestamp(f.gates[p]?.at)
+    if (t != null && t > lastActivityAt) lastActivityAt = t
+  }
+  if (isActive && lastTickAt != null && lastTickAt > lastActivityAt) lastActivityAt = lastTickAt
 
   // Actionable detail (CONV-001) — always names the feature + the concrete reason, never bare text.
   let detail: string
@@ -155,28 +239,28 @@ export function orkyFeatureStatus(
     const mins = Math.max(1, Math.round((now - (lastTickAt ?? now)) / 60_000))
     detail = `${slug}: stalled ${mins}m — no heartbeat`
   } else if (reason === 'human-review') {
-    detail = `${slug}: awaiting human-review — needs you`
+    detail = `${slug}: awaiting human-review (gates ${gateN(f.gates)}/${ORKY_PHASES.length}) — needs you`
   } else if (complete) {
     detail = `${slug}: pipeline complete`
   } else if (failed) {
-    detail = `${slug}: ${f.phase ?? 'gate'} gate failed`
+    detail = `${slug}: ${livePhase ?? 'gate'} gate failed`
   } else if (kind === 'busy') {
-    detail = `${slug}: ${f.phase ?? 'running'} in progress`
+    detail = `${slug}: ${livePhase ?? 'running'} in progress`
   } else {
-    detail = `${slug}: ${f.phase ?? 'idle'}`
+    detail = `${slug}: ${livePhase ?? 'idle'}`
   }
 
   return {
     feature: slug,
     kind,
-    phase: f.phase as OrkyPhase | null,
+    phase: livePhase,
     gateN: gateN(f.gates),
     gateM: ORKY_PHASES.length,
     openBlocking,
     needsHuman,
     failed,
     reason,
-    lastActivityAt: isActive ? (lastTickAt ?? 0) : 0,
+    lastActivityAt,
     detail
   }
 }
@@ -209,20 +293,30 @@ function chipLabel(f: OrkyFeatureStatus): string {
   return f.openBlocking > 0 ? `${base} · ●${f.openBlocking} open` : base
 }
 
-/** Total + pure pane roll-up. The popover `features` are ALL non-Idle features, ranked. */
+/** A feature belongs in the popover roll-up when it is busy / needs-input / failed / done-WITH-open
+ *  items. A CLEAN `done` feature (`done` ∧ `openBlocking === 0`) and `idle` are EXCLUDED (REQ-020 /
+ *  FINDING-DA-003) so the popover does not accumulate every merged feature as a wall of stale rows. */
+function inPopover(f: OrkyFeatureStatus): boolean {
+  if (f.failed) return true
+  if (f.kind === 'busy' || f.kind === 'needs-input') return true
+  if (f.kind === 'done' && f.openBlocking > 0) return true
+  return false
+}
+
+/** Total + pure pane roll-up. The popover `features` exclude clean-done + idle, ranked by the selector. */
 export function orkyPaneStatus(features: OrkyFeatureStatus[] | undefined | null): OrkyPaneStatus {
   const list = Array.isArray(features) ? features.filter(isObject) as OrkyFeatureStatus[] : []
   const chip = selectChipFeature(list)
   if (!chip) {
     return { kind: 'idle', label: '', needsHuman: false, failed: false, features: [], chipFeature: null }
   }
-  const nonIdle = list.filter(f => f.kind !== 'idle').sort(compareFeatures)
+  const shown = list.filter(inPopover).sort(compareFeatures)
   return {
     kind: chip.kind,
     label: chipLabel(chip),
     needsHuman: chip.needsHuman,
     failed: chip.failed,
-    features: nonIdle,
+    features: shown,
     chipFeature: chip.feature
   }
 }

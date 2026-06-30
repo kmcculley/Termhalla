@@ -1,6 +1,7 @@
 # Orky status awareness
 
-A read-only mirror of an [Orky](https://github.com/) gated-pipeline run, surfaced in the pane chrome.
+A read-only mirror of an Orky (the gated `spec → plan → tests → implement → review → doc-sync →
+human-review` pipeline this repo is adopted into; see `.orky/`) run, surfaced in the pane chrome.
 When a terminal pane's tracked cwd sits inside (or under) a project that contains a `.orky/` directory,
 Termhalla watches that project's `.orky/` tree and renders the run's live status on the pane — without
 ever modifying it.
@@ -23,17 +24,31 @@ ever modifying it.
   terminal needs-input. The opt-in governs only the badge summary — it never hides the pane's Orky chip
   or a gate-failure border.
 
-## Status model
+## Status model (gate-based full roll-up)
 
-- **needs a human** when the current phase is `human-review`, OR there is an open escalation, OR the
-  active feature is *stalled* (an executing phase with no heartbeat for > 120s). A generic auto-passed
-  gate boundary does **not** count.
-- **gate failure** (a halted gate whose entry is `passed: false`) is a separate flag from needs-human:
-  it surfaces as failure styling on the border, not as a needs-input prompt. Both flags may be true at
-  once.
+Detection is derived from **gates**, never from the lagging `state.json.phase` string (the real
+pipeline leaves `state.json.phase` at `doc-sync` and records `human-review` only as an external gate):
+
+- **live phase** — for the **active** feature (named in `active.json.feature`) the live phase is
+  `active.json.phase`; for any **non-active** feature it is the **gate frontier** (`gateFrontier`), the
+  phase immediately after the highest passed canonical gate. The lagging `state.json.phase` is a
+  last-resort fallback only.
+- **needs a human** when every autonomous gate through `doc-sync` has passed and `human-review` has
+  **not** (awaiting-human, derived from gates so it works for any feature), OR there is an open
+  escalation, OR the active feature is *stalled* (a live executing phase with no heartbeat for > 120s).
+  A generic auto-passed gate boundary does **not** count; `human-review` gate passed ⇒ **done**.
+- a **non-active** feature has no per-project heartbeat (one heartbeat lives in `active.json`), so it is
+  **never `busy`** — only `idle` / `needs-input` / `done`.
+- **gate failure** (the live phase's gate entry is `passed: false`) is a separate flag from
+  needs-human: it surfaces as a **rendered** failure treatment on the border (a `term-failure` accent
+  that wins over the idle toolbar background) plus a non-color chip marker (`data-failed`), not as a
+  needs-input prompt. Both flags may be true at once.
 - The single chip feature is chosen by a deterministic, order-independent selector: needs-human first,
-  then a stable reason order `escalation > stalled > human-review`, then most-recent activity, then
-  feature-id ascending.
+  then a stable reason order `escalation > stalled > human-review`, then most-recent activity (sourced
+  from each feature's own `gates[*].at`, parsed timezone-safely), then feature-id ascending.
+- The detail popover lists only **busy / needs-input / failed / done-WITH-open-items** features; a clean
+  `done` feature (0 open blocking items) and `idle` features are excluded, so the popover never
+  accumulates every merged feature as a wall of stale "done" rows.
 
 ## Architecture
 
@@ -53,24 +68,45 @@ ever modifying it.
 
 ### The watcher
 
-`OrkyTracker` is a structural clone of `UsageTracker`: ONE bounded, debounced chokidar watch on
-`<root>/.orky/` per pane (never a watcher per feature), the session-identity race pattern (claim the
-map slot before the first `await`, re-check after every `await` so a concurrent watch/unwatch supersedes
-cleanly), a `dispose()` that closes all watchers + clears all timers (so it never keeps the Electron
-main process alive), and warn-on-read-failure diagnostics. It is **strictly read-only** — it never
+`OrkyTracker` is a structural clone of `UsageTracker`: the session-identity race pattern (claim the
+per-pane slot before the first `await`, re-check after every `await` so a concurrent watch/unwatch
+supersedes cleanly), an `unwatch` early-return for an unknown pane, a `dispose()` that closes all
+watchers + clears all timers (so it never keeps the Electron main process alive), and warn-on-read-failure
+diagnostics. It shares **one chokidar watcher + one debounced re-read per resolved `.orky/` root**,
+fanning the computed status out to every pane bound to that root (never one watcher per pane), and the
+event handler filters to the target `active.json` / `state.json` / `findings.json` files before
+scheduling a re-read (a routine `02-spec.md` edit fires nothing). It is **strictly read-only** — it never
 writes, creates, moves, or deletes anything under `.orky/` — and reads the on-disk JSON directly
-(`fs/promises`), never spawning a `node`/CLI process per poll. It tolerates missing / empty / malformed
-state without throwing: an unreadable feature is skipped and the rest still report.
+(`fs/promises`), never spawning a `node`/CLI process per poll.
+
+The read path is **bounded** (security): at most **200** feature directories per re-read (a stated cap,
+warned on), `state.json` / `findings.json` above **1 MiB** are skipped via a `stat` size check before
+reading, and a `features/<slug>` symlink is skipped (not followed outside the root). The IPC boundary
+validates its args (a non-string `id`/`cwd` is a no-op, never an unhandled rejection) and each
+`orky:watch` / `orky:unwatch` is scoped to its owning `BrowserWindow`. It tolerates missing / empty /
+malformed state without throwing: an unreadable feature is skipped and the rest still report.
 
 The `.orky/` discovery is a deterministic, bounded upward walk (`findOrkyRoot`, default cap 8 ancestors)
-from the pane's tracked cwd — it never climbs to the filesystem root unbounded. When the cwd has no
-`.orky/` ancestor (or the pane closes), the tracker emits a cleared `orky:status` (`null`) and the
-renderer reverts the border/chip to the pure byte-derived status.
+from the pane's tracked cwd — it never climbs to the filesystem root unbounded, and a non-string cwd
+degrades to `null` rather than throwing. When the cwd has no `.orky/` ancestor (or the pane closes), the
+tracker emits a cleared `orky:status` (`null`) and the renderer reverts the border/chip to the pure
+byte-derived status.
 
 ## Data provenance (the `ORKY_PHASES` drift caveat)
 
 `ORKY_PHASES = ['brainstorm','spec','plan','tests','implement','review','doc-sync','human-review']` in
-`src/shared/orky-status.ts` is a **hardcoded mirror** of Orky's upstream pipeline phase list. The tests
-verify only that the code matches this embedded list — they cannot detect drift from Orky's *real*
-pipeline. If Orky changes its phases upstream, updating `ORKY_PHASES` here is a manual data-update
-follow-up; no automated test will catch it. `human-review` is a real, final gate and counts toward `M`.
+`src/shared/orky-status.ts` is a **hardcoded mirror** of the EXACT recorded `state.json.gates` keys and
+the gatekeeper's `DRIVER_WORK_PHASES` (its driver/work phase list). It is deliberately **NOT** Orky's
+*separate* 9-entry constant literally named "Canonical phase order" — `PHASE_ORDER =
+['intake','brainstorm','spec','plan','tests','implement','review','doc-sync','human']`. Two intentional
+differences a future maintainer re-syncing the mirror MUST NOT undo:
+
+- Orky's leading **`intake`** (a pre-pipeline artifact step that records **no** gate) is **excluded** —
+  prepending it would wrongly make `M = 9`.
+- Orky's trailing **`human`** is recorded on disk as the **`human-review`** gate key, so it is renamed to
+  `human-review` here — renaming it back to `human` would zero `gateN`'s match on the recorded key.
+
+So a re-sync MUST be against `DRIVER_WORK_PHASES` + the recorded gate keys, **not** `PHASE_ORDER`. The
+tests verify only that the code matches this embedded list — they cannot detect drift from Orky's *real*
+pipeline; updating `ORKY_PHASES` is a manual data-update follow-up. `human-review` is a real, final gate
+and counts toward `M`.

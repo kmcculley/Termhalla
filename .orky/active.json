@@ -1,7 +1,7 @@
 {
   "feature": ".orky/features/0004-orky-status-awareness",
   "projectRoot": "C:/dev/Termhalla",
-  "phase": "implement",
-  "lastTickAt": "2026-06-30T15:26:31.775Z",
-  "lastAction": "dispatch:implementer-A(claude) A/B-determinism"
+  "phase": "review",
+  "lastTickAt": "2026-06-30T17:10:18.894Z",
+  "lastAction": "focused re-review: changed surfaces (det/da/sec/perf)"
 }

@@ -114,3 +114,60 @@ test('clears the Orky chrome when the pane cwd leaves the .orky/ project (teardo
 
   const pid = app.process().pid; await app.close().catch(() => {}); if (pid) killTree(pid)
 })
+
+/** Write a synthetic `.orky/` project with a single feature whose latest gate FAILED (review halted).
+ *  A halted gate failure maps to kind:'idle' + failed:true, so the pane carries `term-idle term-failure`
+ *  — exactly the case where the idle `!important` toolbar background would otherwise mask the red
+ *  failure accent (FINDING-UX-001 / REQ-006). */
+function seedFailedOrkyProject(): string {
+  const proj = mkdtempSync(join(tmpdir(), 'termh-orkyfail-'))
+  const fdir = join(proj, '.orky', 'features', 'demo-feature')
+  mkdirSync(fdir, { recursive: true })
+  writeFileSync(join(proj, '.orky', 'active.json'), JSON.stringify({
+    feature: '.orky/features/demo-feature', projectRoot: proj, phase: 'review',
+    lastTickAt: new Date().toISOString(), lastAction: 'gate:review'
+  }), 'utf8')
+  const passed = (at = '2026-06-30T00:00:00.000Z') => ({ passed: true, at })
+  writeFileSync(join(fdir, 'state.json'), JSON.stringify({
+    feature: 'demo-feature', phase: 'review',
+    gates: { brainstorm: passed(), spec: passed(), plan: passed(), tests: passed(), implement: passed(), review: { passed: false, at: '2026-06-30T01:00:00.000Z' } },
+    escalations: []
+  }), 'utf8')
+  writeFileSync(join(fdir, 'findings.json'), JSON.stringify([]), 'utf8')
+  return proj
+}
+
+test('TEST-055 REQ-006 a failed-AND-idle Orky pane RENDERS the failure accent over the idle background', async () => {
+  test.setTimeout(60_000)
+  const userData = mkdtempSync(join(tmpdir(), 'termh-orkyf-'))
+  const proj = seedFailedOrkyProject()
+
+  const app = await electron.launch({ args: ['out/main/index.js', '--no-sandbox', '--disable-gpu', `--user-data-dir=${userData}`] })
+  const win = await app.firstWindow()
+  await openTerminalAt(win, proj)
+  await expect(win.locator('[data-testid^="orky-chip-"]').first()).toBeVisible({ timeout: 20_000 })
+
+  // The computed toolbar background MUST resolve to var(--status-failure), NOT the idle var(--panel).
+  const toolbar = win.locator('.mosaic-window-toolbar').first()
+  const bg = await toolbar.evaluate(el => {
+    const g = globalThis as unknown as { getComputedStyle(e: unknown): { backgroundColor: string } }
+    return g.getComputedStyle(el).backgroundColor
+  })
+  const resolve = (expr: string) => win.evaluate((e) => {
+    const g = globalThis as unknown as {
+      getComputedStyle(x: unknown): { backgroundColor: string }
+      document: { createElement(t: string): { style: { backgroundColor: string }; remove(): void }; body: { appendChild(n: unknown): void } }
+    }
+    const d = g.document.createElement('div'); d.style.backgroundColor = e; g.document.body.appendChild(d)
+    const c = g.getComputedStyle(d).backgroundColor; d.remove(); return c
+  }, expr)
+  const failure = await resolve('var(--status-failure)')
+  const panel = await resolve('var(--panel)')
+  expect(bg).toBe(failure)        // the failure accent actually renders
+  expect(bg).not.toBe(panel)      // it is NOT masked by the idle !important background
+
+  // Non-color affordance (WCAG 1.4.1): the failed chip carries data-failed.
+  await expect(win.locator('[data-failed]')).toHaveCount(1, { timeout: 10_000 })
+
+  const pid = app.process().pid; await app.close().catch(() => {}); if (pid) killTree(pid)
+})

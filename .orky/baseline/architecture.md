@@ -84,6 +84,18 @@ thin around it. That pure core is what this baseline characterizes (see CHAR ids
 - **`search/fts-query.ts`** — sanitize free text into a safe FTS5 MATCH expression. *(CHAR-020)*
   **`search/prune-policy.ts`** — segment-cap overage. *(CHAR-020)* **`search/search-service.ts`**,
   **`search/indexer.ts`**, **`search/segment-buffer.ts`** — `better-sqlite3` FTS5 index (WAL).
+- **`src/main/orky/`** — *added by feature 0004 (Orky status awareness).* A new privileged, **read-only**
+  subsystem that watches a project's `.orky/` tree (resolved by `find-orky-root.ts`, a bounded upward
+  walk) with a chokidar watcher cloned from `UsageTracker` (`orky-tracker.ts`): one watcher + debounced
+  re-read per resolved root, `.json` event filter, bounded readdir/readFile + symlink guard, never
+  spawning a CLI and never writing under `.orky/`. The pure status mappers live in
+  **`src/shared/orky-status.ts`** (gate-based live-phase / needs-human roll-up; `ORKY_PHASES` mirrors the
+  recorded gate keys / `DRIVER_WORK_PHASES`). Status is pushed over the pane-scoped **`orky:status`** IPC
+  channel (with `orky:watch` / `orky:unwatch`, validated + per-window sender-scoped in `register-orky.ts`)
+  and held as live runtime state in the renderer store. **Render-time precedence:** for a bound Orky run
+  the Orky-derived status takes precedence over the byte-derived `TerminalStatus` for the pane border and
+  the workspace tab badge (the byte-status computation itself is unchanged — baseline REQ-004). Nothing is
+  persisted (no `SCHEMA_VERSION` bump).
 
 ### Shared renderer/UI logic
 - **`shared/keybindings.ts`** — command registry, chord parse/format, `resolveBindings`,

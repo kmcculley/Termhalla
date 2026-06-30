@@ -1,6 +1,6 @@
 {
   "feature": "0004-orky-status-awareness",
-  "phase": "tests",
+  "phase": "implement",
   "gates": {
     "brainstorm": {
       "passed": true,
@@ -10,7 +10,7 @@
     },
     "spec": {
       "passed": true,
-      "at": "2026-06-30T14:59:48.487Z",
+      "at": "2026-06-30T16:21:15.802Z",
       "tokens": [
         {
           "token": "findings",
@@ -21,7 +21,7 @@
     },
     "plan": {
       "passed": true,
-      "at": "2026-06-30T15:06:05.710Z",
+      "at": "2026-06-30T16:27:44.233Z",
       "tokens": [
         {
           "token": "spec-freeze",
@@ -31,7 +31,7 @@
         {
           "token": "traceability-plan",
           "pass": true,
-          "evidence": "all 22 REQ(s) trace to TASK"
+          "evidence": "all 29 REQ(s) trace to TASK"
         },
         {
           "token": "findings",
@@ -42,7 +42,7 @@
     },
     "tests": {
       "passed": true,
-      "at": "2026-06-30T15:23:46.627Z",
+      "at": "2026-06-30T17:08:40.381Z",
       "tokens": [
         {
           "token": "spec-freeze",
@@ -52,24 +52,91 @@
         {
           "token": "tests-red",
           "pass": true,
-          "evidence": "tests are RED (exit 1) — freeze snapshot captured"
+          "evidence": "tests are GREEN on a tests loopback (coverage augmentation; implementation already exists) — freeze re-captured"
+        }
+      ]
+    },
+    "implement": {
+      "passed": true,
+      "at": "2026-06-30T17:09:38.556Z",
+      "tokens": [
+        {
+          "token": "spec-freeze",
+          "pass": true,
+          "evidence": "spec unchanged since the spec gate"
+        },
+        {
+          "token": "build",
+          "pass": true,
+          "evidence": "build exited 0"
+        },
+        {
+          "token": "test",
+          "pass": true,
+          "evidence": "test exited 0"
+        },
+        {
+          "token": "test-freeze",
+          "pass": true,
+          "evidence": "test files unchanged since freeze"
         }
       ]
     }
   },
-  "iterations": {},
-  "escalations": [],
+  "iterations": {
+    "spec": 1,
+    "tests": 1
+  },
+  "escalations": [
+    {
+      "id": "ESC-001",
+      "phase": "review",
+      "reason": "Ground-truth-verified design flaw overturning a brainstorm assumption: needs-human/live-phase detection keys on state.json.phase==='human-review', but the real pipeline never sets that (features 0001/0002/0003 all terminate at state.phase='doc-sync' with human-review recorded as an EXTERNAL gate; the live phase lives in active.json.phase for the active feature only). Flagship 'needs you' signal never fires; the active feature mis-renders its phase. Requires correcting the detection model in the spec. Decision needed: approve corrected gate-based detection model (and which variant) before looping back to spec.",
+      "kind": "judgment",
+      "finding": "FINDING-DA-001",
+      "status": "resolved",
+      "at": "2026-06-30T16:12:55.901Z",
+      "decision": "Gate-based full-roll-up detection (human-approved). Live phase = active.json.phase for the active feature, else highest-passed-gate for non-active features. 'Awaiting human' (needsHuman) = all autonomous gates passed through doc-sync AND human-review gate NOT yet passed (works for any feature in the roll-up; active.json.phase==='human-review' corroborates for the active one); human-review gate passed => done/idle. Stall + open-escalation triggers unchanged. Re-implement with a SINGLE Claude implementer (no A/B). Same loopback also fixes UX-001 (REQ-006 failure-border CSS specificity) + DA-003 (REQ-020 popover lists only done-WITH-open-items), and folds in the worthwhile non-blocking hardening: security (IPC sender-ownership guard, cwd type-guard against main-process crash, readdir/readFile DoS caps, symlink/CSS.escape), perf (.jsonl path filter + cross-pane watcher dedup), determinism (tz-safe timestamp parse), quality (wire orkyChipStatus into the minimized tray or drop it), data-provenance (ORKY_PHASES drift caveat).",
+      "resolvedAt": "2026-06-30T16:14:54.354Z"
+    }
+  ],
   "concerns": [
     "ux",
     "quality",
     "performance",
     "determinism",
     "doc-drift",
-    "data-provenance"
+    "data-provenance",
+    "security"
   ],
   "attempts": {
     "spec": 0,
     "plan": 0,
-    "tests": 0
-  }
+    "tests": 0,
+    "implement": 0,
+    "review": 1
+  },
+  "implementer": {
+    "mode": "claude",
+    "agents": [
+      "orky:implementer"
+    ],
+    "winner": "orky:implementer",
+    "reason": "loopback re-implement: gate-based detection model + all review fixes (REQ-006/020/010/024-029 + non-blocking hardening). single claude (human chose no A/B). vitest 749/0, build green.",
+    "at": "2026-06-30T17:09:01.681Z"
+  },
+  "loopbacks": [
+    {
+      "to": "spec",
+      "from": "review",
+      "reason": "ESC-001 resolved (human-approved gate-based full-roll-up detection). Root cause is a spec-level mis-model: needs-human/live-phase keyed on state.json.phase==='human-review' which the real pipeline never sets (verified: 0001/0002/0003 terminate at state.phase='doc-sync', human-review is an external gate; live phase is active.json.phase). Correct the spec's detection model (REQ for needs-human + live-phase from gates/active.json), re-propagate plan/tests/implement. Also fold UX-001(REQ-006), DA-003(REQ-020), and selected non-blocking hardening into the corrected spec/tests/impl.",
+      "at": "2026-06-30T16:14:54.448Z"
+    },
+    {
+      "to": "tests",
+      "from": "implement",
+      "reason": "Frozen e2e spec typing defect (phase_of_origin=tests): tests/e2e/orky-status.spec.ts uses raw DOM globals (document/getComputedStyle) inside Playwright evaluate callbacks, breaking 'npm run typecheck' (4 TS errors, exit 2) — sibling specs (status.spec.ts:54) cast through 'globalThis as unknown as {...}'. Type-only fix, no assertion change; impl untouched and vitest already 749/0 green. Loop back to tests to correct + re-freeze the spec.",
+      "at": "2026-06-30T17:07:51.361Z"
+    }
+  ]
 }

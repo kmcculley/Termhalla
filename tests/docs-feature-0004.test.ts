@@ -1,8 +1,9 @@
-// FROZEN doc-drift guard — feature 0004-orky-status-awareness (phase 4 / REQ-022).
+// FROZEN doc-drift guard — feature 0004-orky-status-awareness (phase 4 / REQ-022 + REQ-029).
 // REQ-022 requires a feature doc under docs/features/, a CLAUDE.md "Where things live" reference, a
 // CHANGELOG [Unreleased] entry, and the new orky:status channel reflected where channels are documented.
-// Mirrors tests/docs-feature-0003.test.ts. Runs RED until the docs are reconciled (the feature doc does
-// not exist yet → readFileSync throws / the substring assertions fail).
+// REQ-029 requires the `ORKY_PHASES` provenance caveat — distinguishing it from Orky's SEPARATE 9-entry
+// `PHASE_ORDER` ("Canonical phase order") — at the constant's definition AND in the feature doc.
+// Mirrors tests/docs-feature-0003.test.ts. Runs RED until the docs + the source comment are reconciled.
 import { describe, it, expect } from 'vitest'
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
@@ -22,7 +23,6 @@ describe('TEST-032 REQ-022 docs traceability — feature 0004 Orky status awaren
     const doc = fileLower('docs/features/orky-status.md')
     expect(doc).toContain('orky')
     expect(doc).toContain('orky:status')
-    // data-provenance: the hardcoded phase list is a manual data-update follow-up if Orky's pipeline drifts
     expect(doc).toContain('orky_phases')
   })
 
@@ -34,5 +34,29 @@ describe('TEST-032 REQ-022 docs traceability — feature 0004 Orky status awaren
     const s = unreleasedSection()
     expect(s).toContain('orky')
     expect(s).toContain('status')
+  })
+})
+
+describe('TEST-052 REQ-029 ORKY_PHASES provenance caveat distinguishes Orky\'s separate PHASE_ORDER', () => {
+  it('the feature doc cites the EXACT mirrored source and the intake/human exclusion', () => {
+    const doc = fileLower('docs/features/orky-status.md')
+    // names the exact mirrored source (the gatekeeper's driver phase list + the recorded gate keys),
+    // NOT Orky's separate 9-entry "Canonical phase order" constant.
+    expect(doc).toContain('driver_work_phases')
+    expect(doc).toContain('phase_order')
+    // states that `intake` (no gate) and `human` (recorded as the `human-review` gate key) are excluded/renamed
+    expect(doc).toContain('intake')
+  })
+
+  it('the ORKY_PHASES source comment carries the caveat and does NOT mislabel it "canonical phase order"', () => {
+    const src = fileLower('src/shared/orky-status.ts')
+    // the local comment MUST NOT call ORKY_PHASES "canonical (pipeline) phase order" — that is the name of
+    // Orky's DIFFERENT 9-element list, and a re-sync against it would prepend `intake` (M=9) or rename
+    // human-review→human (zeroing gateN's match on the recorded 'human-review' key). FINDING-PROV-001.
+    expect(src).not.toContain('canonical pipeline phase order')
+    expect(src).not.toContain('canonical phase order')
+    // it MUST cite the exact mirrored source and the intake/human distinction
+    expect(src).toContain('driver_work_phases')
+    expect(src).toContain('intake')
   })
 })
