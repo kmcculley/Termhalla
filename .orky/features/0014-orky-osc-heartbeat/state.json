@@ -1,6 +1,6 @@
 {
   "feature": "0014-orky-osc-heartbeat",
-  "phase": "tests",
+  "phase": "review",
   "gates": {
     "brainstorm": {
       "passed": true,
@@ -55,10 +55,62 @@
           "evidence": "tests are RED (exit 1) — freeze snapshot captured"
         }
       ]
+    },
+    "implement": {
+      "passed": true,
+      "at": "2026-06-30T20:29:18.710Z",
+      "tokens": [
+        {
+          "token": "spec-freeze",
+          "pass": true,
+          "evidence": "spec unchanged since the spec gate"
+        },
+        {
+          "token": "build",
+          "pass": true,
+          "evidence": "build exited 0"
+        },
+        {
+          "token": "test",
+          "pass": true,
+          "evidence": "test exited 0"
+        },
+        {
+          "token": "test-freeze",
+          "pass": true,
+          "evidence": "test files unchanged since freeze"
+        }
+      ]
+    },
+    "review": {
+      "passed": false,
+      "at": "2026-06-30T20:41:17.662Z",
+      "tokens": [
+        {
+          "token": "spec-freeze",
+          "pass": true,
+          "evidence": "spec unchanged since the spec gate"
+        },
+        {
+          "token": "findings",
+          "pass": false,
+          "evidence": "2 open blocking finding(s): FINDING-CODEX-001(contract), FINDING-SEC-001(contract)"
+        }
+      ]
     }
   },
   "iterations": {},
-  "escalations": [],
+  "escalations": [
+    {
+      "id": "ESC-001",
+      "phase": "review",
+      "reason": "Review gate blocked by 2 open contract-violation findings routed back to spec: FINDING-SEC-001 (HIGH, security) -- REQ-005's MUST-NOT ('parser MUST NOT grow its buffer without bound on a stream with the prefix but never a terminator') is FALSE as written: scanOsc's no-terminator branch returns the ENTIRE accumulated buffer, not a small carry-over, so a single 12-byte ORKY_OSC prefix followed by sustained non-terminating PTY output causes unbounded heap growth in the privileged Electron main process (memory-exhaustion DoS) -- the frozen TEST-021 only asserts no-throw/no-emit, never buffer size, so it passes green over the defect. FINDING-CODEX-001 (MEDIUM, contract) -- decodeHeartbeat enforces the 256-byte/charset cap using JS string .length (UTF-16 code units) AFTER splitting into pairs, so an unknown forward-compat pair can carry non-ASCII/control bytes that violate the documented body alphabet while still passing the character-count cap; the documented byte-cap/charset invariant is not actually enforced as specified. Both findings have a concrete code-level fix proposed by the reviewers (add an explicit size ceiling in OrkyOscParser.push's no-terminator carry-over path; validate the whole-body byte length/charset BEFORE splitting into pairs), but escalation_threshold is HIGH and FINDING-SEC-001 is HIGH severity, so per config this needs a human go/no-go rather than an autonomous loopback. RECOMMENDATION: approve loopback to spec (gatekeeper's own route_to) to tighten REQ-005's wording to require an explicit bounded-ceiling guard (not just 'relies on scanOsc carry-over', which is the false premise), then flow through plan/tests/implement to add the fix + a buffer-size-bounded test + a byte-level (not char-length) charset/cap check in decodeHeartbeat before pair-splitting. Both fixes are small and localized to orky-osc-parser.ts; no spec-level scope change needed beyond REQ-005's wording.",
+      "kind": "judgment",
+      "finding": "FINDING-SEC-001",
+      "status": "open",
+      "at": "2026-06-30T20:42:00.442Z"
+    }
+  ],
   "concerns": [
     "security",
     "quality",
@@ -68,7 +120,9 @@
   "attempts": {
     "spec": 0,
     "plan": 0,
-    "tests": 0
+    "tests": 0,
+    "implement": 0,
+    "review": 1
   },
   "traceability": {
     "testIds": [
@@ -126,5 +180,15 @@
       "REQ-012"
     ],
     "reqsWithoutUnitTestsReason": "documentation-only deliverables verified at the doc-sync gate (TASK-010), per 02-spec.md's Definition of Done"
+  },
+  "implementer": {
+    "mode": "ab",
+    "agents": [
+      "orky:implementer",
+      "codex:codex-rescue"
+    ],
+    "winner": "orky:implementer",
+    "reason": "A/B per router (determinism concern). Codex candidate B (isolated worktree .claude/worktrees/orky-0014-codex-candidate) was blocked entirely by the codex-companion sandbox, which only permits writes to the original worktree (agent-ab11ac825d6caf9fc) -- it made zero changes (apply_patch + direct write probe both denied). Claude candidate A (orky:implementer) fully implemented the feature: implement gate passed (build/test/test-freeze green, 119 files / 797 tests, no frozen test touched). Winner by default since B never produced a comparable artifact.",
+    "at": "2026-06-30T20:29:28.193Z"
   }
 }

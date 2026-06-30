@@ -1,7 +1,10 @@
 import type { Services } from '../services'
 import type { WindowManager } from '../window-manager'
 import type { PtyManager } from '../pty/pty-manager'
+import type { OrkyPaneStatus } from '@shared/types'
+import { CH } from '@shared/ipc-contract'
 import type { Disposer } from './types'
+import { OrkyStreamStatusBridge } from '../orky/orky-stream-status'
 import { registerPty } from './register-pty'
 import { registerFs } from './register-fs'
 import { registerWorkspaces } from './register-workspaces'
@@ -36,6 +39,25 @@ export function registerHandlers(services: Services, wm: WindowManager): PtyMana
   const win = wm.mainWindow()
   const { service: git, dispose: disposeGit } = registerGit(send)
   const indexer = new Indexer(searchService)
+
+  // feature 0014: combine the filesystem-derived (OrkyTracker, fed below via the `send` shim passed
+  // to registerOrky) and stream-derived (StatusEngine's OSC heartbeat parser, fed via onOrkyHeartbeat)
+  // Orky status sources per pane (filesystem wins — REQ-009), emitting the combined result over the
+  // SAME `orky:status` channel `registerOrky` already sent on directly (no new channel — REQ-008).
+  const orkyBridge = new OrkyStreamStatusBridge((id, status) => send(CH.orkyStatus, id, status))
+  // registerOrky's OrkyTracker calls `send(CH.orkyStatus, id, status)` directly; intercept just that
+  // channel and route it through the bridge instead, so a filesystem-derived update is combined with
+  // any stream-derived status for the same pane rather than racing it on the wire. `orky-tracker.ts`
+  // itself is untouched (REQ-009) — only this composition-root wiring changes.
+  const orkySend: typeof send = (channel, ...args) => {
+    if (channel === CH.orkyStatus) {
+      const [id, status] = args as [string, OrkyPaneStatus | null]
+      orkyBridge.setFsStatus(id, status)
+      return
+    }
+    send(channel, ...args)
+  }
+
   const pty = registerPty(win, {
     shells, recorder, envVault, scriptDir, send, indexer,
     claimPane: (id, sender) => wm.claimPane(id, sender),
@@ -43,7 +65,8 @@ export function registerHandlers(services: Services, wm: WindowManager): PtyMana
     beginTransit: (id, sender) => wm.beginSameWindowTransit(id, sender),
     onCwd: (id, cwd) => { void git.setCwd(id, cwd) },
     onCommandDone: (id) => git.onCommandDone(id),
-    onPaneGone: (id) => git.removePane(id)
+    onPaneGone: (id) => { git.removePane(id); orkyBridge.clearPane(id) },
+    onOrkyHeartbeat: (id, hb) => orkyBridge.setStreamHeartbeat(id, hb)
   })
   registerWorkspaces({ store, quick, shells })
   registerEnv(win, envVault, send)
@@ -61,7 +84,7 @@ export function registerHandlers(services: Services, wm: WindowManager): PtyMana
     registerPreview(),
     registerCloud(win, send),
     registerUsage(send),
-    registerOrky(send, win),
+    registerOrky(orkySend, win),
     registerRecording({ pty, recorder, userDataDir: dir, send }),
     disposeGit,
     disposeSearch

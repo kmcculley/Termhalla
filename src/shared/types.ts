@@ -50,6 +50,25 @@ export interface OrkyPaneStatus {
   chipFeature: string | null      // selectChipFeature result; null when no features
 }
 
+// ── Orky OSC heartbeat (feature 0014) — a SECOND source of OrkyPaneStatus, via a stream-parsed PTY
+// marker (the OSC marker CONTRACT lives in src/main/status/orky-osc-parser.ts / docs/features/
+// orky-osc-heartbeat.md). Declared here (not in src/main/status/orky-osc-parser.ts) so this
+// Electron-free shared module can reference it without a main->shared->main import cycle; the
+// parser module re-exports it for its documented public-interface surface.
+/** A single decoded, validated heartbeat — the strict-grammar result of one OSC marker body
+ *  (`src/main/status/orky-osc-parser.ts`'s `decodeHeartbeat`). */
+export interface OrkyHeartbeat {
+  feature: string
+  kind: 'busy' | 'idle' | 'needs-input' | 'done'
+  phase: OrkyPhase | 'done'
+  gateN: number
+  gateM: number
+  openBlocking: number
+  needsHuman: boolean
+  failed: boolean
+  reason: OrkyReason
+}
+
 export interface AlertConfig {
   border?: boolean
   tabBadge?: boolean

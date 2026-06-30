@@ -7,6 +7,22 @@ All notable changes to Termhalla are recorded here. The format follows
 ## [Unreleased]
 
 ### Added
+- **Orky OSC heartbeat — stream-derived status for bare-SSH panes.** A second, fallback source for the
+  Orky pane chip introduced by orky-status: a strict, bounded OSC marker
+  (`\x1b]8888;orky=<key=value;...>\x07`/`\x1b\\`) parsed directly out of a pane's PTY byte stream
+  (`OrkyOscParser`, a third consumer of the shared `scanOsc` scanner alongside `Osc133Parser`/
+  `CwdParser`), for panes whose `.orky/` tree is not filesystem-reachable from this host (e.g. a remote
+  shell over SSH). The filesystem-derived status always wins when present (`selectOrkyPaneStatus`); the
+  stream-derived heartbeat is used only as a fallback, mapped to the exact same `OrkyPaneStatus` chip/
+  popover presentation via `orkyHeartbeatToPaneStatus` (no new presentation, no new IPC channel, no new
+  wire type — it rides the existing `orky:status` push). Body decoding is a strict, non-evaluating,
+  size-capped grammar (≤256 bytes, ≤32 pairs) that rejects the whole marker on any violation — never a
+  partial decode, never a silent clamp. This feature is **Termhalla-side only**: nothing in this repo
+  emits the marker yet; the matching `C:/dev/Orky` CLI emission is an explicit, documented human
+  follow-up (the full byte-for-byte contract lives in `docs/features/orky-osc-heartbeat.md`). Until that
+  follow-up lands, a bare-SSH pane running an unmodified Orky CLI shows no Orky status — same as today,
+  never a false one. `src/main/orky/orky-tracker.ts` (the filesystem watcher) is unmodified;
+  `SCHEMA_VERSION` is unchanged.
 - **Orky status awareness in the pane chrome.** A terminal pane whose tracked cwd sits inside an
   `.orky/` project (an Orky gated-pipeline run) now surfaces that run's live
   **status** directly in the pane chrome — a read-only mirror, derived purely from reading the

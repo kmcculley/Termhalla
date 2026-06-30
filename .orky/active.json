@@ -1,5 +1,7 @@
 {
   "feature": ".orky/features/0014-orky-osc-heartbeat",
   "projectRoot": "C:/dev/Termhalla/.claude/worktrees/agent-ab11ac825d6caf9fc",
-  "phase": "implement"
+  "phase": "review",
+  "lastTickAt": "2026-06-30T20:41:23.210Z",
+  "lastAction": "review gate failed: 2 open blocking findings (FINDING-SEC-001 HIGH/contract, FINDING-CODEX-001 MEDIUM/contract)"
 }

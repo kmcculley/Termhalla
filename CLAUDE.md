@@ -193,6 +193,7 @@ related area:
 | Git status on pane chip | `src/main/git/` | [git-status](docs/features/git-status.md) |
 | Claude usage metrics | `src/main/usage/` | [usage-metrics](docs/features/usage-metrics.md) |
 | Orky pipeline status (read-only `.orky/` mirror) | `src/main/orky/`, `src/shared/orky-status.ts` | [orky-status](docs/features/orky-status.md) |
+| Orky OSC heartbeat (stream-derived status, fallback for bare-SSH panes) | `src/main/status/orky-osc-parser.ts`, `src/main/orky/orky-stream-status.ts` | [orky-osc-heartbeat](docs/features/orky-osc-heartbeat.md) |
 | Per-project notepad | `src/main/persistence/notes-store.ts`, `src/renderer/components/NotesPanel.tsx` | [notepad](docs/features/notepad.md) |
 | SSH / favorites store | `src/main/persistence/quick-store.ts`, `src/shared/quick.ts` | [ssh-favorites](docs/features/ssh-favorites.md) |
 | Multi-window / undock | `src/main/window-manager.ts` (+ `-core.ts`), `src/main/services.ts` | [window-management](docs/features/window-management.md) |

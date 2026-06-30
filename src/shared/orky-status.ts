@@ -20,9 +20,9 @@
 //     `human-review` here — renaming it back to `human` would zero `gateN`'s match on the recorded key.
 // The tests verify only that the code matches THIS embedded list; upstream drift is a manual data-update
 // follow-up (see docs/features/orky-status.md), never something a test can catch.
-import type { OrkyPhase, OrkyKind, OrkyReason, OrkyFeatureStatus, OrkyPaneStatus } from './types'
+import type { OrkyPhase, OrkyKind, OrkyReason, OrkyFeatureStatus, OrkyPaneStatus, OrkyHeartbeat } from './types'
 
-export type { OrkyPhase, OrkyKind, OrkyReason, OrkyFeatureStatus, OrkyPaneStatus } from './types'
+export type { OrkyPhase, OrkyKind, OrkyReason, OrkyFeatureStatus, OrkyPaneStatus, OrkyHeartbeat } from './types'
 
 /** The mirrored Orky gate phases, in order (= `DRIVER_WORK_PHASES` + the recorded gate keys; see the
  *  provenance note above — NOT Orky's separate 9-entry `PHASE_ORDER` constant).
@@ -326,4 +326,82 @@ export function orkyPaneStatus(features: OrkyFeatureStatus[] | undefined | null)
     features: shown,
     chipFeature: chip.feature
   }
+}
+
+// ── Orky OSC heartbeat (feature 0014) — a SECOND SOURCE of OrkyPaneStatus, fed from a stream-parsed
+// PTY marker (`src/main/status/orky-osc-parser.ts`'s `OrkyOscParser`/`decodeHeartbeat`) rather than
+// from a filesystem `.orky/` read. These functions add no new presentation: they build ONE
+// `OrkyFeatureStatus` from the already-validated heartbeat and delegate to the EXISTING
+// `orkyPaneStatus` roll-up above (REQ-006) — the chip label, `inPopover` filter, chip-kind mapping,
+// and empty/cleared shape are byte-for-byte the same logic 0004 uses for every other source.
+
+/** Actionable `detail` (REQ-007/CONV-001) — always names the feature and a concrete reason, mirroring
+ *  `orkyFeatureStatus`'s phrasing above (`phase` here is the ALREADY-MAPPED live phase — `null` for
+ *  `done`, same convention as that function's `livePhase`). Priority mirrors it too: a structured
+ *  needs-you `reason` first, then a halted-gate failure, then "busy", then a phase-naming fallback —
+ *  NEVER a bare `"needs input"`/`"error"`. */
+function heartbeatDetail(hb: OrkyHeartbeat, phase: OrkyPhase | null): string {
+  if (hb.reason === 'human-review') {
+    return `${hb.feature}: awaiting human-review (gates ${hb.gateN}/${hb.gateM}) — needs you`
+  }
+  if (hb.reason === 'escalation') {
+    return `${hb.feature}: open escalation — needs you`
+  }
+  if (hb.reason === 'stalled') {
+    return `${hb.feature}: stalled — no heartbeat — needs you`
+  }
+  if (hb.failed) {
+    return `${hb.feature}: ${phase ?? 'gate'} gate failed`
+  }
+  if (hb.kind === 'busy') {
+    return `${hb.feature}: ${phase ?? 'running'} in progress`
+  }
+  if (hb.kind === 'done') {
+    return `${hb.feature}: pipeline complete`
+  }
+  return `${hb.feature}: ${phase ?? 'idle'}`
+}
+
+/** Build the wire `OrkyFeatureStatus` directly from the ALREADY-VALIDATED heartbeat fields — no
+ *  re-derivation (`kind`/`gateN`/`gateM`/`openBlocking`/`needsHuman`/`failed`/`reason` map 1:1 from
+ *  `hb`). `phase:'done'` maps to `null`, the SAME "complete" convention `gateFrontier`/
+ *  `orkyFeatureStatus` already use, so `chipLabel`'s `f.phase ?? 'done'` guard renders identically
+ *  (no literal `"done"`/`"null"` chip bug — FINDING-DA-007 guard, REQ-006). Total + pure: no clock,
+ *  no I/O. `lastActivityAt` is not carried by the heartbeat (Orky derives it on its side) — `0` is a
+ *  deterministic placeholder that only matters for ranking AMONG multiple features, and a single
+ *  heartbeat always maps to a roll-up of exactly one feature. */
+export function heartbeatToFeatureStatus(hb: OrkyHeartbeat): OrkyFeatureStatus {
+  const phase = hb.phase === 'done' ? null : hb.phase
+  return {
+    feature: hb.feature,
+    kind: hb.kind,
+    phase,
+    gateN: hb.gateN,
+    gateM: hb.gateM,
+    openBlocking: hb.openBlocking,
+    needsHuman: hb.needsHuman,
+    failed: hb.failed,
+    reason: hb.reason,
+    lastActivityAt: 0,
+    detail: heartbeatDetail(hb, phase)
+  }
+}
+
+/** Map ONE decoded heartbeat to the SAME `OrkyPaneStatus` shape feature 0004 renders, by building a
+ *  single `OrkyFeatureStatus` and delegating to `orkyPaneStatus([fs])`. Total + pure (REQ-006/007). */
+export function orkyHeartbeatToPaneStatus(hb: OrkyHeartbeat): OrkyPaneStatus {
+  return orkyPaneStatus([heartbeatToFeatureStatus(hb)])
+}
+
+// ── Filesystem-vs-stream precedence (REQ-009) ─────────────────────────────────────────────────────
+/** Compose the filesystem-derived (0004 `OrkyTracker`) and stream-derived (0014 `OrkyOscParser`)
+ *  sources for one pane: the filesystem source wins whenever present (regardless of the stream
+ *  source); the stream source is used only as a fallback when there is no filesystem source. Total +
+ *  pure; no I/O, no `orky-tracker.ts` involvement. */
+export function selectOrkyPaneStatus(
+  fsStatus: OrkyPaneStatus | null,
+  streamStatus: OrkyPaneStatus | null
+): OrkyPaneStatus | null {
+  if (fsStatus != null) return fsStatus
+  return streamStatus
 }

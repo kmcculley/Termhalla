@@ -3,8 +3,16 @@ import { Osc133Parser } from './osc133-parser'
 import { StatusTracker } from './status-tracker'
 import { DEFAULT_NEEDS_INPUT_PATTERNS, type NeedsInputConfig } from './needs-input'
 import { CwdParser } from './cwd-parser'
+import { OrkyOscParser, type OrkyHeartbeat } from './orky-osc-parser'
 
-interface Session { parser: Osc133Parser; tracker: StatusTracker; last: string; cwdParser: CwdParser; lastCwd: string }
+interface Session {
+  parser: Osc133Parser
+  tracker: StatusTracker
+  last: string
+  cwdParser: CwdParser
+  lastCwd: string
+  orkyParser: OrkyOscParser
+}
 
 function defaultConfig(): NeedsInputConfig {
   const envQuiet = Number(process.env.TERMHALLA_NEEDS_INPUT_QUIET_MS)
@@ -25,7 +33,8 @@ export class StatusEngine {
     private readonly onStatus: (id: string, status: TerminalStatus) => void,
     private readonly onCwd: (id: string, cwd: string) => void,
     private readonly now: () => number = () => Date.now(),
-    private readonly onCommandDone: (id: string) => void = () => {}
+    private readonly onCommandDone: (id: string) => void = () => {},
+    private readonly onOrkyHeartbeat: (id: string, hb: OrkyHeartbeat) => void = () => {}
   ) {}
 
   register(id: string): void {
@@ -34,7 +43,8 @@ export class StatusEngine {
       tracker: new StatusTracker(this.now(), defaultConfig()),
       last: '',
       cwdParser: new CwdParser(),
-      lastCwd: ''
+      lastCwd: '',
+      orkyParser: new OrkyOscParser()
     })
     this.emit(id)
     this.ensureTimer()
@@ -52,6 +62,7 @@ export class StatusEngine {
     s.tracker.onOutput(data, t)
     const cwd = s.cwdParser.push(data)
     if (cwd && cwd !== s.lastCwd) { s.lastCwd = cwd; this.onCwd(id, cwd) }
+    for (const hb of s.orkyParser.push(data)) this.onOrkyHeartbeat(id, hb)
     this.emit(id)
     if (done) this.onCommandDone(id)
   }

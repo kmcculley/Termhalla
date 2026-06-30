@@ -3,6 +3,7 @@ import { CH, type PtySpawnArgs, type PtyWriteArgs, type PtyResizeArgs, type Noti
 import type { ShellInfo } from '@shared/types'
 import { PtyManager } from '../pty/pty-manager'
 import { StatusEngine } from '../status/status-engine'
+import type { OrkyHeartbeat } from '../status/orky-osc-parser'
 import { ProcessTracker } from '../proc/process-tracker'
 import { AiSessionTracker } from '../ai/ai-session-tracker'
 import type { EnvVault } from '../env-vault/env-vault'
@@ -27,6 +28,10 @@ export function registerPty(
     onCwd?: (paneId: string, cwd: string) => void
     onCommandDone?: (paneId: string) => void
     onPaneGone?: (paneId: string) => void
+    // feature 0014: forward each validated Orky OSC heartbeat StatusEngine decodes from PTY output
+    // (a pure pass-through — the fs/stream combine + orky:status emit happens in the bridge this is
+    // wired to at the composition root, never here).
+    onOrkyHeartbeat?: (paneId: string, hb: OrkyHeartbeat) => void
     indexer: import('../search/indexer').Indexer
   }
 ): PtyManager {
@@ -48,7 +53,8 @@ export function registerPty(
     (id, status) => { send(CH.ptyStatus, id, status); tracker.setBusy(id, status.state === 'busy') },
     (id, cwd) => { send(CH.ptyCwd, id, cwd); deps.onCwd?.(id, cwd); deps.indexer.setCwd(id, cwd) },
     undefined,
-    (id) => { ai.commandDone(id); deps.onCommandDone?.(id) }
+    (id) => { ai.commandDone(id); deps.onCommandDone?.(id) },
+    (id, hb) => deps.onOrkyHeartbeat?.(id, hb)
   )
   const pty = new PtyManager(
     (id, data) => { send(CH.ptyData, id, data); recorder.data(id, data); deps.indexer.data(id, data) },
