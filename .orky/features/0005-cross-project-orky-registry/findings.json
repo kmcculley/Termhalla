@@ -1,0 +1,14 @@
+[
+  {
+    "id": "FINDING-001",
+    "lens": "integrity",
+    "severity": "CRITICAL",
+    "gate": "implement",
+    "location": "tests",
+    "claim": "Frozen test files were modified during implementation: frozen tests changed: tests/main/orky-registry-service.test.ts (modified), tests/main/orky-root-engine.test.ts (modified)",
+    "fix": "Revert the test changes. Tests are frozen after phase 4. If a test is genuinely wrong, route the issue back to phase 4 (Tests) instead of editing tests during implementation.",
+    "phase_of_origin": "implement",
+    "status": "open",
+    "verified_by": "gatekeeper"
+  }
+]
