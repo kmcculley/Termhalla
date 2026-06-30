@@ -463,7 +463,12 @@ describe('OrkyRootEngine — robust to missing/partial/malformed per-root state 
     cleanups.push(() => engine.dispose())
     await expect(engine.addConsumer('persisted:' + root, join(root, '.orky'))).resolves.not.toThrow()
     await waitFor(() => statuses.some(s => s != null))
-    const st = statuses.filter(s => s != null).at(-1)! as { features: Array<{ feature: string }> }
-    expect(st.features.some(f => f.feature === 'lonely')).toBe(true)
+    const st = statuses.filter(s => s != null).at(-1)! as { kind: string; features: Array<{ feature: string }> }
+    // 'lonely' has only gates.brainstorm passed (no active.json) -- genuinely idle per the
+    // verbatim-reused mapper (REQ-005), and orkyPaneStatus deliberately excludes idle features from
+    // .features (tests/shared/orky-status.test.ts TEST-018). Assert the read SUCCEEDED (non-null
+    // status, no throw) and produced the correct idle/empty roll-up, not popover inclusion.
+    expect(st.kind).toBe('idle')
+    expect(st.features.length).toBe(0)
   })
 })

@@ -318,6 +318,14 @@ describe('OrkyRegistry — current()/roots() are pure reads (REQ-011/REQ-012)', 
 describe('OrkyRegistry — one bad root never breaks the aggregate; persisted-deleted root degrades to null (REQ-018)', () => {
   it('TEST-127 REQ-018 a root with malformed state.json reports a present (safe-defaulted) entry; the OTHER root keeps reporting normally', async () => {
     const good = seedOrkyProject({ slug: 'good' })
+    // Push 'good' through every autonomous gate (brainstorm..doc-sync) so it is genuinely
+    // awaiting-human (kind:'needs-input') -- popover-INCLUDED -- rather than idle (popover-excluded,
+    // see tests/shared/orky-status.test.ts TEST-018). REQ-005 forbids forking the verbatim-reused
+    // mapper, so visibility in .features must come from fixture shape, not assertion creativity.
+    const autonomousGates = ['brainstorm', 'spec', 'plan', 'tests', 'implement', 'review', 'doc-sync']
+      .reduce((acc, p) => ({ ...acc, [p]: { passed: true } }), {} as Record<string, { passed: boolean }>)
+    writeFileSync(join(good, '.orky', 'features', 'good', 'state.json'),
+      JSON.stringify({ feature: 'good', phase: 'doc-sync', gates: autonomousGates, escalations: [] }), 'utf8')
     const bad = seedOrkyProject({ slug: 'broken', broken: true })
     const { registry } = makeRegistry(tmpUserDataDir(), () => {})
     await registry.init()
