@@ -17,7 +17,7 @@ async function start(): Promise<void> {
   // register the global ipcMain handlers BEFORE start() loads any renderer that would invoke them.
   const state = await services.store.loadAppState()
   wm.prepare(state)
-  const pty = registerHandlers(services, wm)
+  const pty = await registerHandlers(services, wm)
   wm.start()
 
   // Replace Electron's default menu with our Help (Check for Updates) + View menu.

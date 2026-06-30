@@ -199,6 +199,18 @@ export class WindowManager {
 
   isPaneScoped(channel: string): boolean { return PANE_SCOPED.has(channel) }
 
+  /** True iff `sender` belongs to ANY currently-tracked app window (main or floating) — false for a
+   *  destroyed/foreign/unrecognized sender. Public accessor over `windowIdOf` (feature 0005, TASK-008):
+   *  0004's `registerOrky` validated a sender against exactly ONE window, which silently dropped
+   *  `orky:watch`/`orky:unwatch` from any OTHER window — REQ-002/REQ-020 require pane-root membership
+   *  aggregated across ALL windows, so this widens "exactly one owning window" to "any known app
+   *  window" while preserving the original security intent (a truly out-of-process or already-closed
+   *  sender is still rejected — FINDING-SEC-002). */
+  isKnownWindowSender(sender: WebContents): boolean {
+    if (sender.isDestroyed()) return false // the sender itself may be destroyed independently of its window
+    return this.windowIdOf(sender) !== undefined
+  }
+
   routeToPane(paneId: string, channel: string, ...args: unknown[]): void {
     // While a pane is mid-handoff, buffer EVERY pane-scoped event (data, status, cwd, exit, …) so
     // nothing is delivered to the destination before its xterm mounts and nothing is lost.

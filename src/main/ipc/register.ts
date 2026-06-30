@@ -10,6 +10,7 @@ import { registerNotes } from './register-notes'
 import { registerCloud } from './register-cloud'
 import { registerUsage } from './register-usage'
 import { registerOrky } from './register-orky'
+import { registerRegistry } from './register-registry'
 import { registerRecording } from './register-recording'
 import { registerEnv } from './register-env'
 import { registerClipboard } from './register-clipboard'
@@ -23,9 +24,13 @@ import { registerSearch } from './register-search'
  *  events go through `send`, which routes pane-scoped channels (their first arg is a paneId) to the
  *  window that owns the pane and broadcasts app-global channels to all windows. The interactive
  *  registrars (notify/dialogs/drafts) take the main window, which already exists after
- *  `WindowManager.prepare()`. Returns the PtyManager so the app can kill PTYs on quit. */
-export function registerHandlers(services: Services, wm: WindowManager): PtyManager {
-  const { store, quick, shells, recorder, envVault, scriptDir, dir, searchService } = services
+ *  `WindowManager.prepare()`. Returns the PtyManager so the app can kill PTYs on quit.
+ *
+ *  Async (feature 0005): `orkyRegistry.init()` is awaited here, BEFORE `registerRegistry` wires the
+ *  first `registry:status` push, so a restart's persisted roots are members from the first snapshot
+ *  (REQ-004). */
+export async function registerHandlers(services: Services, wm: WindowManager): Promise<PtyManager> {
+  const { store, quick, shells, recorder, envVault, scriptDir, dir, searchService, orkyEngine, orkyRegistry } = services
 
   const send = (channel: string, ...args: unknown[]): void => {
     const paneId = typeof args[0] === 'string' ? args[0] : null
@@ -56,15 +61,26 @@ export function registerHandlers(services: Services, wm: WindowManager): PtyMana
   wm.onWindowClose(() => { flushDrafts(); flushNotes() })
 
   const disposeSearch = registerSearch({ searchService, indexer })
+  // Cross-project registry (feature 0005): pane-root membership is fed by the SAME watch/unwatch
+  // resolution registerOrky already performs (no second findOrkyRoot walk) via onPaneRoot; the shared
+  // orkyEngine instance is what makes a root tracked by both panes and the persisted list cost exactly
+  // ONE chokidar watcher (REQ-014/REQ-020). registerOrky now recognizes ANY known app window, not just
+  // this composition root's `win` (REQ-002/REQ-020 cross-window widening).
+  const onPaneRoot = (id: string, root: string | null): void => orkyRegistry.trackPaneRoot(id, root)
+  await orkyRegistry.init()
   const disposers: Disposer[] = [
     registerFs(win, send),
     registerPreview(),
     registerCloud(win, send),
     registerUsage(send),
-    registerOrky(send, win),
+    registerOrky(send, (sender) => wm.isKnownWindowSender(sender), onPaneRoot, orkyEngine),
+    registerRegistry(orkyRegistry, send),
     registerRecording({ pty, recorder, userDataDir: dir, send }),
     disposeGit,
-    disposeSearch
+    disposeSearch,
+    // The shared OrkyRootEngine/OrkyRegistry lifecycle is owned ONCE here — neither registerOrky's nor
+    // registerRegistry's own disposer closes it (risk note #3: a double-close of the same watchers).
+    () => { orkyRegistry.dispose(); orkyEngine.dispose() }
   ]
   wm.onAllWindowsClosed(() => { for (const dispose of disposers) dispose() })
 

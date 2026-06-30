@@ -92,6 +92,63 @@ degrades to `null` rather than throwing. When the cwd has no `.orky/` ancestor (
 tracker emits a cleared `orky:status` (`null`) and the renderer reverts the border/chip to the pure
 byte-derived status.
 
+## Cross-project registry (feature 0005)
+
+Feature 0005 **generalizes** the single-root, pane-scoped watcher above to a **set of roots** rolled up
+into one pane-independent, cross-project aggregate. It introduces no renderer UI (D1) — it is IPC/data
+only; a later feature (F6) is the first consumer.
+
+- **`OrkyRootEngine`** (`src/main/orky/orky-root-engine.ts`) is the per-root watch/read machinery
+  *extracted* from 0004's `OrkyTracker` (a pure, behavior-preserving refactor — `OrkyTracker`'s own public
+  API and emitted `orky:status` payloads are unchanged). It generalizes "consumer = a pane" to "consumer =
+  an opaque string id" (`pane:<id>` / `persisted:<root>`) and exposes a multi-subscriber
+  `onStatus(cb): unsubscribe`, so it can be SHARED by two independent consumers — the pane-facing
+  `OrkyTracker` facade and the new `OrkyRegistry` — constructed ONCE by the composition root
+  (`services.ts`). A root tracked by N panes AND the persisted explicit list below still gets exactly
+  **one** chokidar watcher + one debounced re-read process-wide; this is engine-wide now, not merely
+  per-`OrkyTracker`-instance.
+- **`OrkyRegistry`** (`src/main/orky/orky-registry.ts`) is the cross-project aggregator. Its membership is
+  the **union** of (a) every currently-open pane's resolved `.orky/` root (ephemeral — fed by the SAME
+  `OrkyTracker.watch()`/`unwatch()` resolution via `registerOrky`'s `onPaneRoot` hook, not a duplicate
+  `findOrkyRoot` walk) and (b) a **persisted explicit list** (manual — only changed by `registry:addRoot`
+  / `registry:removeRoot`, never auto-populated from opening a pane), deduplicated by resolved
+  project-root path. A root in both sources carries `source:'both'`; pane-only → `'pane'`;
+  persisted-only → `'persisted'`. Each entry's `status` reuses the EXACT SAME `OrkyPaneStatus` roll-up
+  0004 already computes (`@shared/orky-status`'s mappers, called once per resolved root by the shared
+  engine) — no forked/parallel status type.
+- **IPC (`registry` domain)** — `registry:status` (main → renderer, APP-GLOBAL broadcast of the
+  **complete** current `OrkyRegistrySnapshot` on every membership/status change, never a diff),
+  `registry:current` (pull the current snapshot), `registry:roots` (pull the persisted list only),
+  `registry:addRoot` / `registry:removeRoot` (mutate the persisted list; validated, idempotent, never
+  throw). See `src/shared/ipc-contract.ts`.
+- **Persistence** — a new, self-versioned `orky-registry.json` under Electron `userData`
+  (`src/main/persistence/orky-registry-store.ts`), shape `{ version: 1, roots: string[] }`, normalized on
+  load/write and written via the shared `atomicWrite` helper (temp-then-rename). Its `version` is
+  independent of the app-wide `SCHEMA_VERSION` — this file is not part of the workspace/app-state
+  migration chain.
+- **Security** — `registry:addRoot` validates its argument (`src/main/orky/validate-root.ts`): a
+  non-string, a path that does not resolve, or a directory without a `.orky/` subdirectory is rejected
+  with a specific, actionable error (never a throw); the resolved root is confined by `path.resolve`'s own
+  `..`-collapsing. The per-root read-path bounds (200 feature dirs, 1 MiB file size cap) and the
+  `features/<slug>` symlink guard apply to **every** tracked root, not only the first.
+- **Window-aware sender validation** — `WindowManager.isKnownWindowSender` (built on the existing private
+  `windowIdOf`) replaces 0004's "exactly one owning window" check in `registerOrky`'s IPC handlers with
+  "any currently-tracked app window" — a real, narrow widening of existing security-hardening code, needed
+  because pane-root membership must aggregate across **every** window (not just the one `register.ts`
+  happened to pass in), while still rejecting a truly foreign/destroyed sender.
+
+| Concern | Location |
+|---|---|
+| Shared per-root watch/read engine | `src/main/orky/orky-root-engine.ts` |
+| Cross-project aggregator | `src/main/orky/orky-registry.ts` |
+| Pure membership-merge + deterministic sort | `src/shared/orky-registry.ts` |
+| Root-add validation | `src/main/orky/validate-root.ts` |
+| Persisted root list (`orky-registry.json`) | `src/main/persistence/orky-registry-store.ts` |
+| Registry types (`OrkyRegistryEntry`, `OrkyRegistrySnapshot`, `RegistryMutationResult`) | `src/shared/types.ts` |
+| IPC channels + types | `src/shared/ipc-contract.ts` (`registry:status`, `registry:current`, `registry:roots`, `registry:addRoot`, `registry:removeRoot`) |
+| IPC registrar | `src/main/ipc/register-registry.ts` |
+| Window-aware sender check | `src/main/window-manager.ts` (`isKnownWindowSender`) |
+
 ## Data provenance (the `ORKY_PHASES` drift caveat)
 
 `ORKY_PHASES = ['brainstorm','spec','plan','tests','implement','review','doc-sync','human-review']` in

@@ -1,6 +1,6 @@
 {
   "feature": "0005-cross-project-orky-registry",
-  "phase": "tests",
+  "phase": "implement",
   "gates": {
     "brainstorm": {
       "passed": true,
@@ -55,6 +55,32 @@
           "evidence": "tests are RED (exit 1) — freeze snapshot captured"
         }
       ]
+    },
+    "implement": {
+      "passed": false,
+      "at": "2026-06-30T20:54:19.604Z",
+      "tokens": [
+        {
+          "token": "spec-freeze",
+          "pass": true,
+          "evidence": "spec unchanged since the spec gate"
+        },
+        {
+          "token": "build",
+          "pass": true,
+          "evidence": "build exited 0"
+        },
+        {
+          "token": "test",
+          "pass": false,
+          "evidence": "test exited 1"
+        },
+        {
+          "token": "test-freeze",
+          "pass": true,
+          "evidence": "test files unchanged since freeze"
+        }
+      ]
     }
   },
   "iterations": {},
@@ -68,6 +94,7 @@
   "attempts": {
     "spec": 0,
     "plan": 0,
-    "tests": 0
+    "tests": 0,
+    "implement": 1
   }
 }
