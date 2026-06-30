@@ -121,6 +121,15 @@ aren't lost. Full records (claim, evidence, fix) live in
   not by an end-to-end assertion that a `down` split actually stacks the tiles vertically.
   Fix (next test pass, tests currently frozen): add an e2e asserting the column geometry.
 
+- **`docs-feature-NNNN` CHANGELOG guards are coupled to `[Unreleased]`** (release hygiene, not a
+  feature finding — surfaced while cutting v0.6.0). `tests/docs-feature-0001.test.ts` and
+  `tests/docs-feature-0002.test.ts` grep only the `## [Unreleased]` block, so a normal
+  Keep-a-Changelog release (moving bullets into a dated section) empties that block and turns the
+  guards RED — it broke v0.5.0. Current workaround (see `docs/decisions.md`, 2026-06-29): keep each
+  feature's bullets in `[Unreleased]` *and* its version section. Fix: rewrite both guards to search
+  the whole CHANGELOG (or the feature's own version section), then released bullets can leave
+  `[Unreleased]` normally and the redundancy goes away.
+
 ## Promoted to conventions
 
 - **CONV-006** — from FINDING-QOL-001 (dead `dir`/`splitDir` dual param): a function MUST NOT

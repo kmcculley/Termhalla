@@ -573,3 +573,26 @@ locally: `npm run package` emits `dist/Termhalla-Setup-0.2.0.exe` + `.blockmap` 
 **Consequences:** Releasing is unchanged for the operator (bump version, commit, tag `vX.Y.Z`, push
 tag). There is no local one-shot publish script anymore — publishing only happens in CI. If the
 artifactName is ever changed, keep it space-free or the updater URL will break.
+
+### [2026-06-29] CHANGELOG releases keep feature bullets in `[Unreleased]` (doc-guard coupling)
+**Context:** The per-feature doc-traceability guards (`tests/docs-feature-NNNN.test.ts`, e.g. TEST-021
+for 0001 and TEST-024 for 0002) assert that specific keywords describing a user-facing change live in
+the `## [Unreleased]` CHANGELOG section — they slice from `## [Unreleased]` to the next `## [`
+heading and grep that block. A Keep-a-Changelog-style release that *moves* `[Unreleased]` content into
+a dated version section therefore empties the block those guards read and turns them RED. This already
+bit v0.5.0: cutting it emptied `[Unreleased]`, breaking the feature-0001 guard, which then had to be
+repaired by re-adding the 0001 bullets back into `[Unreleased]`.
+**Decision:** On release, **do not empty `[Unreleased]`**. Add the new dated `## [X.Y.Z]` section with
+the feature's bullets, but **leave the same bullets in `[Unreleased]`** so each active doc-guard stays
+green. Result is intentional duplication: a shipped feature's bullets appear in both `[Unreleased]` and
+its version section (0001 is in both `[Unreleased]` and `[0.5.0]`; 0002 in both `[Unreleased]` and
+`[0.6.0]`). Don't move a feature's bullets out of `[Unreleased]` until its `docs-feature-NNNN` guard is
+retired.
+**Rationale:** Keeps `npm test` green across a release without editing frozen/merged test files, and
+matches the convention v0.5.0 already established. The guards' real intent ("this change is documented
+in the CHANGELOG") is preserved.
+**Consequences:** `[Unreleased]` accumulates released features and is not a clean "pending" list — a
+known wart. The proper fix (deferred) is to make the `docs-feature-NNNN` guards search the whole
+CHANGELOG (or the feature's own version section) instead of only `[Unreleased]`, after which released
+bullets can be moved out normally. Tracked in
+[`docs/superpowers/0002-pane-toolbar-split-control-review-followups.md`].
