@@ -1,0 +1,73 @@
+{
+  "feature": "0005-cross-project-orky-registry",
+  "phase": "tests",
+  "gates": {
+    "brainstorm": {
+      "passed": true,
+      "at": "2026-06-30T19:34:22.490Z",
+      "evidence": "human confirmed concept via /orky:app-run AskUserQuestion round (D1 IPC-only, D2 ephemeral open-pane roots, D3 reuse OrkyPaneStatus per root)",
+      "external": true
+    },
+    "spec": {
+      "passed": true,
+      "at": "2026-06-30T19:43:34.623Z",
+      "tokens": [
+        {
+          "token": "findings",
+          "pass": true,
+          "evidence": "no open blocking findings (CRITICAL/HIGH or contract-violation) for this gate"
+        }
+      ]
+    },
+    "plan": {
+      "passed": true,
+      "at": "2026-06-30T19:49:36.685Z",
+      "tokens": [
+        {
+          "token": "spec-freeze",
+          "pass": true,
+          "evidence": "spec unchanged since the spec gate"
+        },
+        {
+          "token": "traceability-plan",
+          "pass": true,
+          "evidence": "all 23 REQ(s) trace to TASK"
+        },
+        {
+          "token": "findings",
+          "pass": true,
+          "evidence": "no open blocking findings (CRITICAL/HIGH or contract-violation) for this gate"
+        }
+      ]
+    },
+    "tests": {
+      "passed": true,
+      "at": "2026-06-30T20:19:37.147Z",
+      "tokens": [
+        {
+          "token": "spec-freeze",
+          "pass": true,
+          "evidence": "spec unchanged since the spec gate"
+        },
+        {
+          "token": "tests-red",
+          "pass": true,
+          "evidence": "tests are RED (exit 1) — freeze snapshot captured"
+        }
+      ]
+    }
+  },
+  "iterations": {},
+  "escalations": [],
+  "concerns": [
+    "security",
+    "performance",
+    "determinism",
+    "quality"
+  ],
+  "attempts": {
+    "spec": 0,
+    "plan": 0,
+    "tests": 0
+  }
+}

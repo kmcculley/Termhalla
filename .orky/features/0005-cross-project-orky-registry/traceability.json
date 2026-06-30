@@ -1,0 +1,404 @@
+{
+  "REQ-001": {
+    "tasks": [
+      "TASK-005",
+      "TASK-006",
+      "TASK-007",
+      "TASK-011"
+    ],
+    "tests": [
+      "TEST-088",
+      "TEST-089",
+      "TEST-091b",
+      "TEST-112"
+    ],
+    "files": [
+      "src/main/orky/orky-root-engine.ts",
+      "src/main/orky/orky-tracker.ts",
+      "src/main/orky/orky-registry.ts",
+      "src/main/services.ts"
+    ]
+  },
+  "REQ-002": {
+    "tasks": [
+      "TASK-002",
+      "TASK-007",
+      "TASK-008",
+      "TASK-009"
+    ],
+    "tests": [
+      "TEST-058",
+      "TEST-059",
+      "TEST-060",
+      "TEST-061",
+      "TEST-107",
+      "TEST-108",
+      "TEST-112",
+      "TEST-113",
+      "TEST-140",
+      "TEST-141",
+      "TEST-142",
+      "TEST-144",
+      "TEST-145"
+    ],
+    "files": [
+      "src/shared/orky-registry.ts",
+      "src/main/orky/orky-registry.ts",
+      "src/main/window-manager.ts",
+      "src/main/ipc/register-orky.ts"
+    ]
+  },
+  "REQ-003": {
+    "tasks": [
+      "TASK-007",
+      "TASK-009"
+    ],
+    "tests": [
+      "TEST-115",
+      "TEST-116",
+      "TEST-143"
+    ],
+    "files": [
+      "src/main/orky/orky-registry.ts",
+      "src/main/ipc/register-orky.ts"
+    ]
+  },
+  "REQ-004": {
+    "tasks": [
+      "TASK-007"
+    ],
+    "tests": [
+      "TEST-117",
+      "TEST-118"
+    ],
+    "files": [
+      "src/main/orky/orky-registry.ts"
+    ]
+  },
+  "REQ-005": {
+    "tasks": [
+      "TASK-005"
+    ],
+    "tests": [
+      "TEST-089",
+      "TEST-090"
+    ],
+    "files": [
+      "src/main/orky/orky-root-engine.ts"
+    ]
+  },
+  "REQ-006": {
+    "tasks": [
+      "TASK-001",
+      "TASK-002",
+      "TASK-007"
+    ],
+    "tests": [
+      "TEST-062",
+      "TEST-063",
+      "TEST-066",
+      "TEST-067",
+      "TEST-105",
+      "TEST-114"
+    ],
+    "files": [
+      "src/shared/types.ts",
+      "src/shared/orky-registry.ts",
+      "src/main/orky/orky-registry.ts"
+    ]
+  },
+  "REQ-007": {
+    "tasks": [
+      "TASK-002"
+    ],
+    "tests": [
+      "TEST-064",
+      "TEST-065",
+      "TEST-066",
+      "TEST-067"
+    ],
+    "files": [
+      "src/shared/orky-registry.ts"
+    ]
+  },
+  "REQ-008": {
+    "tasks": [
+      "TASK-007",
+      "TASK-011"
+    ],
+    "tests": [
+      "TEST-119",
+      "TEST-137"
+    ],
+    "files": [
+      "src/main/orky/orky-registry.ts",
+      "src/main/ipc/register-registry.ts"
+    ]
+  },
+  "REQ-009": {
+    "tasks": [
+      "TASK-003",
+      "TASK-007",
+      "TASK-011"
+    ],
+    "tests": [
+      "TEST-072",
+      "TEST-076",
+      "TEST-077",
+      "TEST-120",
+      "TEST-121",
+      "TEST-135"
+    ],
+    "files": [
+      "src/main/orky/validate-root.ts",
+      "src/main/orky/orky-registry.ts",
+      "src/main/ipc/register-registry.ts"
+    ]
+  },
+  "REQ-010": {
+    "tasks": [
+      "TASK-007",
+      "TASK-011"
+    ],
+    "tests": [
+      "TEST-122",
+      "TEST-123",
+      "TEST-124",
+      "TEST-136"
+    ],
+    "files": [
+      "src/main/orky/orky-registry.ts",
+      "src/main/ipc/register-registry.ts"
+    ]
+  },
+  "REQ-011": {
+    "tasks": [
+      "TASK-007",
+      "TASK-011"
+    ],
+    "tests": [
+      "TEST-125",
+      "TEST-134"
+    ],
+    "files": [
+      "src/main/orky/orky-registry.ts",
+      "src/main/ipc/register-registry.ts"
+    ]
+  },
+  "REQ-012": {
+    "tasks": [
+      "TASK-007",
+      "TASK-011"
+    ],
+    "tests": [
+      "TEST-126",
+      "TEST-134"
+    ],
+    "files": [
+      "src/main/orky/orky-registry.ts",
+      "src/main/ipc/register-registry.ts"
+    ]
+  },
+  "REQ-013": {
+    "tasks": [
+      "TASK-004"
+    ],
+    "tests": [
+      "TEST-078",
+      "TEST-079",
+      "TEST-080",
+      "TEST-081",
+      "TEST-082",
+      "TEST-083",
+      "TEST-084",
+      "TEST-085",
+      "TEST-086",
+      "TEST-087",
+      "TEST-132"
+    ],
+    "files": [
+      "src/main/persistence/orky-registry-store.ts"
+    ]
+  },
+  "REQ-014": {
+    "tasks": [
+      "TASK-005",
+      "TASK-006",
+      "TASK-011"
+    ],
+    "tests": [
+      "TEST-097",
+      "TEST-098",
+      "TEST-099",
+      "TEST-100",
+      "TEST-131"
+    ],
+    "files": [
+      "src/main/orky/orky-root-engine.ts",
+      "src/main/orky/orky-tracker.ts",
+      "src/main/ipc/register.ts"
+    ]
+  },
+  "REQ-015": {
+    "tasks": [
+      "TASK-005"
+    ],
+    "tests": [
+      "TEST-101",
+      "TEST-102",
+      "TEST-103"
+    ],
+    "files": [
+      "src/main/orky/orky-root-engine.ts"
+    ]
+  },
+  "REQ-016": {
+    "tasks": [
+      "TASK-003",
+      "TASK-008",
+      "TASK-009",
+      "TASK-011"
+    ],
+    "tests": [
+      "TEST-071",
+      "TEST-073",
+      "TEST-074",
+      "TEST-075",
+      "TEST-109",
+      "TEST-110",
+      "TEST-121",
+      "TEST-135",
+      "TEST-139",
+      "TEST-141"
+    ],
+    "files": [
+      "src/main/orky/validate-root.ts",
+      "src/main/window-manager.ts",
+      "src/main/ipc/register-orky.ts",
+      "src/main/ipc/register-registry.ts"
+    ]
+  },
+  "REQ-017": {
+    "tasks": [
+      "TASK-004",
+      "TASK-005",
+      "TASK-007"
+    ],
+    "tests": [
+      "TEST-086",
+      "TEST-095",
+      "TEST-096"
+    ],
+    "files": [
+      "src/main/persistence/orky-registry-store.ts",
+      "src/main/orky/orky-root-engine.ts",
+      "src/main/orky/orky-registry.ts"
+    ]
+  },
+  "REQ-018": {
+    "tasks": [
+      "TASK-005",
+      "TASK-007"
+    ],
+    "tests": [
+      "TEST-104",
+      "TEST-105",
+      "TEST-106",
+      "TEST-127",
+      "TEST-128"
+    ],
+    "files": [
+      "src/main/orky/orky-root-engine.ts",
+      "src/main/orky/orky-registry.ts"
+    ]
+  },
+  "REQ-019": {
+    "tasks": [
+      "TASK-005",
+      "TASK-006",
+      "TASK-007"
+    ],
+    "tests": [
+      "TEST-091",
+      "TEST-092",
+      "TEST-093",
+      "TEST-094",
+      "TEST-129",
+      "TEST-130"
+    ],
+    "files": [
+      "src/main/orky/orky-root-engine.ts",
+      "src/main/orky/orky-tracker.ts",
+      "src/main/orky/orky-registry.ts"
+    ]
+  },
+  "REQ-020": {
+    "tasks": [
+      "TASK-007",
+      "TASK-008",
+      "TASK-009",
+      "TASK-011"
+    ],
+    "tests": [
+      "TEST-108",
+      "TEST-111",
+      "TEST-131",
+      "TEST-137",
+      "TEST-140",
+      "TEST-141"
+    ],
+    "files": [
+      "src/main/orky/orky-registry.ts",
+      "src/main/window-manager.ts",
+      "src/main/ipc/register-orky.ts",
+      "src/main/ipc/register-registry.ts"
+    ]
+  },
+  "REQ-021": {
+    "tasks": [
+      "TASK-012"
+    ],
+    "tests": [
+      "TEST-070"
+    ],
+    "files": [
+      "src/preload/index.ts",
+      "src/renderer/api.ts"
+    ]
+  },
+  "REQ-022": {
+    "tasks": [
+      "TASK-010",
+      "TASK-011",
+      "TASK-012"
+    ],
+    "tests": [
+      "TEST-068",
+      "TEST-069",
+      "TEST-111",
+      "TEST-133",
+      "TEST-137",
+      "TEST-138"
+    ],
+    "files": [
+      "src/shared/ipc-contract.ts",
+      "src/main/ipc/register-registry.ts",
+      "src/main/ipc/register.ts",
+      "src/preload/index.ts"
+    ]
+  },
+  "REQ-023": {
+    "tasks": [
+      "TASK-013"
+    ],
+    "tests": [
+      "TEST-146"
+    ],
+    "files": [
+      "docs/features/orky-status.md",
+      "CLAUDE.md",
+      "CHANGELOG.md",
+      ".orky/baseline/architecture.md"
+    ]
+  }
+}
