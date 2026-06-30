@@ -1,7 +1,7 @@
 {
-  "feature": ".orky/features/0003-pane-minimize-restore",
+  "feature": ".orky/features/0004-orky-status-awareness",
   "projectRoot": "C:/dev/Termhalla",
-  "phase": "human-review",
-  "lastTickAt": "2026-06-30T14:15:14.331Z",
-  "lastAction": "await-human: final review"
+  "phase": "implement",
+  "lastTickAt": "2026-06-30T15:24:10.048Z",
+  "lastAction": "router:implementer"
 }

@@ -1,0 +1,75 @@
+{
+  "feature": "0004-orky-status-awareness",
+  "phase": "tests",
+  "gates": {
+    "brainstorm": {
+      "passed": true,
+      "at": "2026-06-30T14:54:45.369Z",
+      "evidence": "human confirmed concept",
+      "external": true
+    },
+    "spec": {
+      "passed": true,
+      "at": "2026-06-30T14:59:48.487Z",
+      "tokens": [
+        {
+          "token": "findings",
+          "pass": true,
+          "evidence": "no open blocking findings (CRITICAL/HIGH or contract-violation) for this gate"
+        }
+      ]
+    },
+    "plan": {
+      "passed": true,
+      "at": "2026-06-30T15:06:05.710Z",
+      "tokens": [
+        {
+          "token": "spec-freeze",
+          "pass": true,
+          "evidence": "spec unchanged since the spec gate"
+        },
+        {
+          "token": "traceability-plan",
+          "pass": true,
+          "evidence": "all 22 REQ(s) trace to TASK"
+        },
+        {
+          "token": "findings",
+          "pass": true,
+          "evidence": "no open blocking findings (CRITICAL/HIGH or contract-violation) for this gate"
+        }
+      ]
+    },
+    "tests": {
+      "passed": true,
+      "at": "2026-06-30T15:23:46.627Z",
+      "tokens": [
+        {
+          "token": "spec-freeze",
+          "pass": true,
+          "evidence": "spec unchanged since the spec gate"
+        },
+        {
+          "token": "tests-red",
+          "pass": true,
+          "evidence": "tests are RED (exit 1) — freeze snapshot captured"
+        }
+      ]
+    }
+  },
+  "iterations": {},
+  "escalations": [],
+  "concerns": [
+    "ux",
+    "quality",
+    "performance",
+    "determinism",
+    "doc-drift",
+    "data-provenance"
+  ],
+  "attempts": {
+    "spec": 0,
+    "plan": 0,
+    "tests": 0
+  }
+}
