@@ -1,0 +1,130 @@
+{
+  "feature": "0014-orky-osc-heartbeat",
+  "phase": "tests",
+  "gates": {
+    "brainstorm": {
+      "passed": true,
+      "at": "2026-06-30T19:34:22.585Z",
+      "evidence": "human confirmed concept via /orky:app-run AskUserQuestion round (D1: Termhalla-side only this run; OSC emission on Orky CLI confirmed as a separate human follow-up)",
+      "external": true
+    },
+    "spec": {
+      "passed": true,
+      "at": "2026-06-30T19:45:40.702Z",
+      "tokens": [
+        {
+          "token": "findings",
+          "pass": true,
+          "evidence": "no open blocking findings (CRITICAL/HIGH or contract-violation) for this gate"
+        }
+      ]
+    },
+    "plan": {
+      "passed": true,
+      "at": "2026-06-30T19:50:34.334Z",
+      "tokens": [
+        {
+          "token": "spec-freeze",
+          "pass": true,
+          "evidence": "spec unchanged since the spec gate"
+        },
+        {
+          "token": "traceability-plan",
+          "pass": true,
+          "evidence": "all 13 REQ(s) trace to TASK"
+        },
+        {
+          "token": "findings",
+          "pass": true,
+          "evidence": "no open blocking findings (CRITICAL/HIGH or contract-violation) for this gate"
+        }
+      ]
+    },
+    "tests": {
+      "passed": true,
+      "at": "2026-06-30T20:05:05.397Z",
+      "tokens": [
+        {
+          "token": "spec-freeze",
+          "pass": true,
+          "evidence": "spec unchanged since the spec gate"
+        },
+        {
+          "token": "tests-red",
+          "pass": true,
+          "evidence": "tests are RED (exit 1) — freeze snapshot captured"
+        }
+      ]
+    }
+  },
+  "iterations": {},
+  "escalations": [],
+  "concerns": [
+    "security",
+    "quality",
+    "determinism",
+    "doc-drift"
+  ],
+  "attempts": {
+    "spec": 0,
+    "plan": 0,
+    "tests": 0
+  },
+  "traceability": {
+    "testIds": [
+      "TEST-001",
+      "TEST-002",
+      "TEST-003",
+      "TEST-004",
+      "TEST-005",
+      "TEST-006",
+      "TEST-007",
+      "TEST-008",
+      "TEST-009",
+      "TEST-010",
+      "TEST-011",
+      "TEST-012",
+      "TEST-013",
+      "TEST-014",
+      "TEST-015",
+      "TEST-016",
+      "TEST-017",
+      "TEST-018",
+      "TEST-019",
+      "TEST-020",
+      "TEST-021",
+      "TEST-022",
+      "TEST-023",
+      "TEST-024",
+      "TEST-025",
+      "TEST-026",
+      "TEST-027",
+      "TEST-028",
+      "TEST-029",
+      "TEST-030",
+      "TEST-031",
+      "TEST-032",
+      "TEST-033",
+      "TEST-034",
+      "TEST-035",
+      "TEST-036",
+      "TEST-037",
+      "TEST-038",
+      "TEST-039",
+      "TEST-040",
+      "TEST-041",
+      "TEST-042"
+    ],
+    "testFiles": [
+      "tests/fixtures/orky-osc-fixtures.ts",
+      "tests/main/orky-osc-parser.test.ts",
+      "tests/main/orky-osc-structural.test.ts",
+      "tests/shared/orky-heartbeat-status.test.ts"
+    ],
+    "reqsWithoutUnitTests": [
+      "REQ-011",
+      "REQ-012"
+    ],
+    "reqsWithoutUnitTestsReason": "documentation-only deliverables verified at the doc-sync gate (TASK-010), per 02-spec.md's Definition of Done"
+  }
+}

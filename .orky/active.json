@@ -1,7 +1,5 @@
 {
-  "feature": ".orky/features/0004-orky-status-awareness",
-  "projectRoot": "C:/dev/Termhalla",
-  "phase": "doc-sync",
-  "lastTickAt": "2026-06-30T17:51:11.119Z",
-  "lastAction": "reconcile DA-007 resolution in followups"
+  "feature": ".orky/features/0014-orky-osc-heartbeat",
+  "projectRoot": "C:/dev/Termhalla/.claude/worktrees/agent-ab11ac825d6caf9fc",
+  "phase": "implement"
 }
