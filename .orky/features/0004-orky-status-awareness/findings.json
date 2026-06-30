@@ -8,8 +8,9 @@
     "recommendation": "Add a runtime string guard at the IPC boundary in `register-orky.ts`: `if (typeof cwd !== 'string' || typeof id !== 'string') return;` before `orky.watch(id, cwd)`. Additionally, wrap the `dirname(dir)` call inside `findOrkyRoot` in its own try/catch, or guard with `if (typeof dir !== 'string') break;` after the try block so a non-string initial value degrades gracefully to `null` rather than throwing.",
     "phase_of_origin": "implement",
     "contract_violation": false,
-    "status": "open",
-    "gate": "review"
+    "status": "resolved",
+    "gate": "review",
+    "resolution": "FIXED+verified: findOrkyRoot non-string-safe (returns null); orky:watch/unwatch guard non-string id/cwd; TEST-044/054."
   },
   {
     "id": "FINDING-SEC-002",
@@ -20,8 +21,9 @@
     "recommendation": "Capture the event sender and scope each handler to its own window: `ipcMain.on(CH.orkyWatch, (e, id, cwd) => { if (BrowserWindow.fromWebContents(e.sender) === win) { void orky.watch(id, cwd) } })`. Alternatively, register and deregister named handler functions in `registerOrky` so that the handler is truly per-window scoped (use `ipcMain.removeListener` in the disposer). As a minimum, validate that `id` is a pane ID that belongs to the sender's window before acting on it.",
     "phase_of_origin": "plan",
     "contract_violation": false,
-    "status": "open",
-    "gate": "review"
+    "status": "resolved",
+    "gate": "review",
+    "resolution": "FIXED+verified: registerOrky(send,win) ownsSender check; disposer removeListener; TEST-054."
   },
   {
     "id": "FINDING-SEC-003",
@@ -32,8 +34,9 @@
     "recommendation": "Apply a feature-directory count cap (e.g., `slugs = slugs.slice(0, 200)` with a warning log) and a per-file size cap before parsing (check `stat.size` before `readFile`, skip and warn if above a threshold such as 1 MiB). Add a comment referencing the DoS risk so reviewers understand the intentional ceiling.",
     "phase_of_origin": "spec",
     "contract_violation": false,
-    "status": "open",
-    "gate": "review"
+    "status": "resolved",
+    "gate": "review",
+    "resolution": "FIXED+verified: readdir capped 200; readJson stat-size-cap 1MiB BEFORE readFile; TEST-045/046."
   },
   {
     "id": "FINDING-SEC-004",
@@ -44,8 +47,9 @@
     "recommendation": "After resolving the feature directory entry path, call `fs.promises.realpath(fdir)` and verify the resolved path is still inside `sess.orkyDir` before reading any files beneath it. Alternatively, use `fs.promises.lstat` on the entry and skip it if `isSymbolicLink()` returns true, logging a warning.",
     "phase_of_origin": "implement",
     "contract_violation": false,
-    "status": "open",
-    "gate": "review"
+    "status": "resolved",
+    "gate": "review",
+    "resolution": "FIXED (dir-level): lstat symlink skip on feature dirs; TEST-047 (host-gated). Residual file-level symlink tracked as FINDING-SEC-006 (LOW)."
   },
   {
     "id": "FINDING-SEC-005",
@@ -56,8 +60,9 @@
     "recommendation": "Replace the raw interpolation with `CSS.escape(paneId)`: `document.querySelector(\\`[data-testid=\"orky-chip-${CSS.escape(paneId)}\"]\\`)`. This is a one-character change that makes the selector safe regardless of the pane ID format and removes the dependency on the UUID invariant.",
     "phase_of_origin": "implement",
     "contract_violation": false,
-    "status": "open",
-    "gate": "review"
+    "status": "resolved",
+    "gate": "review",
+    "resolution": "FIXED+verified: CSS.escape(paneId) in popover selector; TEST-050."
   },
   {
     "id": "FINDING-QUAL-001",
@@ -81,8 +86,9 @@
     "recommendation": "Add `if (!this.sessions.has(id)) return` at the top of unwatch(), matching UsageTracker exactly.",
     "phase_of_origin": "implement",
     "contract_violation": false,
-    "status": "open",
-    "gate": "review"
+    "status": "resolved",
+    "gate": "review",
+    "resolution": "FIXED: unwatch early-return guard added."
   },
   {
     "id": "FINDING-QUAL-003",
@@ -93,8 +99,9 @@
     "recommendation": "Remove the internal normalizeFeatureRaw call in isStalled; the function should trust its typed parameter. If defensive normalization for direct external callers is desired, document it in the type or use `unknown` as the parameter type instead.",
     "phase_of_origin": "implement",
     "contract_violation": false,
-    "status": "open",
-    "gate": "review"
+    "status": "resolved",
+    "gate": "review",
+    "resolution": "FIXED: removed double-normalize in isStalled."
   },
   {
     "id": "FINDING-QUAL-004",
@@ -117,8 +124,9 @@
     "recommendation": "Either (a) wire orkyChipStatus into MinimizedTray.MinChip (read s.orky[paneId], call orkyChipStatus when present, blend the result into the chip icon/label/data-status) to complete the TASK-008 intent; or (b) remove the dead function if the decision is to not render Orky state in the minimized tray. Do not leave it exported and unused.",
     "phase_of_origin": "implement",
     "contract_violation": false,
-    "status": "open",
-    "gate": "review"
+    "status": "resolved",
+    "gate": "review",
+    "resolution": "FIXED: orkyChipStatus wired into MinimizedTray chip (toolbar AND tray reuse)."
   },
   {
     "id": "FINDING-QUAL-006",
@@ -129,8 +137,9 @@
     "recommendation": "Add `reason: OrkyReason` to the spec's OrkyFeatureStatus interface definition and note it is the structured discriminator used by the REQ-007 selector. This removes the spec/type drift without changing any code.",
     "phase_of_origin": "spec",
     "contract_violation": false,
-    "status": "open",
-    "gate": "review"
+    "status": "resolved",
+    "gate": "review",
+    "resolution": "FIXED: reason:OrkyReason now declared in spec/types (drift closed)."
   },
   {
     "id": "FINDING-QUAL-007",
@@ -153,8 +162,9 @@
     "recommendation": "Do not detect awaiting-human via phase-string equality. Derive it from gate topology — the pipeline is at human-review when `gates['doc-sync'].passed === true` AND `gates['human-review']` is absent/unpassed (and not failed) — and/or use the live `active.json.phase`, which the tracker currently reads but discards. Add a fixture whose state.json reproduces the real shape (phase='doc-sync', human-review gate pending) and assert needsHuman/reason:'human-review'.",
     "phase_of_origin": "spec",
     "contract_violation": false,
-    "status": "open",
-    "gate": "review"
+    "status": "resolved",
+    "gate": "review",
+    "resolution": "FIXED+verified vs ground truth: needs-human now gate-derived (autonomous gates through doc-sync passed AND human-review gate not passed); TEST-008/009 pin the real on-disk shape."
   },
   {
     "id": "FINDING-DA-002",
@@ -165,8 +175,9 @@
     "recommendation": "Treat active.json.phase as the live phase for the active feature: compute executing/busy and stall-eligibility from active.json.phase (cross-checked against gates) rather than the lagging state.json.phase. Pass active.phase into orkyFeatureStatus for the active feature. Add a fixture reproducing the implement-gate-passed-but-active.phase='review' divergence.",
     "phase_of_origin": "spec",
     "contract_violation": false,
-    "status": "open",
-    "gate": "review"
+    "status": "resolved",
+    "gate": "review",
+    "resolution": "FIXED+verified: live phase = active.json.phase for active feature (tracker passes activePhase), gateFrontier for non-active; 0004 renders busy/review correctly."
   },
   {
     "id": "FINDING-DA-003",
@@ -177,8 +188,9 @@
     "recommendation": "Filter to `f.kind !== 'idle' && !(f.kind === 'done' && f.openBlocking === 0)` so a clean done feature drops out of the roll-up; keep done-with-open-items. Add a test: a roll-up of two done features (one with openBlocking>0, one with 0) lists only the former.",
     "phase_of_origin": "implement",
     "contract_violation": true,
-    "status": "open",
-    "gate": "review"
+    "status": "resolved",
+    "gate": "review",
+    "resolution": "FIXED+verified: popover inPopover() excludes clean-done; TEST-018 pins exclusion."
   },
   {
     "id": "FINDING-DA-004",
@@ -189,8 +201,9 @@
     "recommendation": "Source lastActivityAt from each feature's own latest evidence — the max `gates[*].at` (and escalation timestamps) in state.json, which are already on disk — falling back to the heartbeat for the active feature. Then the recency tiebreak actually orders non-active features.",
     "phase_of_origin": "implement",
     "contract_violation": false,
-    "status": "open",
-    "gate": "review"
+    "status": "resolved",
+    "gate": "review",
+    "resolution": "FIXED+verified: lastActivityAt now sourced from max(gates[*].at) for all features (not heartbeat-only); confirmed by determinism re-review."
   },
   {
     "id": "FINDING-DA-005",
@@ -201,8 +214,9 @@
     "recommendation": "A feature that is not the active feature has no proof of life: cap non-active features to idle/last-gate state (never 'busy'). Reserve 'busy' for the active feature with a live heartbeat. Add a fixture: non-active feature with an in-flight (gate-undefined) phase → idle, not busy.",
     "phase_of_origin": "spec",
     "contract_violation": false,
-    "status": "open",
-    "gate": "review"
+    "status": "resolved",
+    "gate": "review",
+    "resolution": "FIXED+verified: non-active features derive kind from gateFrontier and are never busy; confirmed by devils-advocate re-review."
   },
   {
     "id": "FINDING-DA-006",
@@ -225,8 +239,9 @@
     "recommendation": "Make the term-failure background win for idle panes: add `!important` to the term-failure background-color, or exclude `.term-failure` from the idle `:not(.term-busy):not(.term-needs-input)` background rule, or compose failure so it is not masked by the idle !important background. Add a render/e2e assertion that a failed-only (idle) Orky pane shows the failure accent.",
     "phase_of_origin": "implement",
     "contract_violation": true,
-    "status": "open",
-    "gate": "review"
+    "status": "resolved",
+    "gate": "review",
+    "resolution": "FIXED: failure CSS now !important and idle rule excludes .term-failure; [data-failed] non-color affordance; pinned by TEST-051 + e2e TEST-055 (green)."
   },
   {
     "id": "FINDING-UX-002",
@@ -237,8 +252,9 @@
     "recommendation": "Add a non-color failure marker to the chip (e.g. a ✖ / red glyph prefix, or 'failed' text) the way needs-human adds 🔔, or style the existing `data-failed` attribute with a visible non-color treatment so failure is perceivable without relying on the toolbar color.",
     "phase_of_origin": "spec",
     "contract_violation": false,
-    "status": "open",
-    "gate": "review"
+    "status": "resolved",
+    "gate": "review",
+    "resolution": "FIXED: non-color failure affordance ([data-failed] glyph + outline) added."
   },
   {
     "id": "FINDING-UX-003",
@@ -249,8 +265,9 @@
     "recommendation": "Do not render the Orky chip when there is nothing to show: gate it on a non-empty label / `chipFeature !== null` (or have the tracker emit cleared/null for an empty roll-up so the chip is absent rather than blank).",
     "phase_of_origin": "implement",
     "contract_violation": false,
-    "status": "open",
-    "gate": "review"
+    "status": "resolved",
+    "gate": "review",
+    "resolution": "FIXED: chip only renders on a non-empty chipFeature (empty roll-up no longer blank-chips). Done-project null-label tracked as FINDING-DA-007."
   },
   {
     "id": "FINDING-UX-004",
@@ -285,8 +302,9 @@
     "recommendation": "Filter onEvt by basename to the three target files (active.json, state.json, findings.json) before calling schedule(id), or pass chokidar an `ignored` predicate, mirroring UsageTracker's `.jsonl` guard.",
     "phase_of_origin": "implement",
     "contract_violation": false,
-    "status": "open",
-    "gate": "review"
+    "status": "resolved",
+    "gate": "review",
+    "resolution": "FIXED+verified: chokidar handler isTargetFile() filters to active/state/findings.json before re-read."
   },
   {
     "id": "FINDING-PERF-002",
@@ -297,8 +315,9 @@
     "recommendation": "Coalesce by resolved root: maintain one watcher + one debounced re-read per `<root>/.orky/`, then emit the same computed OrkyPaneStatus to every paneId bound to that root. Keeps per-pane emits while collapsing N-fold watcher and file-read amplification.",
     "phase_of_origin": "implement",
     "contract_violation": false,
-    "status": "open",
-    "gate": "review"
+    "status": "resolved",
+    "gate": "review",
+    "resolution": "FIXED+verified: per-.orky-root dedup (one watcher+read fanned to panes); reference-counting verified correct (last-pane closes, no premature close)."
   },
   {
     "id": "FINDING-PERF-003",
@@ -345,8 +364,9 @@
     "recommendation": "Do not rely on Date.parse's local-time fallback. Either require lastTickAt to carry an explicit UTC/offset and reject (-> null) a tz-less value, or normalize a tz-less ISO string to UTC before parsing. Add a unit test pinning that a fixed tz-less timestamp yields the same epoch ms regardless of process TZ (run with TZ set to a non-UTC zone).",
     "phase_of_origin": "implement",
     "contract_violation": false,
-    "status": "open",
-    "gate": "review"
+    "status": "resolved",
+    "gate": "review",
+    "resolution": "FIXED+verified: parseOrkyTimestamp interprets tz-less timestamps as UTC; TEST-042 pins identical-bytes->identical epoch."
   },
   {
     "id": "FINDING-DOC-001",
@@ -357,8 +377,9 @@
     "recommendation": "Add `src/main/orky/` (read-only `.orky/` watcher) and the `orky:status` channel to the baseline architecture map, and note the render-time precedence of Orky status over byte-derived TerminalStatus for the pane border/tab-badge (REQ-014). Pure reconciliation suitable for the doc-sync phase.",
     "phase_of_origin": "implement",
     "contract_violation": false,
-    "status": "open",
-    "gate": "review"
+    "status": "resolved",
+    "gate": "review",
+    "resolution": "FIXED: .orky/baseline/architecture.md reconciled (src/main/orky/ subsystem + orky:status channel)."
   },
   {
     "id": "FINDING-DOC-002",
@@ -369,8 +390,9 @@
     "recommendation": "Point the link at the real Orky repo/spec URL, or drop the hyperlink and describe Orky in prose. Fix both the doc and the CHANGELOG occurrence.",
     "phase_of_origin": "implement",
     "contract_violation": false,
-    "status": "open",
-    "gate": "review"
+    "status": "resolved",
+    "gate": "review",
+    "resolution": "FIXED: placeholder github.com links removed from feature doc + CHANGELOG."
   },
   {
     "id": "FINDING-DOC-003",
@@ -393,8 +415,9 @@
     "recommendation": "Make the provenance note cite the EXACT mirrored source: the recorded state.json.gates keys + gatekeeper.js DRIVER_WORK_PHASES (line 690), NOT PHASE_ORDER. Explicitly state that Orky's 'Canonical phase order' constant's 'intake' (a pre-pipeline artifact step that records no gate) and 'human' (recorded as 'human-review') are intentionally excluded/renamed, so a future maintainer does not 're-sync' against the wrong list. Rename the local comment off 'Canonical phase order' to avoid the name collision.",
     "phase_of_origin": "spec",
     "contract_violation": false,
-    "status": "open",
-    "gate": "review"
+    "status": "resolved",
+    "gate": "review",
+    "resolution": "FIXED: ORKY_PHASES provenance comment corrected + drift caveat vs Orky 9-entry PHASE_ORDER; documented."
   },
   {
     "id": "FINDING-PROV-002",
@@ -404,6 +427,54 @@
     "claim": "STALL_THRESHOLD_MS = 120_000 is presented as authoritative ('a live executing phase with no heartbeat for >120s is stalled', orky-status.ts:15; spec REQ-003 mandates 120_000) with no cited source for the 120s value, and it is not reconciled with Orky's own liveness/idle threshold. Orky's gatekeeper liveness() (C:/dev/Orky/plugin/gatekeeper/gatekeeper.js:843) takes idleThresholdSeconds as a CALLER-SUPPLIED argument and defines no canonical value — so the chip's notion of 'stalled' is an independent, uncited Termhalla heuristic that nothing verifies against Orky's actual watchdog threshold. If the real Orky watchdog uses a different idle threshold, the chip can confidently render 'stalled Nm — needs you' (kind:needs-input) while Orky still considers the run live / not yet auto-resumed, surfacing a false call-to-action.",
     "recommendation": "Document 120s explicitly as a Termhalla-side UI heuristic (NOT an Orky-derived value), note that Orky's idle threshold is caller-configured with no canonical default, and prefer sourcing the threshold from the same config Orky's watchdog uses rather than an independent private constant. The value is already injectable via thresholdMs, so wire it from configuration instead of hardcoding the user-facing 'stalled' verdict.",
     "phase_of_origin": "spec",
+    "contract_violation": false,
+    "status": "open",
+    "gate": "review"
+  },
+  {
+    "id": "FINDING-DET-002",
+    "lens": "determinism",
+    "severity": "LOW",
+    "location": "src/shared/orky-status.ts:281",
+    "claim": "compareFeatures's terminal tiebreak is the feature id, but orkyFeatureStatus (line 188) collapses a missing/empty `feature` field to the constant slug `'(unknown)'` (`f.feature || '(unknown)'`). Two DISTINCT malformed features (e.g. two feature dirs whose state.json omits `feature`, with equal lastActivityAt — both 0 when neither has gate timestamps) therefore compare EQUAL on every key (needsHuman, reasonRank, lastActivityAt, id), so the comparator is no longer a strict total order for them. The pure selector is deterministic only for the array order it is given; the OrkyTracker builds the feature list in `await readdir('features')` order (orky-tracker.ts:149), which is filesystem-/host-dependent and unsorted. V8's stable sort then preserves that readdir order, so the chip/popover ordering (and the `[0]` chip winner) between two equal-ranked '(unknown)' features varies across hosts from identical bytes — the same class of cross-host nondeterminism FINDING-DET-001 closed, surfacing here through the id-collision edge rather than the timestamp boundary. Well-formed features have distinct slugs and are unaffected.",
+    "recommendation": "Break the final tie on a value that is unique per on-disk feature even when `feature` is missing — e.g. fold the feature directory slug (the readdir entry name, which IS distinct) into OrkyFeatureStatus and use it as the last tiebreak instead of the displayed `feature || '(unknown)'`; or, cheaply, have the tracker sort `slugs` before mapping so the input order fed to orkyPaneStatus is itself deterministic. Add a test: two features each with `feature:''` and equal lastActivityAt are ordered identically regardless of input-array order.",
+    "phase_of_origin": "implement",
+    "contract_violation": false,
+    "status": "open",
+    "gate": "review"
+  },
+  {
+    "id": "FINDING-DA-007",
+    "lens": "devils-advocate",
+    "severity": "MEDIUM",
+    "location": "src/shared/orky-status.ts:292 (chipLabel) + :56 OrkyFeatureRow / orkyPaneStatus chip selection (REQ-007/008/020/023)",
+    "claim": "NEW hole introduced by the gate-based rewrite: a CLEAN-done feature is still chip-eligible, and a done feature's live phase is now `null`, producing two defects nothing catches. (1) `selectChipFeature` ranks over the FULL feature list (incl. clean-done/idle), but `inPopover` now EXCLUDES clean-done (the DA-003 fix). So when every feature is done/idle (an Orky project sitting between runs — the exact steady state of THIS repo once 0004 merges: 0001/0002/0003 all clean-done), the chip RENDERS (PaneToolbar gates only on `chipFeature !== null`, and the chip-feature is a clean-done feature) yet clicking it opens an empty `No active Orky features` popover — the chip names a feature its own popover omits. TEST-018's own data (`[doneOpen d1, doneClean d2]`) constructs exactly this: `chipFeature` resolves to d2 (newer activity) while `features` is `['d1']`, but the test only asserts `.features` and never that the chip feature appears in the popover, so it passes green over the mismatch. (2) For a non-active done feature `livePhase = gateFrontier(allPassed) = null` (verified: TEST-009 maps an all-passed feature to done with phase left null, unasserted), and `chipLabel` (`${f.feature} · ${f.phase} · ...`) plus `OrkyFeatureRow` (`{f.phase} · {f.gateN}/{f.gateM}`) do NOT guard null — so the primary chip renders the literal string `\"<slug> · null · 8/8\"`. Notably the `detail` builder DOES guard every null (`livePhase ?? 'idle'`/`'running'`/`'gate'`), proving the author knew phase can be null and simply missed the chip label and popover row. Before the rewrite, phase came from `state.json.phase` (= `'doc-sync'` for done features) so the chip read `\"<slug> · doc-sync · 8/8\"` and clean-done features appeared in the popover — both symptoms are regressions the gate-based model introduced.",
+    "recommendation": "Guard the null live phase in the user-facing renderers exactly as `detail` already does: in `chipLabel` use `f.phase ?? 'done'` (or omit the phase segment when null), and in `OrkyFeatureRow` render `{f.phase ?? 'done'} · …`. Separately, resolve the chip/popover set mismatch: either select the chip ONLY from the popover-eligible (`inPopover`) set so the chip always corresponds to a listed feature, OR have `orkyPaneStatus` return the idle/cleared shape (no chip) when the popover-eligible set is empty so an all-done/idle project shows no chip rather than a `null`-phase done chip over an empty popover. Add a test asserting (a) chipLabel of a done (null-phase) feature contains no literal `'null'`, and (b) `orkyPaneStatus([doneOpen, doneClean]).chipFeature` is present in `.features` (or the roll-up clears).",
+    "phase_of_origin": "implement",
+    "contract_violation": false,
+    "status": "open",
+    "gate": "review"
+  },
+  {
+    "id": "FINDING-SEC-006",
+    "lens": "security",
+    "severity": "LOW",
+    "location": "src/main/orky/orky-tracker.ts:162-170 (readJson path: lines 191-208)",
+    "claim": "The symlink guard introduced for SEC-004 (REQ-025c) calls `lstat(fdir)` on the `features/<slug>` directory entry and skips it if the DIRECTORY is a symlink. It does NOT guard file-level symlinks within a real directory. If an attacker with write access to `<project>/.orky/features/<slug>/` plants a symbolic link named `state.json` or `findings.json` pointing to an arbitrary file outside the project (e.g. `features/real-slug/state.json -> /etc/shadow`), `readFile` will follow that symlink transparently. The contents are then parsed through `normalizeFeatureRaw` / `normalizeFindings` and emitted into the UI. This is not addressed by the current lstat directory check, which only prevents the original attack described in SEC-004 (a symlinked directory entry like `features/evil -> /outside/`). Constraints on impact: (a) the 1 MiB size cap from SEC-003/REQ-025b still applies — a file larger than 1 MiB will be stat'd first and skipped before readFile is called (order is correct); (b) all data reaches the UI via React rendering which escapes text content, so no HTML injection; (c) an attacker needs write access to a non-root subdirectory of the user's own project. The spec (REQ-025c) explicitly offered `lstat + skip` as an alternative to the realpath approach and does not mention file-level symlinks — this is therefore a residual gap in the spec-permitted implementation rather than a coding error against spec.",
+    "recommendation": "Either (a) extend the per-file guard: before calling `readJson(join(fdir, 'state.json'), ...)`, call `lstat(join(fdir, 'state.json'))` and skip if `isSymbolicLink()` (same pattern already used for the directory); or (b) switch to the realpath approach for the directory (compute `realpath(fdir)` and verify the resolved path still starts with `realpath(orkyDir)`) which simultaneously closes both the directory-level and file-level symlink attack vectors AND eliminates the inherent TOCTOU window between the lstat check and the subsequent readFile calls. Approach (b) is one `realpath` call per feature and more robust. Whichever approach is chosen, add a test fixture reproducing the file-level symlink case (a real directory whose `state.json` entry is a symlink) and assert the content is not read.",
+    "phase_of_origin": "implement",
+    "contract_violation": false,
+    "status": "open",
+    "gate": "review"
+  },
+  {
+    "id": "FINDING-PERF-006",
+    "lens": "performance",
+    "severity": "LOW",
+    "location": "src/main/orky/orky-tracker.ts:78,185 (watch -> reread -> fan-out)",
+    "claim": "The per-root dedup is correct, but the immediate on-bind re-read fans its result out to EVERY pane already bound to the root, not just the joining pane. `watch()` unconditionally calls `await this.reread(orkyDir)` (line 78) when a pane binds, and `reread` emits to `for (const id of r.panes) this.emit(id, status)` (line 185). So when P panes in the same project bind in quick succession (e.g. a workspace restore that spawns many panes resolving to one `.orky/` root), pane k's bind re-reads and re-emits identical status to all k already-bound panes: total emits = 1+2+...+P = O(P^2) safeSend IPC pushes + renderer store updates + chip re-renders, versus the O(P) of the prior per-pane design (each pane re-emitted only to itself). The file-read amplification PERF-002 targeted is fixed; this is a smaller, newly-introduced emit amplification specific to the shared fan-out. Each push is cheap (a small precomputed status object), so impact is bounded and one-time per bind burst, not per ongoing event.",
+    "recommendation": "On a bind where the root already has a live watcher (the joining pane is not the first), emit only to the newly-joining pane rather than re-reading and fanning out to the whole set. Cache the last computed OrkyPaneStatus on the Root and push it to the new pane directly (still re-reading only when the watcher does not yet exist), so a P-pane restore costs O(P) emits instead of O(P^2).",
+    "phase_of_origin": "implement",
     "contract_violation": false,
     "status": "open",
     "gate": "review"

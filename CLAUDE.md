@@ -163,6 +163,22 @@ related area:
   `asarUnpack` entry in `electron-builder.yml`. In this sandbox environment, clear the
   `NoDefaultCurrentDirectoryInExePath` env var before rebuilding — it breaks the `.bat`
   invocations used by native build tools (same fix as for node-pty's winpty `.bat`).
+- **Orky status reads `active.json.phase` + gate topology — NEVER `state.json.phase`.** The Orky
+  mirror (`src/main/orky/orky-tracker.ts` + the pure mappers in `src/shared/orky-status.ts`) detects a
+  run's live phase and needs-you state from **gates**, because the per-feature `state.json.phase`
+  *lags* the real pipeline and is **never** set to `'human-review'` (completed features terminate at
+  `state.json.phase === 'doc-sync'` with `human-review` recorded only as an external gate). Live phase =
+  `active.json.phase` for the single active feature / the **gate frontier** (`gateFrontier`) for every
+  other; needs-human = autonomous gates through `doc-sync` all passed AND `human-review` gate not yet
+  passed (NOT a phase-string equality — that bug, FINDING-DA-001, meant a run blocked on a human never
+  lit). `ORKY_PHASES` is the 8-phase mirror of Orky's recorded gate keys / `DRIVER_WORK_PHASES`, NOT
+  Orky's *separate* 9-entry `PHASE_ORDER` (intake…human) — see the provenance caveat in
+  `docs/features/orky-status.md` before re-syncing it. The tracker is **strictly read-only** (clones the
+  `UsageTracker` session-identity race pattern; one debounced chokidar watcher + read per resolved
+  `.orky/` root, `.json`-filtered, IPC args validated + per-window sender-scoped); it never writes under
+  `.orky/`, never spawns a CLI, and bumps no `SCHEMA_VERSION`. Open follow-ups (incl. the clean-DONE
+  `null`-phase chip, FINDING-DA-007) are tracked in
+  `docs/superpowers/0004-orky-status-review-followups.md`.
 
 ## Where things live
 

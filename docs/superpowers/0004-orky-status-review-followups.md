@@ -1,0 +1,177 @@
+# Orky status awareness (Orky 0004) — Review Follow-ups (deferred)
+
+Feature `0004-orky-status-awareness` shipped READY after a two-iteration review with a
+human-approved spec loop-back (**ESC-001**) that replaced the original `state.json.phase`
+detection model with the **gate-based full-roll-up** model. Every **CRITICAL / HIGH** finding and
+both **contract violations** (FINDING-DA-003 popover clean-done retention, FINDING-UX-001
+suppressed failure border) were **resolved in-feature**; the flagship FINDING-DA-001 (needs-human
+keyed on a `state.json.phase` the real pipeline never sets) was fixed and pinned against ground
+truth. See the per-finding records in
+`.orky/features/0004-orky-status-awareness/findings.json`.
+
+The 14 non-blocking items below were **deferred, not fixed**, and are tracked here so they are not
+lost. None is release-blocking; none is a contract violation.
+
+## Deferred follow-ups
+
+### MEDIUM
+
+- **Clean-DONE project renders a `null` live-phase chip over an empty popover** (FINDING-DA-007,
+  `src/shared/orky-status.ts` — `chipLabel` / `OrkyFeatureRow` / chip selection, REQ-007/008/020/023).
+  A new hole introduced by the gate-based rewrite: `selectChipFeature` ranks over the FULL feature
+  list (incl. clean-done/idle) while `inPopover` now EXCLUDES clean-done (the DA-003 fix). When every
+  feature is done/idle — the steady state of THIS repo once 0004 merges (0001/0002/0003 all
+  clean-done) — the chip RENDERS (a clean-done chip-feature) yet clicking it opens an empty
+  `No active Orky features` popover: the chip names a feature its own popover omits. Separately, a
+  non-active done feature's live phase is `gateFrontier(allPassed) === null`, and neither `chipLabel`
+  nor `OrkyFeatureRow` guards null, so the chip renders the literal string `"<slug> · null · 8/8"`
+  (the `detail` builder already guards null with `?? 'idle'/'running'/'gate'`, proving the null path
+  was known and missed here). **Recommended fix:** guard the null live phase in the user-facing
+  renderers (`f.phase ?? 'done'`, or omit the phase segment when null), and resolve the chip/popover
+  set mismatch — select the chip ONLY from the `inPopover`-eligible set, OR have `orkyPaneStatus`
+  return the cleared/no-chip shape when the popover-eligible set is empty so an all-done project shows
+  no chip rather than a `null`-phase chip over an empty popover. Add tests asserting (a) a done
+  (null-phase) feature's chip label contains no literal `'null'`, and (b)
+  `orkyPaneStatus([doneOpen, doneClean]).chipFeature` is present in `.features` (or the roll-up
+  clears). This is the dogfood steady-state, so it is visible but cosmetic (no data/security impact).
+
+- **`findOrkyRoot` uses synchronous `statSync` on the main event loop** (FINDING-QUAL-004 /
+  FINDING-PERF-004, `src/main/orky/find-orky-root.ts:13`). The bounded upward walk (up to maxDepth+1 =
+  9 calls) is the one synchronous fs outlier in an otherwise `fs/promises`-only tracker; a workspace
+  restore that binds many panes at once issues P × up-to-9 synchronous stat syscalls back-to-back,
+  briefly blocking the loop that also routes PTY data. **Why deferred (accepted constraint):**
+  `findOrkyRoot` is called before the session slot is claimed, and a frozen test (TEST-025/044)
+  asserts the **synchronous return shape** (`findOrkyRoot(cwd): string | null`, not a Promise);
+  converting it to async would require editing a frozen test, which is out of scope for doc-sync. The
+  cost is bounded (≤9 stats per pane, local fs) and one-time per bind. **Recommended fix (when the
+  test freeze lifts):** convert to `fs.promises.stat` + `await findOrkyRoot(...)`, or memoize root
+  resolution per directory.
+
+### LOW
+
+- **Ancestor-walk depth cap of 8 yields a location-dependent blank** (FINDING-DA-006,
+  `src/main/orky/find-orky-root.ts:9`, REQ-012). A pane whose cwd is more than 8 directories below the
+  project root (deep monorepo / nested package) resolves to `findOrkyRoot === null`, so the pane
+  silently shows NO Orky chrome even though it is inside an Orky project — the status disappears purely
+  as a function of cwd depth. **Recommended fix:** stop on a project-root marker (`.git`) rather than a
+  fixed depth, or raise the cap meaningfully, and document the bound in the feature doc.
+
+- **Redundant non-active ternary in the `isStalled` call** (FINDING-QUAL-007,
+  `src/shared/orky-status.ts:133`). `isStalled(isActive ? f.feature : null, f, isActive ? lastTickAt :
+  null, ...)` passes dual-null for the non-active case, but `isStalled` already gates on
+  `activeFeatureSlug === null` at its first line, making the `isActive ? lastTickAt : null` ternary
+  redundant defensive coding. **Recommended fix:** simplify to `isStalled(isActive ? f.feature : null,
+  f, lastTickAt, ...)`.
+
+- **Orky chip truncates its most actionable tail** (FINDING-UX-004,
+  `src/renderer/components/PaneToolbar.tsx:48`). The chip is `maxWidth:240` with
+  `text-overflow:ellipsis` over `feature · phase · gate N/M · ●k open`; ellipsis clips the END, so on
+  narrow panes the gate N/M progress and `●k open` count — the at-a-glance signal — are hidden first
+  while the less-actionable slug is always kept. **Recommended fix:** middle-ellipsis the slug (or drop
+  the phase word) before dropping the trailing gate/count.
+
+- **Popover has no Escape-to-dismiss / focus management** (FINDING-UX-005,
+  `src/renderer/components/OrkyPopover.tsx:32`). It closes only on backdrop click or chip re-toggle; no
+  keydown(Escape) handler, focus is not moved into the popover on open, Tab leaks to the page behind.
+  Matches the existing Git/Process popovers (not a regression) but Escape is the near-universal
+  dismissal affordance. **Recommended fix:** add a keydown Escape handler calling `onClose`.
+
+- **Per-feature reads are sequential** (FINDING-PERF-003, `src/main/orky/orky-tracker.ts:104-115`).
+  The reread loop awaits each feature's `state.json` then `findings.json` back-to-back, so total read
+  latency grows linearly with feature count even though the reads are independent. **Recommended fix:**
+  `Promise.all` over slugs (state + findings per feature in parallel), keeping the post-await
+  session-identity re-check after the batch resolves.
+
+- **No mtime gate on re-reads** (FINDING-PERF-005, `src/main/orky/orky-tracker.ts:122-131`). `readJson`
+  reads each file in full on every coalesced event with no mtime gate; `findings.json` grows across a
+  long pipeline (multiple reviewer lenses appending) and is fully re-read/parsed each time. The 1 MiB
+  size cap (REQ-025) bounds the worst case, but unchanged files are still re-read. **Recommended fix:**
+  gate re-reads on mtime so unchanged files are skipped, and/or re-read only the feature(s) whose files
+  actually changed.
+
+- **O(P²) on-bind emit amplification for a shared root** (FINDING-PERF-006,
+  `src/main/orky/orky-tracker.ts:78,185`). The per-root dedup is correct, but `watch()` unconditionally
+  re-reads and fans the result out to EVERY pane already bound to the root, so P panes binding in quick
+  succession (a workspace restore resolving to one `.orky/`) cost 1+2+…+P = O(P²) `safeSend` pushes vs
+  the prior O(P). Each push is a cheap precomputed object, so impact is bounded and one-time per bind
+  burst. **Recommended fix:** on a bind where the root already has a live watcher, emit the cached last
+  status to only the joining pane instead of re-reading and fanning out.
+
+- **File-level symlink residual** (FINDING-SEC-006, `src/main/orky/orky-tracker.ts:162-170`). The
+  SEC-004 fix `lstat`s and skips a symlinked `features/<slug>` **directory**, but does NOT guard a
+  symlinked `state.json` / `findings.json` **file** inside a real directory — `readFile` follows it
+  transparently. Impact is constrained: the 1 MiB cap still applies (stat-before-read), all data
+  reaches the UI via React text-escaping (no HTML injection), and the attacker needs write access to a
+  subdirectory of the user's own project. The spec (REQ-025c) explicitly permitted `lstat + skip` and
+  did not mention file-level symlinks, so this is a spec-permitted residual, not a coding error.
+  **Recommended fix:** extend the per-file `lstat`-skip to `state.json`/`findings.json`, or switch the
+  directory guard to a `realpath`-prefix check (closes both vectors and the TOCTOU window in one call).
+
+- **`STALL_THRESHOLD_MS = 120_000` is an uncited Termhalla heuristic** (FINDING-PROV-002,
+  `src/shared/orky-status.ts:16`). The 120s "stalled" verdict is an independent Termhalla-side UI value
+  not reconciled with Orky's own watchdog idle threshold (Orky's `liveness()` takes
+  `idleThresholdSeconds` as a caller-supplied argument with no canonical default), so the chip can
+  render "stalled — needs you" while Orky still considers the run live. The value is already injectable
+  via `thresholdMs`. **Recommended fix:** document 120s explicitly as a Termhalla UI heuristic (NOT an
+  Orky-derived value) and prefer sourcing it from the same config Orky's watchdog uses.
+
+- **Id-collision tiebreak nondeterminism for malformed features** (FINDING-DET-002,
+  `src/shared/orky-status.ts:281`). `compareFeatures`'s final tiebreak is the feature id, but
+  `orkyFeatureStatus` collapses a missing `feature` field to the constant slug `'(unknown)'`. Two
+  DISTINCT malformed features (both `feature` missing, both `lastActivityAt === 0`) compare EQUAL on
+  every key, so the comparator is not a strict total order for them; the tracker feeds features in
+  filesystem-dependent `readdir` order, so the `[0]` chip winner varies across hosts from identical
+  bytes (the same class FINDING-DET-001 closed, via the id-collision edge). Well-formed features have
+  distinct slugs and are unaffected. **Recommended fix:** fold the on-disk directory slug (distinct
+  even when `feature` is missing) into the last tiebreak, or sort `slugs` in the tracker before
+  mapping.
+
+- **Dangling reference to an uncommitted intake draft** (FINDING-DOC-003,
+  `.orky/features/0004-orky-status-awareness/00-intake.md:15`). `00-intake.md` cites its intake as
+  "verbatim, from `.orky/0004-intake-draft.md`", but that source is an untracked throwaway
+  (`?? .orky/0004-intake-draft.md` in git status), not in the checked-in tree. Low impact — the
+  verbatim content is already inlined. **Recommended fix:** remove the dangling reference or commit the
+  draft.
+
+## Promoted to conventions
+
+None. No finding in `findings.json` carried a `propose CONV:` flag, and none of the deferred items is a
+general rule binding future features (each is a one-off specific to the Orky tracker/mappers), so no new
+`CONV-NNN` was appended to `.orky/conventions.md`.
+
+## Resolved in-feature (not deferred)
+
+- FINDING-DA-001 (CRITICAL — needs-human keyed on a `state.json.phase === 'human-review'` the real
+  pipeline NEVER sets, so a run blocked on a human silently never fired) — needs-human is now
+  gate-derived (autonomous gates through `doc-sync` passed AND `human-review` gate not passed); fixtures
+  TEST-008/009 pin the real on-disk shape.
+- FINDING-DA-002 (HIGH — live phase read from the lagging `state.json.phase`, so an actively-running
+  feature reported idle and could never stall after the implement gate) — live phase is now
+  `active.json.phase` for the active feature / `gateFrontier` for the rest.
+- FINDING-DA-003 (HIGH, contract — popover filter `kind !== 'idle'` retained every clean-done feature
+  forever) — `inPopover()` excludes clean-done; TEST-018 pins the exclusion.
+- FINDING-UX-001 (HIGH, contract — the failure border lost to the idle `!important` toolbar rule and
+  rendered nowhere for the canonical failed-AND-idle pane) — failure CSS made `!important`, idle rule
+  excludes `.term-failure`; TEST-051 + e2e TEST-055.
+- FINDING-DA-004/DA-005 (MEDIUM — heartbeat-only `lastActivityAt` broke the recency tiebreak;
+  non-active features could read `busy` forever) — `lastActivityAt` sourced from `max(gates[*].at)`;
+  non-active features derive kind from `gateFrontier` and are never `busy`.
+- FINDING-SEC-001/002/003/004/005 (security — non-string IPC arg main-process crash; cross-window
+  status disclosure; unbounded readdir/readFile DoS; symlink directory escape; unescaped CSS selector)
+  — IPC arg validation + per-window sender ownership, 200-dir cap, 1 MiB stat-before-read cap,
+  directory `lstat`-skip, `CSS.escape`; TEST-044/045/046/047/050/054.
+- FINDING-PERF-001/002 (MEDIUM — no `.json` event filter; P watchers + P× read amplification for one
+  root) — `isTargetFile()` filter; per-root watcher+read dedup fanned to panes; TEST-048/049.
+- FINDING-DET-001 (MEDIUM — tz-less timestamps parsed in machine-local time, host-dependent stall) —
+  `parseOrkyTimestamp` treats tz-less as UTC; TEST-042.
+- FINDING-QUAL-002/003/005/006 (consistency — `unwatch` early-return guard; double-normalize in
+  `isStalled`; `orkyChipStatus` exported-but-unused, now wired into the minimized tray; `reason`
+  spec/type drift) — all resolved.
+- FINDING-DOC-001/002 (doc-drift — `.orky/baseline/architecture.md` missing the `src/main/orky/`
+  subsystem + `orky:status` channel; placeholder `github.com` links in the feature doc + CHANGELOG) —
+  reconciled.
+- FINDING-PROV-001 (MEDIUM, data-provenance — `ORKY_PHASES` comment collided with Orky's separate
+  9-entry "Canonical phase order" `PHASE_ORDER`, risking a future re-sync corrupting `gateM`/`gateN`) —
+  provenance caveat corrected in source + `docs/features/orky-status.md`; TEST-052.
+</content>
+</invoke>
