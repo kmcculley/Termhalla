@@ -1,6 +1,6 @@
 {
   "feature": "0005-cross-project-orky-registry",
-  "phase": "tests",
+  "phase": "doc-sync",
   "gates": {
     "brainstorm": {
       "passed": true,
@@ -32,6 +32,85 @@
           "token": "traceability-plan",
           "pass": true,
           "evidence": "all 23 REQ(s) trace to TASK"
+        },
+        {
+          "token": "findings",
+          "pass": true,
+          "evidence": "no open blocking findings (CRITICAL/HIGH or contract-violation) for this gate"
+        }
+      ]
+    },
+    "tests": {
+      "passed": true,
+      "at": "2026-07-01T01:07:40.171Z",
+      "tokens": [
+        {
+          "token": "spec-freeze",
+          "pass": true,
+          "evidence": "spec unchanged since the spec gate"
+        },
+        {
+          "token": "tests-red",
+          "pass": true,
+          "evidence": "tests are GREEN on a tests loopback (coverage augmentation; implementation already exists) — freeze re-captured"
+        }
+      ]
+    },
+    "implement": {
+      "passed": true,
+      "at": "2026-07-01T01:10:55.066Z",
+      "tokens": [
+        {
+          "token": "spec-freeze",
+          "pass": true,
+          "evidence": "spec unchanged since the spec gate"
+        },
+        {
+          "token": "build",
+          "pass": true,
+          "evidence": "build exited 0"
+        },
+        {
+          "token": "test",
+          "pass": true,
+          "evidence": "test exited 0"
+        },
+        {
+          "token": "test-freeze",
+          "pass": true,
+          "evidence": "test files unchanged since freeze"
+        }
+      ]
+    },
+    "review": {
+      "passed": true,
+      "at": "2026-07-01T01:33:31.582Z",
+      "tokens": [
+        {
+          "token": "spec-freeze",
+          "pass": true,
+          "evidence": "spec unchanged since the spec gate"
+        },
+        {
+          "token": "findings",
+          "pass": true,
+          "evidence": "no open blocking findings (CRITICAL/HIGH or contract-violation) for this gate"
+        }
+      ]
+    },
+    "doc-sync": {
+      "passed": true,
+      "at": "2026-07-01T01:37:09.739Z",
+      "tokens": [
+        {
+          "token": "spec-freeze",
+          "pass": true,
+          "evidence": "spec unchanged since the spec gate"
+        },
+        {
+          "token": "traceability",
+          "pass": true,
+          "evidence": "all 23 REQ(s) trace to TASK+TEST"
         },
         {
           "token": "findings",
@@ -91,7 +170,7 @@
     "tests": 0,
     "implement": 0,
     "review": 0,
-    "doc-sync": 1
+    "doc-sync": 0
   },
   "loopbacks": [
     {
@@ -114,13 +193,12 @@
     }
   ],
   "implementer": {
-    "mode": "ab",
+    "mode": "claude",
     "agents": [
-      "claude",
-      "codex"
+      "claude"
     ],
     "winner": "claude",
-    "reason": "Appending one more orchestrator-applied src/ fix after the A/B reconciliation above: FINDING-QUAL-002 (contract_violation, gate=review, never part of ESC-001/002/003 but mechanically blocks the review gate's findings token regardless of severity) -- routed OrkyRegistry.init() through the existing exclusive() mutation-serialization queue, exactly as the finding's own fix field specified. Re-verified: build + full test suite green (only the 3 known external-contamination failures, routed around via a clean TEMP/TMP override for ground-truth re-derivation).",
-    "at": "2026-06-30T22:34:10.148Z"
+    "reason": "Router recommended ab (determinism concern) but this iteration is a trivial test-ID-only re-verify (TEST-091b->TEST-147 rename, zero src/ changes) per orchestrator directive to skip a second parallel/worktree candidate for something this trivial; used claude-only. Confirmed no-op: build+test green, 845/845, zero src/ changes.",
+    "at": "2026-07-01T01:10:18.358Z"
   }
 }

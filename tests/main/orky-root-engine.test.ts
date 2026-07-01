@@ -173,7 +173,7 @@ describe('OrkyRootEngine — basic roll-up + safe-defaulting (REQ-001/REQ-005)',
     }
   })
 
-  it('TEST-091b REQ-001 onStatus supports MULTIPLE independent subscribers (the engine is shared by OrkyTracker AND OrkyRegistry) — each receives every emit', async () => {
+  it('TEST-147 REQ-001 onStatus supports MULTIPLE independent subscribers (the engine is shared by OrkyTracker AND OrkyRegistry) — each receives every emit', async () => {
     const root = seedOrky({ activeSlug: 'demo', features: { demo: { state: { feature: 'demo', phase: 'implement', gates: {}, escalations: [] } } } })
     const engine = new OrkyRootEngine({ now: () => NOW, debounceMs: 20 })
     cleanups.push(() => engine.dispose())

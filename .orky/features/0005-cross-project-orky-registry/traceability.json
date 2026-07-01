@@ -9,8 +9,8 @@
     "tests": [
       "TEST-088",
       "TEST-089",
-      "TEST-091b",
-      "TEST-112"
+      "TEST-112",
+      "TEST-147"
     ],
     "files": [
       "src/main/orky/orky-root-engine.ts",

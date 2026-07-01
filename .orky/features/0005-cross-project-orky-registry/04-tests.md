@@ -124,7 +124,6 @@ file (`tests/main/orky-tracker-watch-root.test.ts`) rather than editing the froz
 | TEST-088 | REQ-001/005 | `tests/main/orky-root-engine.test.ts` | `addConsumer` populates a roll-up via `onStatus`; a malformed feature safe-defaults + warns. |
 | TEST-089 | REQ-001/005 | same | The engine's status for a root deep-equals 0004's unmodified `OrkyTracker`'s status for the same root (reuse, not a fork). |
 | TEST-090 | REQ-005 | same | Source-grep: imports (not redefines) the `@shared/orky-status` mapper functions. |
-| TEST-091b | REQ-001 | same | `onStatus` supports multiple independent subscribers; unsubscribing one doesn't affect the other. |
 | TEST-091 | REQ-019 | same | Removing the LAST consumer of a root tears the watcher down; no further emits. |
 | TEST-092 | REQ-019 | same | `addConsumer` then immediate `removeConsumer` (before discovery completes) leaves no orphaned watcher/membership (race pattern). |
 | TEST-093 | REQ-019 | same | `dispose()` closes ALL watchers/timers across multiple roots; no further emits. |
@@ -181,6 +180,7 @@ file (`tests/main/orky-tracker-watch-root.test.ts`) rather than editing the froz
 | TEST-144 | REQ-002 | `tests/main/orky-tracker-watch-root.test.ts` (new, additive) | `OrkyTracker.watch()` resolves to the PROJECT root (not the `.orky/` subdir). |
 | TEST-145 | REQ-002 | same | `watch()` resolves to `null` when there is no `.orky` ancestor. |
 | TEST-146 | REQ-023 | `tests/docs-feature-0005.test.ts` | Feature doc, CLAUDE.md link, CHANGELOG `[Unreleased]`, and `.orky/baseline/architecture.md` all reconciled. |
+| TEST-147 | REQ-001 | `tests/main/orky-root-engine.test.ts` | `onStatus` supports multiple independent subscribers; unsubscribing one doesn't affect the other. |
 
 ## RED verification
 

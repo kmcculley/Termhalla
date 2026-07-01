@@ -99,7 +99,7 @@
     "tests/main/orky-ipc-validation.test.ts": "eef449e113b7dbc9491c2556565ea5bcaf2fa26e96419a25557aebe7351708b4",
     "tests/main/orky-registry-service.test.ts": "50bdebd2867588ee80ea59b7b4228fc210d968ec10bb6084122eb715d05b3062",
     "tests/main/orky-registry-store.test.ts": "7e0ca56eca6b95ccb2e49d62c6d537646c553d56fde8b6f90243ffff470a9054",
-    "tests/main/orky-root-engine.test.ts": "d9c387a6210fa40a66a626ade96f4c624309a6c78a2cefbf379abb03592c5c0a",
+    "tests/main/orky-root-engine.test.ts": "f04d2468a16006129aa1e97a4458804135789935c4344547f421b1029a36a402",
     "tests/main/orky-tracker-watch-root.test.ts": "4e425458c0b81d62a04d054ee20e4210f071a67523a9865838463d895648c6e3",
     "tests/main/orky-tracker.test.ts": "968bb384fc3872d499165a3f6670b8447a7685f027bd520b50e165b4ffdbf262",
     "tests/main/osc133-parser.test.ts": "e7e9281c8591ed9ce2e6826c0881345eb6a7c9c094231d4f5b33a5fd0ba55295",

@@ -7,7 +7,7 @@ chosen contracts where the spec/plan were silent on exact shape.
 
 | REQ | Summary | TASK(s) | TEST(s) | Files (primary) |
 |---|---|---|---|---|
-| REQ-001 | Cross-project registry service generalizes the single-root tracker to a set of roots, reusing `findOrkyRoot` + the shared mappers, single app-wide instance, disposable, read-only | TASK-005, TASK-006, TASK-007, TASK-011 | TEST-088, TEST-089, TEST-091b, TEST-112 | `orky-root-engine.ts`, `orky-tracker.ts`, `orky-registry.ts`, `services.ts` |
+| REQ-001 | Cross-project registry service generalizes the single-root tracker to a set of roots, reusing `findOrkyRoot` + the shared mappers, single app-wide instance, disposable, read-only | TASK-005, TASK-006, TASK-007, TASK-011 | TEST-088, TEST-089, TEST-112, TEST-147 | `orky-root-engine.ts`, `orky-tracker.ts`, `orky-registry.ts`, `services.ts` |
 | REQ-002 | Membership = union of open-pane roots ∪ persisted explicit list, de-duplicated by resolved root, `source` provenance | TASK-002, TASK-007, TASK-008, TASK-009 | TEST-058, TEST-059, TEST-060, TEST-061, TEST-107, TEST-108, TEST-112, TEST-113, TEST-140, TEST-141, TEST-142, TEST-144, TEST-145 | `orky-registry.ts` (shared), `orky-registry.ts` (main), `window-manager.ts`, `register-orky.ts` |
 | REQ-003 | Open-pane roots are ephemeral (D2): a pane-only root leaves the aggregate when its last pane closes; never auto-persisted | TASK-007, TASK-009 | TEST-115, TEST-116, TEST-143 | `orky-registry.ts`, `register-orky.ts` |
 | REQ-004 | Persisted explicit list is manual + durable, contributes independently of any open pane | TASK-007 | TEST-117, TEST-118 | `orky-registry.ts` |

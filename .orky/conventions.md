@@ -44,6 +44,11 @@ to it when a review surfaces a lesson general enough to outlive its feature.
   key with a `join()`/`dirname()`-normalized string for another, or two structures that should
   refer to the same physical directory can silently diverge.
   *(from FINDING-DA-001 in 0005-cross-project-orky-registry)*
+- **CONV-010** — A per-key cache that mirrors a live membership set (a status-by-root cache,
+  metrics-by-id map, etc.) MUST prune keys that leave the membership set (and clear fully on
+  dispose), so it can neither grow unbounded for the life of the owning instance nor serve a
+  stale value when a key later re-enters membership.
+  *(from FINDING-DA-006 in 0005-cross-project-orky-registry)*
 
 ## Principles
 Higher-level stances that inform specs and reviews but are too broad to gate mechanically.

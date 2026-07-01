@@ -1,7 +1,7 @@
 {
   "feature": ".orky/features/0005-cross-project-orky-registry",
   "projectRoot": "C:/dev/Termhalla/.claude/worktrees/agent-ae38161d57ff726a8",
-  "phase": "review",
-  "lastTickAt": "2026-07-01T00:50:11.054Z",
-  "lastAction": "review gate green: 5 lenses (security/quality/devils-advocate/performance/determinism) + bounded codex cross-check complete; SEC-007/009/010, QUAL-002, DA-001 resolved; DET-001 filed (LOW, non-blocking); SEC-008/QUAL-001/QUAL-003/DA-002/DA-003/DA-004/DA-005 remain open (out of scope, non-blocking)"
+  "phase": "human-review",
+  "lastTickAt": "2026-07-01T01:38:08.885Z",
+  "lastAction": "TEST-091b->TEST-147 traceability rename loopback complete: tests/implement/review/doc-sync gates all re-passed (review added FINDING-DA-006 LOW non-blocking + promoted CONV-010); awaiting human-review gate"
 }
