@@ -16,6 +16,13 @@ TEST-290 to `tests/shared/orky-action-validate.test.ts`, mapped below into the E
 and REQ-014 rows (no new REQ-ID; see `04-tests.md`'s "Loopback (ESC-003)" section for the full rationale
 and RED-verification output).
 
+**Loopback (ESC-004, 2026-07-01):** FINDING-DA-001 (the `OrkyActionQueue` REQ-015 serialization guard is
+keyed by the RAW `featureDir`/`projectRoot` string, not `normalizeProjectRoot(...)`, so two concurrent
+mutating calls submitted with a case/slash-divergent — but REQ-004-accepted — `projectRoot` spelling for
+the SAME physical feature do not serialize) added TEST-291..TEST-294 to
+`tests/main/orky-action-dispatcher.test.ts`, mapped below into the EXISTING REQ-015 row (no new REQ-ID;
+see `04-tests.md`'s "Loopback (ESC-004)" section for the full rationale and RED-verification output).
+
 | REQ | Summary | TASK(s) | TEST(s) | Files (primary) |
 |---|---|---|---|---|
 | REQ-001 | 4-action dispatch service + IPC surface, no push | TASK-008, TASK-009, TASK-010 | TEST-197, TEST-198, TEST-250, TEST-271, TEST-279, TEST-281 | `orky-action-dispatcher.ts`, `ipc-contract.ts`, `register-orky-action.ts` |
@@ -32,7 +39,7 @@ and RED-verification output).
 | REQ-012 | Orky CLI location resolution | TASK-003, TASK-008 | TEST-204..TEST-210, TEST-252..TEST-254 | `orky-cli-locate.ts`, `orky-action-dispatcher.ts` |
 | REQ-013 | Append-only audit log, attributable — every outcome that REACHES THE DISPATCHER (success or a dispatcher-level rejection); `unknown-sender` (rejected pre-dispatcher, at the registrar) is NOT audited | TASK-005, TASK-008 | TEST-218..TEST-223, TEST-255..TEST-259 | `orky-action-audit.ts`, `orky-action-dispatcher.ts` |
 | REQ-014 | Malformed/empty/boundary input tolerated | TASK-002 | TEST-157..TEST-163, TEST-165..TEST-168, TEST-170, TEST-173, TEST-175, TEST-177, TEST-239, TEST-245, TEST-260..TEST-263, TEST-287..TEST-289 | `orky-action-validate.ts` |
-| REQ-015 | Per-featureDir serialization of mutating actions | TASK-007, TASK-008 | TEST-224..TEST-228, TEST-264..TEST-266 | `orky-action-queue.ts`, `orky-action-dispatcher.ts` |
+| REQ-015 | Per-featureDir serialization of mutating actions | TASK-007, TASK-008 | TEST-224..TEST-228, TEST-264..TEST-266, TEST-291..TEST-294 | `orky-action-queue.ts`, `orky-action-dispatcher.ts` |
 | REQ-016 | Exactly 4 hard-coded subcommands; no pipeline-driving | TASK-008 | TEST-267, TEST-268 | `orky-action-dispatcher.ts` |
 | REQ-017 | No renderer UI (scope guard) | TASK-011 | TEST-282 | `preload/index.ts` |
 | REQ-018 | Per-domain registrar pattern; shared-file co-ownership (CONV-012) | TASK-001, TASK-009, TASK-010, TASK-011 | TEST-196, TEST-197, TEST-199..TEST-203, TEST-271, TEST-277, TEST-281 | `types.ts`, `ipc-contract.ts`, `register-orky-action.ts`, `preload/index.ts` |
@@ -41,10 +48,13 @@ and RED-verification output).
 
 ## Coverage check
 
-20/20 REQs have ≥1 TASK and ≥1 TEST. No uncovered requirements. 143 TEST-IDs total (TEST-148…TEST-290):
-141 `vitest` (`tests/shared/*`, `tests/main/*`, `tests/docs-feature-0007.test.ts`) + 2 Playwright e2e
+20/20 REQs have ≥1 TASK and ≥1 TEST. No uncovered requirements. 147 TEST-IDs total (TEST-148…TEST-294):
+145 `vitest` (`tests/shared/*`, `tests/main/*`, `tests/docs-feature-0007.test.ts`) + 2 Playwright e2e
 (`tests/e2e/orky-action-dispatch.spec.ts`). The 8-test ESC-003 loopback addition (TEST-283..TEST-290, all
 `vitest`, all in the pre-existing `tests/shared/orky-action-validate.test.ts`) is folded into REQ-005 (4
 tests: feature-slug `--`-prefix rejection, standalone + end-to-end), REQ-014 (3 tests: decision/
 escalationId/evidence `--`-prefix rejection), and REQ-007 (1 test: the negative/scope regression proving
-submitWork's title/detail/phase are correctly NOT guarded) — no new REQ-ID.
+submitWork's title/detail/phase are correctly NOT guarded) — no new REQ-ID. The 4-test ESC-004 loopback
+addition (TEST-291..TEST-294, all `vitest`, all in the pre-existing `tests/main/orky-action-dispatcher.test.ts`)
+is folded entirely into REQ-015 (3 fix-target tests, one per `OrkyActionQueue.run()` call site in the
+dispatcher, plus 1 sanity/no-regression test) — no new REQ-ID.

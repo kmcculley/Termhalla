@@ -102,7 +102,7 @@
     "tests/main/needs-input.test.ts": "73c79567121271ea4802930c5a2cfee503b7c5e2d9852b83a1a950c25619d4d9",
     "tests/main/notes-store.test.ts": "8ecfef80fdde110e93608923fb991246cf6e5c1f43adec0bbbbb91981cfadac7",
     "tests/main/orky-action-audit.test.ts": "eb68dbd7b662a164933aba70d21496069f5a583c1421eb0057f6be20d1f16766",
-    "tests/main/orky-action-dispatcher.test.ts": "955fc126df7b1685a7f6d2ba1026c3f12558b439bda6ed3a0d92645129d78999",
+    "tests/main/orky-action-dispatcher.test.ts": "1fffe79b57c3b7591e9eccb92e79d1257e8f20919e032c57b1911b49245b710f",
     "tests/main/orky-action-queue.test.ts": "b62bc0d064379f4e5ccb196bc7f2e9d929e8a30c581a10c0afe1421e567be992",
     "tests/main/orky-cli-locate.test.ts": "c4a38e2ad2202bb30ba7f1dfd76de90d6f0a62a89930715b33d6147822467e5c",
     "tests/main/orky-cli-runner.test.ts": "15afeba4b3e8b03e369695ae63bc03cce793abdec4d4a5a8d2405eda8141a424",

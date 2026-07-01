@@ -605,6 +605,120 @@ describe('OrkyActionDispatcher — per-featureDir serialization of mutating acti
     releaseRecord()
     await recordP
   })
+
+  // ── Loopback (ESC-004, FINDING-DA-001): the queue key must fold case/slash-divergent projectRoot ──
+  // spellings of the SAME physical root to the SAME key. Today the queue is keyed on the RAW featureDir
+  // string (doResolveEscalation/doRecordHumanGate) or the raw projectRoot (doSubmitWork's no-feature
+  // fallback), built from the caller-supplied projectRoot BEFORE normalization — but REQ-004 (TEST-230)
+  // deliberately ACCEPTS a case/slash-divergent spelling of an already-allowlisted root. Two concurrent
+  // mutating calls submitted with such divergent spellings therefore get DIFFERENT queue keys and do NOT
+  // serialize, even though both target the SAME on-disk state.json (Windows is case-insensitive) — a
+  // lost-update race in REQ-015's own safety guarantee. One test per call site
+  // (doRecordHumanGate/doResolveEscalation/doSubmitWork) so a partial fix (only 1 or 2 of the 3 sites)
+  // still leaves at least one of these RED, plus one sanity/no-regression test proving the
+  // same-spelling case (TEST-264's own scenario) is untouched by these additions. The approved fix (a
+  // LATER, implement-phase change, NOT made here): key `queue.run()` by `normalizeProjectRoot(featureDir)`
+  // (or `normalizeProjectRoot(queueKey)` for submitWork's no-feature fallback) at all 3 call sites — the
+  // featureDir VALUE passed to the CLI itself is unchanged, only the in-process queue key.
+
+  it('TEST-291 REQ-015/FINDING-DA-001 doRecordHumanGate: two concurrent recordHumanGate calls on the SAME physical feature via a case/slash-DIVERGENT projectRoot spelling still serialize (queue key must be normalizeProjectRoot(featureDir), not the raw string)', async () => {
+    const root = seedProject()
+    seedFeature(root, 'f1')
+    const divergent = root.toUpperCase().replace(/\\/g, '/')
+    const order: string[] = []
+    let releaseFirst!: () => void
+    const gate1 = new Promise<void>((resolve) => { releaseFirst = resolve })
+    const run = async (_cliPath: string, args: string[]): Promise<CliRun> => {
+      if (args[0] !== 'record') throw new Error(`unexpected subcommand: ${args[0]}`)
+      const isFirst = order.length === 0
+      order.push(isFirst ? 'first-start' : 'second-start')
+      if (isFirst) await gate1
+      order.push(isFirst ? 'first-end' : 'second-end')
+      return ok({ passed: true })
+    }
+    const d = makeDispatcher({ roots: [root], runCli: run })
+    const p1 = d.recordHumanGate({ projectRoot: root, feature: 'f1', gate: 'brainstorm', verdict: 'pass' })
+    const p2 = d.recordHumanGate({ projectRoot: divergent, feature: 'f1', gate: 'human-review', verdict: 'pass' })
+    await new Promise(r => setTimeout(r, 30))
+    expect(order).toEqual(['first-start']) // second must NOT have started its CLI call yet
+    releaseFirst()
+    await Promise.all([p1, p2])
+    expect(order).toEqual(['first-start', 'first-end', 'second-start', 'second-end'])
+  })
+
+  it('TEST-292 REQ-015/FINDING-DA-001 doResolveEscalation (gatekeeper fallback): two concurrent resolveEscalation calls on the SAME physical feature via a case/slash-DIVERGENT projectRoot spelling still serialize', async () => {
+    const root = seedProject()
+    seedFeature(root, 'f1')
+    const divergent = root.toUpperCase().replace(/\\/g, '/')
+    const order: string[] = []
+    let releaseFirst!: () => void
+    const gate1 = new Promise<void>((resolve) => { releaseFirst = resolve })
+    const run = async (_cliPath: string, args: string[]): Promise<CliRun> => {
+      if (args[0] === 'emit') return ok({ ok: true, mode: 'noop', sent: false, spooled: false }) // feedback disabled -> forces the gatekeeper fallback
+      if (args[0] !== 'resolve-escalation') throw new Error(`unexpected subcommand: ${args[0]}`)
+      const isFirst = order.length === 0
+      order.push(isFirst ? 'first-start' : 'second-start')
+      if (isFirst) await gate1
+      order.push(isFirst ? 'first-end' : 'second-end')
+      return ok({ id: 'ESC-1', resolved: true })
+    }
+    const d = makeDispatcher({ roots: [root], runCli: run })
+    const p1 = d.resolveEscalation({ projectRoot: root, feature: 'f1', escalationId: 'ESC-1', decision: 'approve' })
+    const p2 = d.resolveEscalation({ projectRoot: divergent, feature: 'f1', escalationId: 'ESC-2', decision: 'reject' })
+    await new Promise(r => setTimeout(r, 30))
+    expect(order).toEqual(['first-start']) // second's fallback resolve-escalation call must NOT have started yet
+    releaseFirst()
+    await Promise.all([p1, p2])
+    expect(order).toEqual(['first-start', 'first-end', 'second-start', 'second-end'])
+  })
+
+  it('TEST-293 REQ-015/FINDING-DA-001 doSubmitWork (no-feature project-level fallback key): two concurrent submitWork calls with NO feature field on the SAME physical projectRoot via a case/slash-DIVERGENT spelling still serialize', async () => {
+    const root = seedProject() // no feature dir needed -- queueKey = projectRoot directly (featureDir is undefined)
+    const divergent = root.toUpperCase().replace(/\\/g, '/')
+    const order: string[] = []
+    let releaseFirst!: () => void
+    const gate1 = new Promise<void>((resolve) => { releaseFirst = resolve })
+    const run = async (_cliPath: string, args: string[]): Promise<CliRun> => {
+      if (args[0] !== 'emit') throw new Error(`unexpected subcommand: ${args[0]}`)
+      const isFirst = order.length === 0
+      order.push(isFirst ? 'first-start' : 'second-start')
+      if (isFirst) await gate1
+      order.push(isFirst ? 'first-end' : 'second-end')
+      return ok({ ok: true, mode: 'file', event: 'evt', sent: true, spooled: false })
+    }
+    const d = makeDispatcher({ roots: [root], runCli: run })
+    const p1 = d.submitWork({ projectRoot: root, title: 'first work item' })
+    const p2 = d.submitWork({ projectRoot: divergent, title: 'second work item' })
+    await new Promise(r => setTimeout(r, 30))
+    expect(order).toEqual(['first-start']) // second's emit call must NOT have started yet
+    releaseFirst()
+    await Promise.all([p1, p2])
+    expect(order).toEqual(['first-start', 'first-end', 'second-start', 'second-end'])
+  })
+
+  it('TEST-294 REQ-015 sanity/no-regression: two concurrent recordHumanGate calls on the SAME feature slug via the SAME (non-divergent) projectRoot spelling continue to serialize exactly as TEST-264 (the TEST-291..293 fix-target additions above do not weaken this)', async () => {
+    const root = seedProject()
+    seedFeature(root, 'f1')
+    const order: string[] = []
+    let releaseFirst!: () => void
+    const gate1 = new Promise<void>((resolve) => { releaseFirst = resolve })
+    const run = async (_cliPath: string, args: string[]): Promise<CliRun> => {
+      if (args[0] !== 'record') throw new Error(`unexpected subcommand: ${args[0]}`)
+      const isFirst = order.length === 0
+      order.push(isFirst ? 'first-start' : 'second-start')
+      if (isFirst) await gate1
+      order.push(isFirst ? 'first-end' : 'second-end')
+      return ok({ passed: true })
+    }
+    const d = makeDispatcher({ roots: [root], runCli: run })
+    const p1 = d.recordHumanGate({ projectRoot: root, feature: 'f1', gate: 'brainstorm', verdict: 'pass' })
+    const p2 = d.recordHumanGate({ projectRoot: root, feature: 'f1', gate: 'human-review', verdict: 'pass' })
+    await new Promise(r => setTimeout(r, 30))
+    expect(order).toEqual(['first-start'])
+    releaseFirst()
+    await Promise.all([p1, p2])
+    expect(order).toEqual(['first-start', 'first-end', 'second-start', 'second-end'])
+  })
 })
 
 describe('OrkyActionDispatcher — scope guard: exactly four subcommands, none request-selectable (REQ-016)', () => {

@@ -39,6 +39,22 @@
           "evidence": "no open blocking findings (CRITICAL/HIGH or contract-violation) for this gate"
         }
       ]
+    },
+    "tests": {
+      "passed": true,
+      "at": "2026-07-01T17:09:53.209Z",
+      "tokens": [
+        {
+          "token": "spec-freeze",
+          "pass": true,
+          "evidence": "spec unchanged since the spec gate"
+        },
+        {
+          "token": "tests-red",
+          "pass": true,
+          "evidence": "tests are RED (exit 1) — freeze snapshot captured"
+        }
+      ]
     }
   },
   "iterations": {

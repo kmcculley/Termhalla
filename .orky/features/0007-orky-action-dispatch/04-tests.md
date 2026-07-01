@@ -419,3 +419,88 @@ exit code 1
 
 1033 = 1025 (prior green baseline) + 8 new tests. All other 139 files remain green — this loopback touches
 no other test file and no production code.
+
+## Loopback (ESC-004, 2026-07-01): queue-key normalization guard (FINDING-DA-001 fix, TEST-291..TEST-294)
+
+**Context.** Review's devils-advocate lens filed FINDING-DA-001 (HIGH, `contract_violation:true`), verified
+independently by the coordinator: REQ-015's per-featureDir mutation-serialization guard (`OrkyActionQueue`,
+TASK-007) is used at 3 call sites in `orky-action-dispatcher.ts` — `doResolveEscalation` (`queue.run(featureDir,
+...)`), `doSubmitWork` (`queue.run(featureDir ?? projectRoot, ...)`), and `doRecordHumanGate`
+(`queue.run(featureDir, ...)`) — but every one of those keys is built from the **raw, un-normalized**
+`projectRoot`/`featureDir` string. `checkRoot()` (same file) validates root ALLOWLIST membership using the
+SHARED `normalizeProjectRoot` normalizer (`resolve()` + lowercase on win32) — and REQ-004's own literal
+acceptance criterion (pinned by the FROZEN TEST-230) deliberately ACCEPTS a case/slash-divergent spelling of
+an already-allowlisted root. Because `path.join` preserves case on win32, two concurrent mutating calls
+targeting the SAME physical feature but submitted with case/slash-divergent `projectRoot` spellings both pass
+`checkRoot`, yet build DIFFERENT raw `featureDir`/queue-key strings — so they get different `OrkyActionQueue`
+map keys and do NOT serialize against each other, even though both will race a non-atomic read-modify-write
+of the SAME underlying `state.json` on disk (Windows' filesystem is case-insensitive). This is a lost-update
+/ data-integrity bug in REQ-015's own core safety guarantee, and the exact CONV-010 anti-pattern (mixing a
+normalized key for one purpose with a raw, source-dependent key for a related purpose on the SAME path).
+
+The human reviewed and approved the fix (`state.json` escalations[3], ESC-004): key `OrkyActionQueue.run()`
+calls by `normalizeProjectRoot(featureDir)` (or, for `doSubmitWork`'s no-feature fallback,
+`normalizeProjectRoot(projectRoot)`) instead of the raw string, at all 3 call sites in
+`orky-action-dispatcher.ts`. The `featureDir` VALUE actually passed to the CLI invocation is unchanged — only
+the in-process queue key changes. This section documents the TEST-291..TEST-294 addition authored to pin that
+required behavior — RED today (3 of 4), since the fix does not yet exist. No file under `src/` was touched by
+this pass (test-designer-only loopback, same integrity boundary as the original phase 4 and the ESC-003
+loopback above). No REQ was added or renumbered; these are new acceptance-criterion tests against the
+EXISTING, frozen REQ-015 (per-feature serialization of mutating actions) — REQ-015's own literal MUST
+("mutating actions targeting the SAME resolved featureDir MUST be serialized... so two concurrent submissions
+cannot lose one another's update") already covers a case/slash-divergent spelling of that same resolved
+featureDir, since REQ-004 defines "the same resolved featureDir" to include such spellings.
+
+All 4 new tests live in the existing (not-yet-refrozen) `tests/main/orky-action-dispatcher.test.ts`, inside
+the existing `describe('OrkyActionDispatcher — per-featureDir serialization of mutating actions (REQ-015)',
+...)` block (TEST-264/265/266 are untouched — no existing assertion removed, relaxed, or renumbered),
+continuing the project-wide TEST-NNN sequence from **TEST-291** (TEST-290, added by the ESC-003 loopback
+above, was the prior project-wide high-water mark, independently re-verified by grepping the full `tests/`
+tree for the actual max `TEST-NNN` before picking a starting number) through **TEST-294**. Each of the first
+three tests targets exactly ONE of the three `queue.run()` call sites, modeled on TEST-264's own
+serialization-order pattern (a fake `runCli` with a manually-released gate promise + an `order: string[]`
+array asserting call ORDER) but submitting the SECOND concurrent call with TEST-230's own
+`root.toUpperCase().replace(/\\/g, '/')` case/slash-divergent-spelling construction for the SAME underlying
+`root` used by the first call — so a fix that only touches 1 or 2 of the 3 call sites still leaves at least
+one of these three RED, and the implementer cannot land a partial fix:
+
+| TEST-ID | REQ(s) | File | Assertion |
+|---|---|---|---|
+| TEST-291 | REQ-015 | `tests/main/orky-action-dispatcher.test.ts` | `doRecordHumanGate` call site: two concurrent `recordHumanGate` calls on the SAME physical feature (`seedFeature(root,'f1')`), first with `projectRoot:root`, second with `projectRoot:` the TEST-230-style divergent spelling of the SAME `root` — MUST serialize exactly like TEST-264 (2nd `record` CLI call does not start until the 1st resolves). |
+| TEST-292 | REQ-015 | same | `doResolveEscalation` call site (gatekeeper-fallback path): two concurrent `resolveEscalation` calls on the SAME physical feature, `emit` stubbed to return `mode:'noop'` (feedback disabled) so the fallback `resolve-escalation` CLI call is what actually races; same divergent-root pattern — MUST serialize. |
+| TEST-293 | REQ-015 | same | `doSubmitWork` call site (no-`feature`-field, project-level fallback key `queueKey = featureDir ?? projectRoot`): two concurrent `submitWork` calls with NO `feature` field (so `queueKey` is the raw `projectRoot` directly — no `seedFeature` needed), one with `projectRoot:root`, one with the divergent spelling — MUST serialize. |
+| TEST-294 | REQ-015 | same | Sanity/no-false-positive regression: two concurrent `recordHumanGate` calls on the SAME feature slug via the SAME (non-divergent) `projectRoot` spelling continue to serialize exactly as TEST-264 already proves — confirms TEST-291..293 do not accidentally weaken anything TEST-264 (left untouched) already covers. |
+
+### RED verification (this addition)
+
+```
+npx vitest run tests/main/orky-action-dispatcher.test.ts
+ Test Files  1 failed (1)
+      Tests  3 failed | 43 passed (46)
+```
+
+TEST-291, TEST-292, and TEST-293 (the three fix-target tests, one per `queue.run()` call site) each fail with
+the identical race signature — the second call's CLI invocation starts immediately instead of waiting for the
+first to resolve:
+
+```
+expected [ 'first-start', 'second-start', … ] to deeply equal [ 'first-start' ]
+```
+
+confirming the queue does NOT serialize two concurrent mutating calls submitted with a case/slash-divergent
+`projectRoot` spelling of the same physical feature, at all three call sites, today. TEST-294 (the sanity/
+no-regression case, same-spelling `projectRoot`) correctly PASSES today by construction — TEST-264's own
+scenario is untouched and still serializes correctly; only the divergent-spelling case is broken. All 43
+pre-existing tests in this file (including the FROZEN TEST-264/265/266) remain green.
+
+Full-suite re-verification:
+
+```
+npm test
+ Test Files  1 failed | 139 passed (140)
+      Tests  3 failed | 1034 passed (1037)
+exit code 1
+```
+
+1037 = 1033 (prior green baseline, post-ESC-003) + 4 new tests. All other 139 files remain green — this
+loopback touches no other test file and no production code.
