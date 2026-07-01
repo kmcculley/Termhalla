@@ -43,7 +43,7 @@
   },
   "iterations": {
     "spec": 1,
-    "tests": 2
+    "tests": 3
   },
   "escalations": [
     {
@@ -78,6 +78,17 @@
       "at": "2026-07-01T11:55:59.972Z",
       "decision": "Approved. Reject any decision/evidence/escalationId/feature-slug value starting with '--' in src/shared/orky-action-validate.ts before it reaches a raw argv position for the gatekeeper/feedback CLI subprocess invocation, plus regression tests covering the injection vector (e.g. evidence:'--force', decision:'--anything'). Confirmed independently by the human/coordinator: gatekeeper/cli.js's parseArgs reinterprets any '--'-prefixed value as a new flag regardless of argv position. Loop back to tests for a clean test-designer addition.",
       "resolvedAt": "2026-07-01T12:34:42.135Z"
+    },
+    {
+      "id": "ESC-004",
+      "phase": "review",
+      "reason": "Devils-advocate lens (review, attempt post-ESC-003-loopback) filed FINDING-DA-001 (HIGH, contract_violation:true), verified independently by the coordinator: REQ-015's per-featureDir mutation-serialization guard (OrkyActionQueue, TASK-007) is keyed by the raw featureDir string built via join(projectRoot, '.orky','features',slug) from the CALLER-SUPPLIED projectRoot spelling -- but REQ-004's root-allowlist check (checkRoot) deliberately ACCEPTS a case/slash-divergent spelling of an already-allowlisted root via normalizeProjectRoot (this is REQ-004's own literal acceptance criterion: 'the same physical root spelled with different case/slash style than the allowlisted entry is accepted', pinned by TEST-230). Reproduced directly: path.join(\"C:/dev/Test/proj\",'.orky','features','f1') !== path.join(\"c:/dev/test/proj\",'.orky','features','f1') as raw strings on win32, even though both spellings pass checkRoot and resolve to the SAME physical directory on a case-insensitive filesystem. Consequence: two concurrent mutating actions (e.g. two recordHumanGate calls, or a recordHumanGate racing a resolveEscalation fallback) targeting the SAME physical feature but submitted with case-divergent projectRoot spellings get TWO DIFFERENT OrkyActionQueue map keys, so they never serialize against each other and can race gatekeeper's non-atomic read-modify-write of the same on-disk state.json -- a silent lost gate verdict or lost escalation decision. This directly contradicts REQ-015's literal MUST ('mutating actions targeting the SAME resolved featureDir MUST be serialized... so two concurrent submissions cannot lose one another's update') and is the exact CONV-010 violation pattern ('every key used to identify the same filesystem path across data structures MUST be derived from ONE shared path.resolve()-based normalizer; never mix a source-dependent raw string for one key with a normalized string for another') -- here the root-ALLOWLIST check uses the normalized key while the QUEUE uses the raw one. This is a genuine, verified HIGH-severity data-integrity gap in this feature's own core safety guarantee (REQ-015), not a re-litigation of the already-resolved FINDING-SEC-001 (CLI-argument-injection) or any of the 5 open LOW/MEDIUM FINDING-QUAL findings from the quality-lens pass. RECOMMENDED FIX (from the devils-advocate reviewer, matches my own read of the code): key OrkyActionQueue.run() calls by normalizeProjectRoot(featureDir) instead of the raw featureDir string -- i.e. apply the SAME shared normalizer already used by checkRoot() to the queue key specifically, at the three queue.run() call sites in orky-action-dispatcher.ts (doResolveEscalation, doSubmitWork's projectRoot-fallback key, doRecordHumanGate). The featureDir VALUE actually passed to the CLI invocation itself does not need to change (the underlying gatekeeper CLI reads/writes the correct physical file either way on a case-insensitive filesystem) -- only the in-process queue's serialization key needs to collapse case/slash-divergent spellings of the same physical path, exactly mirroring how OrkyRegistry.resolveCanonical/normalizeProjectRoot already solved the analogous problem for feature 0005 (FINDING-DA-001 in that feature's own findings.json, ironically the same finding-id number). This requires an implementation change (loopback to implement, likely via a fresh test-designer amendment first per ADR-009 since the guard needs new frozen-test coverage proving two case-divergent-projectRoot concurrent mutations on the same physical feature now serialize) and is squarely outside what I am authorized to fix or decide unilaterally -- escalating per the coordinator's standing HIGH-finding rule. Stopping the review fan-out here (quality lens already completed with 5 open LOW/MEDIUM findings, devils-advocate lens just completed with this HIGH finding plus 2 open MEDIUM/LOW findings (FINDING-DA-002 dispatched:true over-promise on the feedback path, FINDING-DA-003 empty-feature-dir phantom-feature edge case); networking/enterprise-arch/codex-cross-check lenses NOT yet dispatched) pending human decision on the remediation.",
+      "kind": "judgment",
+      "finding": "FINDING-DA-001",
+      "status": "resolved",
+      "at": "2026-07-01T16:24:08.361Z",
+      "decision": "Approved. Key OrkyActionQueue.run() calls by normalizeProjectRoot(featureDir) instead of the raw string at all 3 call sites in orky-action-dispatcher.ts (doResolveEscalation, doSubmitWork's project-level fallback key, doRecordHumanGate). The featureDir value passed to the CLI itself is unchanged -- only the in-process queue key. Same pattern as feature 0005's OrkyRegistry.resolveCanonical (CONV-010). Verified independently: checkRoot() normalizes for its own membership check but returns only {ok:true}, so the raw (possibly case/slash-divergent) projectRoot flows on to build featureDir/the queue key. Loop back to tests for regression coverage proving two case-divergent-projectRoot concurrent mutations on the same physical feature now serialize.",
+      "resolvedAt": "2026-07-01T16:51:20.577Z"
     }
   ],
   "concerns": [
@@ -110,6 +121,12 @@
       "from": "review",
       "reason": "ESC-003 resolved: add a --prefix rejection guard to src/shared/orky-action-validate.ts for decision/evidence/escalationId/feature values, plus regression tests, to close the CLI argument-injection vector into Orky's gatekeeper/feedback CLIs.",
       "at": "2026-07-01T12:34:42.194Z"
+    },
+    {
+      "to": "tests",
+      "from": "review",
+      "reason": "ESC-004 resolved: key the action queue by normalizeProjectRoot(featureDir), not the raw string, at all 3 dispatcher call sites, closing a concurrent-write race for case/slash-divergent projectRoot spellings of the same physical feature.",
+      "at": "2026-07-01T16:51:20.678Z"
     }
   ]
 }
