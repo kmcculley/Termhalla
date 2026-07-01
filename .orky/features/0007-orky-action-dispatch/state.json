@@ -1,6 +1,6 @@
 {
   "feature": "0007-orky-action-dispatch",
-  "phase": "implement",
+  "phase": "review",
   "gates": {
     "brainstorm": {
       "passed": true,
@@ -81,6 +81,22 @@
           "evidence": "test files unchanged since freeze"
         }
       ]
+    },
+    "review": {
+      "passed": false,
+      "at": "2026-07-01T17:43:35.103Z",
+      "tokens": [
+        {
+          "token": "spec-freeze",
+          "pass": true,
+          "evidence": "spec unchanged since the spec gate"
+        },
+        {
+          "token": "findings",
+          "pass": false,
+          "evidence": "1 open blocking finding(s): FINDING-CODEX-001(contract)"
+        }
+      ]
     }
   },
   "iterations": {
@@ -131,6 +147,24 @@
       "at": "2026-07-01T16:24:08.361Z",
       "decision": "Approved. Key OrkyActionQueue.run() calls by normalizeProjectRoot(featureDir) instead of the raw string at all 3 call sites in orky-action-dispatcher.ts (doResolveEscalation, doSubmitWork's project-level fallback key, doRecordHumanGate). The featureDir value passed to the CLI itself is unchanged -- only the in-process queue key. Same pattern as feature 0005's OrkyRegistry.resolveCanonical (CONV-010). Verified independently: checkRoot() normalizes for its own membership check but returns only {ok:true}, so the raw (possibly case/slash-divergent) projectRoot flows on to build featureDir/the queue key. Loop back to tests for regression coverage proving two case-divergent-projectRoot concurrent mutations on the same physical feature now serialize.",
       "resolvedAt": "2026-07-01T16:51:20.577Z"
+    },
+    {
+      "id": "ESC-005",
+      "phase": "review",
+      "reason": "Coordinator (doc-sync run) found the review gate's cached PASS is stale: gatekeeper check --phase review now reports pass:false with 1 open blocking finding, FINDING-CODEX-001 (HIGH, contract_violation:true, lens codex-cross-check, status open, no resolvedAt). Claim: mapCliRunToResult (src/shared/orky-action-result.ts:60-68) treats every feedback-emit exit-0 as ok:true purely from the process exit code, without inspecting the CLI's own parsed stdout {ok:false, mode:'noop', error, note:'emit is non-fatal'} shape that 02-spec.md documents for an internal feedback-emit failure. Consequence: resolveEscalation's mode==='noop' branch and submitWork's feedback-disabled branch cannot distinguish a genuine internal feedback-CLI error from an ordinary feedback.enabled===false no-op -- a real emit failure (e.g. disk full) is silently mapped to 'feedback disabled' / a successful gatekeeper fallback instead of ok:false/errorKind:'cli-error' carrying the CLI's own error message, violating REQ-002's failure contract and REQ-011's explicit mode/ok+{error} handling. This finding was filed after state.json's review gate token was cached as passed (active.json shows dispatch:codex-cross-check at 17:40:00Z, ~2min before the cached review pass at 17:42:10Z), so the cached gate state in state.json is stale relative to current ground truth. Per my standing instruction, a HIGH/contract-violation finding must be escalated and I must stop for human review rather than proceeding to doc-sync. gatekeeper drive independently confirms next:'escalate', route_to:'implement'. I have not modified findings.json, tests/, or any source file.",
+      "kind": "judgment",
+      "finding": "FINDING-CODEX-001",
+      "status": "open",
+      "at": "2026-07-01T17:44:04.992Z"
+    },
+    {
+      "id": "ESC-006",
+      "phase": "review",
+      "reason": "Codex cross-check lens (attempt 1, after security/quality/devils-advocate/networking/enterprise-arch all cleared or carried forward non-blocking findings this cycle) filed FINDING-CODEX-001 (HIGH, contract_violation:true), independently verified by the coordinator by reading the current source: mapCliRunToResult (src/shared/orky-action-result.ts:60-62) maps ANY feedback-emit exit-0 to {ok:true, data:parsed} without ever inspecting the parsed object's own ok field, even though 02-spec.md documents feedback emit's stdout shape as {ok:true, mode, event, sent, spooled} on success vs {ok:false, mode:'noop', error, note:'emit is non-fatal'} on an INTERNAL error (both cases use mode:'noop' when the channel is inactive OR erroring) and REQ-011 explicitly states 'its mode/ok fields drive REQ-006/REQ-007'. Downstream, doResolveEscalation (orky-action-dispatcher.ts:157-160) and doSubmitWork (orky-action-dispatcher.ts:210-222) branch ONLY on data.mode !== 'noop', never on data.ok -- confirmed by direct re-read of both methods. Consequence: a genuine feedback-emit internal error (e.g. disk-full writing the outbox spool) is silently misdiagnosed as 'feedback disabled' -- resolveEscalation falls back to the gatekeeper CLI (functionally masks the error, though it goes unaudited/unsurfaced), and submitWork returns errorKind:'feedback-disabled' with a misleading 'the feedback control plane is disabled ... enable it' message instead of surfacing the CLI's own real error, violating REQ-002's failure contract (ok:false with actionable error/errorKind for any real failure) and REQ-011's explicit ok-field handling. This is a genuine, independently-verified contract gap on this feature's write-capable IPC surface -- not a duplicate of FINDING-DA-002 (which concerns the SUCCESS/enabled path's dispatched:true over-promise, a different failure mode). RECOMMENDATION: fix mapCliRunToResult's feedback+exit-0 branch (src/shared/orky-action-result.ts:60-62) to inspect parsed.ok -- when parsed.ok===false, return {ok:false, exitCode:0, errorKind:'cli-error', error: parsedErrorMessage(parsed) ?? a default} instead of unconditionally {ok:true, data:parsed} -- since mapCliRunToResult is the SINGLE shared choke point both doResolveEscalation and doSubmitWork already call, this avoids duplicating an ok-check at both dispatcher call sites and keeps the mode-vs-ok distinction where REQ-011 documents it belongs. Requires a loopback to tests (fresh test-designer coverage: feedback emit returning {ok:false, mode:'noop', error:'boom'} must yield errorKind:'cli-error' carrying that message for both resolveEscalation and submitWork, not a 'disabled' misdiagnosis) then a fresh implementer fix -- outside what I'm authorized to decide/fix unilaterally per the coordinator's standing HIGH-finding escalation rule. Stopping here; findings.json otherwise clean (15 other entries: FINDING-SEC-001/FINDING-DA-001 resolved+re-verified, 10 open LOW/MEDIUM non-blocking across quality/devils-advocate/networking/enterprise-arch, none contract-violating).",
+      "kind": "judgment",
+      "finding": "FINDING-CODEX-001",
+      "status": "open",
+      "at": "2026-07-01T17:45:18.448Z"
     }
   ],
   "concerns": [
@@ -143,7 +177,8 @@
     "spec": 0,
     "plan": 0,
     "tests": 0,
-    "implement": 0
+    "implement": 0,
+    "review": 2
   },
   "loopbacks": [
     {
