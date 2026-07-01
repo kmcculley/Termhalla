@@ -88,7 +88,12 @@ thin around it. That pure core is what this baseline characterizes (see CHAR ids
   subsystem that watches a project's `.orky/` tree (resolved by `find-orky-root.ts`, a bounded upward
   walk) with a chokidar watcher cloned from `UsageTracker` (`orky-tracker.ts`): one watcher + debounced
   re-read per resolved root, `.json` event filter, bounded readdir/readFile + symlink guard, never
-  spawning a CLI and never writing under `.orky/`. The pure status mappers live in
+  spawning a CLI and never writing under `.orky/`. **Note (feature 0007, CONV-008): this "read-only"
+  characterization now applies only to the WATCHER/tracker path above** — `src/main/orky/` as a whole
+  directory also hosts `OrkyActionDispatcher` (below), Termhalla's first write-capable surface into a
+  project's `.orky/` tree; every one of ITS mutations happens strictly through an Orky CLI subprocess
+  (never a direct file write from Termhalla's own code) and it never drives the pipeline. The pure status
+  mappers live in
   **`src/shared/orky-status.ts`** (gate-based live-phase / needs-human roll-up; `ORKY_PHASES` mirrors the
   recorded gate keys / `DRIVER_WORK_PHASES`). Status is pushed over the pane-scoped **`orky:status`** IPC
   channel (with `orky:watch` / `orky:unwatch`, validated + per-window sender-scoped in `register-orky.ts`)
@@ -108,6 +113,24 @@ thin around it. That pure core is what this baseline characterizes (see CHAR ids
   `{version:1, roots:[...]}`, atomic write; independent of `SCHEMA_VERSION`). The aggregate is pushed over
   a new app-global `registry:status` IPC channel (`src/main/ipc/register-registry.ts`); this feature ships
   no renderer UI.
+- **`src/main/orky/orky-action-dispatcher.ts`** (`OrkyActionDispatcher`) — *added by feature 0007
+  (Orky action-dispatch substrate).* Termhalla's **first write-capable IPC surface** into an
+  Orky-adopted project: four actions (`resolveEscalation`/`submitWork`/`recordHumanGate`/`driveStatus`)
+  over four new `orkyAction:*` channels. EVERY mutation is performed by invoking one of Orky's OWN CLIs
+  (`feedback emit`, `gatekeeper resolve-escalation`, `gatekeeper record`) via an abortable/`unref()`'d
+  `execFile` (`orky-cli-runner.ts`, argument array only, never a shell) — this dispatcher **never writes a
+  file under any `.orky/` tree itself, never spawns an agent, and never drives the pipeline** (D1). Every
+  `projectRoot` is checked against the SAME app-wide `OrkyRegistry.roots()` allowlist (D3) via the shared
+  `normalizeProjectRoot`; every `feature` slug is confined to a single path segment and the target
+  `featureDir` is always built server-side, never renderer-supplied. The Orky CLI location is resolved
+  through a single injectable function (`orky-cli-locate.ts`, `ORKY_PLUGIN_DIR` env var, no default path
+  assumed valid). Mutating actions on the SAME resolved `featureDir` are serialized through a
+  per-key promise-chain queue (`orky-action-queue.ts`) so a concurrent submission can never lose another's
+  `state.json` update; read-only `driveStatus` bypasses it. Every dispatcher-reached invocation — success
+  or rejection — is recorded in an append-only `orky-actions.jsonl` audit log under Electron `userData`
+  (`orky-action-audit.ts`) — the ONLY filesystem write this feature performs anywhere; a sender rejected at
+  the IPC-registrar boundary (`register-orky-action.ts`) never reaches the dispatcher and is not audited.
+  This feature ships no renderer UI (D1); see `docs/features/orky-action-dispatch.md`.
 
 ### Shared renderer/UI logic
 - **`shared/keybindings.ts`** — command registry, chord parse/format, `resolveBindings`,

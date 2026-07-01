@@ -1,4 +1,4 @@
-import type { ShellInfo, Workspace, AppState, TerminalStatus, DirEntry, ReadResult, StatResult, FsChange, TerminalLaunch, QuickStore, ProcInfo, CloudStatus, AiSession, UsageMetrics, EditorDraft, EnvVaultData, RecState, EnvVaultState, GitStatus, SearchHit, SearchStats, OrkyPaneStatus, OrkyRegistrySnapshot, RegistryMutationResult } from './types'
+import type { ShellInfo, Workspace, AppState, TerminalStatus, DirEntry, ReadResult, StatResult, FsChange, TerminalLaunch, QuickStore, ProcInfo, CloudStatus, AiSession, UsageMetrics, EditorDraft, EnvVaultData, RecState, EnvVaultState, GitStatus, SearchHit, SearchStats, OrkyPaneStatus, OrkyRegistrySnapshot, RegistryMutationResult, OrkyActionResult, ResolveEscalationRequest, SubmitWorkRequest, RecordHumanGateRequest, DriveStatusRequest } from './types'
 
 export const CH = {
   listShells: 'shells:list',
@@ -51,6 +51,13 @@ export const CH = {
   registryRoots: 'registry:roots',          // renderer -> main (pull the persisted explicit root list)
   registryAddRoot: 'registry:addRoot',      // renderer -> main (add a root to the persisted list)
   registryRemoveRoot: 'registry:removeRoot', // renderer -> main (remove a root from the persisted list)
+  // orkyAction:* (feature 0007) — Termhalla's first write-capable IPC surface into an Orky-adopted
+  // project. A domain DISTINCT from the read-only orky:* channels above (grep-visible separation).
+  // All four are renderer -> main request/response calls; this feature introduces NO push channel.
+  orkyActionResolveEscalation: 'orkyAction:resolveEscalation', // renderer -> main
+  orkyActionSubmitWork: 'orkyAction:submitWork',               // renderer -> main
+  orkyActionRecordHumanGate: 'orkyAction:recordHumanGate',     // renderer -> main
+  orkyActionDriveStatus: 'orkyAction:driveStatus',             // renderer -> main (read-only)
   draftsLoad: 'drafts:load',
   draftsSet: 'drafts:set',
   notesLoad: 'notes:load',
@@ -153,6 +160,12 @@ export interface TermhallaApi {
   registryAddRoot(root: string): Promise<RegistryMutationResult>
   /** Remove a root from the persisted explicit list (idempotent no-op if absent). */
   registryRemoveRoot(root: string): Promise<RegistryMutationResult>
+  // orkyAction:* (feature 0007) — the write-capable dispatch surface. Every mutation is performed by
+  // invoking Orky's OWN CLIs server-side; no renderer UI consumes these yet (D1/REQ-017).
+  orkyResolveEscalation(req: ResolveEscalationRequest): Promise<OrkyActionResult>
+  orkySubmitWork(req: SubmitWorkRequest): Promise<OrkyActionResult>
+  orkyRecordHumanGate(req: RecordHumanGateRequest): Promise<OrkyActionResult>
+  orkyDriveStatus(req: DriveStatusRequest): Promise<OrkyActionResult>
   revealPath(path: string): Promise<void>
   fsRename(oldPath: string, newPath: string): Promise<void>
   fsTrash(path: string): Promise<void>

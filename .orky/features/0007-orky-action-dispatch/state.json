@@ -1,12 +1,86 @@
 {
   "feature": "0007-orky-action-dispatch",
-  "phase": "spec",
+  "phase": "implement",
   "gates": {
     "brainstorm": {
       "passed": true,
       "at": "2026-07-01T02:55:41.564Z",
       "evidence": "Resolved by the AI orchestrator under the human's standing autopilot directive (2026-07-01): no blocking ambiguity found, design grounded in roadmap.md's explicit hard constraints (thin-client, ADR-004, ADR-022 control-plane) rather than a coin-flip. See 01-concept.md D1-D3.",
       "external": true
+    },
+    "spec": {
+      "passed": true,
+      "at": "2026-07-01T10:21:47.491Z",
+      "tokens": [
+        {
+          "token": "findings",
+          "pass": true,
+          "evidence": "no open blocking findings (CRITICAL/HIGH or contract-violation) for this gate"
+        }
+      ]
+    },
+    "plan": {
+      "passed": true,
+      "at": "2026-07-01T10:23:56.712Z",
+      "tokens": [
+        {
+          "token": "spec-freeze",
+          "pass": true,
+          "evidence": "spec unchanged since the spec gate"
+        },
+        {
+          "token": "traceability-plan",
+          "pass": true,
+          "evidence": "all 20 REQ(s) trace to TASK"
+        },
+        {
+          "token": "findings",
+          "pass": true,
+          "evidence": "no open blocking findings (CRITICAL/HIGH or contract-violation) for this gate"
+        }
+      ]
+    },
+    "tests": {
+      "passed": true,
+      "at": "2026-07-01T10:28:57.291Z",
+      "tokens": [
+        {
+          "token": "spec-freeze",
+          "pass": true,
+          "evidence": "spec unchanged since the spec gate"
+        },
+        {
+          "token": "tests-red",
+          "pass": true,
+          "evidence": "tests are RED (exit 1) — freeze snapshot captured"
+        }
+      ]
+    },
+    "implement": {
+      "passed": false,
+      "at": "2026-07-01T11:05:19.504Z",
+      "tokens": [
+        {
+          "token": "spec-freeze",
+          "pass": true,
+          "evidence": "spec unchanged since the spec gate"
+        },
+        {
+          "token": "build",
+          "pass": true,
+          "evidence": "build exited 0"
+        },
+        {
+          "token": "test",
+          "pass": false,
+          "evidence": "test exited 1"
+        },
+        {
+          "token": "test-freeze",
+          "pass": true,
+          "evidence": "test files unchanged since freeze"
+        }
+      ]
     }
   },
   "iterations": {
@@ -23,13 +97,23 @@
       "at": "2026-07-01T03:42:56.676Z",
       "decision": "Approved (A): narrow REQ-013's acceptance text to 'every action that reaches the dispatcher is audited; a sender rejected at the registrar boundary (unknown-sender) is not audited.' Keeps the clean module boundary (registrar never imports the audit log). No plan/TASK-010 change needed; the tests already pinned to this behavior are correct as-is -- update 02-spec.md's REQ-013 wording to match reality, loop back to spec only far enough to fix the wording, then re-flow through plan/tests (should be a no-op re-verify since TASK-010/04-tests.md already match this reading) and on to implement.",
       "resolvedAt": "2026-07-01T10:14:46.102Z"
+    },
+    {
+      "id": "ESC-002",
+      "phase": "implement",
+      "reason": "Implement gate FAILS (npm test exits 1) for reasons that are NOT implementation bugs -- retrying the implement phase (Gatekeeper's own drive() suggests retry-phase, attempt 2/3) cannot fix either failure, since both are pre-existing defects in FROZEN test content the implementer correctly declined to touch. (1) TEST-156 (tests/shared/orky-action-validate.test.ts, 0007's OWN frozen suite) asserts all 6 messages from validateFeatureSlug(['a/b','a\\b',...]) are pairwise-unique (new Set(msgs).size === msgs.length), but TEST-150/TEST-151 in the SAME frozen file explicitly pin 'a/b' and 'a\\b' to the SAME single-segment-violation message by design (03-plan.md TASK-002: one shared message for any path-separator violation) -- so TEST-156 is mathematically unsatisfiable by ANY implementation; it contradicts its own sibling tests. (2) TEST-031 (tests/main/orky-osc-structural.test.ts) is a PRE-EXISTING frozen test from an already-shipped, already-merged feature (0014-orky-osc-heartbeat) asserting CH contains EXACTLY the 3 pre-0014 orky-prefixed identifiers via a broad /^orky[A-Z]/ identifier-name regex -- but 0007's OWN frozen spec (REQ-018) mandates adding exactly 4 new orkyAction:* channels (orkyActionResolveEscalation/submitWork/recordHumanGate/driveStatus), all of which match that same identifier regex even though their wire VALUES (orkyAction:*) do not collide with the read-only orky: domain (TEST-031's own SECOND, value-prefix-based assertion already passes fine -- only the redundant identifier-name heuristic breaks). This is the identifier-namespace analogue of CONV-012 (a frozen structural test pinning an invariant on a namespace multiple features legitimately extend) but the affected file belongs to a DIFFERENT, already-completed feature, not 0007 -- editing it retroactively touches 0014's frozen historical gate record, which is outside what my coordinator briefed me to decide unilaterally. My recommendation: loop back to tests, dispatch a fresh test-designer to (a) relax TEST-156 to accept the intentional shared a/b-vs-a-backslash-b message (assert the remaining messages are unique plus that these two specific ones match each other, or reduce the uniqueness set to exclude that pair), and (b) narrow TEST-031's first assertion to check only the orky: wire-value prefix (the invariant it actually protects, and which its own second assertion already checks) rather than the broader orky-identifier-name heuristic -- then, per doc-sync, propose a CONV entry generalizing CONV-012 to shared identifier-namespace structural tests, not just shared source files. I am not editing either test myself pending this decision.",
+      "kind": "judgment",
+      "finding": null,
+      "status": "open",
+      "at": "2026-07-01T11:06:20.646Z"
     }
   ],
   "concerns": [],
   "attempts": {
     "spec": 0,
     "plan": 0,
-    "tests": 0
+    "tests": 0,
+    "implement": 1
   },
   "loopbacks": [
     {

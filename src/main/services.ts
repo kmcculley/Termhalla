@@ -10,6 +10,9 @@ import { EnvVault } from './env-vault/env-vault'
 import { SearchService } from './search/search-service'
 import { OrkyRootEngine } from './orky/orky-root-engine'
 import { OrkyRegistry } from './orky/orky-registry'
+import { OrkyActionDispatcher } from './orky/orky-action-dispatcher'
+import { OrkyActionAuditLog } from './orky/orky-action-audit'
+import { OrkyActionQueue } from './orky/orky-action-queue'
 import type { ShellInfo } from '@shared/types'
 
 export interface Services {
@@ -30,6 +33,12 @@ export interface Services {
    *  `orky-registry.json` store. `init()` is awaited by the composition root (`registerHandlers`) before
    *  the first `registry:status` emit. */
   orkyRegistry: OrkyRegistry
+  /** Termhalla's first write-capable IPC surface into an Orky-adopted project (feature 0007). Wraps
+   *  Orky's own `feedback`/`gatekeeper` CLIs — never a direct `.orky/` write (REQ-019), never drives
+   *  the pipeline (D1). Reads the SAME `orkyRegistry` instance above for its server-side project-root
+   *  allowlist (D3/REQ-004) — no second `OrkyRegistry`. Owned solely by `register-orky-action.ts`;
+   *  `register.ts` disposes it once alongside the other single-owner registrars. */
+  orkyActionDispatcher: OrkyActionDispatcher
 }
 
 /** Build the privileged service layer ONCE for the whole app (not per window). PTYs and stores
@@ -41,6 +50,11 @@ export function buildServices(): Services {
   const searchService = new SearchService(join(dir, 'search.db'))
   const orkyEngine = new OrkyRootEngine()
   const orkyRegistry = new OrkyRegistry(orkyEngine, new OrkyRegistryStore(dir))
+  const orkyActionDispatcher = new OrkyActionDispatcher({
+    registry: orkyRegistry,
+    auditLog: new OrkyActionAuditLog(dir),
+    queue: new OrkyActionQueue()
+  })
   return {
     dir,
     store: new WorkspaceStore(dir),
@@ -51,6 +65,7 @@ export function buildServices(): Services {
     scriptDir,
     searchService,
     orkyEngine,
-    orkyRegistry
+    orkyRegistry,
+    orkyActionDispatcher
   }
 }

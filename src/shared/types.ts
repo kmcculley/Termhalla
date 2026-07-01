@@ -385,6 +385,73 @@ export interface RunCommand {
   command: string
 }
 
+// ── Orky action-dispatch (feature 0007) — Termhalla's first write-capable IPC surface into an
+// Orky-adopted project. Every mutation is performed by invoking Orky's OWN CLIs (`feedback emit`,
+// `gatekeeper resolve-escalation`, `gatekeeper record`); this feature never writes a file under any
+// `.orky/` tree itself, never spawns an agent, and never drives the pipeline (D1). Runtime-only wire
+// types — no SCHEMA_VERSION bump (the audit log is a plain JSONL file, not part of the migration chain).
+
+/** Which Orky CLI actually performed the action. `null` when the request was rejected before any CLI ran. */
+export type OrkyActionPath = 'feedback' | 'gatekeeper' | null
+
+/** Ground-truth feedback-channel state for a feedback-routed action, derived from the emit's `mode`
+ *  (`'noop'` ⇒ `'disabled'`). Distinguishes "not enabled for this project" from "enabled but the CLI
+ *  failed" (CONV-001) — the distinction D2/CONV-001 require F8's UI to be able to show. */
+export type OrkyFeedbackState = 'enabled' | 'disabled'
+
+/** Machine-routable rejection/failure discriminator (CONV-001: paired with a specific `error` string). */
+export type OrkyActionErrorKind =
+  | 'unknown-sender'      // sender not a known app window (REQ-003)
+  | 'invalid-args'        // missing/ill-typed/malformed argument (REQ-014)
+  | 'root-not-allowed'    // projectRoot not in registry.roots() (D3, REQ-004)
+  | 'gate-not-allowed'    // recordHumanGate gate outside {brainstorm, human-review} (REQ-008)
+  | 'feature-not-found'   // feature slug does not resolve to a feature dir under the root (REQ-005)
+  | 'feedback-disabled'   // submitWork with no live control plane and no fallback (REQ-007)
+  | 'orky-cli-not-found'  // the Orky CLI could not be located (REQ-012)
+  | 'cli-timeout'         // the CLI child exceeded the timeout / was aborted (REQ-010/REQ-011)
+  | 'cli-error'           // the CLI threw / exited with an error code (exit 2) (REQ-011)
+  | 'cli-unparseable'     // the CLI stdout was not the expected JSON object (REQ-011)
+
+/** The uniform result of every action (CONV-001: `ok:false` always carries `errorKind` + a specific
+ *  `error`). `data` is the parsed CLI JSON object on success (escalation obj / gate obj / drive next-action /
+ *  feedback emit result). */
+export interface OrkyActionResult {
+  ok: boolean
+  path: OrkyActionPath                 // which CLI ran (null if rejected pre-CLI)
+  dispatched: boolean                  // did the human input land durably? (false for driveStatus reads and
+                                       //   for a feedback-disabled submitWork — never a silent success)
+  feedback?: OrkyFeedbackState         // present for feedback-capable actions (resolveEscalation/submitWork)
+  exitCode?: number | null             // the CLI process exit code (null on timeout/abort/spawn failure)
+  data?: unknown                       // parsed CLI stdout JSON on success
+  error?: string                       // specific + actionable (CONV-001) when ok === false
+  errorKind?: OrkyActionErrorKind      // set iff ok === false
+}
+
+export interface ResolveEscalationRequest {
+  projectRoot: string                  // the allowlisted target project root (dir containing .orky/)
+  feature: string                      // feature slug (single path segment under <root>/.orky/features/)
+  escalationId: string                 // e.g. "ESC-001"
+  decision: string                     // the human's decision text
+}
+export interface SubmitWorkRequest {
+  projectRoot: string
+  feature?: string                     // optional: a feature-scoped work item; omit for project-level
+  title: string                        // required, non-empty
+  detail?: string                      // optional longer body
+  phase?: string                       // optional originating phase
+}
+export interface RecordHumanGateRequest {
+  projectRoot: string
+  feature: string
+  gate: 'brainstorm' | 'human-review'  // server-restricted (REQ-008); any other value → gate-not-allowed
+  verdict: 'pass' | 'fail'
+  evidence?: string
+}
+export interface DriveStatusRequest {
+  projectRoot: string
+  feature: string
+}
+
 export type ScheduleTrigger =
   | { kind: 'delay'; ms: number }
   | { kind: 'idle' }

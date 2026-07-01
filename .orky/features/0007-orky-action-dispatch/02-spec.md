@@ -312,16 +312,23 @@ message and spawns nothing; with it configured, the resolver returns the absolut
 is a single function reused by all four actions (no duplicated lookup).
 
 ### REQ-013 — Append-only audit log; every dispatch attempt is attributable — `enterprise-arch`
-Every action invocation (including rejected ones) MUST append one JSON record to `orky-actions.jsonl` under
-Electron `userData` capturing: `ts`, `windowId` (from `e.sender.id`), `action`, `projectRoot`, `feature` (when
-present), a redaction-safe argument summary, and the outcome (`ok`, `path`, `dispatched`, `errorKind`,
-`exitCode`). The write MUST be an atomic single-line append (`fs.appendFile`), MUST be best-effort — an audit
-write failure MUST be logged but MUST NOT fail the action nor alter its returned result — and MUST NOT silently
-cap/rotate/truncate the log (CONV-003: any future size limit must be a stated policy with a test). The audit
-log is F7's ONLY write, and it is under `userData`, never under any `.orky/` tree (REQ-020).
-**Acceptance:** after each of a rejected (unknown-sender / root-not-allowed) and an accepted action, a new line
-exists in `orky-actions.jsonl` with the attributable fields; a simulated append failure is logged but the
-action still returns its normal result; no code path truncates or caps the file.
+Every action invocation that REACHES THE DISPATCHER — i.e. every dispatcher-level outcome, whether a success
+or a dispatcher-level rejection (`root-not-allowed`, `feature-not-found`, `gate-not-allowed`, `invalid-args`,
+`orky-cli-not-found`, `cli-error`, `cli-timeout`, `cli-unparseable`) — MUST append one JSON record to
+`orky-actions.jsonl` under Electron `userData` capturing: `ts`, `windowId` (from `e.sender.id`), `action`,
+`projectRoot`, `feature` (when present), a redaction-safe argument summary, and the outcome (`ok`, `path`,
+`dispatched`, `errorKind`, `exitCode`). A sender rejected at the IPC-registrar boundary
+(`unknown-sender`, REQ-003) is turned away strictly BEFORE the dispatcher is ever invoked, so it is NOT
+audited by this feature — the registrar owns that rejection and never references the audit log (the audit log
+lives only inside the dispatcher). The write MUST be an atomic single-line append (`fs.appendFile`), MUST be
+best-effort — an audit write failure MUST be logged but MUST NOT fail the action nor alter its returned
+result — and MUST NOT silently cap/rotate/truncate the log (CONV-003: any future size limit must be a stated
+policy with a test). The audit log is F7's ONLY write, and it is under `userData`, never under any `.orky/`
+tree (REQ-020).
+**Acceptance:** after each of a dispatcher-level rejection (e.g. `root-not-allowed`) and an accepted action, a
+new line exists in `orky-actions.jsonl` with the attributable fields; an `unknown-sender` rejection at the
+registrar boundary produces NO audit line (it never reaches the dispatcher); a simulated append failure is
+logged but the action still returns its normal result; no code path truncates or caps the file.
 
 ### REQ-014 — Malformed/empty/boundary input tolerated on every action (CONV-002) — `security` `quality`
 Every handler MUST validate its request object at the IPC boundary and NEVER let a malformed message crash the

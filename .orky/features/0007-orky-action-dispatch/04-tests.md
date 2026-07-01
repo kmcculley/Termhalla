@@ -10,6 +10,11 @@ The test designer is a different actor from the implementer (the integrity bound
 (`src/`) was written by this phase — only test files (all under `tests/`), this document, and
 `traceability.json`/`.md` updates.
 
+**Re-verification note (ESC-001 resolved):** this document was re-derived after `02-spec.md`'s REQ-013
+wording was narrowed per the ESC-001 human decision (see judgment call #2 below). The re-derivation was a
+clean pass-through — no test file, test ID, or `traceability.json`/`.md` entry changed; only judgment call
+#2's note below was updated from "flagged" to "resolved."
+
 ## Chosen contracts (the spec/plan were prose-only on internal module shapes — these tests freeze them)
 
 The spec's "Public interface" section is authoritative for the IPC-facing shapes (`orkyAction:*` channels,
@@ -115,7 +120,7 @@ reachable (see "Reconciled judgment calls" below):
    Default predicate `() => true` (mirrors `registerRegistry`). A rejected sender returns the exact literal
    `{ ok:false, path:null, dispatched:false, errorKind:'unknown-sender', error:'rejected: sender is not a
    known app window' }` WITHOUT ever calling the dispatcher — no audit line results from this path (see
-   "Reconciled judgment calls" #2, an ambiguity flagged rather than silently resolved).
+   "Reconciled judgment calls" #2, now resolved per ESC-001).
 
 ## Reconciled judgment calls (pinned here, not left to the implementer)
 
@@ -129,20 +134,24 @@ reachable (see "Reconciled judgment calls" below):
    `validateRecordHumanGateRequest` checks `gate` is a non-empty STRING only; the `{brainstorm,human-review}`
    restriction lives EXCLUSIVELY in the dispatcher. Pinned by TEST-171 (validator accepts `'spec'`
    shape-wise) + TEST-240/241 (dispatcher rejects it business-rule-wise).
-2. **REQ-013 vs TASK-010: does an `unknown-sender` rejection get an audit line? — FLAGGED, not resolved
-   silently.** REQ-013's acceptance text literally reads "after each of a rejected (unknown-sender /
-   root-not-allowed) ... action, a new line exists in orky-actions.jsonl". But TASK-010's own prose is
-   equally explicit the OTHER way: sender validation happens in the registrar, strictly BEFORE the
-   dispatcher is ever called, and states outright "no audit-log entry is written for it either". These
-   directly contradict each other, and resolving it either way changes what REQ-013 actually requires.
-   This suite does NOT adjudicate it: `register-orky-action.test.ts` tests (TEST-272) assert the
-   TASK-010-consistent behavior ("the dispatcher is NEVER invoked" for an unknown sender, hence no audit
-   write is possible from dispatcher-owned code), and NO test anywhere asserts either "unknown-sender
-   writes an audit line" or "unknown-sender never writes an audit line" as a REQ-013 requirement. REQ-013's
-   own audit-log tests (TEST-255) instead use `root-not-allowed` — a rejection that DOES reach the
-   dispatcher — as the unambiguous "rejected action still gets audited" example, satisfying the acceptance
-   criterion's spirit without taking a side on the sender-rejection question. **Flagged for the coordinator
-   in the final report; not resolved here.**
+2. **REQ-013 vs TASK-010: does an `unknown-sender` rejection get an audit line? — RESOLVED (ESC-001,
+   decision A).** This was originally a genuine spec self-contradiction: REQ-013's acceptance text (as
+   originally drafted) read "after each of a rejected (unknown-sender / root-not-allowed) ... action, a new
+   line exists in orky-actions.jsonl", while TASK-010's own prose was equally explicit the OTHER way —
+   sender validation happens in the registrar, strictly BEFORE the dispatcher is ever called, and "no
+   audit-log entry is written for it either". This suite did not adjudicate it at design time; it was
+   escalated as ESC-001. The human decision (recorded in `state.json`) approved option A: narrow REQ-013's
+   acceptance text to "every action that reaches the dispatcher is audited; a sender rejected at the
+   registrar boundary (unknown-sender) is not audited" — no plan/TASK-010 change needed, since TASK-010's
+   own prose already said this. `02-spec.md`'s REQ-013 has since been corrected (wording-only) to this
+   narrowed reading, and `03-plan.md` was re-verified to need no change.
+   **This test suite already matches the resolved reading exactly — no test-file, test-ID, or
+   `traceability.json`/`.md` change was required on re-verification:** `register-orky-action.test.ts`
+   (TEST-272) asserts the dispatcher is NEVER invoked for an unknown sender (consistent with "not audited,
+   because it never reaches the dispatcher"), and `orky-action-dispatcher.test.ts`'s audit-log tests
+   (TEST-255 using `root-not-allowed`, TEST-256 using an accepted action) exercise rejections/successes
+   that DO reach the dispatcher as the "every dispatcher-reached action is audited" examples — exactly the
+   corrected REQ-013's scope. No further action needed.
 3. **Audit-log `argsSummary` redaction shape (plan risk note #3).** Pinned above in contract #5 — structural
    fields verbatim, free-text fields length-only. Tested by TEST-259.
 4. **CLI-location config surface (plan risk note #1) and dispatcher disposal placement (risk note #4)** are
@@ -292,6 +301,8 @@ reachable (see "Reconciled judgment calls" below):
 
 ## RED verification
 
+Original verification (test design phase, before ESC-001 was raised):
+
 ```
 npx vitest run
  Test Files  10 failed | 130 passed (140)
@@ -299,9 +310,19 @@ npx vitest run
 exit code 1
 ```
 
-All 10 new files fail for want-of-correction reasons — missing implementation modules, or (for the two
-files whose imports already resolve against pre-existing shared files) assertions against not-yet-added
-content:
+Re-verification (this pass, after the ESC-001-resolution wording-only correction to `02-spec.md`'s REQ-013;
+no test file or production code changed in between):
+
+```
+npx vitest run
+ Test Files  10 failed | 130 passed (140)
+      Tests  13 failed | 888 passed (901)
+exit code 1
+```
+
+Identical counts, as expected — no test content changed. All 10 new files fail for want-of-correction
+reasons — missing implementation modules, or (for the two files whose imports already resolve against
+pre-existing shared files) assertions against not-yet-added content:
 
 - `tests/shared/orky-action-validate.test.ts`, `orky-action-result.test.ts`, `main/orky-cli-locate.test.ts`,
   `main/orky-cli-runner.test.ts`, `main/orky-action-audit.test.ts`, `main/orky-action-queue.test.ts`,
@@ -326,4 +347,6 @@ guard for a property already true, matching the precedent of 0005's `registry-no
 Every REQ-001…REQ-020 acceptance criterion is covered by at least one TEST-ID — see `traceability.json`.
 REQ-016's "code/review assertion" acceptance is covered as a source-grep test (TEST-267/268), matching the
 precedent of 0005's TEST-096 and 0014's TEST-042/043. REQ-020 is covered by a doc-presence test
-(TEST-280), matching the `tests/docs-feature-000N.test.ts` house pattern.
+(TEST-280), matching the `tests/docs-feature-000N.test.ts` house pattern. REQ-013's corrected acceptance
+(ESC-001, decision A: only dispatcher-reached actions are audited) is covered as-is by the existing
+TEST-255/256/257/258/259 — no change needed on re-verification.

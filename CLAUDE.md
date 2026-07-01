@@ -209,8 +209,9 @@ related area:
 | AI session detection | `src/main/ai/` | [ai-session-awareness](docs/features/ai-session-awareness.md) |
 | Git status on pane chip | `src/main/git/` | [git-status](docs/features/git-status.md) |
 | Claude usage metrics | `src/main/usage/` | [usage-metrics](docs/features/usage-metrics.md) |
-| Orky pipeline status (read-only `.orky/` mirror) + cross-project orky-registry aggregate | `src/main/orky/`, `src/shared/orky-status.ts`, `src/shared/orky-registry.ts` | [orky-status](docs/features/orky-status.md) |
+| Orky pipeline status (read-only `.orky/` mirror, except F7's CLI-mediated writes below — never a direct file write) + cross-project orky-registry aggregate | `src/main/orky/`, `src/shared/orky-status.ts`, `src/shared/orky-registry.ts` | [orky-status](docs/features/orky-status.md) |
 | Orky OSC heartbeat (stream-derived status, fallback for bare-SSH panes) | `src/main/status/orky-osc-parser.ts`, `src/main/orky/orky-stream-status.ts` | [orky-osc-heartbeat](docs/features/orky-osc-heartbeat.md) |
+| Orky action dispatch (write-capable IPC into an Orky-adopted project, via Orky's own CLIs — never a direct `.orky/` write, never drives the pipeline) | `src/main/orky/orky-action-dispatcher.ts` | [orky-action-dispatch](docs/features/orky-action-dispatch.md) |
 | Per-project notepad | `src/main/persistence/notes-store.ts`, `src/renderer/components/NotesPanel.tsx` | [notepad](docs/features/notepad.md) |
 | SSH / favorites store | `src/main/persistence/quick-store.ts`, `src/shared/quick.ts` | [ssh-favorites](docs/features/ssh-favorites.md) |
 | Multi-window / undock | `src/main/window-manager.ts` (+ `-core.ts`), `src/main/services.ts` | [window-management](docs/features/window-management.md) |

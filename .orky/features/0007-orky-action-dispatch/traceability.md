@@ -2,9 +2,13 @@
 
 REQ → TASK → TEST matrix, the human-readable rendering of `traceability.json`. Every REQ (REQ-001…REQ-020)
 maps to ≥1 TASK; the `traceability-plan` gate enforces this mechanically. The `TEST(s)` column was filled
-in phase 4 ([`04-tests.md`](04-tests.md)) — see that doc for the full TEST-ID → assertion catalogue, the
-frozen contracts, and the reconciled judgment calls (including one FLAGGED spec/plan conflict on REQ-013
-vs TASK-010, not resolved here — see 04-tests.md and the phase-4 report).
+in phase 4 ([`04-tests.md`](04-tests.md)) — see that doc for the full TEST-ID → assertion catalogue and the
+reconciled judgment calls. **Re-verified 2026-07-01** against the corrected `02-spec.md` REQ-013 (ESC-001):
+the previously-flagged REQ-013-vs-TASK-010 spec/plan wording conflict is now RESOLVED — a spec-writer applied
+a narrow wording-only fix to REQ-013 (audit every dispatcher-level outcome, success or rejection; a sender
+rejected at the IPC-registrar boundary per REQ-003 happens strictly before the dispatcher and is not
+audited), which matches TASK-010's existing description verbatim. No REQ/TASK/TEST mapping below changed as
+a result.
 
 | REQ | Summary | TASK(s) | TEST(s) | Files (primary) |
 |---|---|---|---|---|
@@ -20,7 +24,7 @@ vs TASK-010, not resolved here — see 04-tests.md and the phase-4 report).
 | REQ-010 | CLI invocation: abortable + `unref()`'d + timeout, injection-safe | TASK-004, TASK-006 | TEST-178, TEST-179, TEST-211..TEST-217, TEST-249, TEST-250 | `orky-cli-runner.ts`, `orky-action-result.ts` |
 | REQ-011 | Total exit-code + stdout-JSON mapping | TASK-006 | TEST-180..TEST-195, TEST-211, TEST-212, TEST-251 | `orky-action-result.ts` |
 | REQ-012 | Orky CLI location resolution | TASK-003, TASK-008 | TEST-204..TEST-210, TEST-252..TEST-254 | `orky-cli-locate.ts`, `orky-action-dispatcher.ts` |
-| REQ-013 | Append-only audit log, attributable | TASK-005, TASK-008 | TEST-218..TEST-223, TEST-255..TEST-259 | `orky-action-audit.ts`, `orky-action-dispatcher.ts` |
+| REQ-013 | Append-only audit log, attributable — every outcome that REACHES THE DISPATCHER (success or a dispatcher-level rejection); `unknown-sender` (rejected pre-dispatcher, at the registrar) is NOT audited | TASK-005, TASK-008 | TEST-218..TEST-223, TEST-255..TEST-259 | `orky-action-audit.ts`, `orky-action-dispatcher.ts` |
 | REQ-014 | Malformed/empty/boundary input tolerated | TASK-002 | TEST-157..TEST-163, TEST-165..TEST-168, TEST-170, TEST-173, TEST-175, TEST-177, TEST-239, TEST-245, TEST-260..TEST-263 | `orky-action-validate.ts` |
 | REQ-015 | Per-featureDir serialization of mutating actions | TASK-007, TASK-008 | TEST-224..TEST-228, TEST-264..TEST-266 | `orky-action-queue.ts`, `orky-action-dispatcher.ts` |
 | REQ-016 | Exactly 4 hard-coded subcommands; no pipeline-driving | TASK-008 | TEST-267, TEST-268 | `orky-action-dispatcher.ts` |

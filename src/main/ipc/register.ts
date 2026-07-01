@@ -14,6 +14,7 @@ import { registerCloud } from './register-cloud'
 import { registerUsage } from './register-usage'
 import { registerOrky } from './register-orky'
 import { registerRegistry } from './register-registry'
+import { registerOrkyAction } from './register-orky-action'
 import { registerRecording } from './register-recording'
 import { registerEnv } from './register-env'
 import { registerClipboard } from './register-clipboard'
@@ -33,7 +34,7 @@ import { registerSearch } from './register-search'
  *  first `registry:status` push, so a restart's persisted roots are members from the first snapshot
  *  (REQ-004). */
 export async function registerHandlers(services: Services, wm: WindowManager): Promise<PtyManager> {
-  const { store, quick, shells, recorder, envVault, scriptDir, dir, searchService, orkyEngine, orkyRegistry } = services
+  const { store, quick, shells, recorder, envVault, scriptDir, dir, searchService, orkyEngine, orkyRegistry, orkyActionDispatcher } = services
 
   const send = (channel: string, ...args: unknown[]): void => {
     const paneId = typeof args[0] === 'string' ? args[0] : null
@@ -98,12 +99,18 @@ export async function registerHandlers(services: Services, wm: WindowManager): P
     registerUsage(send),
     registerOrky(orkySend, (sender) => wm.isKnownWindowSender(sender), onPaneRoot, orkyEngine),
     registerRegistry(orkyRegistry, send, (sender) => wm.isKnownWindowSender(sender)),
+    // orkyAction:* (feature 0007) — Termhalla's first write-capable IPC surface. Unlike the shared
+    // orkyEngine/orkyRegistry above, this dispatcher is owned SOLELY by this registrar; its dispose()
+    // is called once here (own entry below), mirroring the composition-root disposal style already
+    // used for orkyRegistry/orkyEngine.
+    registerOrkyAction(orkyActionDispatcher, (sender) => wm.isKnownWindowSender(sender)),
     registerRecording({ pty, recorder, userDataDir: dir, send }),
     disposeGit,
     disposeSearch,
     // The shared OrkyRootEngine/OrkyRegistry lifecycle is owned ONCE here — neither registerOrky's nor
     // registerRegistry's own disposer closes it (risk note #3: a double-close of the same watchers).
-    () => { orkyRegistry.dispose(); orkyEngine.dispose() }
+    () => { orkyRegistry.dispose(); orkyEngine.dispose() },
+    () => { orkyActionDispatcher.dispose() }
   ]
   wm.onAllWindowsClosed(() => { for (const dispose of disposers) dispose() })
 

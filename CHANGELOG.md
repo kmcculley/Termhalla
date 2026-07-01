@@ -7,6 +7,20 @@ All notable changes to Termhalla are recorded here. The format follows
 ## [Unreleased]
 
 ### Added
+- **Orky action-dispatch substrate (first write-capable IPC surface).** A new main-process
+  `OrkyActionDispatcher` service exposes exactly four actions over four new `orkyAction:*` channels —
+  `resolveEscalation`, `submitWork`, `recordHumanGate`, `driveStatus` — Termhalla's first
+  renderer-reachable, project-**mutating** surface. Every mutation is performed by invoking one of
+  Orky's OWN CLIs (`feedback emit`, `gatekeeper resolve-escalation`, `gatekeeper record`) through an
+  abortable/`unref()`'d `execFile` (argument array only, never a shell); this feature never writes a
+  file under any `.orky/` tree itself, never spawns an agent, and never drives the pipeline. Every
+  `projectRoot` is checked against the SAME server-side `OrkyRegistry.roots()` allowlist (feature 0005)
+  and every `feature` slug is confined to a single path segment with the target `featureDir` always
+  built server-side. Mutating actions on the same feature directory are serialized through a
+  per-`featureDir` queue so a concurrent submission can never lose another's `state.json` update, and
+  every dispatcher-reached invocation — success or rejection — is recorded in a new append-only
+  `orky-actions.jsonl` audit log under Electron `userData`. This feature ships **no renderer UI** — it
+  is IPC/data only; F8/F10/F12 are later consumers. See `docs/features/orky-action-dispatch.md`.
 - **Orky OSC heartbeat — stream-derived status for bare-SSH panes.** A second, fallback source for the
   Orky pane chip introduced by orky-status: a strict, bounded OSC marker
   (`\x1b]9999;<single-line compact JSON>\x07`, Orky's real ADR-026 contract — `{v, feature, phase, gate,
