@@ -1,0 +1,15 @@
+{
+  "feature": "0007-orky-action-dispatch",
+  "phase": null,
+  "gates": {
+    "brainstorm": {
+      "passed": true,
+      "at": "2026-07-01T02:55:41.564Z",
+      "evidence": "Resolved by the AI orchestrator under the human's standing autopilot directive (2026-07-01): no blocking ambiguity found, design grounded in roadmap.md's explicit hard constraints (thin-client, ADR-004, ADR-022 control-plane) rather than a coin-flip. See 01-concept.md D1-D3.",
+      "external": true
+    }
+  },
+  "iterations": {},
+  "escalations": [],
+  "concerns": []
+}
