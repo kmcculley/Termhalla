@@ -1,6 +1,6 @@
 {
   "feature": "0014-orky-osc-heartbeat",
-  "phase": "doc-sync",
+  "phase": "tests",
   "gates": {
     "brainstorm": {
       "passed": true,
@@ -40,85 +40,6 @@
         }
       ]
     },
-    "tests": {
-      "passed": true,
-      "at": "2026-06-30T23:23:09.778Z",
-      "tokens": [
-        {
-          "token": "spec-freeze",
-          "pass": true,
-          "evidence": "spec unchanged since the spec gate"
-        },
-        {
-          "token": "tests-red",
-          "pass": true,
-          "evidence": "tests are RED (exit 1) — freeze snapshot captured"
-        }
-      ]
-    },
-    "implement": {
-      "passed": true,
-      "at": "2026-06-30T23:41:55.983Z",
-      "tokens": [
-        {
-          "token": "spec-freeze",
-          "pass": true,
-          "evidence": "spec unchanged since the spec gate"
-        },
-        {
-          "token": "build",
-          "pass": true,
-          "evidence": "build exited 0"
-        },
-        {
-          "token": "test",
-          "pass": true,
-          "evidence": "test exited 0"
-        },
-        {
-          "token": "test-freeze",
-          "pass": true,
-          "evidence": "test files unchanged since freeze"
-        }
-      ]
-    },
-    "review": {
-      "passed": true,
-      "at": "2026-06-30T23:57:42.605Z",
-      "tokens": [
-        {
-          "token": "spec-freeze",
-          "pass": true,
-          "evidence": "spec unchanged since the spec gate"
-        },
-        {
-          "token": "findings",
-          "pass": true,
-          "evidence": "no open blocking findings (CRITICAL/HIGH or contract-violation) for this gate"
-        }
-      ]
-    },
-    "doc-sync": {
-      "passed": true,
-      "at": "2026-07-01T00:17:12.029Z",
-      "tokens": [
-        {
-          "token": "spec-freeze",
-          "pass": true,
-          "evidence": "spec unchanged since the spec gate"
-        },
-        {
-          "token": "traceability",
-          "pass": true,
-          "evidence": "all 17 REQ(s) trace to TASK+TEST"
-        },
-        {
-          "token": "findings",
-          "pass": true,
-          "evidence": "no open blocking findings (CRITICAL/HIGH or contract-violation) for this gate"
-        }
-      ]
-    },
     "human-review": {
       "passed": true,
       "at": "2026-07-01T00:22:22.229Z",
@@ -127,7 +48,8 @@
     }
   },
   "iterations": {
-    "spec": 2
+    "spec": 2,
+    "tests": 1
   },
   "escalations": [
     {
@@ -246,6 +168,12 @@
       "from": "review",
       "reason": "ESC-002 resolved: human approved gate-based done-detection (gateN>=gateM regardless of phase value) to replace the buggy phase===null check in REQ-009. Re-flow plan/tests/implement/review against the corrected REQ.",
       "at": "2026-06-30T23:06:52.392Z"
+    },
+    {
+      "to": "tests",
+      "from": "doc-sync",
+      "reason": "Post-merge integration defect (found during /orky:app-run's merge of sibling feature 0005): TEST-035 hashes orky-tracker.ts byte-for-byte to prove F14 never touched it, but 0005 legitimately refactored that same file for an unrelated, valid reason (extracted a shared OrkyRootEngine so 0005's registry and 0004's per-pane tracker share one watcher). F14 still never touches the file -- TEST-036 already independently verifies the real behavioral concern (F14's own files never import chokidar/node:fs). Human approved: replace TEST-035's byte-hash with a structural check on OrkyTracker's public exported surface (class name + watch/unwatch/dispose signatures), which survives legitimate refactors by sibling features. Loop back to tests for a clean test-designer redo.",
+      "at": "2026-07-01T02:18:26.407Z"
     }
   ]
 }
