@@ -1,7 +1,7 @@
 {
-  "feature": ".orky/features/0005-cross-project-orky-registry",
+  "feature": ".orky/features/0007-orky-action-dispatch",
   "projectRoot": "C:/dev/Termhalla",
-  "phase": "human-review",
-  "lastTickAt": "2026-07-01T02:07:26.309Z",
-  "lastAction": "human-review approved and merged to mainline via /orky:app-run (0014 merged first, 0005 second)"
+  "phase": "tests",
+  "lastTickAt": "2026-07-01T03:42:56.676Z",
+  "lastAction": "spec+plan+tests gates all passed (135 RED tests, TEST-148..282); ESC-001 opened at tests phase on a REQ-013/TASK-010 audit-completeness contradiction (unknown-sender rejection auditing) -- STOPPED for human resolution before implement"
 }

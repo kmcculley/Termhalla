@@ -1,15 +1,78 @@
 {
   "feature": "0007-orky-action-dispatch",
-  "phase": null,
+  "phase": "tests",
   "gates": {
     "brainstorm": {
       "passed": true,
       "at": "2026-07-01T02:55:41.564Z",
       "evidence": "Resolved by the AI orchestrator under the human's standing autopilot directive (2026-07-01): no blocking ambiguity found, design grounded in roadmap.md's explicit hard constraints (thin-client, ADR-004, ADR-022 control-plane) rather than a coin-flip. See 01-concept.md D1-D3.",
       "external": true
+    },
+    "spec": {
+      "passed": true,
+      "at": "2026-07-01T03:15:03.690Z",
+      "tokens": [
+        {
+          "token": "findings",
+          "pass": true,
+          "evidence": "no open blocking findings (CRITICAL/HIGH or contract-violation) for this gate"
+        }
+      ]
+    },
+    "plan": {
+      "passed": true,
+      "at": "2026-07-01T03:19:47.436Z",
+      "tokens": [
+        {
+          "token": "spec-freeze",
+          "pass": true,
+          "evidence": "spec unchanged since the spec gate"
+        },
+        {
+          "token": "traceability-plan",
+          "pass": true,
+          "evidence": "all 20 REQ(s) trace to TASK"
+        },
+        {
+          "token": "findings",
+          "pass": true,
+          "evidence": "no open blocking findings (CRITICAL/HIGH or contract-violation) for this gate"
+        }
+      ]
+    },
+    "tests": {
+      "passed": true,
+      "at": "2026-07-01T03:42:33.813Z",
+      "tokens": [
+        {
+          "token": "spec-freeze",
+          "pass": true,
+          "evidence": "spec unchanged since the spec gate"
+        },
+        {
+          "token": "tests-red",
+          "pass": true,
+          "evidence": "tests are RED (exit 1) — freeze snapshot captured"
+        }
+      ]
     }
   },
   "iterations": {},
-  "escalations": [],
-  "concerns": []
+  "escalations": [
+    {
+      "id": "ESC-001",
+      "phase": "tests",
+      "reason": "Spec/plan self-contradiction on audit-log completeness (enterprise-arch concern), surfaced by the test-designer while writing TEST-218-223/259/271-279. REQ-013's acceptance clause literally requires an audit line for 'a rejected (unknown-sender / root-not-allowed) ... action' -- i.e. BOTH rejection kinds get audited. But 03-plan.md TASK-010 explicitly designs the opposite for the unknown-sender case: 'The unknown-sender path returns WITHOUT ever calling into the dispatcher (so no audit-log entry is written for it either -- REQ-003's without invoking any CLI is satisfied trivially since sender-rejection happens strictly before the dispatcher method runs).' These cannot both be true as written: TASK-010's registrar-level sender check happens BEFORE the dispatcher (and its injected OrkyActionAuditLog) is ever reached, so an unknown-sender rejection structurally cannot produce an audit line under the current file/module boundary (register-orky-action.ts has no audit-log reference; only orky-action-dispatcher.ts does). The test-designer did not adjudicate this: it pinned tests to the TASK-010-consistent behavior (register-orky-action.test.ts TEST-272 asserts the dispatcher is never invoked on unknown-sender) and satisfied REQ-013's acceptance criterion using only the root-not-allowed case (an unambiguous case that does reach the dispatcher), leaving the unknown-sender-audit question genuinely open. This is exactly the kind of design gap the coordinator was told to escalate rather than guess on, since it is the FIRST write-capable, project-mutating IPC surface in the app and enterprise-arch/audit-completeness was called out as a first-class concern in both 01-concept.md and 02-spec.md. Two resolution paths exist, both mechanical but requiring a REAL decision before implement: (A) accept TASK-010 as-is and narrow REQ-013's acceptance text to 'every action that reaches the dispatcher is audited; a sender rejected at the registrar boundary is not' (spec edit, minor, keeps the current clean separation where register-orky-action.ts never imports the audit log); or (B) thread an OrkyActionAuditLog reference into register-orky-action.ts so a registrar-level unknown-sender rejection is ALSO audited (plan edit to TASK-010, adds a dependency from the registrar to a TASK-005 artifact it currently does not use, and needs a decision on whether the registrar or the dispatcher owns writing that specific line). My recommendation: (A) is more consistent with REQ-003's own acceptance text ('a rejected sender ... returns ... WITHOUT ... invoking any CLI' -- silent on audit) and keeps the security-relevant boundary crisp (sender validation is a hard gate BEFORE any project-scoped action is even attempted, so there is arguably nothing project-specific yet to attribute), but a security-minded read could reasonably want EVERY dispatch attempt against this write-capable surface logged, including rejected ones, for after-the-fact forensics of an unrecognized/rogue sender probing the surface -- which is closer to a literal reading of REQ-013's own words and enterprise-arch's stated intent. I am not deciding this myself; recommend the human choose (A) or (B) before the implement phase, since it determines TASK-010's actual file boundary and whether register-orky-action.test.ts's TEST-272 needs a follow-up test-designer amendment.",
+      "kind": "judgment",
+      "finding": null,
+      "status": "open",
+      "at": "2026-07-01T03:42:56.676Z"
+    }
+  ],
+  "concerns": [],
+  "attempts": {
+    "spec": 0,
+    "plan": 0,
+    "tests": 0
+  }
 }

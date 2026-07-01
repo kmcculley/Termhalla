@@ -1,0 +1,148 @@
+{
+  "REQ-001": {
+    "tasks": ["TASK-008", "TASK-009", "TASK-010"],
+    "tests": ["TEST-197", "TEST-198", "TEST-250", "TEST-271", "TEST-279", "TEST-281"],
+    "files": [
+      "src/main/orky/orky-action-dispatcher.ts",
+      "src/shared/ipc-contract.ts",
+      "src/main/ipc/register-orky-action.ts"
+    ]
+  },
+  "REQ-002": {
+    "tasks": ["TASK-001", "TASK-006", "TASK-008"],
+    "tests": ["TEST-184", "TEST-186", "TEST-234", "TEST-235", "TEST-177"],
+    "files": [
+      "src/shared/types.ts",
+      "src/shared/orky-action-result.ts",
+      "src/main/orky/orky-action-dispatcher.ts"
+    ]
+  },
+  "REQ-003": {
+    "tasks": ["TASK-010"],
+    "tests": ["TEST-272", "TEST-273", "TEST-274", "TEST-275", "TEST-276", "TEST-278"],
+    "files": ["src/main/ipc/register-orky-action.ts"]
+  },
+  "REQ-004": {
+    "tasks": ["TASK-008"],
+    "tests": ["TEST-229", "TEST-230", "TEST-248"],
+    "files": ["src/main/orky/orky-action-dispatcher.ts", "src/main/orky/orky-registry.ts"]
+  },
+  "REQ-005": {
+    "tasks": ["TASK-002", "TASK-008"],
+    "tests": [
+      "TEST-148", "TEST-149", "TEST-150", "TEST-151", "TEST-152", "TEST-153", "TEST-154", "TEST-155",
+      "TEST-156", "TEST-161", "TEST-174", "TEST-231", "TEST-232", "TEST-233"
+    ],
+    "files": ["src/shared/orky-action-validate.ts", "src/main/orky/orky-action-dispatcher.ts"]
+  },
+  "REQ-006": {
+    "tasks": ["TASK-008"],
+    "tests": ["TEST-191", "TEST-192", "TEST-234", "TEST-235", "TEST-236"],
+    "files": ["src/main/orky/orky-action-dispatcher.ts"]
+  },
+  "REQ-007": {
+    "tasks": ["TASK-008"],
+    "tests": ["TEST-166", "TEST-167", "TEST-168", "TEST-237", "TEST-238", "TEST-239"],
+    "files": ["src/main/orky/orky-action-dispatcher.ts"]
+  },
+  "REQ-008": {
+    "tasks": ["TASK-008"],
+    "tests": [
+      "TEST-170", "TEST-171", "TEST-172", "TEST-173", "TEST-186", "TEST-187",
+      "TEST-240", "TEST-241", "TEST-242", "TEST-243", "TEST-244", "TEST-245"
+    ],
+    "files": ["src/main/orky/orky-action-dispatcher.ts"]
+  },
+  "REQ-009": {
+    "tasks": ["TASK-008"],
+    "tests": ["TEST-193", "TEST-194", "TEST-246", "TEST-247", "TEST-248"],
+    "files": ["src/main/orky/orky-action-dispatcher.ts"]
+  },
+  "REQ-010": {
+    "tasks": ["TASK-004", "TASK-006"],
+    "tests": [
+      "TEST-178", "TEST-179", "TEST-211", "TEST-212", "TEST-213", "TEST-214", "TEST-215", "TEST-216",
+      "TEST-217", "TEST-249", "TEST-250"
+    ],
+    "files": ["src/main/orky/orky-cli-runner.ts", "src/shared/orky-action-result.ts"]
+  },
+  "REQ-011": {
+    "tasks": ["TASK-006"],
+    "tests": [
+      "TEST-180", "TEST-181", "TEST-182", "TEST-183", "TEST-184", "TEST-185", "TEST-186", "TEST-187",
+      "TEST-188", "TEST-189", "TEST-190", "TEST-191", "TEST-192", "TEST-193", "TEST-194", "TEST-195",
+      "TEST-211", "TEST-212", "TEST-251"
+    ],
+    "files": ["src/shared/orky-action-result.ts"]
+  },
+  "REQ-012": {
+    "tasks": ["TASK-003", "TASK-008"],
+    "tests": [
+      "TEST-204", "TEST-205", "TEST-206", "TEST-207", "TEST-208", "TEST-209", "TEST-210",
+      "TEST-252", "TEST-253", "TEST-254"
+    ],
+    "files": ["src/main/orky/orky-cli-locate.ts", "src/main/orky/orky-action-dispatcher.ts"]
+  },
+  "REQ-013": {
+    "tasks": ["TASK-005", "TASK-008"],
+    "tests": [
+      "TEST-218", "TEST-219", "TEST-220", "TEST-221", "TEST-222", "TEST-223",
+      "TEST-255", "TEST-256", "TEST-257", "TEST-258", "TEST-259"
+    ],
+    "files": ["src/main/orky/orky-action-audit.ts", "src/main/orky/orky-action-dispatcher.ts"]
+  },
+  "REQ-014": {
+    "tasks": ["TASK-002"],
+    "tests": [
+      "TEST-157", "TEST-158", "TEST-159", "TEST-160", "TEST-161", "TEST-162", "TEST-163", "TEST-165",
+      "TEST-166", "TEST-167", "TEST-168", "TEST-170", "TEST-173", "TEST-175", "TEST-177",
+      "TEST-239", "TEST-245", "TEST-260", "TEST-261", "TEST-262", "TEST-263"
+    ],
+    "files": ["src/shared/orky-action-validate.ts"]
+  },
+  "REQ-015": {
+    "tasks": ["TASK-007", "TASK-008"],
+    "tests": [
+      "TEST-224", "TEST-225", "TEST-226", "TEST-227", "TEST-228", "TEST-264", "TEST-265", "TEST-266"
+    ],
+    "files": ["src/main/orky/orky-action-queue.ts", "src/main/orky/orky-action-dispatcher.ts"]
+  },
+  "REQ-016": {
+    "tasks": ["TASK-008"],
+    "tests": ["TEST-267", "TEST-268"],
+    "files": ["src/main/orky/orky-action-dispatcher.ts"]
+  },
+  "REQ-017": {
+    "tasks": ["TASK-011"],
+    "tests": ["TEST-282"],
+    "files": ["src/preload/index.ts"]
+  },
+  "REQ-018": {
+    "tasks": ["TASK-001", "TASK-009", "TASK-010", "TASK-011"],
+    "tests": [
+      "TEST-196", "TEST-197", "TEST-199", "TEST-200", "TEST-201", "TEST-202", "TEST-203",
+      "TEST-271", "TEST-277", "TEST-281"
+    ],
+    "files": [
+      "src/shared/types.ts",
+      "src/shared/ipc-contract.ts",
+      "src/main/ipc/register-orky-action.ts",
+      "src/preload/index.ts"
+    ]
+  },
+  "REQ-019": {
+    "tasks": ["TASK-008"],
+    "tests": ["TEST-269", "TEST-270"],
+    "files": ["src/main/orky/orky-action-dispatcher.ts"]
+  },
+  "REQ-020": {
+    "tasks": ["TASK-012"],
+    "tests": ["TEST-280"],
+    "files": [
+      "docs/features/orky-action-dispatch.md",
+      "CLAUDE.md",
+      "CHANGELOG.md",
+      ".orky/baseline/architecture.md"
+    ]
+  }
+}
