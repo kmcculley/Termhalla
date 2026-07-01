@@ -26,6 +26,17 @@
 // TEST-035 loopback (post-merge of sibling feature 0005-cross-project-orky-registry): the byte-hash
 // check below was replaced with a structural check on OrkyTracker's public API — see the comment on
 // TEST-035 itself for the full rationale.
+//
+// TEST-031 loopback (ESC-002 on sibling feature 0007-orky-action-dispatch, resolved): the original
+// assertion used a broad `/^orky[A-Z]/` identifier-NAME regex over `Object.entries(CH)` and asserted
+// EXACTLY the 3 pre-0014 orky-prefixed identifiers exist — but 0007's own frozen spec (REQ-018)
+// legitimately adds 4 new `orkyAction:*` channels (orkyActionResolveEscalation/submitWork/
+// recordHumanGate/driveStatus) whose CH *keys* also match that identifier-name regex, tripping the
+// old assertion even though their wire VALUES (`orkyAction:*`) never collide with the read-only
+// `orky:` domain. Narrowed to keep ONLY the wire-value-prefix check (the invariant REQ-012 actually
+// protects — no stray `orky:`-prefixed channel outside the 3 known read-only ones) plus the untouched
+// pane-status-interface check; dropped the identifier-name-based count, since new orky-namespaced
+// identifiers in a DISTINCT `orkyAction:*` wire domain are expected and correct, not a violation.
 import { describe, it, expect } from 'vitest'
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
@@ -77,14 +88,13 @@ describe('Payload decode path — no eval/Function/dynamic interpretation (REQ-0
   })
 })
 
-describe('No new pane-status type or orky:* IPC channel introduced — second SOURCE only (REQ-012)', () => {
-  it('TEST-031 REQ-012 the ipc-contract defines exactly the 3 pre-existing orky:* channels — no new channel added', () => {
-    const orkyChannelValues = Object.entries(CH)
-      .filter(([key]) => /^orky[A-Z]/.test(key))
-      .map(([, v]) => v)
-      .sort()
-    expect(orkyChannelValues).toEqual(['orky:status', 'orky:unwatch', 'orky:watch'])
-    // belt-and-suspenders: no OTHER 'orky:' string literal anywhere in the contract value set
+describe('No orky: wire-value collision from new channels; pane-status type unforked (REQ-012)', () => {
+  it('TEST-031 REQ-012 no channel value in the ipc-contract collides with the read-only orky: domain — new channels (e.g. orkyAction:* from feature 0007) are expected and use a distinct wire prefix; no second pane-status interface forked alongside OrkyPaneStatus', () => {
+    // The actual invariant REQ-012 protects: no OTHER 'orky:'-prefixed wire-value string literal exists
+    // beyond the 3 pre-existing read-only channels. This is a wire-VALUE check, not an identifier-NAME
+    // check — sibling/later features may legitimately add new orky-namespaced identifiers (e.g. feature
+    // 0007's orkyAction:* dispatch surface) as long as their wire values live in a distinct namespace and
+    // never collide with this read-only 'orky:' domain.
     const allOrkyLikeValues = Object.values(CH).filter(v => typeof v === 'string' && v.startsWith('orky:'))
     expect(allOrkyLikeValues.sort()).toEqual(['orky:status', 'orky:unwatch', 'orky:watch'])
 

@@ -21,6 +21,12 @@
 // Every distinct rejection reason carries its OWN message (CONV-001) — collapsing branches into one
 // generic string breaks REQ-014's "field-specific message" acceptance. Never throws (CONV-002).
 //
+// TEST-156 loopback (ESC-002, resolved): the original assertion demanded ALL SIX FeatureSlug rejection
+// messages be pairwise-unique, which contradicts TEST-150/TEST-151 in THIS SAME FILE — those intentionally
+// pin 'a/b' and 'a\b' to the SAME single-segment-violation message by design (03-plan.md TASK-002: one
+// shared message for any path-separator violation). Relaxed to assert that intentional exception
+// explicitly, then assert uniqueness only across the remaining, genuinely-distinct rejection reasons.
+//
 // Runs RED today: `src/shared/orky-action-validate.ts` does not exist yet (module-not-found).
 import { describe, it, expect } from 'vitest'
 import {
@@ -79,8 +85,17 @@ describe('validateFeatureSlug — single-segment confinement (REQ-005)', () => {
     expect(r).toEqual({ ok: true, slug: '0007-orky-action-dispatch' })
   })
 
-  it('TEST-156 CONV-001 every distinct FeatureSlug rejection above carries a UNIQUE message (never one generic string)', () => {
-    const msgs = [42, '', 'a/b', 'a\\b', '..', 'C:foo']
+  it('TEST-156 CONV-001 every distinct FeatureSlug rejection carries a UNIQUE message, EXCEPT the intentional a/b vs a\\b exception (TEST-150/151 both pin the SAME single-segment message by design)', () => {
+    const slashResult = validateFeatureSlug('a/b')
+    const backslashResult = validateFeatureSlug('a\\b')
+    expect(slashResult.ok).toBe(false)
+    expect(backslashResult.ok).toBe(false)
+    // the intentional exception: both path-separator violations share ONE message (TASK-002, TEST-150/151)
+    if (!slashResult.ok && !backslashResult.ok) expect(slashResult.error).toBe(backslashResult.error)
+
+    // every OTHER distinct rejection reason (type, empty, dotdot, absolute-path) still gets its OWN,
+    // pairwise-unique message — de-dupe the path-separator pair down to a single representative first
+    const msgs = [42, '', 'a/b', '..', 'C:foo']
       .map(v => validateFeatureSlug(v))
       .map(r => (r.ok ? '' : r.error))
     expect(new Set(msgs).size).toBe(msgs.length)

@@ -1,6 +1,6 @@
 {
   "feature": "0007-orky-action-dispatch",
-  "phase": "tests",
+  "phase": "implement",
   "gates": {
     "brainstorm": {
       "passed": true,
@@ -39,6 +39,48 @@
           "evidence": "no open blocking findings (CRITICAL/HIGH or contract-violation) for this gate"
         }
       ]
+    },
+    "tests": {
+      "passed": true,
+      "at": "2026-07-01T11:37:17.149Z",
+      "tokens": [
+        {
+          "token": "spec-freeze",
+          "pass": true,
+          "evidence": "spec unchanged since the spec gate"
+        },
+        {
+          "token": "tests-red",
+          "pass": true,
+          "evidence": "tests are GREEN on a tests loopback (coverage augmentation; implementation already exists) — freeze re-captured"
+        }
+      ]
+    },
+    "implement": {
+      "passed": true,
+      "at": "2026-07-01T11:43:00.350Z",
+      "tokens": [
+        {
+          "token": "spec-freeze",
+          "pass": true,
+          "evidence": "spec unchanged since the spec gate"
+        },
+        {
+          "token": "build",
+          "pass": true,
+          "evidence": "build exited 0"
+        },
+        {
+          "token": "test",
+          "pass": true,
+          "evidence": "test exited 0"
+        },
+        {
+          "token": "test-freeze",
+          "pass": true,
+          "evidence": "test files unchanged since freeze"
+        }
+      ]
     }
   },
   "iterations": {
@@ -67,14 +109,28 @@
       "at": "2026-07-01T11:06:20.646Z",
       "decision": "Approved: both are frozen test-content bugs, not implementation bugs. (1) Relax TEST-156 (tests/shared/orky-action-validate.test.ts) to accept the intentional shared rejection message between 'a/b' and 'a\\b' per TASK-002's own design (matches sibling TEST-150/151). (2) Narrow TEST-031 (tests/main/orky-osc-structural.test.ts, feature 0014's frozen suite) to the wire-value-prefix check it already performs as a second assertion, dropping the broader identifier-name-regex heuristic that F7's legitimate new orkyAction:* channels trip. Same fix class as the TEST-035 case (CONV-012). Loop back to tests for a clean test-designer redo; doc-sync should generalize CONV-012 to cover shared identifier-namespace tests, not just shared source files.",
       "resolvedAt": "2026-07-01T11:26:06.512Z"
+    },
+    {
+      "id": "ESC-003",
+      "phase": "review",
+      "reason": "Security lens (attempt 1, first reviewer dispatched) filed FINDING-SEC-001 (HIGH, verified independently by the coordinator): orky-action-dispatcher.ts passes human-authored free-text fields -- 'decision' (doResolveEscalation's gatekeeper fallback path, line 166: ['resolve-escalation','--feature',featureDir,'--id',escalationId,'--decision',decision]) and 'evidence' (doRecordHumanGate, lines 247-250: ['record','--feature',featureDir,'--gate',gate,'--verdict',verdict,'--evidence',evidence]) -- as the RAW, final argv element to Orky's own gatekeeper CLI, with no guard against a value that itself starts with '--'. Confirmed by reading C:/dev/Orky/plugin/gatekeeper/cli.js's parseArgs (lines 30-41) directly: it scans the WHOLE argv array for any '--'-prefixed token, and if the token immediately following a recognized flag ALSO starts with '--', the flag's value is set to boolean true (not consumed) and the following token is independently re-parsed as its own flag. Concretely: evidence:'--force' silently corrupts recordHumanGate's evidence to boolean true AND injects a live '--force' flag into gatekeeper record (which REQ-008 explicitly says must NEVER be passed) -- currently inert only because the dispatcher's own independent gate-allowlist pre-check happens to run before --force's effect would matter, i.e. safety rests on ONE remaining layer instead of REQ-008's stated two independent layers. decision:'--anything is fine' similarly corrupts state.json's escalations[].decision field to the boolean true instead of the human's real text (gatekeeper.js:627 esc.decision = decision || ''). Neither orky-action-validate.ts's validators nor the dispatcher reject a '--'-prefixed decision/evidence/escalationId/feature value before it reaches this raw argv position. This is a genuine security + data-integrity gap in the FIRST write-capable IPC surface in the app, on the exact enterprise-arch audit-completeness concern REQ-013/ESC-001 already centered on -- not a re-litigation of ESC-001 (which was about WHETHER an unknown-sender rejection gets audited; this is about whether an authored decision/evidence VALUE that reaches the dispatcher is preserved intact and cannot inject a CLI flag). Recommended fix (from the reviewer, matches my own read of the code): before constructing any argv array passed to runOrkyCli, reject (invalid-args, CONV-001-actionable message) any free-text field that will land in a RAW (non-JSON-encoded) argv position if it starts with '--' -- specifically decision/escalationId in validateResolveEscalationRequest, evidence in validateRecordHumanGateRequest, and the feature slug in validateFeatureSlug (all four flow into a raw argv position). title/detail/phase (submitWork) are unaffected since they travel inside the JSON-encoded --payload argument, never as raw argv. This requires implementation changes (loopback to implement, likely via a fresh test-designer amendment first since the guard needs new frozen-test coverage) and is squarely outside what I am authorized to fix or decide unilaterally -- escalating per the coordinator's standing HIGH-finding rule. Stopping the review fan-out here (quality/devils-advocate/networking/enterprise-arch/codex-cross-check lenses NOT yet dispatched) pending human decision.",
+      "kind": "judgment",
+      "finding": "FINDING-SEC-001",
+      "status": "open",
+      "at": "2026-07-01T11:55:59.972Z"
     }
   ],
-  "concerns": [],
+  "concerns": [
+    "security",
+    "networking",
+    "quality",
+    "enterprise-arch"
+  ],
   "attempts": {
     "spec": 0,
     "plan": 0,
     "tests": 0,
-    "implement": 1
+    "implement": 0
   },
   "loopbacks": [
     {
