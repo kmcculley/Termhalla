@@ -38,6 +38,11 @@ to it when a review surfaces a lesson general enough to outlive its feature.
   `CLAUDE.md` and `.orky/baseline/`) for every phrasing of the old claim — never only the files a
   spec enumerated — so no stale copy is left to contradict the new behavior.
   *(from FINDING-DOC-001 in 0003-pane-minimize-restore)*
+- **CONV-009** — A derived status label MUST NOT render a completeness word ("done"/"complete") unless
+  the completeness signal it is actually derived from (e.g. gate fullness) holds — never as an
+  incidental fallback for some other nullable field whose "null implies complete" assumption isn't
+  enforced on that code path.
+  *(from FINDING-DA-009 in 0014-orky-osc-heartbeat)*
 
 ## Principles
 Higher-level stances that inform specs and reviews but are too broad to gate mechanically.

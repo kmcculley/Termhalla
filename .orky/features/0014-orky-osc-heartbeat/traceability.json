@@ -193,20 +193,27 @@
     "tasks": [
       "TASK-008"
     ],
-    "tests": [],
+    "tests": [
+      "TEST-042"
+    ],
     "files": [
-      "docs/features/orky-osc-heartbeat.md"
+      "docs/features/orky-osc-heartbeat.md",
+      ".orky/features/0014-orky-osc-heartbeat/02-spec.md",
+      "tests/main/orky-osc-structural.test.ts"
     ]
   },
   "REQ-016": {
     "tasks": [
       "TASK-008"
     ],
-    "tests": [],
+    "tests": [
+      "TEST-043"
+    ],
     "files": [
       "docs/features/orky-osc-heartbeat.md",
       "CLAUDE.md",
-      "CHANGELOG.md"
+      "CHANGELOG.md",
+      "tests/main/orky-osc-structural.test.ts"
     ]
   },
   "REQ-017": {

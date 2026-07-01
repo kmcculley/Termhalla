@@ -1,7 +1,7 @@
 {
   "feature": ".orky/features/0014-orky-osc-heartbeat",
   "projectRoot": "C:/dev/Termhalla/.claude/worktrees/agent-ab11ac825d6caf9fc",
-  "phase": "implement",
-  "lastTickAt": "2026-06-30T23:23:20.294Z",
-  "lastAction": "tests gate passed (RED for TEST-040); flowing to implement to fix gate-based kind derivation in src/shared/orky-status.ts"
+  "phase": "doc-sync",
+  "lastTickAt": "2026-06-30T23:58:42.008Z",
+  "lastAction": "review gate passed; flowing to doc-sync to close FINDING-QUAL-004 (real ADR-026 contract docs) and reconcile traceability"
 }

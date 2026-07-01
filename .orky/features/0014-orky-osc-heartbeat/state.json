@@ -1,6 +1,6 @@
 {
   "feature": "0014-orky-osc-heartbeat",
-  "phase": "implement",
+  "phase": "doc-sync",
   "gates": {
     "brainstorm": {
       "passed": true,
@@ -57,8 +57,8 @@
       ]
     },
     "implement": {
-      "passed": false,
-      "at": "2026-06-30T23:27:05.847Z",
+      "passed": true,
+      "at": "2026-06-30T23:41:55.983Z",
       "tokens": [
         {
           "token": "spec-freeze",
@@ -72,13 +72,50 @@
         },
         {
           "token": "test",
-          "pass": false,
-          "evidence": "test exited 1"
+          "pass": true,
+          "evidence": "test exited 0"
         },
         {
           "token": "test-freeze",
           "pass": true,
           "evidence": "test files unchanged since freeze"
+        }
+      ]
+    },
+    "review": {
+      "passed": true,
+      "at": "2026-06-30T23:57:42.605Z",
+      "tokens": [
+        {
+          "token": "spec-freeze",
+          "pass": true,
+          "evidence": "spec unchanged since the spec gate"
+        },
+        {
+          "token": "findings",
+          "pass": true,
+          "evidence": "no open blocking findings (CRITICAL/HIGH or contract-violation) for this gate"
+        }
+      ]
+    },
+    "doc-sync": {
+      "passed": true,
+      "at": "2026-07-01T00:17:12.029Z",
+      "tokens": [
+        {
+          "token": "spec-freeze",
+          "pass": true,
+          "evidence": "spec unchanged since the spec gate"
+        },
+        {
+          "token": "traceability",
+          "pass": true,
+          "evidence": "all 17 REQ(s) trace to TASK+TEST"
+        },
+        {
+          "token": "findings",
+          "pass": true,
+          "evidence": "no open blocking findings (CRITICAL/HIGH or contract-violation) for this gate"
         }
       ]
     }
@@ -120,8 +157,9 @@
     "spec": 0,
     "plan": 0,
     "tests": 0,
-    "implement": 1,
-    "review": 2
+    "implement": 0,
+    "review": 0,
+    "doc-sync": 0
   },
   "traceability": {
     "testIds": [

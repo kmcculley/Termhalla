@@ -23,7 +23,7 @@
     "phase_of_origin": "implement",
     "contract_violation": true,
     "status": "resolved",
-    "verified_by": "security (2026-06-30): REQ-007 is correctly implemented in the new code at src/main/status/orky-osc-parser.ts:75-79 — `Buffer.byteLength(payload, 'utf8')` checked strictly before `JSON.parse`. TEST-016 (emoji-padded reason, .length under cap but UTF-8 bytes over) confirms rejection. The old key=value grammar this finding was filed against no longer exists."
+    "verified_by": "security (2026-06-30): REQ-007 is correctly implemented in the new code at src/main/status/orky-osc-parser.ts:75-79 — `Buffer.byteLength(payload, 'utf8')` checked strictly before `JSON.parse`. TEST-016 (emoji-padded reason, .length under cap but UTF-8 bytes over) confirms rejection. The old key=value grammar this finding was filed against no longer exists. RE-VERIFIED security (loopback iter3, 2026-06-30): this iteration's diff is scoped entirely to src/shared/orky-status.ts's heartbeatKind() (REQ-009 kind-derivation, FINDING-DA-004/ESC-002) plus test/fixture/spec files; orky-osc-parser.ts (decodeHeartbeat, lines 75-79) is byte-for-byte unchanged in `git show HEAD`. Re-ran tests/main/orky-osc-parser.test.ts (20/20 green, incl. TEST-016) against the current worktree — still correctly resolved, no regression introduced by this iteration."
   },
   {
     "id": "FINDING-SEC-001",
@@ -36,7 +36,7 @@
     "phase_of_origin": "spec",
     "contract_violation": true,
     "status": "resolved",
-    "verified_by": "security (2026-06-30): REQ-006 is correctly implemented in the new code at src/main/status/orky-osc-parser.ts:111-126 — `MAX_PENDING_BYTES = 8192` enforced after every push, independent of scanOsc, margin verified correct (7 + 4096 + 2 = 4105 < 8192, so no in-flight legal marker can be dropped). TEST-014 pushes 6 MiB across 96 chunks and asserts the internal buffer stays bounded (not just no-throw). devils-advocate review (2026-06-30) independently confirmed this arithmetic."
+    "verified_by": "security (2026-06-30): REQ-006 is correctly implemented in the new code at src/main/status/orky-osc-parser.ts:111-126 — `MAX_PENDING_BYTES = 8192` enforced after every push, independent of scanOsc, margin verified correct (7 + 4096 + 2 = 4105 < 8192, so no in-flight legal marker can be dropped). TEST-014 pushes 6 MiB across 96 chunks and asserts the internal buffer stays bounded (not just no-throw). devils-advocate review (2026-06-30) independently confirmed this arithmetic. RE-VERIFIED security (loopback iter3, 2026-06-30): this iteration's diff (`git show HEAD`) touches only src/shared/orky-status.ts's heartbeatKind() — orky-osc-parser.ts's push()/MAX_PENDING_BYTES guard (lines 111-126) is byte-for-byte unchanged. Re-ran tests/main/orky-osc-parser.test.ts (20/20 green, incl. TEST-014 asserting the buffer stays ≤ MAX_PENDING_BYTES) against the current worktree — still correctly resolved, no regression introduced by this iteration."
   },
   {
     "id": "FINDING-DET-001",
@@ -112,8 +112,8 @@
     "claim": "heartbeatKind derives 'done' only when `hb.phase == null && hb.gateN >= hb.gateM`. Independently verified against the REAL Orky emitter (C:/dev/Orky/plugin/gatekeeper/gatekeeper.js:904): `phase: state.phase || d.phase || null`. Per this repo's own CLAUDE.md gotcha, a fully complete feature's state.json.phase is the string 'doc-sync' (truthy — human-review is tracked as a separate external gate, never written into state.json.phase), so the REAL emitter sends `phase:\"doc-sync\", gate:\"8/8\", needsHuman:false` for a genuinely complete feature — never `phase: null`. heartbeatKind's done-branch can therefore NEVER fire for a real completed feature; the chip renders 'busy' forever for any feature that finishes its pipeline while a bare-SSH pane is streaming its heartbeat. This defeats a core scenario the feature exists for (accurate status, including completion, with zero filesystem access). The frozen 02-spec.md's own REQ-009 acceptance criteria only exercise a synthetic `phase: null` complete-heartbeat fixture that likely never occurs on the real wire per the real emitter's logic verified above — i.e. the contradiction is baked into the FROZEN SPEC itself (REQ-009's derivation rule vs. ADR-026's actual `state.phase || d.phase || null` formula), not just an implementation bug; the code correctly implements what the spec says, but what the spec says does not match the real wire.",
     "fix": "Re-derive 'done' from gate fullness alone (`gateN >= gateM`) regardless of phase value, mirroring 0004's gate-based isComplete (`f.gates['human-review']?.passed === true`) rather than 0004's phase-null gateFrontier convention (which is a LOCAL Termhalla computation, not what the wire actually carries). Requires a REQ-009 spec correction (loopback to spec) plus a corrected test fixture reflecting the real emitter's `phase:\"doc-sync\", gate:\"8/8\"` shape for a complete feature, not the literal-null fixture currently frozen.",
     "phase_of_origin": "spec",
-    "status": "open",
-    "verified_by": "devils-advocate (2026-06-30), independently re-verified by the orchestrator directly against C:/dev/Orky/plugin/gatekeeper/gatekeeper.js:904 ground truth — confirmed accurate, not an over-read of ADR-026 prose.",
+    "status": "resolved",
+    "verified_by": "devils-advocate (loopback iter3, 2026-06-30): GENUINELY RESOLVED, confirmed by an independent re-derivation (not merely 'tests pass'). Re-derived against the real-emitter ground truth — a complete feature ALWAYS has gateN >= gateM regardless of the accompanying phase string, and an incomplete feature NEVER has gateN >= gateM. heartbeatKind (src/shared/orky-status.ts:358-362) now reads `if (hb.needsHuman === true) return 'needs-input'; if (hb.gateN >= hb.gateM) return 'done'; return 'busy'` — the `hb.phase == null &&` clause is gone, so done-detection is purely gate-based and reads `phase` nowhere (grep for `phase == null`/`phase === null` across orky-status.ts: zero matches). The frozen-SPEC contradiction this finding flagged is also gone: REQ-009 was rewritten to mandate gate-based, phase-independent done-detection, and its acceptance now carries the REAL emitter's complete shape `{phase:\"doc-sync\",gate:\"8/8\",needsHuman:false}` as the PRIMARY done example (with `phase:null,gate:\"8/8\"` retained only as a phase-independence companion); TASK-005 (03-plan.md) corrected to match. TEST-040 is a genuine regression guard, not a tautology: it feeds DONE_DOC_SYNC_HEARTBEAT (the real `phase:\"doc-sync\"` shape) and asserts the clean-done/idle roll-up — under the OLD `phase==null && gateN>=gateM` rule it returned 'busy' (because \"doc-sync\" !== null short-circuits the AND), so it fails RED on the old code and passes ONLY on the corrected gate-based rule. Ran `npx vitest run tests/shared/orky-heartbeat-status.test.ts`: 12/12 green incl. TEST-040/025/041. The 'busy forever for a completed bare-SSH feature' defect is fixed — a clean-done heartbeat now rolls up to the cleared/idle shape exactly as 0004 does for a completed filesystem feature (clean-done excluded from the popover). Residual: a phase-null label nit on the stream path (a busy/incomplete heartbeat whose phase is null still labels itself 'done' via the retained `?? 'done'` fallback) is tracked separately as FINDING-DA-009 (LOW, non-blocking) — it does NOT reopen DA-004's done-detection defect, which is correctly resolved.",
     "contract_violation": true
   },
   {
@@ -187,11 +187,11 @@
     "severity": "MEDIUM",
     "gate": "review",
     "location": ".orky/features/0014-orky-osc-heartbeat/state.json (traceability block)",
-    "claim": "state.json's traceability block is stale relative to the rewritten suite and canonical traceability.json/04-tests.md: records testIds TEST-001..TEST-042 (42; the current suite is 39), lists reqsWithoutUnitTests as [REQ-011, REQ-012] (now wrong — those ARE unit-tested; the genuinely doc-only REQs are REQ-015/REQ-016), and cites a phantom TASK-010 (the plan has TASK-001..TASK-008 only).",
-    "fix": "Refresh state.json's traceability block to testIds TEST-001..TEST-039, reqsWithoutUnitTests [REQ-015, REQ-016], reason citing TASK-008.",
+    "claim": "state.json's traceability block is stale relative to the rewritten suite and canonical traceability.json/04-tests.md: records testIds TEST-001..TEST-042 (42 entries; the current suite is now TEST-001..TEST-041 = 41 after this iteration's ESC-002 revision added TEST-040/TEST-041 — so the list's only remaining phantom is TEST-042, narrowed from the three phantoms 040/041/042 it carried when the suite was 39), lists reqsWithoutUnitTests as [REQ-011, REQ-012] (wrong — those ARE unit-tested per traceability.json: REQ-011→TEST-029/030, REQ-012→TEST-031; the genuinely doc-only REQs are REQ-015/REQ-016), and cites a phantom TASK-010 in reqsWithoutUnitTestsReason (the plan has TASK-001..TASK-008 only).",
+    "fix": "Refresh state.json's traceability block to testIds TEST-001..TEST-041, reqsWithoutUnitTests [REQ-015, REQ-016], reason citing TASK-008. (Editing state.json is the orchestrator's job, not the reviewer's — this finding only records the discrepancy.)",
     "phase_of_origin": "tests",
     "status": "open",
-    "verified_by": "doc-drift",
+    "verified_by": "doc-drift (re-verified 2026-06-30, loopback iter3 against state.json lines 126-182): the traceability block still lists testIds through TEST-042 and reqsWithoutUnitTests [REQ-011, REQ-012] with the TASK-010 reason. This iteration grew the real suite from 39 to 41 (added TEST-040/041), narrowing but NOT closing the discrepancy — TEST-042 remains phantom, and the wrong reqsWithoutUnitTests list + phantom-TASK-010 reason are unchanged.",
     "contract_violation": false
   },
   {
@@ -204,7 +204,7 @@
     "fix": "At doc-sync (or next sanctioned touch), reword to past tense scoped to the tests gate ('Was RED at the tests gate because...').",
     "phase_of_origin": "tests",
     "status": "open",
-    "verified_by": "doc-drift",
+    "verified_by": "doc-drift (re-verified 2026-06-30, loopback iter3): all three 'Runs RED:' present-tense header comments are still false post-implement (suite is GREEN; the parser implements the 9999/JSON contract). This iteration touched tests/shared/orky-heartbeat-status.test.ts (added an ITERATION NOTE at lines 22-28, expanded the fixture imports, and added the TEST-040/TEST-041 bodies) but did NOT reword its 'Runs RED:' comment, which remains at lines 17-20 and still reads in the present tense; tests/main/orky-osc-parser.test.ts:22 and tests/main/orky-osc-structural.test.ts:14 were untouched this iteration and their comments are likewise unchanged. All cited line numbers re-confirmed accurate.",
     "contract_violation": false
   },
   {
@@ -212,12 +212,12 @@
     "lens": "quality",
     "severity": "MEDIUM",
     "gate": "review",
-    "location": "src/shared/orky-status.ts:391",
+    "location": "src/shared/orky-status.ts:397",
     "claim": "`phase: hb.phase as OrkyPhase | null` force-casts OrkyHeartbeat.phase (typed OrkyPhase | string | null specifically because REQ-004 mandates verbatim passthrough of arbitrary strings) into OrkyFeatureStatus.phase's narrower closed union. Currently harmless (the value is only ever stringified, never switched on), but misrepresents the type system's guarantees for any future code that pattern-matches on it.",
     "fix": "Widen OrkyFeatureStatus.phase to OrkyPhase | string | null (documenting the heartbeat path's wider range), or introduce a small honest local type instead of the `as` cast.",
     "phase_of_origin": "implement",
     "status": "open",
-    "verified_by": "quality",
+    "verified_by": "quality (re-verified 2026-06-30, loopback iter3: location drifted 391->397 — iteration 3's 6-line REQ-009 doc-comment expansion above heartbeatKind pushed every later line in the file down by 6; `git show HEAD` confirms heartbeatToFeatureStatus's cast itself is untouched by this iteration, claim still holds verbatim)",
     "contract_violation": false
   },
   {
@@ -225,12 +225,25 @@
     "lens": "quality",
     "severity": "LOW",
     "gate": "review",
-    "location": "src/shared/orky-status.ts:295 (chipLabel) and :374 (heartbeatDetail)",
+    "location": "src/shared/orky-status.ts:295 (chipLabel) and :380 (heartbeatDetail)",
     "claim": "Both independently encode the same 'null phase renders as the literal done' convention as `?? 'done'`, in the same file, not centralized.",
     "fix": "Extract a tiny shared helper, e.g. `const phaseLabel = (p) => p ?? 'done'`, used at both sites.",
     "phase_of_origin": "implement",
     "status": "open",
-    "verified_by": "quality",
+    "verified_by": "quality (re-verified 2026-06-30, loopback iter3: chipLabel's line is unchanged at :295 (it precedes this iteration's edit point in the file); heartbeatDetail's line drifted 374->380 for the same 6-line-shift reason as FINDING-QUAL-002. Both `?? 'done'` call sites are otherwise byte-for-byte untouched by this iteration; claim still holds verbatim)",
+    "contract_violation": false
+  },
+  {
+    "id": "FINDING-QUAL-005",
+    "lens": "quality",
+    "severity": "MEDIUM",
+    "gate": "review",
+    "location": "src/shared/types.ts:71 (OrkyHeartbeat.phase field doc-comment)",
+    "claim": "This iteration (ESC-002/FINDING-DA-004) corrected the misleading 'a null phase implies done' framing everywhere it touched: src/shared/orky-status.ts's file-level wire-shape comment, heartbeatKind()'s JSDoc, and 02-spec.md's reproduced interface excerpt (02-spec.md line 147) all now explicitly distinguish 'null only falls back to the chip LABEL' from 'kind is derived purely from gates, never phase'. But the iteration never touched src/shared/types.ts, which defines the ACTUAL canonical `OrkyHeartbeat` interface that `heartbeatKind(hb: OrkyHeartbeat)` (src/shared/orky-status.ts:358) imports and operates on (`import type { ... OrkyHeartbeat } from './types'`, orky-status.ts:23). Its inline field comment at types.ts:71 still reads verbatim from before this fix: `phase: OrkyPhase | string | null // payload.phase, verbatim; null -> rendered \"done\"` — the same unqualified 'null -> done' phrasing whose ambiguity (does 'rendered done' mean the LABEL or the `kind`?) is the exact class of misreading this whole iteration exists to correct (the analogous, now-corrected REQ-009 spec wording produced FINDING-DA-004). A future maintainer reading the type's own doc-comment — the single most likely place to consult this field's contract — gets no indication that `kind` is gate-only and may reintroduce a `phase` check into `heartbeatKind`, regressing the exact bug this iteration just fixed.",
+    "fix": "Update src/shared/types.ts:71's inline comment to the corrected wording already used elsewhere in this iteration's diff, e.g. `phase: OrkyPhase | string | null // payload.phase, verbatim; null only affects the chip LABEL fallback ('done'), never the kind derivation (gate-based only, see heartbeatKind / REQ-009)`.",
+    "phase_of_origin": "implement",
+    "status": "resolved",
+    "verified_by": "quality (2026-06-30, loopback iter3 review): confirmed via `git show HEAD` that src/shared/types.ts is not in this commit's changed-file list, and via direct read that types.ts:71 still carries the pre-iteration-3 comment while orky-status.ts:341-346/352-357 and 02-spec.md:147 were all updated to the corrected, disambiguated wording. RESOLVED doc-sync (2026-06-30): src/shared/types.ts:71's `OrkyHeartbeat.phase` inline comment rewritten to `payload.phase, verbatim; null only affects the chip LABEL fallback ('done'), never the kind derivation (gate-based only, see heartbeatKind / REQ-009)` — matches the corrected wording used elsewhere in this iteration's diff (orky-status.ts, 02-spec.md). Comment-only change; no logic touched.",
     "contract_violation": false
   },
   {
@@ -242,8 +255,34 @@
     "claim": "Both files still describe the superseded 8888/key=value contract verbatim, not the real shipped ADR-026 (9999/JSON) contract. This is REQ-016's binding artifact. Quality and security lenses both flagged this independently; doc-drift lens confirmed via the spec's own Definition of Done that this is EXPECTED, NOT review-gate-blocking scope explicitly deferred to the doc-sync phase (implementer's report and 02-spec.md's DoD both state REQ-015/REQ-016 doc deliverables are 'verified at the doc-sync gate'). Re-scoped from 'review' to 'doc-sync' gate accordingly so it does not spuriously block the review gate; doc-sync MUST close this before the feature can be considered done.",
     "fix": "doc-sync phase: rewrite docs/features/orky-osc-heartbeat.md's contract section + worked example to the real \\x1b]9999;<json>\\x07 ADR-026 contract (copy from 02-spec.md's 'OSC marker CONTRACT' section verbatim) and update CHANGELOG.md [Unreleased] to match (wire format + cap numbers). Also fold in FINDING-DA-001's trust-boundary caveat while rewriting.",
     "phase_of_origin": "implement",
-    "status": "open",
-    "verified_by": "quality, security, doc-drift (consolidated 2026-06-30 — gate corrected from review to doc-sync per the spec's Definition of Done, which explicitly routes REQ-015/REQ-016 verification there)",
+    "status": "resolved",
+    "verified_by": "quality, security, doc-drift (consolidated 2026-06-30 — gate corrected from review to doc-sync per the spec's Definition of Done, which explicitly routes REQ-015/REQ-016 verification there). RESOLVED doc-sync (2026-06-30): docs/features/orky-osc-heartbeat.md's OSC marker CONTRACT section fully rewritten to the real ADR-026 contract (introducer \\x1b], code 9999, single first-';'-only separator, single-line compact JSON payload with the 7-field v/feature/phase/gate/needsHuman/reason/action schema table, BEL terminator MUST-accept/ST MAY-accept), citing src/main/status/orky-osc-parser.ts (ORKY_OSC/decodeHeartbeat) as the in-repo source and orky-adr-026-osc-heartbeat.md as the upstream source; both worked examples (app-loop tick, awaiting-human feature) reproduced as complete on-the-wire byte strings. Added a new 'Trust boundary' subsection folding in FINDING-DA-001's caveat verbatim. 'Out of scope: Orky-side emission' section rewritten to 'Scope: Orky-side emission is REAL and shipped' — states the emission is real/shipped/opt-in via config.heartbeat.osc, removes the stale 'dark in production' framing. 'Cross-repo drift caveat' section updated: reason is now documented as free-form prose (not a closed enum), gateM still expected to equal ORKY_PHASES.length (8), FINDING-DA-006's version-redefinition residual cited. CHANGELOG.md [Unreleased]'s orky-osc-heartbeat entry rewritten to describe the real \\x1b]9999;<json>\\x07 contract, opt-in emission, and shipped status. Grepped docs/ + CHANGELOG.md post-edit: zero remaining occurrences of '8888', 'orky=', or the key=value grammar (one unrelated false-positive hex color '#ff8888' in an unrelated terminal-links plan doc, not this contract).",
     "contract_violation": true
+  },
+  {
+    "id": "FINDING-DD-003",
+    "lens": "doc-drift",
+    "severity": "LOW",
+    "gate": "review",
+    "location": "tests/shared/orky-heartbeat-status.test.ts:6 (file-header contract-description comment)",
+    "claim": "The file-header comment at line 6 still describes `kind` as 'DERIVED in `orkyHeartbeatToPaneStatus` from `needsHuman`/`phase`/`gateN`/`gateM` (REQ-009)' — listing `phase` as a `kind`-derivation input. This iteration's ESC-002/FINDING-DA-004 correction made `kind` done-detection PURELY gate-based (`gateN >= gateM`); `phase` plays no role in `kind` (it only feeds the chip LABEL fallback `?? 'done'`). The SAME iteration added an ITERATION NOTE to this very file (lines 22-28) stating done-detection is 'completely independent of `phase`', so the header now self-contradicts, and line 6 perpetuates the exact stale `phase`-in-kind framing FINDING-DA-004 was raised to correct (now reconciled in src/shared/orky-status.ts's heartbeatKind doc-comment, 02-spec.md REQ-009, 03-plan.md TASK-005, and traceability.{json,md} — but not here).",
+    "fix": "At doc-sync (or the next sanctioned touch), reword line 6 to drop `phase` from the `kind` derivation list, e.g. '`kind` is now DERIVED ... from `needsHuman`/`gateN`/`gateM` (REQ-009 — gate-based done-detection; `phase` feeds only the chip LABEL fallback, never `kind`)', matching the corrected wording already used in heartbeatKind's doc-comment and 02-spec.md REQ-009.",
+    "phase_of_origin": "tests",
+    "status": "open",
+    "verified_by": "doc-drift (2026-06-30, loopback iter3 review): confirmed via direct read that tests/shared/orky-heartbeat-status.test.ts:6 lists `phase` among the kind-derivation inputs while the ITERATION NOTE this iteration added at lines 22-28 of the same file states done-detection is completely independent of `phase`; git show HEAD confirms the iteration edited this file (ITERATION NOTE + import additions + TEST-040/041 bodies) without reconciling line 6.",
+    "contract_violation": false
+  },
+  {
+    "id": "FINDING-DA-009",
+    "lens": "devils-advocate",
+    "severity": "LOW",
+    "gate": "review",
+    "location": "src/shared/orky-status.ts:295 (chipLabel `?? 'done'`) + :380 (heartbeatDetail `?? 'done'`) on the stream path / REQ-009 + TEST-041 (tests/shared/orky-heartbeat-status.test.ts:63-67)",
+    "claim": "This iteration correctly decoupled `kind`'s done-detection from `phase` (now `gateN >= gateM` alone), but left the `?? 'done'` phase-LABEL fallback in chipLabel/heartbeatDetail unchanged on the stream path — and that fallback's SEMANTICS no longer hold there. On 0004's filesystem path a null `phase` is PRODUCED BY `gateFrontier` and means complete, so labelling it 'done' is correct. On the 0014 stream path a null `phase` comes straight off the wire and (post-fix) is decoupled from completeness, so a feature-bearing heartbeat with `phase: null` but INCOMPLETE gates (`gateN < gateM`) derives `kind: 'busy'` yet renders the self-contradictory chip label `'auth-login · done · 5/8'` and detail `'auth-login: done in progress'` (traced directly: heartbeatKind returns 'busy' for 5>=8 false, while chipLabel/heartbeatDetail's `null ?? 'done'` injects the literal 'done'). This is EXACTLY the shape TEST-041 (`BUSY_PHASE_NULL_HEARTBEAT`, added by this same diff) constructs, yet TEST-041 asserts only `kind === 'busy'` / `not 'done'` and never inspects the label or detail — so the contradictory presentation is a case the tests ignore. Real-wire impact is nil (the emitter's `phase = state.phase || d.phase || null` is null only when `gateFrontier` is null, i.e. all gates passed, so phase-null-with-incomplete-gates does not occur on genuine output), hence LOW — but the spec's stated justification for keeping the fallback ('same chipLabel convention 0004 uses for gateFrontier') silently relies on the emitter invariant 'null phase => complete' that Termhalla never enforces or asserts, so a drifted/spoofed heartbeat (cf. DA-001 trust boundary, DA-006 cross-repo drift) would present a status that reads 'done' while being busy. Distinct from QUAL-003 (which flags only the `?? 'done'` code duplication, not its now-mismatched stream-path semantics), QUAL-005/DD-003 (stale doc/comment TEXT, not rendered output).",
+    "fix": "On the stream path, render a null `phase` neutrally for non-done kinds (e.g. omit the phase segment, or show the live gate fraction) rather than the literal 'done', so a busy/incomplete heartbeat never labels itself done; and/or extend TEST-041 to assert the chip label and detail of BUSY_PHASE_NULL do NOT contain 'done'. propose CONV: a derived status label MUST NOT render a completeness word ('done'/'complete') unless the completeness signal it is actually derived from (gate fullness) holds, independent of any single nullable field's incidental value.",
+    "phase_of_origin": "implement",
+    "status": "open",
+    "verified_by": "devils-advocate (2026-06-30, loopback iter3): traced orkyHeartbeatToPaneStatus(BUSY_PHASE_NULL_HEARTBEAT) → heartbeatKind 'busy' (5 >= 8 is false) but chipLabel yields 'auth-login · done · 5/8' and heartbeatDetail yields 'auth-login: done in progress' via `null ?? 'done'`; TEST-041 asserts only `kind`, leaving the label/detail unchecked. Suite green (`npx vitest run tests/shared/orky-heartbeat-status.test.ts` 12/12).",
+    "contract_violation": false
   }
 ]

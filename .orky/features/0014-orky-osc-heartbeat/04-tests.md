@@ -6,6 +6,13 @@ REQ-009 correction); the plan [`03-plan.md`](03-plan.md) defines **8 TASKs** (TA
 iteration 2, correcting TASK-005's `kind` derivation to match). These tests are **FROZEN once the tests
 gate passes (ADR-009)** — the implementer makes them pass without editing them.
 
+**Doc-sync closeout (this revision):** the Gatekeeper CLI's mechanical `traceability` gate token (used at
+the doc-sync gate) requires every REQ-NNN found in `02-spec.md` to trace to at least one TEST-ID — there is
+no "documentation-only, exempt from unit test" allowance, regardless of what this doc previously said about
+REQ-015/REQ-016. Two real structural tests, **TEST-042** and **TEST-043**, were added to
+`tests/main/orky-osc-structural.test.ts` to close that gap — see "Doc-sync closeout: TEST-042/TEST-043"
+below. The suite is now **43 TESTs total (TEST-001…TEST-043)**.
+
 ## Why this revision exists (re-plan, not an incremental patch)
 
 This feature previously went through tests/implement/review under an EARLIER, now-superseded spec
@@ -92,22 +99,97 @@ gate-based-only derivation, which is exactly its job as the regression-proof for
 |---|---|
 | `tests/fixtures/orky-osc-fixtures.ts` | Synthetic/golden OSC byte fixture helper (REQ-014) — `ORKY_OSC = '\x1b]9999;'`, `BEL`/`ST`, `wrapOrkyPayload`/`buildOrkyMarker` (JSON-payload builders), the worked examples (`APP_LOOP_*`, `AWAITING_HUMAN_*`, plus `BUSY_*`/`DONE_*`/`DONE_DOC_SYNC_*`/`BUSY_PHASE_NULL_*` from REQ-009's acceptance examples), and malformed/edge-case payload constants (`MALFORMED_JSON_MARKER`, `NON_OBJECT_JSON_MARKERS`, `EMPTY_PAYLOAD_MARKER`) for REQ-008. Pure byte-string builders; no process/network/filesystem access. Does NOT import the not-yet-rewritten parser module — a true golden fixture independent of the implementation (it imports only the pre-existing, Electron-free `ORKY_PHASES` from `@shared/orky-status`, feature 0004, to compute the app-loop heartbeat's default `gateM`). |
 | `tests/main/orky-osc-parser.test.ts` | Behavioral coverage of `OrkyOscParser` — REQ-001 (ADR-026 worked example + cross-prefix rejection + the literal-`;`-in-`reason` case), REQ-003 (chunk-boundary carry-over), REQ-004 (thin-client verbatim mapping, behavioral half), REQ-005 (forward-compat on `v`/unknown fields), REQ-006 (bounded carry-over ceiling, FINDING-SEC-001), REQ-007 (UTF-8 byte-length payload cap, FINDING-CODEX-001), REQ-008 (strict-but-tolerant JSON validation, total/never-throws), REQ-011 (app-loop heartbeat decode, parser half). TEST-001…TEST-022, TEST-029. **Unaffected by this revision's REQ-009 correction.** |
-| `tests/main/orky-osc-structural.test.ts` | Source-text / structural assertions — REQ-002 (`scanOsc` reuse shape), REQ-004 (no `eval`/`Function` in the decode path, structural half), REQ-012 (no new `orky:*` IPC channel, no forked `OrkyPaneStatus`-equivalent interface), REQ-013 (`orky-tracker.ts` byte-for-byte unchanged via a frozen sha256 hash; parser/bridge start no `.orky/` filesystem watch), REQ-014 (no 0014 test/fixture file depends on a live process/network), REQ-017 (`SCHEMA_VERSION` unchanged; no filesystem-write API surface). TEST-005, TEST-006, TEST-009, TEST-031, TEST-035, TEST-036, TEST-037, TEST-038, TEST-039. **Unaffected by this revision's REQ-009 correction.** |
+| `tests/main/orky-osc-structural.test.ts` | Source-text / structural assertions — REQ-002 (`scanOsc` reuse shape), REQ-004 (no `eval`/`Function` in the decode path, structural half), REQ-012 (no new `orky:*` IPC channel, no forked `OrkyPaneStatus`-equivalent interface), REQ-013 (`orky-tracker.ts` byte-for-byte unchanged via a frozen sha256 hash; parser/bridge start no `.orky/` filesystem watch), REQ-014 (no 0014 test/fixture file depends on a live process/network), REQ-017 (`SCHEMA_VERSION` unchanged; no filesystem-write API surface), **REQ-015/REQ-016 (doc-sync closeout, this revision — see below)**. TEST-005, TEST-006, TEST-009, TEST-031, TEST-035, TEST-036, TEST-037, TEST-038, TEST-039, **TEST-042, TEST-043**. |
 | `tests/shared/orky-heartbeat-status.test.ts` | `orkyHeartbeatToPaneStatus`/`selectOrkyPaneStatus` — REQ-009 (reuse of 0004's `orkyPaneStatus` presentation with the NEW derived-`kind` mapping, since ADR-026's wire no longer carries `kind`/`openBlocking`/`failed` — **gate-based done-detection only, per ESC-002/spec iteration 3**), REQ-010 (actionable `detail`), REQ-011 (app-loop → cleared shape, mapper half), REQ-013 (fs-wins precedence via `selectOrkyPaneStatus`). TEST-023, TEST-024, **TEST-040 (new)**, TEST-025 (reworded), **TEST-041 (new)**, TEST-026…TEST-028, TEST-030, TEST-032…TEST-034. |
 
-**41 TESTs total (TEST-001…TEST-041).** See `traceability.md` / `traceability.json` for the full
+**43 TESTs total (TEST-001…TEST-043).** See `traceability.md` / `traceability.json` for the full
 REQ→TASK→TEST matrix.
 
-## REQ-015 / REQ-016 are not unit-testable
+## Doc-sync closeout: TEST-042/TEST-043 (REQ-015/REQ-016)
 
-Both are documentation deliverables (the ADR-026 contract block + drift caveat + scope correction in
-`docs/features/orky-osc-heartbeat.md`, the CLAUDE.md link, the CHANGELOG entry). `02-spec.md`'s
-Definition of Done routes them to "Docs/integration" verified at the **doc-sync gate** (TASK-008), not a
-unit test. No TEST-ID is assigned to either; `traceability.json` records `"tests": []` for both, which is
-correct (not a coverage gap). Note the REQ numbers that are doc-only SHIFTED in this re-plan: the prior
-iteration's doc-only REQs were REQ-011/REQ-012 (under the old 13-REQ numbering); under the new 17-REQ
-ADR-026 spec they are **REQ-015/REQ-016** — REQ-011 and REQ-012 are now both unit-testable behavioral/
-structural requirements (the app-loop liveness tick, and the no-new-type/channel constraint respectively).
+`02-spec.md`'s own Definition of Done routed REQ-015 and REQ-016 to "Docs/integration, verified at the
+doc-sync gate" and this doc originally recorded them as not unit-testable, mirroring how the equivalent
+doc-only REQs in the prior (superseded) REQ numbering were handled. That framing turned out to be
+incompatible with the Gatekeeper CLI's mechanical `traceability` gate token for this profile: it requires
+**every** REQ-NNN id found in `02-spec.md` to trace to at least one TEST-ID in `traceability.json`, with no
+"documentation-only" carve-out. Running the gate at doc-sync failed with `traceability gaps: REQ-015: no
+TEST; REQ-016: no TEST`.
+
+Both REQs' acceptance criteria are, in fact, concrete and file-content-checkable (specific literal strings
+and patterns across specific files), so real tests were written rather than loosening the gate or
+mis-tagging documentation as a test. They were added to `tests/main/orky-osc-structural.test.ts` — the
+established home for this feature's cross-file structural/content-assertion checks (matching TEST-035's
+frozen-hash pattern and TEST-037's cross-file content-grep pattern):
+
+- **TEST-042** (REQ-015 — scope: Termhalla parser/renderer only; Orky-side emission is real/shipped)
+  asserts that both `02-spec.md` and `docs/features/orky-osc-heartbeat.md`:
+  - contain `config.heartbeat.osc` (states the emission is opt-in) and cite `ADR-026`;
+  - state the corrected framing — "no longer ... dark in production" — rather than a bare, unqualified
+    "out of scope"/"dark" claim about the current state (regex spans a markdown line-wrap, since the doc
+    wraps "dark in\nproduction" across two lines);
+  - describe the parser-only scope (`Termhalla-side only` in the spec, `parser + renderer` in the doc);
+
+  and that no file under this repo's own `src/` (`orky-osc-parser.ts`, `orky-status.ts`, and the
+  fs/stream bridge if present) references the separate `C:/dev/Orky` repo path — the only mechanical
+  cross-repo-touch check this suite can make from inside this repo (it cannot literally probe the other
+  repo's git history).
+- **TEST-043** (REQ-016 — cross-repo contract documented prominently + drift caveat) asserts that
+  `docs/features/orky-osc-heartbeat.md`:
+  - contains the exact ADR-026 wire prefix `\x1b]9999;` (as it appears in the doc's fenced code blocks);
+  - contains every field of the payload schema (`` `v` ``, `` `feature` ``, `` `phase` ``, `` `gate` ``,
+    `` `needsHuman` ``, `` `reason` ``, `` `action` ``);
+  - names the defining source file (`src/main/status/orky-osc-parser.ts`) and cites `ADR-026`;
+  - restates the parser-only/opt-in scope and carries a cross-repo drift caveat (matches `/drift/i` and
+    `/cross-repo/i`);
+
+  that `CLAUDE.md`'s "Where things live" table links to the feature doc
+  (`[orky-osc-heartbeat](docs/features/orky-osc-heartbeat.md)`); that `CHANGELOG.md`'s `[Unreleased]`
+  section (sliced out by matching from `## [Unreleased]` to the next `## [` heading) mentions "OSC
+  heartbeat"; and that **neither** the feature doc nor `CHANGELOG.md` contains the superseded contract
+  markers (`]8888;orky=`, `orky=<body>`, or the bare `8888` token) — deliberately not the bare word `orky`,
+  which legitimately appears throughout this codebase and would false-positive.
+
+Both `docs/features/orky-osc-heartbeat.md` and `CHANGELOG.md`'s `[Unreleased]` section were already
+rewritten to the real ADR-026 contract by this iteration's doc-sync pass, so **TEST-042 and TEST-043 both
+pass immediately** — they are regression-guard/closing tests for already-completed documentation work, not
+tests driving new implementation. No file under `src/` was modified to make them pass; the one fix made
+while writing TEST-042 was to the test's own regex (matching across the doc's markdown line-wrap), never to
+the doc content.
+
+Verification (targeted 3-file run, immediately after adding TEST-042/TEST-043):
+
+```
+npx vitest run tests/main/orky-osc-parser.test.ts tests/main/orky-osc-structural.test.ts tests/shared/orky-heartbeat-status.test.ts
+  -> Test Files  3 passed (3)
+     Tests  43 passed (43)
+```
+
+Full repo suite:
+
+```
+npm test
+  -> Test Files  119 passed (119)
+     Tests  798 passed (798)
+```
+
+(796 pre-existing + TEST-042 + TEST-043 = 798, all green — the two pre-existing, environment-dependent
+failures noted in the "RED verification" section below, from `tests/main/find-orky-root.test.ts` and
+`tests/main/orky-tracker.test.ts`, are no longer failing in this run's sandbox — unrelated to this feature
+either way.)
+
+## REQ-015 / REQ-016 — traceability history (superseded framing, kept for context)
+
+The original framing below ("not unit-testable") reflected `02-spec.md`'s Definition of Done and is kept
+here for historical context; it has been **superseded** by the doc-sync closeout above, which added
+TEST-042/TEST-043. `traceability.json` now records `REQ-015: ["TEST-042"]` and `REQ-016: ["TEST-043"]`.
+
+> Both are documentation deliverables (the ADR-026 contract block + drift caveat + scope correction in
+> `docs/features/orky-osc-heartbeat.md`, the CLAUDE.md link, the CHANGELOG entry). `02-spec.md`'s
+> Definition of Done routes them to "Docs/integration" verified at the **doc-sync gate** (TASK-008), not a
+> unit test. Note the REQ numbers that are doc-only SHIFTED in this re-plan: the prior iteration's doc-only
+> REQs were REQ-011/REQ-012 (under the old 13-REQ numbering); under the new 17-REQ ADR-026 spec they are
+> **REQ-015/REQ-016** — REQ-011 and REQ-012 are now both unit-testable behavioral/structural requirements
+> (the app-loop liveness tick, and the no-new-type/channel constraint respectively).
 
 ## Design notes / chosen test shapes
 
@@ -173,6 +255,13 @@ structural requirements (the app-loop liveness tick, and the no-new-type/channel
    pre-correction — this is expected, not a coverage gap, and is recorded explicitly above so a future
    reader does not mistake "2 of 3 REQ-009 tests already pass" for an under-tested correction. TEST-040 is
    the assertion whose pass/fail genuinely distinguishes the old rule from the corrected one.
+10. **(New, doc-sync closeout) TEST-042/TEST-043 assert against DOCUMENT CONTENT, not source code** — the
+    same category of structural test this file already uses for TEST-035 (frozen source hash) and TEST-037
+    (cross-file content grep), just applied to `02-spec.md`/`docs/features/orky-osc-heartbeat.md`/
+    `CLAUDE.md`/`CHANGELOG.md` instead of `.ts` source. Both regexes intentionally tolerate markdown
+    line-wraps (`[\s\S]{0,N}` gaps, `\s+` inside multi-word literal phrases) since prose in these docs
+    wraps at ~100 columns and a literal contiguous-line match would be fragile against reformatting that
+    does not change meaning.
 
 ## RED verification
 
@@ -219,3 +308,8 @@ This confirms the suite is RED for the correct reason — the targeted REQ-009 c
 not-yet-implemented gate-based-only `kind` derivation, not a syntax/import error (every new/rewritten
 module under test loads successfully; the one new failure is an `AssertionError` on the expected vs.
 actual `OrkyPaneStatus` shape, never a module-resolution failure).
+
+Both the RED state above (ESC-002 revision) and this revision's doc-sync closeout have since been resolved
+by implementation + doc-sync passes that are complete as of TEST-042/TEST-043's addition: the full targeted
+3-file suite and the full `npm test` run are both **fully green** (see "Doc-sync closeout" verification
+above).

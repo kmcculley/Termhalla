@@ -5,115 +5,144 @@ project's `.orky/` tree on disk, this feature parses a small OSC marker out of t
 stream. It exists for the case `orky-status.md`'s filesystem watcher cannot cover — a **bare-SSH pane**
 (no local `.orky/` tree the host can see) whose remote shell happens to print this marker. The
 **filesystem source always wins** when it has an opinion; the stream source is a fallback only
-(`selectOrkyPaneStatus`, REQ-009).
+(`selectOrkyPaneStatus`, REQ-013).
 
-This feature is **Termhalla-side only**. It defines and parses the marker; nothing in this repo emits
-it. See "Out of scope: Orky-side emission" below.
+This feature is **Termhalla-side only**: it builds the parser + renderer. The matching emission now
+exists for real on the separate `C:/dev/Orky` CLI (ADR-026, opt-in). See "Scope: Orky-side emission is
+REAL and shipped" below.
 
-## OSC marker CONTRACT (authoritative — copy byte-for-byte to the Orky side)
+## OSC marker CONTRACT (authoritative — ADR-026, reproduced verbatim)
 
 > Defined in [`src/main/status/orky-osc-parser.ts`](../../src/main/status/orky-osc-parser.ts)
-> (`ORKY_OSC` the prefix constant, `decodeHeartbeat` the body grammar/decoder — not exported, reached
-> only through `OrkyOscParser.push`). This is the exact interface a human must implement on the
-> separate `C:/dev/Orky` CLI (see "Out of scope" below) — reproduced here byte-for-byte from
-> `.orky/features/0014-orky-osc-heartbeat/02-spec.md`'s "OSC marker CONTRACT" section.
+> (`ORKY_OSC` the prefix constant, `decodeHeartbeat` the body decoder — not exported, reached only
+> through `OrkyOscParser.push`). This is Orky's **real, shipped** wire contract
+> (`C:/dev/Orky` ADR-026 / `docs/watchdog.md`), reproduced byte-for-byte here from
+> `.orky/features/0014-orky-osc-heartbeat/orky-adr-026-osc-heartbeat.md` (the upstream source of
+> truth) and from `02-spec.md`'s own "OSC marker CONTRACT" section. Any change to this contract is a
+> coordinated, two-repo change.
 
-### Full sequence
-
-```
-ESC ] 8 8 8 8 ; o r k y = <body> <terminator>
-```
-
-i.e. the exact byte string:
+### Wire format
 
 ```
-\x1b]8888;orky=<body>\x07      (BEL-terminated)
-\x1b]8888;orky=<body>\x1b\\    (ST-terminated — equally valid)
+ESC ] 9999 ; <payload> BEL
 ```
 
-### Prefix (exact bytes)
-
-`\x1b ] 8 8 8 8 ; o r k y =`  →  `\x1b]8888;orky=` (12 bytes).
-
-- OSC code `8888` is outside every OSC number known to be assigned by common terminals/tools (0–119
-  standard, 133 FinalTerm/shell-integration, 633 VS Code, 777 urxvt, 1337 iTerm2). It does not collide
+- **Introducer:** `\x1b]` (`ESC` `]`), the standard OSC introducer.
+- **Code:** `9999` — a private/unassigned code, chosen to avoid the well-known ranges in common use
+  (`0`–`19` title/color queries, `52` clipboard, `104` color reset, `133` shell-integration prompt
+  marks, `633` VS Code's shell-integration extension, `1337` iTerm2 proprietary). It does not collide
   with this codebase's other OSC consumers: `Osc133Parser` (`\x1b]133;`) or `CwdParser`
   (`\x1b]7;` / `\x1b]9;9;`).
-- The mandatory literal sub-tag `orky=` is the real namespacing guarantee: even if some unknown terminal
-  reused code `8888`, its body would not begin with `orky=` and would be rejected.
+- **Separator:** a single `;` immediately after the code. The parser splits on only the **first** `;`
+  and treats everything after it, up to the terminator, as the opaque payload — the JSON payload
+  itself may legitimately contain `;` characters (e.g. inside a `reason` string). `ORKY_OSC` (the
+  introducer + code + this single `;`) is the literal prefix `scanOsc` matches, so this rule is
+  inherited from `scanOsc`'s prefix match, never re-coded.
+- **Payload:** a single-line, compact JSON object (no embedded newlines — `JSON.stringify` never emits
+  one). See schema below.
+- **Terminator:** `\x07` (`BEL`) — what Orky actually sends, and what the parser MUST accept. The
+  parser MAY additionally accept `ST` (`\x1b\\`) for robustness against a relay that rewrites
+  terminators, but Orky only ever emits BEL.
 
-### Terminator
+**Safety property (from ADR-026):** `JSON.stringify` escapes every control character below `0x20` —
+including `BEL` and `ESC` — as a `\uXXXX` escape. A `reason` or other string field can never contain a
+raw control byte that would prematurely terminate or corrupt the sequence; this is guaranteed by the
+JSON spec, not by ad-hoc sanitization.
 
-`BEL` (`\x07`) **or** `ST` (`\x1b\\`) — whichever the emitter prefers; both are accepted (the shared
-`scanOsc` scanner already handles both). The body encoding below is chosen so the body can **never**
-itself contain `\x07` or `\x1b`, so the first terminator byte after the prefix unambiguously ends the
-marker.
+### Payload schema (`v: 1`)
 
-### Body grammar
+| Field        | Type             | Always present?                | Meaning |
+|--------------|------------------|---------------------------------|---------|
+| `v`          | integer          | yes                             | Schema version. Bump on any breaking change to this table; a parser should ignore unknown fields and tolerate a missing/older `v` gracefully rather than fail closed. |
+| `feature`    | string           | only with a resolvable feature  | The feature slug (`path.basename` of its directory, e.g. `0005-cross-project-orky-registry`). |
+| `phase`      | string \| null   | only with a resolvable feature  | The live phase: `state.json.phase` if set, else the gate-frontier phase `drive()` computes (mirrors the detection model Termhalla's status chip, feature `0004`, already established). |
+| `gate`       | string           | only with a resolvable feature  | `"<passed>/<total>"` — how many of the 8 work-phase gates (`brainstorm, spec, plan, tests, implement, review, doc-sync, human-review`) have passed. |
+| `needsHuman` | boolean          | only with a resolvable feature  | `true` when `drive()` returns `await-human` or `escalate` for this feature — i.e. autonomous work is blocked on a human decision. |
+| `reason`     | string           | only when `needsHuman` is `true` *and* `drive()` returned one | Why — e.g. `"brainstorm is a human gate"`, `"blocked by 1 open escalation(s): ESC-001 — resolve first"`, `"iteration cap reached for implement (3/3)"`. |
+| `action`     | string \| null   | only when NO feature is resolvable | The last heartbeat `action` note from `active.json` (or `null`) — a minimal "something is alive" signal for an app-loop tick with no single active feature. |
 
-The body (everything between `orky=` and the terminator) is a **compact, order-independent list of
-`key=value` pairs joined by `;`**:
+Decoding is strict-but-tolerant (REQ-005/REQ-008): an unknown/missing `v` and unknown extra fields are
+**not** rejections; malformed JSON, a non-object payload, or an over-cap payload (`MAX_PAYLOAD_BYTES`,
+4096 actual UTF-8 bytes, checked before `JSON.parse`) yield no heartbeat and never throw. Field mapping
+is **verbatim** (REQ-004) — `needsHuman`/`reason`/`phase`/`gate` are taken as already-computed ground
+truth from Orky and never re-derived.
 
-```
-v=1;f=<slug>;k=<kind>;ph=<phase>;g=<int>;m=<int>;o=<int>;h=<0|1>;x=<0|1>;r=<reason>
-```
+### Worked examples (verbatim from ADR-026)
 
-| key  | meaning                | value grammar                                                              | required |
-|------|------------------------|------------------------------------------------------------------------------|----------|
-| `v`  | schema version         | the literal `1` (other versions are ignored — forward-compat)               | yes      |
-| `f`  | feature slug           | `[A-Za-z0-9._-]{1,64}`                                                       | yes      |
-| `k`  | kind                   | one of `busy` \| `idle` \| `needs-input` \| `done`                          | yes      |
-| `ph` | live phase             | one of `OrkyPhase` (`brainstorm`…`human-review`) **or** `done`              | yes      |
-| `g`  | gates passed (N)       | integer, `0 ≤ g ≤ m`                                                         | yes      |
-| `m`  | total gates (M)        | integer, `1 ≤ m ≤ 32` (expected `8`; see drift caveat below)                | yes      |
-| `o`  | open-blocking findings | integer, `0 ≤ o ≤ 9999`                                                      | yes      |
-| `h`  | needs a human          | `0` or `1`                                                                  | yes      |
-| `x`  | failed (halted gate)   | `0` or `1`                                                                  | yes      |
-| `r`  | needs-you reason       | one of `escalation` \| `stalled` \| `human-review`; omit/empty = none       | no       |
+A minimal example with no resolvable feature:
 
-- Values are the **already-derived** status fields (not a `.orky/` dump): Orky computes them on its side
-  and emits a heartbeat for the **currently-driving (active) feature** only. The Termhalla parser does no
-  pipeline re-derivation on untrusted bytes — it validates each field against the table above and maps
-  directly.
-- Every legal byte above is printable ASCII in `[A-Za-z0-9._;=-]`; none is `\x07` or `\x1b`, so the body
-  can never contain a terminator.
-- **Total body length cap: 256 bytes** and **at most 32 pairs**. Unknown keys are ignored
-  (forward-compat); a marker missing any required key, or with any value outside its grammar, or over
-  the cap, is **rejected whole** (yields no status — never a partial render, never a silently-clamped
-  value).
-
-### Worked example
-
-```
-\x1b]8888;orky=v=1;f=auth-login;k=busy;ph=implement;g=5;m=8;o=2;h=0;x=0\x07
+```json
+{"v":1,"action":"app-loop"}
 ```
 
-decodes to `{ feature:'auth-login', kind:'busy', phase:'implement', gateN:5, gateM:8, openBlocking:2,
-needsHuman:false, failed:false, reason:null }`, which maps to an `OrkyPaneStatus` whose
-`label === "auth-login · implement · 5/8 · ●2 open"` — identical to what `orky-status.md` renders for
-the same feature via the filesystem path.
+A feature awaiting human review:
 
-## Out of scope: Orky-side emission (human follow-up)
+```json
+{"v":1,"feature":"0004-orky-status-awareness","phase":"human-review","gate":"7/8","needsHuman":true,"reason":"human-review is a human gate"}
+```
 
-This feature does **not** change anything in the separate `C:/dev/Orky` repository (the emission side
-that would make Orky's CLI print this marker). That work is an explicit, documented follow-up for a
-human to implement against the contract above. **Until it exists, this feature is real and tested but
-dark in production**: a bare-SSH pane running an unmodified Orky CLI shows no Orky status — same as
-today — never a false one. The Termhalla code in this feature only reads/parses; it emits nothing into
-any stream.
+As complete on-the-wire byte strings (BEL-terminated):
+
+```
+\x1b]9999;{"v":1,"action":"app-loop"}\x07
+\x1b]9999;{"v":1,"feature":"0004-orky-status-awareness","phase":"human-review","gate":"7/8","needsHuman":true,"reason":"human-review is a human gate"}\x07
+```
+
+The awaiting-human example decodes to `{ feature:'0004-orky-status-awareness', phase:'human-review',
+gateN:7, gateM:8, needsHuman:true, reason:'human-review is a human gate', action:null }`, which maps
+(`orkyHeartbeatToPaneStatus`) to an `OrkyPaneStatus` whose `kind === 'needs-input'` and
+`label === '0004-orky-status-awareness · human-review · 7/8'` — the same chip/popover presentation
+`orky-status.md` renders for the same feature via the filesystem path.
+
+## Trust boundary
+
+The OSC payload is **unauthenticated**. Anything that can write to the PTY — a remote shell, a hostile
+program, `cat`-ing a crafted file — can fabricate a heartbeat for an arbitrary feature slug, including a
+fake `needsHuman:true` to draw attention to a non-event, or a fake low-urgency state to mask a real one.
+This is a **deliberate design tradeoff**, not a bug: REQ-004 mandates a thin-client, verbatim-trust
+stance — the parser maps `needsHuman`/`reason`/`phase`/`gate` directly and never "corrects" Orky's
+verdict, the same "ground truth, not self-report" discipline used elsewhere in this codebase. The
+practical implication: **stream-derived status is only as trustworthy as whatever writes to the PTY**.
+Unlike the filesystem-derived status (`orky-status.md`), which reads a project's own `.orky/` tree on
+disk, the stream source has no way to verify the bytes came from a real Orky run at all. (Tracked as
+`FINDING-DA-001`, open — visually distinguishing stream-derived from filesystem-derived status in the
+chip UI is a follow-up, not yet implemented.)
+
+## Scope: Orky-side emission is REAL and shipped
+
+This feature does **not** change anything in the separate `C:/dev/Orky` repository — Termhalla does not
+touch that repo. The matching **emission now exists for real** (ADR-026): Orky's CLI emits this marker
+opt-in via `config.heartbeat.osc` (default `false`, zero behavior change until a project opts in), via
+
+```
+node "${CLAUDE_PLUGIN_ROOT}/gatekeeper/cli.js" osc-heartbeat --project <root> [--feature <dir>] [--config <path>]
+```
+
+run immediately after Orky's existing heartbeat stamp. It is **best-effort**: it never throws, always
+exits `0`, and writes nothing to disk. This feature's job remains the Termhalla-side **parser +
+renderer** only — it reads/parses and emits nothing into any stream. The feature is **no longer dark in
+production**: once a project opts in (`config.heartbeat.osc: true`) and Termhalla parses code `9999`, a
+bare-SSH pane shows real Orky status.
 
 ## Cross-repo drift caveat (doc-provenance)
 
-The contract above is a **cross-repo agreement** with the separate `C:/dev/Orky` CLI. Termhalla parses
-it here; a human must emit it byte-for-byte on the Orky side, and the two sides can silently drift over
-time. Specifically:
+The contract above is a **cross-repo agreement** with the separate `C:/dev/Orky` CLI (ADR-026).
+Termhalla parses it here; Orky emits it; the two sides can silently drift over time. Specifically:
 
-- The `ph` (phase) and `r` (reason) enums **mirror** `src/shared/orky-status.ts`'s `OrkyPhase` /
-  `OrkyReason` (imported, never forked — `src/main/status/orky-osc-parser.ts` imports both from
-  `@shared/types` rather than redefining them) and Orky's own pipeline phase/reason concepts.
-- The carried `m` (gateM) is **expected** to equal `ORKY_PHASES.length` (`8`, per the provenance caveat
-  in [orky-status.md](orky-status.md#data-provenance-the-orky_phases-drift-caveat)) — a divergence is a
+- The `phase` field **mirrors** `src/shared/orky-status.ts`'s `OrkyPhase` and Orky's own pipeline phase
+  concept, but is typed `OrkyPhase | string | null` on the wire (not a closed union) — the parser
+  accepts any string verbatim (REQ-004/REQ-005) rather than validating it against a fixed enum, so a
+  future Orky-side phase name change does not blackout the chip.
+- `reason` is **free-form prose**, not a closed enum — Orky's `drive()` composes it dynamically (e.g.
+  citing a specific escalation ID or iteration count), so the parser/renderer must not assume a fixed
+  set of reason strings.
+- The carried `gate`'s `M` (gateM) is **expected** to equal `ORKY_PHASES.length` (`8`, per the
+  provenance caveat in
+  [orky-status.md](orky-status.md#data-provenance-the-orky_phases-drift-caveat)) — a divergence is a
   coordinated two-repo data-update, never something a Termhalla test can catch.
+- A future Orky-side `v` bump that **redefines** an existing field's meaning (not just adds one) would
+  be silently decoded with `v:1` semantics and render wrong (not blank) status — undetectable
+  cross-repo since the parser never fails closed on version (`FINDING-DA-006`, open, LOW).
 - Every test for this feature constructs its OSC marker bytes itself (`tests/fixtures/orky-osc-fixtures.ts`)
   against THIS embedded contract; none of them exercise a live Orky process. Tests therefore verify only
   that the Termhalla code matches the contract as documented here and in `02-spec.md` — not that the real
@@ -123,7 +152,7 @@ time. Specifically:
 
 | Concern | Location |
 |---|---|
-| OSC prefix constant, body-grammar decoder, stateful parser (3rd `scanOsc` consumer) | `src/main/status/orky-osc-parser.ts` |
+| OSC prefix constant, payload decoder, stateful parser (3rd `scanOsc` consumer) | `src/main/status/orky-osc-parser.ts` |
 | Heartbeat wire type (`OrkyHeartbeat`) | `src/shared/types.ts` |
 | Heartbeat → `OrkyPaneStatus` mapper (reuses 0004's `orkyPaneStatus`), fs-vs-stream precedence | `src/shared/orky-status.ts` (`orkyHeartbeatToPaneStatus`, `selectOrkyPaneStatus`) |
 | Wiring into the per-pane PTY pipeline (`onOrkyHeartbeat` callback, mirrors `CwdParser`/`onCwd`) | `src/main/status/status-engine.ts` |

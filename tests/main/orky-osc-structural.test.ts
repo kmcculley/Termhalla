@@ -14,6 +14,14 @@
 // Runs RED: `src/main/status/orky-osc-parser.ts` still implements the superseded 8888/key=value contract
 // (no `scanOsc(buf, ORKY_OSC, ...)` call against the new `'\x1b]9999;'` prefix, no JSON-decode source
 // shape this file's regexes expect to find).
+//
+// TEST-042/TEST-043 (added at doc-sync, covering REQ-015/REQ-016): the Gatekeeper CLI's mechanical
+// `traceability` gate token requires every REQ-NNN found in `02-spec.md` to trace to at least one
+// TEST-ID — there is no "documentation-only, exempt from unit test" allowance, regardless of what
+// `02-spec.md`'s own Definition of Done says. REQ-015/REQ-016's acceptance criteria are concrete,
+// file-content-checkable facts (specific literal strings/patterns in specific files), so they get real
+// structural tests here, matching this file's established style (TEST-035's frozen-hash / TEST-037's
+// cross-file content grep) rather than being left untested.
 import { describe, it, expect } from 'vitest'
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
@@ -30,6 +38,10 @@ const STATUS_ENGINE_PATH = 'src/main/status/status-engine.ts'
 const BRIDGE_PATH = 'src/main/orky/orky-stream-status.ts'
 const TYPES_PATH = 'src/shared/types.ts'
 const ORKY_STATUS_PATH = 'src/shared/orky-status.ts'
+const SPEC_PATH = '.orky/features/0014-orky-osc-heartbeat/02-spec.md'
+const FEATURE_DOC_PATH = 'docs/features/orky-osc-heartbeat.md'
+const CLAUDE_MD_PATH = 'CLAUDE.md'
+const CHANGELOG_PATH = 'CHANGELOG.md'
 
 describe('OrkyOscParser source — reuses scanOsc, no reimplemented terminator-scan loop (REQ-002)', () => {
   it('TEST-005 REQ-002 imports and calls the shared scanOsc against the ADR-026 prefix — does not reimplement its scan loop', () => {
@@ -148,5 +160,94 @@ describe('No persistence, no writes, no schema bump (REQ-017)', () => {
     // it exists (it already does, from the prior implementation pass) it must not write either.
     const bridgeSrc = tryRead(BRIDGE_PATH)
     if (bridgeSrc !== null) expect(bridgeSrc).not.toMatch(WRITE_API)
+  })
+})
+
+describe('Scope: Termhalla parser/renderer only; Orky-side emission is documented as REAL and shipped (REQ-015)', () => {
+  it('TEST-042 REQ-015 spec + feature doc state the emission is real/shipped and opt-in, describe parser-only scope, and no in-repo source file references the separate Orky repo', () => {
+    const specSrc = tryRead(SPEC_PATH)
+    const docSrc = tryRead(FEATURE_DOC_PATH)
+    expect(specSrc, `expected ${SPEC_PATH} to exist`).not.toBeNull()
+    expect(docSrc, `expected ${FEATURE_DOC_PATH} to exist`).not.toBeNull()
+
+    // states the emission is real/shipped, opt-in, and cites the upstream contract (ADR-026)
+    expect(specSrc!).toMatch(/config\.heartbeat\.osc/)
+    expect(docSrc!).toMatch(/config\.heartbeat\.osc/)
+    expect(specSrc!).toMatch(/ADR-026/)
+    expect(docSrc!).toMatch(/ADR-026/)
+
+    // explicitly states the corrected framing — "no longer ... dark in production" — never a bare,
+    // unqualified "is dark in production" / "is out of scope" claim about the CURRENT state. The gap
+    // and the phrase itself may each be word-wrapped across a markdown line break, so match across
+    // newlines ([\s\S]) rather than requiring a single physical line.
+    expect(specSrc!).toMatch(/no longer[\s\S]{0,60}dark\s+in\s+production/i)
+    expect(docSrc!).toMatch(/no longer[\s\S]{0,60}dark\s+in\s+production/i)
+
+    // describes the parser-only scope (Termhalla builds the parser + renderer; it does not emit)
+    expect(specSrc!).toMatch(/Termhalla-side only/)
+    expect(docSrc!).toMatch(/parser\s*\+\s*renderer/i)
+
+    // no file under this repo's own src/ writes to or references the separate C:/dev/Orky repo path —
+    // the only cross-repo-touch check this suite can mechanically make (it cannot probe the other repo)
+    const NO_OTHER_REPO = /C:[\\/]dev[\\/]Orky/
+    const parserSrc = tryRead(PARSER_PATH)
+    expect(parserSrc).not.toBeNull()
+    expect(parserSrc!).not.toMatch(NO_OTHER_REPO)
+    const orkyStatusSrc = tryRead(ORKY_STATUS_PATH)
+    expect(orkyStatusSrc).not.toBeNull()
+    expect(orkyStatusSrc!).not.toMatch(NO_OTHER_REPO)
+    const bridgeSrc = tryRead(BRIDGE_PATH)
+    if (bridgeSrc !== null) expect(bridgeSrc).not.toMatch(NO_OTHER_REPO)
+  })
+})
+
+describe('Cross-repo contract documented prominently + drift caveat (REQ-016)', () => {
+  it('TEST-043 REQ-016 the feature doc reproduces the exact ADR-026 contract, cites its source + upstream ADR, carries the drift caveat, is linked from CLAUDE.md, is mentioned in CHANGELOG [Unreleased], and neither carries the superseded 8888/orky= contract', () => {
+    const docSrc = tryRead(FEATURE_DOC_PATH)
+    expect(docSrc, `expected ${FEATURE_DOC_PATH} to exist`).not.toBeNull()
+
+    // exact ADR-026 wire prefix, reproduced literally (as it appears in the doc's fenced code blocks)
+    expect(docSrc!).toContain('\\x1b]9999;')
+
+    // JSON payload schema table — every field name from the ADR-026 schema
+    for (const field of ['v', 'feature', 'phase', 'gate', 'needsHuman', 'reason', 'action']) {
+      expect(docSrc!, `expected the payload schema table to mention \`${field}\``).toMatch(
+        new RegExp('`' + field + '`')
+      )
+    }
+
+    // names the defining source file + cites Orky's upstream ADR-026
+    expect(docSrc!).toContain('src/main/status/orky-osc-parser.ts')
+    expect(docSrc!).toMatch(/ADR-026/)
+
+    // parser-only scope + opt-in emission (REQ-015, restated in the doc)
+    expect(docSrc!).toMatch(/parser\s*\+\s*renderer/i)
+    expect(docSrc!).toMatch(/config\.heartbeat\.osc/)
+
+    // cross-repo drift caveat
+    expect(docSrc!).toMatch(/drift/i)
+    expect(docSrc!).toMatch(/cross-repo/i)
+
+    // CLAUDE.md's "Where things live" table links to the feature doc
+    const claudeMdSrc = tryRead(CLAUDE_MD_PATH)
+    expect(claudeMdSrc, `expected ${CLAUDE_MD_PATH} to exist`).not.toBeNull()
+    expect(claudeMdSrc!).toMatch(/\[orky-osc-heartbeat\]\(docs\/features\/orky-osc-heartbeat\.md\)/)
+
+    // CHANGELOG.md's [Unreleased] section mentions this feature
+    const changelogSrc = tryRead(CHANGELOG_PATH)
+    expect(changelogSrc, `expected ${CHANGELOG_PATH} to exist`).not.toBeNull()
+    const unreleasedMatch = changelogSrc!.match(/## \[Unreleased\]([\s\S]*?)\n## \[/)
+    expect(unreleasedMatch, 'expected an [Unreleased] section followed by another release heading').not.toBeNull()
+    const unreleasedSection = unreleasedMatch![1]
+    expect(unreleasedSection).toMatch(/OSC heartbeat/i)
+
+    // no occurrence of the superseded 8888/key=value contract remains in the feature doc or CHANGELOG —
+    // check the OLD literal contract markers, not the bare word "orky" (which legitimately appears
+    // throughout this codebase)
+    const SUPERSEDED = [/\]8888;orky=/, /orky=<body>/, /\b8888\b/]
+    for (const pattern of SUPERSEDED) {
+      expect(docSrc!, `${FEATURE_DOC_PATH} must not match ${pattern}`).not.toMatch(pattern)
+      expect(changelogSrc!, `${CHANGELOG_PATH} must not match ${pattern}`).not.toMatch(pattern)
+    }
   })
 })

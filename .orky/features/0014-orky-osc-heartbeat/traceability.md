@@ -1,4 +1,4 @@
-# 0014 — Orky OSC heartbeat parse + render (read) — Traceability (Phase 4, RE-PLAN, ESC-002 revision)
+# 0014 — Orky OSC heartbeat parse + render (read) — Traceability (Phase 4, RE-PLAN, ESC-002 revision + doc-sync closeout)
 
 Spec frozen at **17 REQs (REQ-001…REQ-017)**, ADR-026 wire contract (code `9999`, JSON payload, BEL
 terminator) — fully superseding the prior iteration's `8888`/key=value placeholder. Spec iteration 3
@@ -11,6 +11,16 @@ added in this ESC-002-targeted revision to REQ-009's coverage only. The phase-3 
 and the prior iteration's `TEST-001…TEST-042` (built against the superseded `8888`/key=value contract),
 are gone — see `tests/main/orky-osc-parser.test.ts`, `tests/main/orky-osc-structural.test.ts`,
 `tests/shared/orky-heartbeat-status.test.ts`, and `tests/fixtures/orky-osc-fixtures.ts`.
+
+**Doc-sync closeout (this revision):** the Gatekeeper CLI's mechanical `traceability` gate token (used at
+the doc-sync gate, stricter than the plan-phase `traceability-plan` token) requires EVERY REQ-NNN found in
+`02-spec.md` to trace to at least one TEST-ID — it has no "documentation-only, exempt from unit test"
+allowance. REQ-015 and REQ-016's acceptance criteria are concrete, file-content-checkable facts, so two
+real structural tests were added to `tests/main/orky-osc-structural.test.ts` — **TEST-042** (REQ-015) and
+**TEST-043** (REQ-016) — bringing the suite to **43 TESTs total (TEST-001…TEST-043)**. Both docs
+(`docs/features/orky-osc-heartbeat.md`, `CHANGELOG.md [Unreleased]`) were already correct from this
+iteration's doc-sync pass, so both new tests pass immediately (regression guards, not driving new
+implementation).
 
 | REQ | Summary | Tasks | Tests | Files |
 |---|---|---|---|---|
@@ -28,23 +38,42 @@ are gone — see `tests/main/orky-osc-parser.test.ts`, `tests/main/orky-osc-stru
 | REQ-012 | Second SOURCE only — no new pane-status type/presentation/IPC channel | TASK-001, TASK-005 | TEST-031 | `src/main/status/orky-osc-parser.ts`, `src/shared/types.ts`, `src/shared/orky-status.ts` |
 | REQ-013 | Coexistence with 0004: filesystem source wins, no regression/duplication of `orky-tracker.ts` | TASK-007 | TEST-032, TEST-033, TEST-034, TEST-035, TEST-036 | `src/main/status/status-engine.ts`, `src/main/orky/orky-stream-status.ts`, `src/main/ipc/register.ts`, `src/main/orky/orky-tracker.ts`, `src/shared/orky-status.ts` |
 | REQ-014 | Tests primarily synthetic/golden OSC byte fixtures, zero live-Orky dependency | TASK-006 | TEST-037 | `tests/fixtures/orky-osc-fixtures.ts` |
-| REQ-015 | Scope: Termhalla parser/renderer only; Orky-side emission is now REAL/shipped (no longer "dark in production") | TASK-008 | — (doc-only, see below) | `docs/features/orky-osc-heartbeat.md` |
-| REQ-016 | Cross-repo contract documented prominently + drift caveat; CLAUDE.md link; CHANGELOG entry | TASK-008 | — (doc-only, see below) | `docs/features/orky-osc-heartbeat.md`, `CLAUDE.md`, `CHANGELOG.md` |
+| REQ-015 | Scope: Termhalla parser/renderer only; Orky-side emission is now REAL/shipped (no longer "dark in production") | TASK-008 | **TEST-042** | `docs/features/orky-osc-heartbeat.md`, `.orky/features/0014-orky-osc-heartbeat/02-spec.md`, `tests/main/orky-osc-structural.test.ts` |
+| REQ-016 | Cross-repo contract documented prominently + drift caveat; CLAUDE.md link; CHANGELOG entry | TASK-008 | **TEST-043** | `docs/features/orky-osc-heartbeat.md`, `CLAUDE.md`, `CHANGELOG.md`, `tests/main/orky-osc-structural.test.ts` |
 | REQ-017 | No persistence, no writes, no `SCHEMA_VERSION` bump | TASK-001, TASK-005, TASK-008 | TEST-038, TEST-039 | `src/main/status/orky-osc-parser.ts`, `src/shared/orky-status.ts`, `src/shared/types.ts`, `docs/features/orky-osc-heartbeat.md` |
 
 ## Coverage check
 
-- 17/17 REQs have ≥1 TASK; **15/17 REQs have ≥1 TEST.** Uncovered-by-design: REQ-015, REQ-016 (see below).
+- 17/17 REQs have ≥1 TASK; **17/17 REQs have ≥1 TEST** (REQ-015/REQ-016 closed by TEST-042/TEST-043,
+  added at doc-sync — see below).
 - 8 TASKs total (TASK-001…TASK-008); see `03-plan.md` for full descriptions, file lists, dependencies,
   and the sequencing diagram.
-- **41 TESTs total (TEST-001…TEST-041)**; see `04-tests.md` for the per-file breakdown, the ESC-002
-  revision notes, and design notes.
+- **43 TESTs total (TEST-001…TEST-043)**; see `04-tests.md` for the per-file breakdown, the ESC-002
+  revision notes, the doc-sync closeout notes, and design notes.
 
-## REQ-015 / REQ-016 are not unit-testable
+## REQ-015 / REQ-016 — now unit-tested (doc-sync closeout)
 
-Both are documentation deliverables (the cross-repo ADR-026 contract block + drift caveat + scope
-correction in `docs/features/orky-osc-heartbeat.md`, the CLAUDE.md link, the CHANGELOG entry).
-`02-spec.md`'s Definition of Done routes them to "Docs/integration" verified at the **doc-sync gate**
-(TASK-008), not a unit test. No TEST-ID is assigned to either; this is correct (not a coverage gap) per
-the spec's own verification-approach split — consistent with how the prior iteration's REQ-011/REQ-012
-(the equivalent doc-only REQs under the old REQ numbering) were also recorded with `tests: []`.
+Both were previously treated as documentation-only deliverables (the cross-repo ADR-026 contract block +
+drift caveat + scope correction in `docs/features/orky-osc-heartbeat.md`, the CLAUDE.md link, the
+CHANGELOG entry), verified only at the doc-sync gate per `02-spec.md`'s own Definition of Done. That split
+is incompatible with the Gatekeeper CLI's mechanical `traceability` gate token for this profile, which
+requires every REQ-NNN in the spec to trace to at least one TEST-ID with no doc-only exemption. Both REQs'
+acceptance criteria are in fact concrete, file-content-checkable facts (specific literal strings/patterns
+across specific files), so real structural tests were added:
+
+- **TEST-042** (`tests/main/orky-osc-structural.test.ts`) — REQ-015: asserts `02-spec.md` and the feature
+  doc state the emission is real/shipped and opt-in (`config.heartbeat.osc`, `ADR-026`), state the
+  corrected "no longer dark in production" framing, describe the parser-only scope
+  (`Termhalla-side only`, `parser + renderer`), and that no file under this repo's own `src/` references
+  the separate `C:/dev/Orky` repo path.
+- **TEST-043** (`tests/main/orky-osc-structural.test.ts`) — REQ-016: asserts the feature doc contains the
+  exact ADR-026 wire prefix (`\x1b]9999;`), the full payload schema field set (`v`, `feature`, `phase`,
+  `gate`, `needsHuman`, `reason`, `action`), names the defining source file
+  (`src/main/status/orky-osc-parser.ts`), cites `ADR-026`, states the parser-only/opt-in scope, and carries
+  the cross-repo drift caveat; that `CLAUDE.md`'s "Where things live" table links to the feature doc; that
+  `CHANGELOG.md [Unreleased]` mentions the OSC heartbeat feature; and that neither the feature doc nor
+  `CHANGELOG.md` contains the superseded `8888`/`orky=`/`key=value` contract markers.
+
+Both tests pass immediately against the already-correct docs from this iteration's doc-sync pass (they are
+regression guards for already-completed doc work, not tests driving new implementation). No `src/` file
+was touched to make them pass.

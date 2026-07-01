@@ -68,7 +68,7 @@ export interface OrkyPaneStatus {
  *  semantics from these bytes. */
 export interface OrkyHeartbeat {
   feature: string | null           // payload.feature; null for an app-loop tick (REQ-011)
-  phase: OrkyPhase | string | null // payload.phase, verbatim; null -> rendered "done"
+  phase: OrkyPhase | string | null // payload.phase, verbatim; null only affects the chip LABEL fallback ('done'), never the kind derivation (gate-based only, see heartbeatKind / REQ-009)
   gateN: number                    // parsed from payload.gate "<N>/<M>"
   gateM: number                    // parsed from payload.gate; default ORKY_PHASES.length
   needsHuman: boolean              // payload.needsHuman === true
