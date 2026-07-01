@@ -7,7 +7,8 @@
       "title": "Cross-project Orky registry + multi-root aggregation",
       "summary": "Track every project with an .orky/ dir (open panes' resolved roots + a persisted explicit list) and roll their status up into one cross-project, pane-independent aggregate over a new IPC channel — generalizing 0004's single-root OrkyTracker to a set of roots.",
       "deps": [],
-      "status": "in-progress"
+      "status": "done",
+      "completedAt": "2026-07-01T02:52:59.278Z"
     },
     {
       "id": "F6",
