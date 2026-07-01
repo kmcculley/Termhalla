@@ -31,7 +31,20 @@ export function validateFeatureSlug(slug: unknown): { ok: true; slug: string } |
     return { ok: false, error: 'feature must be a single path segment (no / or \\)' }
   }
   if (isAbsolutePathLike(slug)) return { ok: false, error: 'feature must not be an absolute path' }
+  const flagLike = rejectFlagLike('feature', slug)
+  if (flagLike) return flagLike
   return { ok: true, slug }
+}
+
+/** CLI-argument-injection guard (ESC-003 / FINDING-SEC-001): several fields travel as a RAW, un-encoded
+ *  argv element to Orky's `gatekeeper` CLI, whose own naive `parseArgs` reinterprets ANY `--`-prefixed
+ *  argv token as a new flag regardless of position. Reject such values here, before they can ever reach
+ *  that raw argv position. Returns `null` when `value` is fine. */
+function rejectFlagLike(field: string, value: string): { ok: false; error: string } | null {
+  if (value.startsWith('--')) {
+    return { ok: false, error: `${field} must not start with '--' (reserved for CLI flags)` }
+  }
+  return null
 }
 
 /** Windows drive-absolute ("C:foo", "C:\\foo") or POSIX-absolute ("/foo") forms with no separator
@@ -85,9 +98,13 @@ export function validateResolveEscalationRequest(input: unknown): ValidationResu
 
   const escalationId = requireNonEmptyString(input, 'escalationId')
   if (!escalationId.ok) return escalationId
+  const escalationIdFlagLike = rejectFlagLike('escalationId', escalationId.value)
+  if (escalationIdFlagLike) return escalationIdFlagLike
 
   const decision = requireNonEmptyString(input, 'decision')
   if (!decision.ok) return decision
+  const decisionFlagLike = rejectFlagLike('decision', decision.value)
+  if (decisionFlagLike) return decisionFlagLike
 
   return {
     ok: true,
@@ -144,6 +161,10 @@ export function validateRecordHumanGateRequest(input: unknown): ValidationResult
 
   const evidence = optionalString(input, 'evidence')
   if (!evidence.ok) return evidence
+  if (evidence.value !== undefined) {
+    const evidenceFlagLike = rejectFlagLike('evidence', evidence.value)
+    if (evidenceFlagLike) return evidenceFlagLike
+  }
 
   const req: RecordHumanGateRequest = {
     projectRoot: projectRoot.value,

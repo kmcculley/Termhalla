@@ -28,6 +28,20 @@
 // explicitly, then assert uniqueness only across the remaining, genuinely-distinct rejection reasons.
 //
 // Runs RED today: `src/shared/orky-action-validate.ts` does not exist yet (module-not-found).
+//
+// LOOPBACK (ESC-003 / FINDING-SEC-001, TEST-283..TEST-290 added): the security lens found that
+// `escalationId`/`decision` (resolveEscalation gatekeeper-fallback path) and `evidence`
+// (recordHumanGate) travel as RAW, un-encoded argv elements to Orky's `gatekeeper` CLI, whose own naive
+// `parseArgs` reinterprets ANY `--`-prefixed argv token as a new flag regardless of position — same for
+// `feature` (used raw in `emit --feature <slug>` / `record --feature <featureDir>`, though the slug is
+// server-rebuilt into a path so `validateFeatureSlug` is the single shared gate for it). The human-approved
+// fix (state.json escalations[2], ESC-003) requires `validateFeatureSlug`/
+// `validateResolveEscalationRequest`/`validateRecordHumanGateRequest` to reject any `feature`/`decision`/
+// `escalationId`/`evidence` value that `.startsWith('--')` BEFORE it ever reaches the dispatcher.
+// `title`/`detail`/`phase` (submitWork) are explicitly OUT OF SCOPE — they only ever travel inside a
+// `JSON.stringify(...)`-encoded `--payload` argument, never as their own raw argv element, so guarding them
+// would be over-broad (TEST-290 pins this negative case). This addition does NOT touch `src/` — it is
+// authored RED, against the not-yet-updated validators, per the ESC-003 decision.
 import { describe, it, expect } from 'vitest'
 import {
   validateFeatureSlug,
@@ -93,9 +107,10 @@ describe('validateFeatureSlug — single-segment confinement (REQ-005)', () => {
     // the intentional exception: both path-separator violations share ONE message (TASK-002, TEST-150/151)
     if (!slashResult.ok && !backslashResult.ok) expect(slashResult.error).toBe(backslashResult.error)
 
-    // every OTHER distinct rejection reason (type, empty, dotdot, absolute-path) still gets its OWN,
-    // pairwise-unique message — de-dupe the path-separator pair down to a single representative first
-    const msgs = [42, '', 'a/b', '..', 'C:foo']
+    // every OTHER distinct rejection reason (type, empty, dotdot, absolute-path, and — loopback ESC-003 —
+    // the '--'-prefix CLI-injection guard) still gets its OWN, pairwise-unique message — de-dupe the
+    // path-separator pair down to a single representative first
+    const msgs = [42, '', 'a/b', '..', 'C:foo', '--force']
       .map(v => validateFeatureSlug(v))
       .map(r => (r.ok ? '' : r.error))
     expect(new Set(msgs).size).toBe(msgs.length)
@@ -249,6 +264,76 @@ describe('validateDriveStatusRequest — read-only request, feature required (RE
   })
 })
 
+// ── LOOPBACK (ESC-003 / FINDING-SEC-001): reject any `--`-prefixed value BEFORE it ever reaches a raw
+// argv element passed to the gatekeeper/feedback CLI subprocess. See the file-header note above for the
+// full vulnerability description and scope rationale. TEST-283..TEST-290.
+describe('CLI-argument-injection guard — reject any \'--\'-prefixed value before it reaches raw argv (ESC-003 loopback, FINDING-SEC-001)', () => {
+  it('TEST-283 REQ-005 a feature slug of \'--force\' is rejected with a dedicated, actionable message distinct from all 6 pre-existing FeatureSlug rejection messages', () => {
+    const r = validateFeatureSlug('--force')
+    expect(r.ok).toBe(false)
+    if (!r.ok) expect(r.error).toBe("feature must not start with '--' (reserved for CLI flags)")
+  })
+
+  it('TEST-284 REQ-005 a second, longer \'--\'-prefixed slug variant ("--anything is fine") is rejected with the SAME dedicated guard message', () => {
+    const r = validateFeatureSlug('--anything is fine')
+    expect(r.ok).toBe(false)
+    if (!r.ok) expect(r.error).toBe("feature must not start with '--' (reserved for CLI flags)")
+  })
+
+  it('TEST-285 REQ-005 a bare \'--\' (exactly two dashes, nothing after) is ALSO rejected by the same guard — it still "starts with --"', () => {
+    const r = validateFeatureSlug('--')
+    expect(r.ok).toBe(false)
+    if (!r.ok) expect(r.error).toBe("feature must not start with '--' (reserved for CLI flags)")
+  })
+
+  it('TEST-286 REQ-005 the \'--\'-prefixed feature rejection propagates END-TO-END through validateResolveEscalationRequest, not just the standalone validateFeatureSlug unit (single shared implementation reused by requireFeatureSlug)', () => {
+    const standalone = validateFeatureSlug('--force')
+    const r = validateResolveEscalationRequest({ projectRoot: '/p', feature: '--force', escalationId: 'ESC-1', decision: 'approve' })
+    expect(r.ok).toBe(false)
+    expect(standalone.ok).toBe(false)
+    if (!r.ok && !standalone.ok) expect(r.error).toBe(standalone.error)
+  })
+
+  it('TEST-287 REQ-014 a \'--\'-prefixed decision ("--anything is fine") is rejected with its OWN distinct, actionable message — decision is passed as a raw argv element to gatekeeper\'s resolve-escalation fallback', () => {
+    const r = validateResolveEscalationRequest({ projectRoot: '/p', feature: 'f1', escalationId: 'ESC-1', decision: '--anything is fine' })
+    expect(r.ok).toBe(false)
+    if (!r.ok) expect(r.error).toBe("decision must not start with '--' (reserved for CLI flags)")
+  })
+
+  it('TEST-288 REQ-014 a \'--\'-prefixed escalationId ("--force") is rejected with its OWN distinct message (distinct from the decision guard message above)', () => {
+    const r = validateResolveEscalationRequest({ projectRoot: '/p', feature: 'f1', escalationId: '--force', decision: 'approve' })
+    expect(r.ok).toBe(false)
+    if (!r.ok) expect(r.error).toBe("escalationId must not start with '--' (reserved for CLI flags)")
+
+    // sanity: the decision- and escalationId-guard messages must never collide with each other
+    const decisionRejection = validateResolveEscalationRequest({ projectRoot: '/p', feature: 'f1', escalationId: 'ESC-1', decision: '--anything is fine' })
+    if (!r.ok && !decisionRejection.ok) expect(r.error).not.toBe(decisionRejection.error)
+  })
+
+  it('TEST-289 REQ-014 a \'--\'-prefixed evidence ("--force") is rejected with its OWN distinct message; evidence otherwise remains FULLY OPTIONAL — omitting it entirely still validates fine (regression guard, alongside TEST-173)', () => {
+    const bad = validateRecordHumanGateRequest({ projectRoot: '/p', feature: 'f1', gate: 'brainstorm', verdict: 'pass', evidence: '--force' })
+    expect(bad.ok).toBe(false)
+    if (!bad.ok) expect(bad.error).toBe("evidence must not start with '--' (reserved for CLI flags)")
+
+    const okNoEvidence = validateRecordHumanGateRequest({ projectRoot: '/p', feature: 'f1', gate: 'brainstorm', verdict: 'pass' })
+    expect(okNoEvidence.ok).toBe(true)
+  })
+
+  it('TEST-290 REQ-007 NEGATIVE/scope regression: submitWork\'s title/detail/phase MAY start with \'--\' and MUST STILL BE ACCEPTED — these free-text fields travel only inside the JSON-encoded --payload argument, never as their own raw argv element, so applying this guard to them would be over-broad and wrong', () => {
+    const titleDashes = validateSubmitWorkRequest({ projectRoot: '/p', title: '--anything' })
+    expect(titleDashes.ok).toBe(true)
+    if (titleDashes.ok) expect(titleDashes.req.title).toBe('--anything')
+
+    const detailDashes = validateSubmitWorkRequest({ projectRoot: '/p', title: 't', detail: '--anything' })
+    expect(detailDashes.ok).toBe(true)
+    if (detailDashes.ok) expect(detailDashes.req.detail).toBe('--anything')
+
+    const phaseDashes = validateSubmitWorkRequest({ projectRoot: '/p', title: 't', phase: '--anything' })
+    expect(phaseDashes.ok).toBe(true)
+    if (phaseDashes.ok) expect(phaseDashes.req.phase).toBe('--anything')
+  })
+})
+
 describe('CONV-001 — messages across the whole malformed-input matrix are pairwise distinct, never generic', () => {
   it('TEST-177 no validator ever returns a bare "error"/"invalid input"/"invalid" string, and every distinct rejection across all four validators is unique', () => {
     const errors: string[] = []
@@ -266,6 +351,12 @@ describe('CONV-001 — messages across the whole malformed-input matrix are pair
     collect(validateRecordHumanGateRequest({ projectRoot: '/p', feature: 'f', gate: 'brainstorm' }))
     collect(validateRecordHumanGateRequest({ projectRoot: '/p', feature: 'f', gate: 'brainstorm', verdict: 'maybe' }))
     collect(validateDriveStatusRequest({}))
+    // loopback ESC-003 additions: the four new '--'-prefix CLI-injection-guard rejections join the same
+    // "never a bare generic string, always a real actionable sentence" regression guard
+    collect(validateFeatureSlug('--force'))
+    collect(validateResolveEscalationRequest({ projectRoot: '/p', feature: 'f', escalationId: 'E', decision: '--anything is fine' }))
+    collect(validateResolveEscalationRequest({ projectRoot: '/p', feature: 'f', escalationId: '--force', decision: 'd' }))
+    collect(validateRecordHumanGateRequest({ projectRoot: '/p', feature: 'f', gate: 'brainstorm', verdict: 'pass', evidence: '--force' }))
 
     for (const e of errors) {
       expect(e.toLowerCase()).not.toBe('error')

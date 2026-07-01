@@ -44,7 +44,7 @@
     "tests/shared/open-settings-channel.test.ts": "7a5457d490e82f59cdee6940f9bb1e35f1dff9b675ab8251ee698b21cf01f413",
     "tests/shared/orky-action-ipc-contract.test.ts": "01f9e9ba8794a1caa81462ea322facb2d2af24c4fab2eb2facd7f722e1f8cfd2",
     "tests/shared/orky-action-result.test.ts": "98e5e6f1114223e32c14f566a273cdc354742a08b0a1cebd65b58c9211b3c004",
-    "tests/shared/orky-action-validate.test.ts": "26a357c1c5517024e067872c6822aaeff284cba24f71a6379a439a99396c4ec4",
+    "tests/shared/orky-action-validate.test.ts": "02efeab840db5ce9a7c623c918719af0a85d18e48a0c58b7b43b237cf006c9a9",
     "tests/shared/orky-chip-status.test.ts": "3f90290e7881fd62b2c51b090c0899aae4573294d33e7acd054529ae00716657",
     "tests/shared/orky-heartbeat-status.test.ts": "6c0ad074cbdcde07633ef78be0fca7c84b72c50a3336e8daa2c8649216293c9b",
     "tests/shared/orky-ipc-contract.test.ts": "c2f809c4a1e9b29b68e827c90b7a51475e2ea7662dcaa6c76cb9c196bdf55c23",

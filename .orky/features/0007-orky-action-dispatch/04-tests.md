@@ -350,3 +350,72 @@ precedent of 0005's TEST-096 and 0014's TEST-042/043. REQ-020 is covered by a do
 (TEST-280), matching the `tests/docs-feature-000N.test.ts` house pattern. REQ-013's corrected acceptance
 (ESC-001, decision A: only dispatcher-reached actions are audited) is covered as-is by the existing
 TEST-255/256/257/258/259 — no change needed on re-verification.
+
+## Loopback (ESC-003, 2026-07-01): CLI-argument-injection guard (FINDING-SEC-001 fix, TEST-283..TEST-290)
+
+**Context.** Review's security lens filed FINDING-SEC-001 (HIGH): `orky-action-dispatcher.ts` passes
+several human-authored/renderer-supplied string fields as a **raw, un-encoded argv element** to Orky's
+`gatekeeper` CLI, whose own naive `parseArgs` reinterprets ANY `--`-prefixed argv token as a new flag
+regardless of position. Concretely: `escalationId`/`decision` (resolveEscalation's gatekeeper-fallback
+`resolve-escalation` call), `evidence` (recordHumanGate's `record` call), and `feature` (used raw in both
+`emit --feature <slug>` and the server-rebuilt-but-slug-sourced `record`/`resolve-escalation --feature
+<featureDir>` calls) all reach a raw argv position. `title`/`detail`/`phase` (submitWork) are confirmed
+SAFE as-is — they only ever travel inside a `JSON.stringify(...)`-encoded `--payload` argument, never as
+their own raw argv element.
+
+The human reviewed and approved the fix (`state.json` escalations[2], ESC-003): reject any
+`feature`/`decision`/`escalationId`/`evidence` value starting with `--` in
+`src/shared/orky-action-validate.ts`, before it ever reaches a raw argv position, plus regression tests
+covering the injection vector. This section documents the TEST-283..TEST-290 addition authored to pin that
+required behavior — RED today, since the guard does not yet exist in `src/shared/orky-action-validate.ts`.
+No file under `src/` was touched by this pass (test-designer-only loopback, same integrity boundary as the
+original phase 4). No REQ was added or renumbered; these are new acceptance-criterion tests against the
+EXISTING, frozen REQ-005 (feature-slug confinement) and REQ-014 (malformed/boundary input tolerance,
+CONV-001) — the underlying vulnerability's *impact* materializes at REQ-008/010/011, but the *validation
+mechanism* under test here lives squarely in REQ-005/REQ-014's territory (`orky-action-validate.ts`).
+
+All 8 new tests live in the existing (not-yet-refrozen) `tests/shared/orky-action-validate.test.ts`, in a
+new `describe('CLI-argument-injection guard — ...')` block, continuing the project-wide TEST-NNN sequence
+from **TEST-283** (TEST-282 was the prior high-water mark, per the original catalogue above) through
+**TEST-290**. Two pre-existing tests in the same file were also EXTENDED (not weakened — no existing
+assertion removed or relaxed) to fold the new rejection reasons into their own regression sweeps: TEST-156
+(FeatureSlug pairwise-message-uniqueness check) now also includes `'--force'` in its de-duplicated message
+set, and TEST-177 (whole-matrix "never a bare generic string" check) now also collects the four new
+rejection messages.
+
+| TEST-ID | REQ(s) | File | Assertion |
+|---|---|---|---|
+| TEST-283 | REQ-005 | `tests/shared/orky-action-validate.test.ts` | `validateFeatureSlug('--force')` → `{ok:false}`, dedicated message distinct from all 6 pre-existing FeatureSlug rejections. |
+| TEST-284 | REQ-005 | same | A second, longer `--`-prefixed variant (`'--anything is fine'`) rejected with the SAME dedicated guard message. |
+| TEST-285 | REQ-005 | same | A bare `'--'` (exactly two dashes, nothing after) is ALSO rejected — boundary case, still "starts with --". |
+| TEST-286 | REQ-005 | same | The same `--`-prefixed feature rejection propagates END-TO-END through `validateResolveEscalationRequest` (not just the standalone `validateFeatureSlug` unit), confirming the single shared implementation is reused. |
+| TEST-287 | REQ-014 | same | `validateResolveEscalationRequest({..., decision:'--anything is fine', ...})` → `{ok:false}`, its own distinct actionable message. |
+| TEST-288 | REQ-014 | same | `validateResolveEscalationRequest({..., escalationId:'--force', ...})` → `{ok:false}`, its own distinct message (never collides with the decision-guard message). |
+| TEST-289 | REQ-014 | same | `validateRecordHumanGateRequest({..., evidence:'--force', ...})` → `{ok:false}`, its own distinct message; `evidence` remains FULLY OPTIONAL — omitting it entirely still validates fine (regression guard alongside TEST-173). |
+| TEST-290 | REQ-007 | same | NEGATIVE/scope regression: `validateSubmitWorkRequest`'s `title`/`detail`/`phase` MAY start with `--` and MUST STILL be accepted (`ok:true`) — these free-text fields travel only inside the JSON `--payload` argument, so guarding them would be over-broad. Proves the fix is properly SCOPED. |
+
+### RED verification (this addition)
+
+```
+npx vitest run tests/shared/orky-action-validate.test.ts
+ Test Files  1 failed (1)
+      Tests  7 failed | 31 passed (38)
+```
+
+7 of the 8 new assertions fail (TEST-283..TEST-289 — the guard does not exist yet in
+`src/shared/orky-action-validate.ts`, so every `--`-prefixed value is currently ACCEPTED, not rejected).
+TEST-290 (the negative/scope-regression case) correctly PASSES today by construction — no guard exists yet,
+so `title`/`detail`/`phase` starting with `--` are (correctly) still accepted, exactly as they must remain
+once the guard ships.
+
+Full-suite re-verification:
+
+```
+npm test
+ Test Files  1 failed | 139 passed (140)
+      Tests  7 failed | 1026 passed (1033)
+exit code 1
+```
+
+1033 = 1025 (prior green baseline) + 8 new tests. All other 139 files remain green — this loopback touches
+no other test file and no production code.
