@@ -118,6 +118,12 @@
           "evidence": "no open blocking findings (CRITICAL/HIGH or contract-violation) for this gate"
         }
       ]
+    },
+    "human-review": {
+      "passed": true,
+      "at": "2026-07-01T00:22:22.229Z",
+      "evidence": "Human reviewed at the review checkpoint via /orky:app-run: all 7 gates green, 798/798 tests, real ADR-026 contract confirmed implemented correctly, both hardening findings verified fixed. Approved for merge.",
+      "external": true
     }
   },
   "iterations": {
