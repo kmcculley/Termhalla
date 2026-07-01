@@ -1,0 +1,108 @@
+{
+  "app": "Termhalla — Orky integration T1–T4",
+  "features": [
+    {
+      "id": "F5",
+      "slug": "0005-cross-project-orky-registry",
+      "title": "Cross-project Orky registry + multi-root aggregation",
+      "summary": "Track every project with an .orky/ dir (open panes' resolved roots + a persisted explicit list) and roll their status up into one cross-project, pane-independent aggregate over a new IPC channel — generalizing 0004's single-root OrkyTracker to a set of roots.",
+      "deps": [],
+      "status": "in-progress"
+    },
+    {
+      "id": "F6",
+      "slug": "0006-decision-queue-panel",
+      "title": "Decision-queue panel (read)",
+      "summary": "A renderer panel that renders F5's cross-project aggregate as a queue of what needs a human now (open escalations, awaiting human-review, stalled), grouped by project and ranked by the existing selectChipFeature ordering, with empty/loading/error states and click-to-focus.",
+      "deps": [
+        "F5"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "F7",
+      "slug": "0007-orky-action-dispatch",
+      "title": "Orky action-dispatch substrate (first write capability)",
+      "summary": "A privileged main-process layer that invokes Orky's feedback CLI (emit/pull/ack, file mode) and Gatekeeper CLI (record/resolve-escalation/drive) safely — request/response IPC, project-root allowlist (from F5), the feedback.enabled precondition, arg validation, exit-code/JSON result mapping, audit. Never decides a gate; only submits human verdicts/decisions/work.",
+      "deps": [
+        "F5"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "F8",
+      "slug": "0008-queue-answer-resume-actions",
+      "title": "One-click answer-escalation + resume on queue entries (write)",
+      "summary": "Wire one-click answer-an-escalation (resolve-escalation / feedback decision) and resume (drive) onto F6's queue entries through F7's dispatch, each gated on an explicit user gesture, with pending/result states and a clear disabled-feedback message.",
+      "deps": [
+        "F6",
+        "F7"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "F9",
+      "slug": "0009-native-orky-pane",
+      "title": "Native OrkyPane pane type (read)",
+      "summary": "A first-class pane KIND in the workspace/pane model (schema-bumped, persisted) that binds to an explicitly-chosen Orky project root and renders its full status — features, live phases, gate N/M, findings, escalations — reusing the orky-status mappers and F5's data rather than a terminal chip.",
+      "deps": [
+        "F5"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "F10",
+      "slug": "0010-orky-pane-inline-actions",
+      "title": "Inline actions in OrkyPane (write)",
+      "summary": "Surface answer/resume (and inject via F12's quick-capture) directly inside the OrkyPane through F7's dispatch, so a project can be worked end-to-end from its own pane, each action tied to an explicit gesture.",
+      "deps": [
+        "F9",
+        "F7"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "F11",
+      "slug": "0011-orky-workspace-template",
+      "title": "Per-project Orky workspace template",
+      "summary": "A workspace preset that sets up an OrkyPane (plus a terminal pane in the project root) for a chosen tracked project, so opening 'work this Orky project' is one gesture.",
+      "deps": [
+        "F9"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "F12",
+      "slug": "0012-quick-capture-inbox",
+      "title": "Quick-capture new-work inbox (write)",
+      "summary": "A fast global entry point (command palette / shortcut) to capture new work or an idea from anywhere in Termhalla, pick a target project from F5's registry, and submit it as a new-work feedback item via F7. This is the single new-work injection surface the queue and OrkyPane also reuse.",
+      "deps": [
+        "F7"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "F13",
+      "slug": "0013-os-needs-you-notifications",
+      "title": "OS-level needs-you notifications (read)",
+      "summary": "Extend 0004's tab-badge mechanism to fire OS-level notifications on needs-you transitions across ALL tracked projects (from F5) — even ones with no open pane — respecting the existing tab-badge opt-in, with dedupe/throttle and click-to-focus.",
+      "deps": [
+        "F5"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "F14",
+      "slug": "0014-orky-osc-heartbeat",
+      "title": "Orky OSC heartbeat parse + render (read)",
+      "summary": "Parse Orky's OSC 9999 heartbeat marker (ESC ] 9999 ; <JSON> BEL — wire format + payload schema now specified in the Orky repo's docs/osc-heartbeat.md, ADR-026) out of the PTY byte stream (extending the existing osc-scanner / osc133 infra), so an Orky run's status is visible over a bare SSH/remote pane where the .orky/ tree is not filesystem-reachable, rendered through the same orky-status presentation as 0004. The emitter is confirmed Orky-side (resolves roadmap open question #2) — this feature is the parser/renderer ONLY; it never spawns the emitter or writes anything under .orky/.",
+      "deps": [],
+      "status": "done",
+      "completedAt": "2026-07-01T00:30:30.767Z"
+    }
+  ],
+  "integration": {
+    "status": "pending",
+    "summary": "Against a synthetic multi-project .orky/ fixture, prove the read -> decide -> act loop end-to-end across features and over 0004's existing plumbing: (1) F5 surfaces a needs-you entry from a project with NO open pane; (2) F6 ranks/groups it; (3) a one-click F8/F10 action dispatches through F7 to the REAL feedback/gatekeeper CLI and the resulting state change is re-derived from ground truth (state.json mutated by the Gatekeeper, never written by Termhalla); (4) the F9 OrkyPane reflects the same project; (5) F12 quick-capture lands a new-work item in the file-mode inbox; (6) the read/write boundary holds — 0004's watcher and every read path (F5/F6/F9/F13/F14) make zero writes under .orky/, only F7 writes and only via the sanctioned feedback/gatekeeper contract on an explicit gesture; (7) every write feature no-ops or flags cleanly when feedback.enabled is false. Also exercise the brownfield seams with 0004's OrkyTracker / src/shared/orky-status.ts / orky:* IPC, which are real dependencies the DAG cannot encode."
+  }
+}
