@@ -54,6 +54,12 @@ to it when a review surfaces a lesson general enough to outlive its feature.
   dispose), so it can neither grow unbounded for the life of the owning instance nor serve a
   stale value when a key later re-enters membership.
   *(from FINDING-DA-006 in 0005-cross-project-orky-registry)*
+- **CONV-012** — A frozen/golden test (content-hash or structural) that pins the contract of a
+  SHARED source file — one other features also legitimately modify — MUST be co-owned by (live in,
+  or be updated atomically at merge by) whichever feature touches that file; parking a content-freeze
+  test on a shared file inside one feature's own frozen suite has no atomic cross-feature update path
+  and turns every legitimate refactor elsewhere into a false-positive loopback for an unrelated feature.
+  *(from FINDING-DA-010 in 0014-orky-osc-heartbeat)*
 
 ## Principles
 Higher-level stances that inform specs and reviews but are too broad to gate mechanically.

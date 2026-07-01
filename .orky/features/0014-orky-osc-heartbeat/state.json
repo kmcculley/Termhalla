@@ -1,6 +1,6 @@
 {
   "feature": "0014-orky-osc-heartbeat",
-  "phase": "tests",
+  "phase": "doc-sync",
   "gates": {
     "brainstorm": {
       "passed": true,
@@ -45,6 +45,85 @@
       "at": "2026-07-01T00:22:22.229Z",
       "evidence": "Human reviewed at the review checkpoint via /orky:app-run: all 7 gates green, 798/798 tests, real ADR-026 contract confirmed implemented correctly, both hardening findings verified fixed. Approved for merge.",
       "external": true
+    },
+    "tests": {
+      "passed": true,
+      "at": "2026-07-01T02:23:36.214Z",
+      "tokens": [
+        {
+          "token": "spec-freeze",
+          "pass": true,
+          "evidence": "spec unchanged since the spec gate"
+        },
+        {
+          "token": "tests-red",
+          "pass": true,
+          "evidence": "tests are GREEN on a tests loopback (coverage augmentation; implementation already exists) — freeze re-captured"
+        }
+      ]
+    },
+    "implement": {
+      "passed": true,
+      "at": "2026-07-01T02:26:28.742Z",
+      "tokens": [
+        {
+          "token": "spec-freeze",
+          "pass": true,
+          "evidence": "spec unchanged since the spec gate"
+        },
+        {
+          "token": "build",
+          "pass": true,
+          "evidence": "build exited 0"
+        },
+        {
+          "token": "test",
+          "pass": true,
+          "evidence": "test exited 0"
+        },
+        {
+          "token": "test-freeze",
+          "pass": true,
+          "evidence": "test files unchanged since freeze"
+        }
+      ]
+    },
+    "review": {
+      "passed": true,
+      "at": "2026-07-01T02:45:24.662Z",
+      "tokens": [
+        {
+          "token": "spec-freeze",
+          "pass": true,
+          "evidence": "spec unchanged since the spec gate"
+        },
+        {
+          "token": "findings",
+          "pass": true,
+          "evidence": "no open blocking findings (CRITICAL/HIGH or contract-violation) for this gate"
+        }
+      ]
+    },
+    "doc-sync": {
+      "passed": true,
+      "at": "2026-07-01T02:50:06.637Z",
+      "tokens": [
+        {
+          "token": "spec-freeze",
+          "pass": true,
+          "evidence": "spec unchanged since the spec gate"
+        },
+        {
+          "token": "traceability",
+          "pass": true,
+          "evidence": "all 17 REQ(s) trace to TASK+TEST"
+        },
+        {
+          "token": "findings",
+          "pass": true,
+          "evidence": "no open blocking findings (CRITICAL/HIGH or contract-violation) for this gate"
+        }
+      ]
     }
   },
   "iterations": {
@@ -147,14 +226,13 @@
     "reqsWithoutUnitTestsReason": "documentation-only deliverables verified at the doc-sync gate (TASK-010), per 02-spec.md's Definition of Done"
   },
   "implementer": {
-    "mode": "ab",
+    "mode": "claude",
     "agents": [
-      "orky:implementer",
-      "codex:codex-rescue"
+      "orky:implementer"
     ],
     "winner": "orky:implementer",
-    "reason": "Router selected A/B mode again (determinism concern), same as both prior cycles. Skipped re-running codex:codex-rescue: this exact feature's immediately prior cycle (state.json, 2026-06-30T21:53:53) already proved the codex-companion sandbox denies all writes outside the original worktree under identical conditions (same feature, same worktree), so candidate B made zero changes there. This iteration's fix is even smaller/more surgical (single-line kind-derivation correction in src/shared/orky-status.ts) than the prior cycle's, so re-running the ~600s experiment would almost certainly reproduce the identical block for an even simpler task. Per orchestrator instruction to treat a non-returning/unavailable codex path as skippable with reason recorded, candidate B was not re-dispatched this cycle. Claude candidate A (orky:implementer) made the exact minimal fix the frozen tests demanded: dropped the hb.phase==null && clause from heartbeatKind, making done-detection purely gateN>=gateM. Feature suite 41/41 green; full npm test 794/796 (2 pre-existing environment-dependent failures unrelated to this feature, confirmed via git stash reproduction). No test file modified. Winner by default/by merit.",
-    "at": "2026-06-30T23:26:23.912Z"
+    "reason": "Router selected A/B mode (determinism concern), same as prior cycles. Skipped codex:codex-rescue A/B this cycle per orchestrator instruction: this loopback is a test-only fix (TEST-035 byte-hash -> structural check) with zero src/ edits required -- a trivial re-verify pass, even smaller/more surgical than the prior cycle's single-line fix that already proved the codex-companion sandbox denies writes outside the original worktree under identical conditions. Re-running the ~600s A/B experiment for a zero-diff verification would almost certainly reproduce the identical block for an even simpler task. Claude-only candidate (orky:implementer) confirmed zero-diff re-verify: full suite 888/888 green, 0014-scoped subset 43/43 green, no src/ change needed, TEST-035's new structural check passes against the current unmodified orky-tracker.ts. Winner by default (sole candidate).",
+    "at": "2026-07-01T02:25:47.226Z"
   },
   "loopbacks": [
     {

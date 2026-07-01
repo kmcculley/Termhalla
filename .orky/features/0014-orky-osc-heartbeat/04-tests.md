@@ -99,7 +99,7 @@ gate-based-only derivation, which is exactly its job as the regression-proof for
 |---|---|
 | `tests/fixtures/orky-osc-fixtures.ts` | Synthetic/golden OSC byte fixture helper (REQ-014) — `ORKY_OSC = '\x1b]9999;'`, `BEL`/`ST`, `wrapOrkyPayload`/`buildOrkyMarker` (JSON-payload builders), the worked examples (`APP_LOOP_*`, `AWAITING_HUMAN_*`, plus `BUSY_*`/`DONE_*`/`DONE_DOC_SYNC_*`/`BUSY_PHASE_NULL_*` from REQ-009's acceptance examples), and malformed/edge-case payload constants (`MALFORMED_JSON_MARKER`, `NON_OBJECT_JSON_MARKERS`, `EMPTY_PAYLOAD_MARKER`) for REQ-008. Pure byte-string builders; no process/network/filesystem access. Does NOT import the not-yet-rewritten parser module — a true golden fixture independent of the implementation (it imports only the pre-existing, Electron-free `ORKY_PHASES` from `@shared/orky-status`, feature 0004, to compute the app-loop heartbeat's default `gateM`). |
 | `tests/main/orky-osc-parser.test.ts` | Behavioral coverage of `OrkyOscParser` — REQ-001 (ADR-026 worked example + cross-prefix rejection + the literal-`;`-in-`reason` case), REQ-003 (chunk-boundary carry-over), REQ-004 (thin-client verbatim mapping, behavioral half), REQ-005 (forward-compat on `v`/unknown fields), REQ-006 (bounded carry-over ceiling, FINDING-SEC-001), REQ-007 (UTF-8 byte-length payload cap, FINDING-CODEX-001), REQ-008 (strict-but-tolerant JSON validation, total/never-throws), REQ-011 (app-loop heartbeat decode, parser half). TEST-001…TEST-022, TEST-029. **Unaffected by this revision's REQ-009 correction.** |
-| `tests/main/orky-osc-structural.test.ts` | Source-text / structural assertions — REQ-002 (`scanOsc` reuse shape), REQ-004 (no `eval`/`Function` in the decode path, structural half), REQ-012 (no new `orky:*` IPC channel, no forked `OrkyPaneStatus`-equivalent interface), REQ-013 (`orky-tracker.ts` byte-for-byte unchanged via a frozen sha256 hash; parser/bridge start no `.orky/` filesystem watch), REQ-014 (no 0014 test/fixture file depends on a live process/network), REQ-017 (`SCHEMA_VERSION` unchanged; no filesystem-write API surface), **REQ-015/REQ-016 (doc-sync closeout, this revision — see below)**. TEST-005, TEST-006, TEST-009, TEST-031, TEST-035, TEST-036, TEST-037, TEST-038, TEST-039, **TEST-042, TEST-043**. |
+| `tests/main/orky-osc-structural.test.ts` | Source-text / structural assertions — REQ-002 (`scanOsc` reuse shape), REQ-004 (no `eval`/`Function` in the decode path, structural half), REQ-012 (no new `orky:*` IPC channel, no forked `OrkyPaneStatus`-equivalent interface), REQ-013 (`orky-tracker.ts`'s public `OrkyTracker` API contract — `watch`/`unwatch`/`dispose` signatures — and its lack of any `chokidar`/`node:fs`/0014-module dependency, pinned via a structural check, not a byte hash — see "TEST-035 loopback" below; parser/bridge start no `.orky/` filesystem watch), REQ-014 (no 0014 test/fixture file depends on a live process/network), REQ-017 (`SCHEMA_VERSION` unchanged; no filesystem-write API surface), **REQ-015/REQ-016 (doc-sync closeout, this revision — see below)**. TEST-005, TEST-006, TEST-009, TEST-031, TEST-035, TEST-036, TEST-037, TEST-038, TEST-039, **TEST-042, TEST-043**. |
 | `tests/shared/orky-heartbeat-status.test.ts` | `orkyHeartbeatToPaneStatus`/`selectOrkyPaneStatus` — REQ-009 (reuse of 0004's `orkyPaneStatus` presentation with the NEW derived-`kind` mapping, since ADR-026's wire no longer carries `kind`/`openBlocking`/`failed` — **gate-based done-detection only, per ESC-002/spec iteration 3**), REQ-010 (actionable `detail`), REQ-011 (app-loop → cleared shape, mapper half), REQ-013 (fs-wins precedence via `selectOrkyPaneStatus`). TEST-023, TEST-024, **TEST-040 (new)**, TEST-025 (reworded), **TEST-041 (new)**, TEST-026…TEST-028, TEST-030, TEST-032…TEST-034. |
 
 **43 TESTs total (TEST-001…TEST-043).** See `traceability.md` / `traceability.json` for the full
@@ -118,8 +118,9 @@ TEST; REQ-016: no TEST`.
 Both REQs' acceptance criteria are, in fact, concrete and file-content-checkable (specific literal strings
 and patterns across specific files), so real tests were written rather than loosening the gate or
 mis-tagging documentation as a test. They were added to `tests/main/orky-osc-structural.test.ts` — the
-established home for this feature's cross-file structural/content-assertion checks (matching TEST-035's
-frozen-hash pattern and TEST-037's cross-file content-grep pattern):
+established home for this feature's cross-file structural/frozen-content-assertion checks (matching
+TEST-035's frozen-content-check pattern — now a structural source-shape assertion, see the "TEST-035
+loopback" section below — and TEST-037's cross-file content-grep pattern):
 
 - **TEST-042** (REQ-015 — scope: Termhalla parser/renderer only; Orky-side emission is real/shipped)
   asserts that both `02-spec.md` and `docs/features/orky-osc-heartbeat.md`:
@@ -155,6 +156,26 @@ pass immediately** — they are regression-guard/closing tests for already-compl
 tests driving new implementation. No file under `src/` was modified to make them pass; the one fix made
 while writing TEST-042 was to the test's own regex (matching across the doc's markdown line-wrap), never to
 the doc content.
+
+## TEST-035 loopback (post-merge of sibling feature 0005-cross-project-orky-registry)
+
+**Status update, superseding the "frozen sha256 hash" framing used throughout this document's earlier
+sections (including design note 6 below) — TEST-035 is no longer a byte-hash check.** After this feature's
+implementation was already complete, sibling feature `0005-cross-project-orky-registry` legitimately
+refactored `src/main/orky/orky-tracker.ts` (extracting a shared `OrkyRootEngine` so 0004's per-pane tracker
+and 0005's cross-project registry share one chokidar watcher per `.orky/` root instead of duplicating it).
+That refactor changed every byte of the file without changing the public contract REQ-013 actually cares
+about, so the frozen sha256 hash went RED against a legitimate, unrelated change — a false positive in the
+hash approach itself, not a regression in this feature.
+
+A fresh `orky:test-designer` dispatch rewrote TEST-035 to assert a **structural contract** on
+`orky-tracker.ts`'s source text instead of a content hash: it still exports `OrkyTracker`, still exposes
+`watch(id, cwd): Promise<...>` / `unwatch(id): void` / `dispose(): void` with the expected signatures, and
+still imports no `chokidar`/`node:fs` and references neither `orky-osc-parser` nor `orky-stream-status` (the
+real invariant REQ-013 exists to protect — that 0014 hasn't crept into or duplicated 0004's/0005's
+filesystem-watch responsibility). No `src/` file was touched to make the rewritten test pass; the
+implementation was already correct against the new structural assertions. See the "TEST-035" test body in
+`tests/main/orky-osc-structural.test.ts` for the full rationale recorded alongside the assertions.
 
 Verification (targeted 3-file run, immediately after adding TEST-042/TEST-043):
 
@@ -228,17 +249,21 @@ TEST-042/TEST-043. `traceability.json` now records `REQ-015: ["TEST-042"]` and `
    TASK-001 — pure shared code, no runtime dependency on the parser file"). The fixture heartbeat shapes
    are pinned to the SAME literal field values the REQ-001 parser-level tests assert, so there is no
    copy-drift between "what the parser decodes" and "what the mapper is fed."
-6. **REQ-013's "`orky-tracker.ts` is unchanged" acceptance is pinned with a frozen sha256 hash**
-   (TEST-035) of the file's current UTF-8 text
-   (`aba940393d50df9e658c0930aadfd136287984f89e63713d423c3d45a93aa526` — re-verified against the file as
-   it stands today, unchanged since the prior iteration's pass). Any byte-level edit to `orky-tracker.ts`
-   — even a no-functional-change reformat — fails this FROZEN test, intentionally strict per REQ-013's
-   "no regression/duplication" wording.
+6. **REQ-013's "`orky-tracker.ts` hasn't grown 0014's watch responsibility" acceptance was originally
+   pinned with a frozen sha256 hash** (TEST-035) of the file's current UTF-8 text. That hash was replaced,
+   in a later loopback cycle (see "TEST-035 loopback" above), with a structural check on `OrkyTracker`'s
+   public API surface (`watch`/`unwatch`/`dispose` signatures, still exported class, no `chokidar`/
+   `node:fs`/0014-module references) after a legitimate refactor in sibling feature
+   `0005-cross-project-orky-registry` changed the file's bytes without changing that contract, which the
+   byte-hash could not distinguish from a real regression. The structural check is intentionally still
+   strict about the public contract REQ-013 cares about, but no longer false-positives on unrelated,
+   contract-preserving refactors of the file.
 7. **Some structural assertions are pre-implementation PASSES, not failures** — this is correct, not a
    bug, and was true of the prior iteration's structural suite too (see RED verification below): the
    structural REQs (002, 004's structural half, 012, 013, 014, 017) describe properties that were ALREADY
    true of the (still-on-disk, stale-contract) implementation before this re-plan — `scanOsc` reuse, no
-   `eval`, no new IPC channel, the `orky-tracker.ts` hash, `SCHEMA_VERSION`, no write API. They are
+   `eval`, no new IPC channel, the `orky-tracker.ts` public-API/import-boundary check, `SCHEMA_VERSION`,
+   no write API. They are
    regression guards for invariants the implementation MUST NOT break, not behaviors yet to be added; the
    suite's overall RED status comes entirely from the BEHAVIORAL tests (REQ-001/003/004's behavioral
    half/005/006/007/008/009/010/011), which fail because the parser still decodes the superseded 8888/
