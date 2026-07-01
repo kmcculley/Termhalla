@@ -1,7 +1,7 @@
 {
-  "feature": ".orky/features/0014-orky-osc-heartbeat",
-  "projectRoot": "C:/dev/Termhalla/.claude/worktrees/agent-ab11ac825d6caf9fc",
-  "phase": "doc-sync",
-  "lastTickAt": "2026-06-30T23:58:42.008Z",
-  "lastAction": "review gate passed; flowing to doc-sync to close FINDING-QUAL-004 (real ADR-026 contract docs) and reconcile traceability"
+  "feature": ".orky/features/0005-cross-project-orky-registry",
+  "projectRoot": "C:/dev/Termhalla",
+  "phase": "human-review",
+  "lastTickAt": "2026-07-01T02:07:26.309Z",
+  "lastAction": "human-review approved and merged to mainline via /orky:app-run (0014 merged first, 0005 second)"
 }

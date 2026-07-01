@@ -175,10 +175,27 @@ related area:
   Orky's *separate* 9-entry `PHASE_ORDER` (intake…human) — see the provenance caveat in
   `docs/features/orky-status.md` before re-syncing it. The tracker is **strictly read-only** (clones the
   `UsageTracker` session-identity race pattern; one debounced chokidar watcher + read per resolved
-  `.orky/` root, `.json`-filtered, IPC args validated + per-window sender-scoped); it never writes under
+  `.orky/` root, `.json`-filtered, IPC args validated + known-window sender-scoped); it never writes under
   `.orky/`, never spawns a CLI, and bumps no `SCHEMA_VERSION`. Open follow-ups (incl. the clean-DONE
   `null`-phase chip, FINDING-DA-007) are tracked in
   `docs/superpowers/0004-orky-status-review-followups.md`.
+- **Orky registry (feature 0005) shares ONE `OrkyRootEngine` across the pane-chip path AND the
+  cross-project aggregate — never two watchers per root.** 0004's `OrkyTracker` (`src/main/orky/
+  orky-tracker.ts`) was refactored into a thin pane-facing facade over a new, extracted
+  `OrkyRootEngine` (`src/main/orky/orky-root-engine.ts`) that generalizes "consumer = a pane" to
+  "consumer = an opaque string id" (`pane:<id>` / `persisted:<root>`) and fans every re-read out via a
+  multi-subscriber `onStatus(cb): unsubscribe`. The composition root (`services.ts`) constructs this
+  engine ONCE and injects the SAME instance into both `OrkyTracker` (via `registerOrky`) and the new
+  `OrkyRegistry` (`src/main/orky/orky-registry.ts`, the cross-project aggregator behind the
+  `registry:*` IPC channels + the persisted `orky-registry.json`, `src/main/persistence/
+  orky-registry-store.ts`) — so a root tracked by N panes *and* the persisted explicit list still costs
+  exactly one chokidar watcher process-wide. This also required widening `registerOrky`'s IPC sender
+  check from "exactly the one owning `BrowserWindow`" to "any currently-tracked app window"
+  (`WindowManager.isKnownWindowSender`, built on the existing private `windowIdOf`) — REQ-002/REQ-020
+  need pane-root membership aggregated across **every** window, not just one; a truly foreign/destroyed
+  sender is still rejected (the original FINDING-SEC-002 intent survives, just widened in scope). No
+  renderer UI ships with this feature (IPC/data only — see `docs/features/orky-status.md` §
+  "Cross-project registry").
 
 ## Where things live
 
@@ -192,7 +209,7 @@ related area:
 | AI session detection | `src/main/ai/` | [ai-session-awareness](docs/features/ai-session-awareness.md) |
 | Git status on pane chip | `src/main/git/` | [git-status](docs/features/git-status.md) |
 | Claude usage metrics | `src/main/usage/` | [usage-metrics](docs/features/usage-metrics.md) |
-| Orky pipeline status (read-only `.orky/` mirror) | `src/main/orky/`, `src/shared/orky-status.ts` | [orky-status](docs/features/orky-status.md) |
+| Orky pipeline status (read-only `.orky/` mirror) + cross-project orky-registry aggregate | `src/main/orky/`, `src/shared/orky-status.ts`, `src/shared/orky-registry.ts` | [orky-status](docs/features/orky-status.md) |
 | Orky OSC heartbeat (stream-derived status, fallback for bare-SSH panes) | `src/main/status/orky-osc-parser.ts`, `src/main/orky/orky-stream-status.ts` | [orky-osc-heartbeat](docs/features/orky-osc-heartbeat.md) |
 | Per-project notepad | `src/main/persistence/notes-store.ts`, `src/renderer/components/NotesPanel.tsx` | [notepad](docs/features/notepad.md) |
 | SSH / favorites store | `src/main/persistence/quick-store.ts`, `src/shared/quick.ts` | [ssh-favorites](docs/features/ssh-favorites.md) |

@@ -96,6 +96,18 @@ thin around it. That pure core is what this baseline characterizes (see CHAR ids
   the Orky-derived status takes precedence over the byte-derived `TerminalStatus` for the pane border and
   the workspace tab badge (the byte-status computation itself is unchanged — baseline REQ-004). Nothing is
   persisted (no `SCHEMA_VERSION` bump).
+- **`src/main/orky/orky-registry.ts`** — *added by feature 0005 (cross-project Orky registry).*
+  Generalizes the single-root `OrkyTracker` above to a pane-independent, cross-project aggregate
+  (`OrkyRegistry`): the union of every open pane's resolved `.orky/` root (ephemeral) and a new persisted
+  explicit list (manual, `registry:addRoot`/`registry:removeRoot` only), reusing the SAME per-root status
+  roll-up. The per-root watch/read machinery was *extracted* from `orky-tracker.ts` into a new shared
+  `OrkyRootEngine` (`src/main/orky/orky-root-engine.ts`) — constructed ONCE in `services.ts` and injected
+  into BOTH `OrkyTracker` and `OrkyRegistry`, so a root tracked by several panes *and* the persisted list
+  still has exactly one chokidar watcher. The persisted list lives in a new, self-versioned
+  **`orky-registry.json`** under `userData` (`src/main/persistence/orky-registry-store.ts`,
+  `{version:1, roots:[...]}`, atomic write; independent of `SCHEMA_VERSION`). The aggregate is pushed over
+  a new app-global `registry:status` IPC channel (`src/main/ipc/register-registry.ts`); this feature ships
+  no renderer UI.
 
 ### Shared renderer/UI logic
 - **`shared/keybindings.ts`** — command registry, chord parse/format, `resolveBindings`,

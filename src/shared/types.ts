@@ -76,6 +76,34 @@ export interface OrkyHeartbeat {
   action: string | null            // payload.action (only meaningful when feature is null)
 }
 
+// ── Cross-project Orky registry (feature 0005) — live runtime wire types (NOT persisted beyond the
+// roots list itself; see orky-registry.json / REQ-013 — no SCHEMA_VERSION bump).
+/** Why a root is a member of the cross-project aggregate. `both` = an open pane resolves to it AND it
+ *  is in the persisted explicit list. */
+export type OrkyRootSource = 'pane' | 'persisted' | 'both'
+
+/** One project's entry in the cross-project aggregate (D3: reuse `OrkyPaneStatus` per resolved root —
+ *  no parallel status type is invented). The index signature is a type-only convenience (erased at
+ *  runtime, doesn't add properties) so test code can structurally cast a snapshot to
+ *  `Record<string, unknown>[]` for a generic `Object.keys()` shape assertion. */
+export interface OrkyRegistryEntry {
+  root: string                    // resolved project root (the dir CONTAINING .orky/), absolute, normalized
+  source: OrkyRootSource          // membership provenance
+  status: OrkyPaneStatus | null   // the reused 0004 roll-up for this root; null = not yet read / unreadable
+  [key: string]: unknown
+}
+
+/** The cross-project aggregate emitted over `registry:status`. Sorted by `root` (codepoint) — REQ-007. */
+export type OrkyRegistrySnapshot = OrkyRegistryEntry[]
+
+/** Result of an add/remove-root IPC call (CONV-001: specific, actionable error on failure). */
+export interface RegistryMutationResult {
+  ok: boolean
+  root?: string        // the normalized root, on success
+  roots: string[]      // the persisted list AFTER the mutation (normalized, sorted)
+  error?: string        // specific + actionable when ok === false (CONV-001)
+}
+
 export interface AlertConfig {
   border?: boolean
   tabBadge?: boolean

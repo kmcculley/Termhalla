@@ -43,6 +43,17 @@ to it when a review surfaces a lesson general enough to outlive its feature.
   incidental fallback for some other nullable field whose "null implies complete" assumption isn't
   enforced on that code path.
   *(from FINDING-DA-009 in 0014-orky-osc-heartbeat)*
+- **CONV-010** — Every key used to identify the same filesystem path across data structures
+  (a dedup/membership key, a status/cache key, a watcher/consumer id, etc.) MUST be derived from
+  ONE shared `path.resolve()`-based normalizer; never mix a source-dependent raw string for one
+  key with a `join()`/`dirname()`-normalized string for another, or two structures that should
+  refer to the same physical directory can silently diverge.
+  *(from FINDING-DA-001 in 0005-cross-project-orky-registry)*
+- **CONV-011** — A per-key cache that mirrors a live membership set (a status-by-root cache,
+  metrics-by-id map, etc.) MUST prune keys that leave the membership set (and clear fully on
+  dispose), so it can neither grow unbounded for the life of the owning instance nor serve a
+  stale value when a key later re-enters membership.
+  *(from FINDING-DA-006 in 0005-cross-project-orky-registry)*
 
 ## Principles
 Higher-level stances that inform specs and reviews but are too broad to gate mechanically.

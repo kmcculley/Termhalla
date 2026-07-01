@@ -25,6 +25,17 @@ All notable changes to Termhalla are recorded here. The format follows
   throws, writes nothing) — the full byte-for-byte contract lives in
   `docs/features/orky-osc-heartbeat.md`. Once a project opts in, a bare-SSH pane shows real Orky status.
   `src/main/orky/orky-tracker.ts` (the filesystem watcher) is unmodified; `SCHEMA_VERSION` is unchanged.
+- **Cross-project Orky registry (IPC/data-only).** A new main-process service generalizes the per-pane
+  `OrkyTracker` (feature 0004) into a **cross-project, pane-independent aggregate**: the union of every
+  currently-open pane's resolved `.orky/` root (ephemeral) and a new **persisted explicit list** (manual,
+  added/removed only via `registry:addRoot` / `registry:removeRoot`), deduplicated by resolved project
+  root and tagged with its membership `source` (`pane` / `persisted` / `both`). Each entry reuses 0004's
+  exact `OrkyPaneStatus` roll-up — no forked status type. The aggregate is pushed over a new app-global
+  `registry:status` IPC channel (plus `registry:current`/`registry:roots` pulls), backed by a new
+  self-versioned `orky-registry.json` persisted file (`SCHEMA_VERSION` unchanged). The per-root
+  watch/read machinery is shared with the existing pane-chip path through one extracted `OrkyRootEngine`
+  instance, so a root tracked by multiple panes *and* the persisted list still costs exactly one chokidar
+  watcher. This feature ships **no renderer UI** — it is IPC/data only, for a later feature to consume.
 - **Orky status awareness in the pane chrome.** A terminal pane whose tracked cwd sits inside an
   `.orky/` project (an Orky gated-pipeline run) now surfaces that run's live
   **status** directly in the pane chrome — a read-only mirror, derived purely from reading the

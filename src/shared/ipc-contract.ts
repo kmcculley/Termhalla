@@ -1,4 +1,4 @@
-import type { ShellInfo, Workspace, AppState, TerminalStatus, DirEntry, ReadResult, StatResult, FsChange, TerminalLaunch, QuickStore, ProcInfo, CloudStatus, AiSession, UsageMetrics, EditorDraft, EnvVaultData, RecState, EnvVaultState, GitStatus, SearchHit, SearchStats, OrkyPaneStatus } from './types'
+import type { ShellInfo, Workspace, AppState, TerminalStatus, DirEntry, ReadResult, StatResult, FsChange, TerminalLaunch, QuickStore, ProcInfo, CloudStatus, AiSession, UsageMetrics, EditorDraft, EnvVaultData, RecState, EnvVaultState, GitStatus, SearchHit, SearchStats, OrkyPaneStatus, OrkyRegistrySnapshot, RegistryMutationResult } from './types'
 
 export const CH = {
   listShells: 'shells:list',
@@ -46,6 +46,11 @@ export const CH = {
   orkyWatch: 'orky:watch',          // renderer -> main
   orkyUnwatch: 'orky:unwatch',      // renderer -> main
   orkyStatus: 'orky:status',        // main -> renderer event (pane-scoped; null payload = cleared)
+  registryStatus: 'registry:status',        // main -> renderer event (APP-GLOBAL broadcast; full snapshot)
+  registryCurrent: 'registry:current',      // renderer -> main (pull the current aggregate snapshot)
+  registryRoots: 'registry:roots',          // renderer -> main (pull the persisted explicit root list)
+  registryAddRoot: 'registry:addRoot',      // renderer -> main (add a root to the persisted list)
+  registryRemoveRoot: 'registry:removeRoot', // renderer -> main (remove a root from the persisted list)
   draftsLoad: 'drafts:load',
   draftsSet: 'drafts:set',
   notesLoad: 'notes:load',
@@ -137,6 +142,17 @@ export interface TermhallaApi {
   orkyUnwatch(id: string): void
   /** Live per-pane Orky status push; a `null` payload means the pane is no longer a bound Orky run. */
   onOrkyStatus(cb: (paneId: string, status: OrkyPaneStatus | null) => void): () => void
+  /** Cross-project registry aggregate (feature 0005, D1 — IPC/data-only, no renderer UI consumes this
+   *  yet). App-global broadcast (NOT pane-scoped) of the COMPLETE current aggregate on every change. */
+  onRegistryStatus(cb: (snapshot: OrkyRegistrySnapshot) => void): () => void
+  /** Pull the current aggregate snapshot on demand (recovers a missed push, mirrors `cloudCurrent`). */
+  registryCurrent(): Promise<OrkyRegistrySnapshot>
+  /** Pull the persisted explicit root list only (excludes ephemeral pane-only roots). */
+  registryRoots(): Promise<string[]>
+  /** Add a root to the persisted explicit list (validated; idempotent). */
+  registryAddRoot(root: string): Promise<RegistryMutationResult>
+  /** Remove a root from the persisted explicit list (idempotent no-op if absent). */
+  registryRemoveRoot(root: string): Promise<RegistryMutationResult>
   revealPath(path: string): Promise<void>
   fsRename(oldPath: string, newPath: string): Promise<void>
   fsTrash(path: string): Promise<void>
