@@ -3,7 +3,7 @@ import type { OrkyPaneStatus, OrkyRegistrySnapshot, RegistryMutationResult } fro
 import { mergeRegistryMembership, buildRegistrySnapshot } from '@shared/orky-registry'
 import { OrkyRootEngine } from './orky-root-engine'
 import { OrkyRegistryStore } from '../persistence/orky-registry-store'
-import { validateRegistryRoot } from './validate-root'
+import { normalizeProjectRoot, validateRegistryRoot } from './validate-root'
 
 type SnapshotListener = (snapshot: OrkyRegistrySnapshot) => void
 
@@ -36,6 +36,7 @@ export class OrkyRegistry {
   private listeners = new Set<SnapshotListener>()
   private readonly unsubscribeEngine: () => void
   private mutationChain: Promise<unknown> = Promise.resolve()
+  private disposed = false
 
   constructor(private readonly engine: OrkyRootEngine, private readonly store: OrkyRegistryStore) {
     this.unsubscribeEngine = engine.onStatus((orkyDir, status) => {
@@ -53,13 +54,33 @@ export class OrkyRegistry {
   /** Load the persisted explicit list and begin tracking every entry (pane-independent — REQ-004),
    *  tolerating a root whose `.orky/` no longer exists on disk (the engine's own read-failure tolerance
    *  surfaces `status: null`; the root REMAINS a member because persistence, not pane-presence, is the
-   *  membership rule for it — REQ-018). Computes + emits the initial snapshot. */
+   *  membership rule for it — REQ-018). Computes + emits the initial snapshot.
+   *
+   *  Routed through `exclusive()` (FINDING-QUAL-002) — the SAME serialization queue `addRoot`/`removeRoot`
+   *  use — so a concurrently-QUEUED `addRoot`/`removeRoot` racing an in-flight `init()` can never
+   *  interleave with its read-modify-write of `this.persistedRoots` (the "last-write-wins data loss"
+   *  half of the original finding — genuinely closed by this).
+   *
+   *  `dispose()` is deliberately NOT routed through `exclusive()` (it must stay synchronous and take
+   *  immediate effect — TEST-129 calls it and asserts zero consumers with no `await`; queuing it behind
+   *  `exclusive()` would defer the actual teardown and break that contract). Instead, `init()` clones the
+   *  codebase's session-identity race pattern (CLAUDE.md "Session-identity race pattern" gotcha): claim
+   *  intent before the first `await`, then re-check `this.disposed` after EVERY `await` before doing
+   *  anything with a side effect, so a synchronous `dispose()` landing in any gap between awaits (the
+   *  only points JS lets it run) is seen immediately and `init()` bails out registering no further
+   *  consumers — closing the "orphaned watcher `dispose()` can never close" half of the original finding
+   *  too (REQ-019's "after dispose(), the service holds zero open watchers"). */
   async init(): Promise<void> {
-    this.persistedRoots = await this.store.load()
-    for (const root of this.persistedRoots) {
-      await this.engine.addConsumer(`persisted:${root}`, join(root, '.orky'))
-    }
-    this.recompute()
+    return this.exclusive(async () => {
+      if (this.disposed) return
+      this.persistedRoots = await this.store.load()
+      if (this.disposed) return
+      for (const root of this.persistedRoots) {
+        await this.engine.addConsumer(`persisted:${root}`, join(root, '.orky'))
+        if (this.disposed) return
+      }
+      this.recompute()
+    })
   }
 
   /** Called by the pane-chip wiring on every pane root resolution/clear, across ALL windows
@@ -74,8 +95,9 @@ export class OrkyRegistry {
       this.engine.removeConsumer(`pane:${paneId}`)
     }
     if (root !== null) {
-      this.paneRoots.set(paneId, root)
-      void this.engine.addConsumer(`pane:${paneId}`, join(root, '.orky'))
+      const canonical = this.resolveCanonical(root)
+      this.paneRoots.set(paneId, canonical)
+      void this.engine.addConsumer(`pane:${paneId}`, join(canonical, '.orky'))
     }
     this.recompute()
   }
@@ -87,7 +109,7 @@ export class OrkyRegistry {
     return this.exclusive(async () => {
       const v = await validateRegistryRoot(input)
       if (!v.ok) return { ok: false, roots: [...this.persistedRoots], error: v.error }
-      const root = v.root
+      const root = this.resolveCanonical(v.root)
       if (!this.persistedRoots.includes(root)) {
         this.persistedRoots = sortUnique([...this.persistedRoots, root])
         await this.store.save(this.persistedRoots)
@@ -101,12 +123,17 @@ export class OrkyRegistry {
   /** Removes a normalized root from the persisted list (idempotent no-op, never a throw, on an absent
    *  root or non-string input — REQ-010). If a pane consumer still references the SAME root, it remains
    *  a member with `source:'pane'` (the engine itself still has that consumer; only the registry's
-   *  bookkeeping of which source contributed changes). */
+   *  bookkeeping of which source contributed changes).
+   *
+   *  Routed through `resolveCanonical` (FINDING-SEC-010) — the SAME case/slash-folding lookup
+   *  `addRoot`/`trackPaneRoot` use — so a `removeRoot` call naming a case/slash-divergent but physically
+   *  identical spelling of an already-tracked root still finds and removes it, instead of silently
+   *  no-op'ing (`{ok:true}`, REQ-010's "MUST remove" otherwise unmet) while the root stays watched. */
   async removeRoot(input: unknown): Promise<RegistryMutationResult> {
     return this.exclusive(async () => {
       if (typeof input !== 'string') return { ok: true, roots: [...this.persistedRoots] }
       let normalized: string
-      try { normalized = resolve(input) } catch { return { ok: true, roots: [...this.persistedRoots] } }
+      try { normalized = this.resolveCanonical(resolve(input)) } catch { return { ok: true, roots: [...this.persistedRoots] } }
       if (!this.persistedRoots.includes(normalized)) return { ok: true, roots: [...this.persistedRoots] }
       this.persistedRoots = this.persistedRoots.filter(r => r !== normalized)
       await this.store.save(this.persistedRoots)
@@ -124,11 +151,44 @@ export class OrkyRegistry {
 
   /** Removes every `persisted:*` consumer THIS instance registered (pane consumers are owned by
    *  `OrkyTracker` instances and removed by THEM) and unsubscribes from the shared engine. Does NOT
-   *  close the shared engine itself — its lifecycle belongs to the composition root. */
+   *  close the shared engine itself — its lifecycle belongs to the composition root.
+   *
+   *  Sets `disposed` FIRST, synchronously, before any other work (FINDING-QUAL-002) — this is the flag
+   *  `init()` re-checks after every `await`, so an `init()` suspended mid-flight when `dispose()` runs
+   *  bails out immediately instead of registering further consumers on a registry that already considers
+   *  itself torn down. Looping over `this.persistedRoots` here is safe even for a root `init()` hasn't
+   *  reached yet — `OrkyRootEngine.removeConsumer` is a documented silent no-op for an unknown consumer
+   *  id, never an error. */
   dispose(): void {
+    this.disposed = true
     for (const root of this.persistedRoots) this.engine.removeConsumer(`persisted:${root}`)
     this.unsubscribeEngine()
     this.listeners.clear()
+  }
+
+  /** Resolve `root` to an ALREADY-TRACKED spelling that case-insensitively (win32) matches it, if one
+   *  exists (in either paneRoots or persistedRoots) — so a case/slash-divergent spelling of an
+   *  already-known project collapses onto the SAME canonical string instead of creating a second,
+   *  un-collapsed membership entry (FINDING-DA-001/REQ-002).
+   *
+   *  If NO existing match, returns `resolve(root)` — NOT the raw, possibly-unresolved `root` verbatim
+   *  (FINDING-DA-001 residual gap, caught on review: the pane side's `root` arrives from `findOrkyRoot`'s
+   *  raw return, e.g. a forward-slash OSC-7 cwd form, and was previously stored un-resolved on this
+   *  first-seen path). `resolve()` here is CASE-PRESERVED (only `normalizeProjectRoot`'s internal `key`
+   *  comparison folds case) but IS slash-canonical — matching what `join(canonical, '.orky')` and the
+   *  engine's own `dirname(orkyDir)` naturally produce, so `statusByRoot`'s key always agrees with the
+   *  membership map's key regardless of which source (pane or persisted) is first to observe a root, and
+   *  a pane-first root written into the persisted store via a later `addRoot` is stored REQ-006-normalized
+   *  rather than carrying forward a stray forward-slash spelling. */
+  private resolveCanonical(root: string): string {
+    const key = normalizeProjectRoot(root)
+    for (const existing of this.paneRoots.values()) {
+      if (normalizeProjectRoot(existing) === key) return existing
+    }
+    for (const existing of this.persistedRoots) {
+      if (normalizeProjectRoot(existing) === key) return existing
+    }
+    return resolve(root)
   }
 
   /** Serializes mutating calls (addRoot/removeRoot) through a single chain so a concurrent add+remove

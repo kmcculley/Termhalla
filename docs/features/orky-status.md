@@ -135,7 +135,11 @@ only; a later feature (F6) is the first consumer.
   `windowIdOf`) replaces 0004's "exactly one owning window" check in `registerOrky`'s IPC handlers with
   "any currently-tracked app window" — a real, narrow widening of existing security-hardening code, needed
   because pane-root membership must aggregate across **every** window (not just the one `register.ts`
-  happened to pass in), while still rejecting a truly foreign/destroyed sender.
+  happened to pass in), while still rejecting a truly foreign/destroyed sender. All four `registry:*`
+  handlers (`register-registry.ts`) gate on the SAME `isKnownWindowSender` predicate (threaded in from
+  `register.ts`, mirroring the `registerOrky` call site immediately above it): an unrecognized sender gets
+  `[]` from the two pure reads (`current`/`roots`) and `{ ok:false, roots:[] }` from the two mutating calls
+  (`addRoot`/`removeRoot`) — never the real aggregate/list, and never a throw.
 
 | Concern | Location |
 |---|---|

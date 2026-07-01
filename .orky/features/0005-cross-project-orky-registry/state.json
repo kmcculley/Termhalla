@@ -1,6 +1,6 @@
 {
   "feature": "0005-cross-project-orky-registry",
-  "phase": "tests",
+  "phase": "doc-sync",
   "gates": {
     "brainstorm": {
       "passed": true,
@@ -32,6 +32,85 @@
           "token": "traceability-plan",
           "pass": true,
           "evidence": "all 23 REQ(s) trace to TASK"
+        },
+        {
+          "token": "findings",
+          "pass": true,
+          "evidence": "no open blocking findings (CRITICAL/HIGH or contract-violation) for this gate"
+        }
+      ]
+    },
+    "tests": {
+      "passed": true,
+      "at": "2026-06-30T22:09:12.046Z",
+      "tokens": [
+        {
+          "token": "spec-freeze",
+          "pass": true,
+          "evidence": "spec unchanged since the spec gate"
+        },
+        {
+          "token": "tests-red",
+          "pass": true,
+          "evidence": "tests are RED (exit 1) — freeze snapshot captured"
+        }
+      ]
+    },
+    "implement": {
+      "passed": true,
+      "at": "2026-06-30T22:33:51.253Z",
+      "tokens": [
+        {
+          "token": "spec-freeze",
+          "pass": true,
+          "evidence": "spec unchanged since the spec gate"
+        },
+        {
+          "token": "build",
+          "pass": true,
+          "evidence": "build exited 0"
+        },
+        {
+          "token": "test",
+          "pass": true,
+          "evidence": "test exited 0"
+        },
+        {
+          "token": "test-freeze",
+          "pass": true,
+          "evidence": "test files unchanged since freeze"
+        }
+      ]
+    },
+    "review": {
+      "passed": true,
+      "at": "2026-07-01T00:49:55.823Z",
+      "tokens": [
+        {
+          "token": "spec-freeze",
+          "pass": true,
+          "evidence": "spec unchanged since the spec gate"
+        },
+        {
+          "token": "findings",
+          "pass": true,
+          "evidence": "no open blocking findings (CRITICAL/HIGH or contract-violation) for this gate"
+        }
+      ]
+    },
+    "doc-sync": {
+      "passed": false,
+      "at": "2026-07-01T00:53:17.365Z",
+      "tokens": [
+        {
+          "token": "spec-freeze",
+          "pass": true,
+          "evidence": "spec unchanged since the spec gate"
+        },
+        {
+          "token": "traceability",
+          "pass": false,
+          "evidence": "traceability gaps: TEST-091b (referenced by REQ-001) not found in test files"
         },
         {
           "token": "findings",
@@ -89,7 +168,9 @@
     "spec": 0,
     "plan": 0,
     "tests": 0,
-    "implement": 0
+    "implement": 0,
+    "review": 0,
+    "doc-sync": 1
   },
   "loopbacks": [
     {
@@ -104,5 +185,15 @@
       "reason": "Human resolved all 3 open escalations: ESC-001 requires a clean orky:test-designer-only redo of TEST-106/TEST-127 (reject the orchestrator's hand-edited frozen-test bypass despite gate-green content, to preserve the actor-boundary integrity control). ESC-002 approved: thread isKnownWindowSender into register-registry.ts's 4 handlers. ESC-003 approved: canonicalize persisted-root and pane-derived-root membership through one shared normalizer before they become map keys. Looping back to tests (earliest) so it cleanly re-flows through implement (where ESC-002/ESC-003 fixes land) and review.",
       "at": "2026-06-30T21:58:53.289Z"
     }
-  ]
+  ],
+  "implementer": {
+    "mode": "ab",
+    "agents": [
+      "claude",
+      "codex"
+    ],
+    "winner": "claude",
+    "reason": "Appending one more orchestrator-applied src/ fix after the A/B reconciliation above: FINDING-QUAL-002 (contract_violation, gate=review, never part of ESC-001/002/003 but mechanically blocks the review gate's findings token regardless of severity) -- routed OrkyRegistry.init() through the existing exclusive() mutation-serialization queue, exactly as the finding's own fix field specified. Re-verified: build + full test suite green (only the 3 known external-contamination failures, routed around via a clean TEMP/TMP override for ground-truth re-derivation).",
+    "at": "2026-06-30T22:34:10.148Z"
+  }
 }

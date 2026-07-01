@@ -74,7 +74,7 @@ export async function registerHandlers(services: Services, wm: WindowManager): P
     registerCloud(win, send),
     registerUsage(send),
     registerOrky(send, (sender) => wm.isKnownWindowSender(sender), onPaneRoot, orkyEngine),
-    registerRegistry(orkyRegistry, send),
+    registerRegistry(orkyRegistry, send, (sender) => wm.isKnownWindowSender(sender)),
     registerRecording({ pty, recorder, userDataDir: dir, send }),
     disposeGit,
     disposeSearch,

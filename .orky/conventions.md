@@ -38,6 +38,12 @@ to it when a review surfaces a lesson general enough to outlive its feature.
   `CLAUDE.md` and `.orky/baseline/`) for every phrasing of the old claim — never only the files a
   spec enumerated — so no stale copy is left to contradict the new behavior.
   *(from FINDING-DOC-001 in 0003-pane-minimize-restore)*
+- **CONV-009** — Every key used to identify the same filesystem path across data structures
+  (a dedup/membership key, a status/cache key, a watcher/consumer id, etc.) MUST be derived from
+  ONE shared `path.resolve()`-based normalizer; never mix a source-dependent raw string for one
+  key with a `join()`/`dirname()`-normalized string for another, or two structures that should
+  refer to the same physical directory can silently diverge.
+  *(from FINDING-DA-001 in 0005-cross-project-orky-registry)*
 
 ## Principles
 Higher-level stances that inform specs and reviews but are too broad to gate mechanically.
