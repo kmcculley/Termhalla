@@ -118,6 +118,12 @@
           "evidence": "no open blocking findings (CRITICAL/HIGH or contract-violation) for this gate"
         }
       ]
+    },
+    "human-review": {
+      "passed": true,
+      "at": "2026-07-01T02:07:26.309Z",
+      "evidence": "Human reviewed at the review checkpoint via /orky:app-run: all 7 gates green, 845/845 tests, all 3 escalations (frozen-test actor-boundary redo, sender validation, path canonicalization) resolved as decided, TEST-091b traceability rename landed. Approved for merge.",
+      "external": true
     }
   },
   "iterations": {
