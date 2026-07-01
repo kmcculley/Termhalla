@@ -1,6 +1,6 @@
 {
   "feature": "0005-cross-project-orky-registry",
-  "phase": "doc-sync",
+  "phase": "tests",
   "gates": {
     "brainstorm": {
       "passed": true,
@@ -39,89 +39,10 @@
           "evidence": "no open blocking findings (CRITICAL/HIGH or contract-violation) for this gate"
         }
       ]
-    },
-    "tests": {
-      "passed": true,
-      "at": "2026-06-30T22:09:12.046Z",
-      "tokens": [
-        {
-          "token": "spec-freeze",
-          "pass": true,
-          "evidence": "spec unchanged since the spec gate"
-        },
-        {
-          "token": "tests-red",
-          "pass": true,
-          "evidence": "tests are RED (exit 1) — freeze snapshot captured"
-        }
-      ]
-    },
-    "implement": {
-      "passed": true,
-      "at": "2026-06-30T22:33:51.253Z",
-      "tokens": [
-        {
-          "token": "spec-freeze",
-          "pass": true,
-          "evidence": "spec unchanged since the spec gate"
-        },
-        {
-          "token": "build",
-          "pass": true,
-          "evidence": "build exited 0"
-        },
-        {
-          "token": "test",
-          "pass": true,
-          "evidence": "test exited 0"
-        },
-        {
-          "token": "test-freeze",
-          "pass": true,
-          "evidence": "test files unchanged since freeze"
-        }
-      ]
-    },
-    "review": {
-      "passed": true,
-      "at": "2026-07-01T00:49:55.823Z",
-      "tokens": [
-        {
-          "token": "spec-freeze",
-          "pass": true,
-          "evidence": "spec unchanged since the spec gate"
-        },
-        {
-          "token": "findings",
-          "pass": true,
-          "evidence": "no open blocking findings (CRITICAL/HIGH or contract-violation) for this gate"
-        }
-      ]
-    },
-    "doc-sync": {
-      "passed": false,
-      "at": "2026-07-01T00:53:17.365Z",
-      "tokens": [
-        {
-          "token": "spec-freeze",
-          "pass": true,
-          "evidence": "spec unchanged since the spec gate"
-        },
-        {
-          "token": "traceability",
-          "pass": false,
-          "evidence": "traceability gaps: TEST-091b (referenced by REQ-001) not found in test files"
-        },
-        {
-          "token": "findings",
-          "pass": true,
-          "evidence": "no open blocking findings (CRITICAL/HIGH or contract-violation) for this gate"
-        }
-      ]
     }
   },
   "iterations": {
-    "tests": 2
+    "tests": 3
   },
   "escalations": [
     {
@@ -184,6 +105,12 @@
       "from": "review",
       "reason": "Human resolved all 3 open escalations: ESC-001 requires a clean orky:test-designer-only redo of TEST-106/TEST-127 (reject the orchestrator's hand-edited frozen-test bypass despite gate-green content, to preserve the actor-boundary integrity control). ESC-002 approved: thread isKnownWindowSender into register-registry.ts's 4 handlers. ESC-003 approved: canonicalize persisted-root and pane-derived-root membership through one shared normalizer before they become map keys. Looping back to tests (earliest) so it cleanly re-flows through implement (where ESC-002/ESC-003 fixes land) and review.",
       "at": "2026-06-30T21:58:53.289Z"
+    },
+    {
+      "to": "tests",
+      "from": "doc-sync",
+      "reason": "Mechanical traceability gate failure: frozen test ID 'TEST-091b' (tests/main/orky-root-engine.test.ts) is invisible to the Gatekeeper's \\bTEST-\\d+\\b scan regex due to its alphabetic suffix -- confirmed the only such occurrence in the suite via grep. Human approved: rename via a clean orky:test-designer-only dispatch to a plain numeric ID (e.g. TEST-093), updating 04-tests.md/traceability.json/traceability.md consistently. No behavior change; preserves the actor-boundary rule (no orchestrator-direct edits to frozen test files, consistent with how ESC-001 was handled).",
+      "at": "2026-07-01T01:01:20.944Z"
     }
   ],
   "implementer": {
