@@ -1,7 +1,7 @@
 {
   "feature": ".orky/features/0007-orky-action-dispatch",
   "projectRoot": "C:/dev/Termhalla",
-  "phase": "implement",
-  "lastTickAt": "2026-07-01T17:09:53.209Z",
-  "lastAction": "ESC-004 (FINDING-DA-001, OrkyActionQueue keyed by raw featureDir instead of normalizeProjectRoot) queued for fix: fresh test-designer added TEST-291..294 to tests/main/orky-action-dispatcher.test.ts (RED confirmed -- TEST-291/292/293 each independently prove the race at the doResolveEscalation/doSubmitWork/doRecordHumanGate queue.run() call sites; TEST-294 is a same-spelling sanity check). tests gate re-earned via `gatekeeper check --phase tests` (spec-freeze + tests-red both pass). `gatekeeper drive` now recommends phase implement -- dispatching a fresh implementer next for the normalizeProjectRoot(featureDir) queue-key fix at all 3 call sites in orky-action-dispatcher.ts. (networking/enterprise-arch/codex-cross-check lenses still not yet dispatched this review cycle -- will resume after the fix re-earns tests/implement)."
+  "phase": "review",
+  "lastTickAt": "2026-07-01T17:15:13.219Z",
+  "lastAction": "ESC-004 fix implemented: fresh implementer keyed OrkyActionQueue.run() by normalizeProjectRoot(featureDir) at all 3 call sites in orky-action-dispatcher.ts (doResolveEscalation, doSubmitWork's queueKey, doRecordHumanGate) -- CLI argv values unchanged, only the in-process queue key. TEST-291..294 all pass; npm test 140/140 files, 1037/1037 tests; npm run build clean. implement gate re-earned via `gatekeeper check --phase implement`. Router A-B'd on networking concern but was overridden (record-implementer, mode:claude) since this targeted fix has zero networking surface. Resuming the review fan-out next: quality/devils-advocate/security already ran and cleared/carried-forward this cycle; networking/enterprise-arch/codex-cross-check lenses still not yet dispatched -- dispatching them one at a time."
 }

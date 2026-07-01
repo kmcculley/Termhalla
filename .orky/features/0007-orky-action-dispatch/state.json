@@ -1,6 +1,6 @@
 {
   "feature": "0007-orky-action-dispatch",
-  "phase": "tests",
+  "phase": "implement",
   "gates": {
     "brainstorm": {
       "passed": true,
@@ -53,6 +53,32 @@
           "token": "tests-red",
           "pass": true,
           "evidence": "tests are RED (exit 1) — freeze snapshot captured"
+        }
+      ]
+    },
+    "implement": {
+      "passed": true,
+      "at": "2026-07-01T17:15:13.219Z",
+      "tokens": [
+        {
+          "token": "spec-freeze",
+          "pass": true,
+          "evidence": "spec unchanged since the spec gate"
+        },
+        {
+          "token": "build",
+          "pass": true,
+          "evidence": "build exited 0"
+        },
+        {
+          "token": "test",
+          "pass": true,
+          "evidence": "test exited 0"
+        },
+        {
+          "token": "test-freeze",
+          "pass": true,
+          "evidence": "test files unchanged since freeze"
         }
       ]
     }
@@ -144,5 +170,14 @@
       "reason": "ESC-004 resolved: key the action queue by normalizeProjectRoot(featureDir), not the raw string, at all 3 dispatcher call sites, closing a concurrent-write race for case/slash-divergent projectRoot spellings of the same physical feature.",
       "at": "2026-07-01T16:51:20.678Z"
     }
-  ]
+  ],
+  "implementer": {
+    "mode": "claude",
+    "agents": [
+      "orky:implementer"
+    ],
+    "winner": "orky:implementer",
+    "reason": "Router selected ab (networking is a tagged concern for this feature overall), but this specific fix is a 3-callsite queue-key substitution (raw featureDir -> normalizeProjectRoot(featureDir)) with zero networking surface -- no CLI invocation shape, timeout, retry, or serialization-protocol change, only the in-process Map key. A parallel Codex candidate would duplicate a single-file, single-pattern fix already fully pinned by TEST-291..294 with no design latitude. Skipping the A/B pairing as redundant for this iteration; single claude implementer dispatched.",
+    "at": "2026-07-01T17:11:12.277Z"
+  }
 }

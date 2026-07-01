@@ -147,7 +147,7 @@ export class OrkyActionDispatcher {
     const feedbackCli = this.locateCli('feedback')
     if (!feedbackCli) return { ok: false, path: null, dispatched: false, errorKind: 'orky-cli-not-found', error: describeMissingCli('feedback') }
 
-    return this.queue.run(featureDir, async () => {
+    return this.queue.run(normalizeProjectRoot(featureDir), async () => {
       const emitArgs = ['emit', '--app', projectRoot, '--type', 'decision', '--feature', feature, '--payload', JSON.stringify({ escalationId, decision })]
       const emitRun = await this.runWithAbort(feedbackCli, emitArgs)
       const emitMapped = mapCliRunToResult('resolveEscalation', 'feedback', emitRun)
@@ -192,7 +192,7 @@ export class OrkyActionDispatcher {
     const feedbackCli = this.locateCli('feedback')
     if (!feedbackCli) return { ok: false, path: null, dispatched: false, errorKind: 'orky-cli-not-found', error: describeMissingCli('feedback') }
 
-    const queueKey = featureDir ?? projectRoot
+    const queueKey = normalizeProjectRoot(featureDir ?? projectRoot)
     return this.queue.run(queueKey, async () => {
       const payload: Record<string, unknown> = { title }
       if (detail !== undefined) payload.detail = detail
@@ -243,7 +243,7 @@ export class OrkyActionDispatcher {
     const gatekeeperCli = this.locateCli('gatekeeper')
     if (!gatekeeperCli) return { ok: false, path: null, dispatched: false, errorKind: 'orky-cli-not-found', error: describeMissingCli('gatekeeper') }
 
-    return this.queue.run(featureDir, async () => {
+    return this.queue.run(normalizeProjectRoot(featureDir), async () => {
       const args = [
         'record', '--feature', featureDir, '--gate', gate, '--verdict', verdict,
         ...(evidence !== undefined ? ['--evidence', evidence] : [])
