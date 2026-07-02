@@ -7,6 +7,16 @@ All notable changes to Termhalla are recorded here. The format follows
 ## [Unreleased]
 
 ### Added
+- **Orky contract handshake at startup (runtime skew detection, log-only).** A fire-and-forget
+  `verifyOrkyContract()` (`src/main/orky/orky-contract-handshake.ts`) now runs once from the
+  composition root: it locates the installed gatekeeper cli.js (`ORKY_PLUGIN_DIR`), invokes its
+  `contract` subcommand through the existing safe runner, and compares the emitted
+  `contract_version`/`phases` against Termhalla's mirrored constants (`ORKY_PHASES`) — the runtime
+  complement to the committed golden fixtures, so an in-place Orky upgrade with breaking schema
+  changes produces one detailed `console.warn` line (both sides' values) at startup instead of
+  staying invisible until something breaks. Never a behavior gate: a mismatch only warns, an absent
+  or pre-`contract` Orky is tolerated with a softer "version skew undetectable" note, and the result
+  is cached per located path for the process lifetime.
 - **Golden Orky-contract fixtures (real producer output, committed).** `tests/fixtures/orky-contract/`
   now holds artifacts the REAL Orky producer emitted — `gatekeeper contract`'s machine-readable
   contract, a genuine `state.json`/`active.json` driven through the real gatekeeper, and a raw OSC

@@ -145,6 +145,20 @@ The write is a single atomic `fs.appendFile` line — never a rewrite that could
 best-effort: a write failure is logged (`console.error`) but never fails the action nor alters its
 returned result. There is no cap, rotation, or truncation of the file.
 
+## Contract handshake at startup (log-only observability)
+
+- `verifyOrkyContract()` (`src/main/orky/orky-contract-handshake.ts`) runs once, fire-and-forget, from
+  the composition root (`services.ts`, right where the dispatcher is constructed): it locates the
+  gatekeeper cli.js via the same shared `locateOrkyCli`, invokes the literal `contract` subcommand
+  through the same safe runner (`runOrkyCli`, 10s timeout), and compares the emitted
+  `contract_version` (expected `1`) and `phases` (must deep-equal `ORKY_PHASES`) against Termhalla's
+  mirrored constants — the RUNTIME complement to the committed golden fixtures
+  (`tests/shared/orky-contract-golden.test.ts`), catching an in-place Orky upgrade the snapshot
+  cannot. A proven mismatch emits ONE detailed `console.warn` line carrying both sides' values; an
+  absent CLI or an older pre-`contract` Orky (non-zero exit / unparseable stdout) is tolerated with a
+  softer "version skew undetectable" note. It is **never a behavior gate** — no action consults the
+  result, nothing is blocked, and the result is cached per located path for the process lifetime.
+
 ## No direct `.orky/` write (REQ-019)
 
 This feature's ONLY filesystem write, anywhere, is its own `orky-actions.jsonl` audit log under
@@ -161,6 +175,7 @@ path.
 | Pure exit-code/stdout-JSON → `OrkyActionResult` mapping | `src/shared/orky-action-result.ts` |
 | Orky CLI location resolver (`ORKY_PLUGIN_DIR`) | `src/main/orky/orky-cli-locate.ts` |
 | Abortable/`unref()`'d CLI-runner | `src/main/orky/orky-cli-runner.ts` |
+| Startup contract handshake (`gatekeeper contract` vs. mirrored constants, log-only) | `src/main/orky/orky-contract-handshake.ts` |
 | Append-only audit-log writer | `src/main/orky/orky-action-audit.ts` |
 | Per-`featureDir` mutation-serialization queue | `src/main/orky/orky-action-queue.ts` |
 | Dispatcher service (the 4 actions) | `src/main/orky/orky-action-dispatcher.ts` |

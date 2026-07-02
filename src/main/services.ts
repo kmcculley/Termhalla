@@ -13,6 +13,7 @@ import { OrkyRegistry } from './orky/orky-registry'
 import { OrkyActionDispatcher } from './orky/orky-action-dispatcher'
 import { OrkyActionAuditLog } from './orky/orky-action-audit'
 import { OrkyActionQueue } from './orky/orky-action-queue'
+import { verifyOrkyContract } from './orky/orky-contract-handshake'
 import type { ShellInfo } from '@shared/types'
 
 export interface Services {
@@ -55,6 +56,10 @@ export function buildServices(): Services {
     auditLog: new OrkyActionAuditLog(dir),
     queue: new OrkyActionQueue()
   })
+  // Fire-and-forget contract handshake against the installed Orky plugin (log-only observability,
+  // never a gate): one warn line at startup if `gatekeeper contract` disagrees with Termhalla's
+  // mirrored constants. Cached per located path; tolerates an absent/pre-contract plugin.
+  void verifyOrkyContract().catch(() => {})
   return {
     dir,
     store: new WorkspaceStore(dir),
