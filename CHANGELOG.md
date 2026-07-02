@@ -7,6 +7,32 @@ All notable changes to Termhalla are recorded here. The format follows
 ## [Unreleased]
 
 ### Added
+- **Quick-capture new-work inbox (global capture modal).** A new rebindable `capture-orky-work`
+  command (default `Ctrl+Shift+U`) and Ctrl+K palette entry open a global, workspace-independent
+  capture modal: pick a tracked Orky project (the shared root picker, relabelled for capture via
+  new additive `ariaLabel`/`heading`/`z` props), type a title + optional detail, submit — the work
+  item lands in `<root>/.orky/feedback/inbox/` as a `work.request` awaiting planner triage.
+  Submission rides EXCLUSIVELY the existing `orkyAction:submitWork` dispatch (its first renderer
+  consumer — no new IPC/preload/main surface); the request is byte-verbatim with no client-side
+  caps, and results are keyed on the dispatcher's own `ok`/`dispatched`/`errorKind`: success is a
+  suppressible "Captured — queued … for triage" toast, every failure renders in-modal with the
+  draft preserved — the distinct `feedback-disabled` state (no enable affordance; ADR-027), an
+  indeterminate `cli-timeout`/`ipc-failure` state with a duplicate-retry warning, and verbatim
+  errors otherwise. A `runOrkyCli` spawn-class failure (e.g. an oversized `--json` argv element) is
+  classified as a DEFINITE `cli-error`/`cli-unparseable` rather than the indeterminate
+  `cli-timeout`. An always-visible hint line names the fast-capture and discard keys, and closing
+  the modal mid-flight never drops a settled failure silently — it detaches to a never-suppressed
+  toast carrying the same honesty class (indeterminate wording for `cli-timeout`/`ipc-failure`) as
+  the in-modal region. See `docs/features/quick-capture-inbox.md`.
+- **F7 dispatcher amendment: `submitWork` now rides `feedback submit` instead of `feedback emit`.**
+  The dispatcher's single hard-coded submitWork invocation is now the Orky plugin's local-inbox
+  injection `['submit','--app',<root>,'--json',<work item>]` (plugin v0.28.0+) — one JSON argv
+  element, so the captured item is written DIRECTLY to the project's feedback inbox (the store the
+  orchestrator's `apply` drains) rather than emitted as an outbox event with no shipped consumer.
+  Unlike emit, submit refuses loudly when feedback is disabled (exit 1) — surfaced as the DISTINCT
+  `feedback-disabled` result carrying the CLI's refusal verbatim; every other refusal/internal
+  error stays a verbatim `cli-error`, an older plugin without `submit` surfaces as
+  `cli-unparseable`, and `resolveEscalation` keeps its own `feedback emit` path unchanged.
 - **Native Orky pane — a first-class, persisted pane kind for one project's FULL pipeline status.**
   `PaneConfig` gains `orky` (bound to one tracked project root, stored verbatim/case-preserved),
   creatable from the command palette ("New Orky pane…"), the tab bar's add-pane select, and the

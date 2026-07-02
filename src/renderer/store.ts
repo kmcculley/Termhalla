@@ -28,6 +28,7 @@ import { createSearchSlice } from './store/search-slice'
 import { createPreviewSlice } from './store/preview-slice'
 import { createRegistrySlice } from './store/registry-slice'
 import { createOrkyPaneSlice } from './store/orky-pane-slice'
+import { createOrkyCaptureSlice } from './store/orky-capture-slice'
 import { caseFoldFromPlatform } from '@shared/decision-queue'
 
 // Re-exported so existing `import { ... } from '../store'` call sites keep working.
@@ -155,6 +156,9 @@ export const useStore = create<State>((set, get) => {
     ...createSearchSlice(deps),
     ...createPreviewSlice(deps),
     ...createRegistrySlice(deps),
+    // Quick-capture request slice (feature 0012): the openOrkyCapture(root?)/closeOrkyCapture
+    // entry points the chord/palette path (and later F10's pane "inject") share.
+    ...createOrkyCaptureSlice(deps),
     // Native OrkyPane detail slice (feature 0009): the preload bridge and the fold mode are
     // INJECTED here — the fold is derived ONCE via caseFoldFromPlatform(navigator.platform), the
     // one platform signal that exists in the contextIsolated main world (REQ-005 / FINDING-003).

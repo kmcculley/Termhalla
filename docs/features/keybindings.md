@@ -62,6 +62,8 @@ The pane view-state commands `toggle-maximize-pane` (default `Ctrl+Shift+M`) and
 
 The window-chrome drawer commands `toggle-notes` (default `Ctrl+Shift+N`), `toggle-search` (default `Ctrl+Shift+F`), and `toggle-orky-queue` (default `Ctrl+Shift+O` — the Orky decision-queue drawer, feature 0006; see [decision-queue](./decision-queue.md)) toggle their drawers without requiring an active workspace. Like every other entry they are rebindable and `'none'`-unbindable, and any surface displaying their chord (e.g. the status-bar toggle tooltips) derives it from `resolveBindings`.
 
+`capture-orky-work` (default `Ctrl+Shift+U` — the global Orky quick-capture modal, feature 0012; see [quick-capture-inbox](./quick-capture-inbox.md)) is likewise window chrome: its App keydown case and palette activation read no `activeId`, so capture works with zero workspaces. `u` because every plausible mnemonic collides (`o` queue, `n` notes, `w` close-workspace, `i` Electron's toggleDevTools role accelerator, `c` terminal-copy).
+
 ## Store slice
 
 `src/renderer/store/keybindings-slice.ts` exports `createKeybindingsSlice`, composed into the root store. It provides:

@@ -1,0 +1,183 @@
+{
+  "feature": "0012-quick-capture-inbox",
+  "phase": "doc-sync",
+  "gates": {
+    "brainstorm": {
+      "passed": true,
+      "at": "2026-07-02T08:52:36.504Z",
+      "evidence": "delegated-human brainstorm: D1 global capture modal, D2 exclusively via F7 submitWork (no new write code), D3 reuse F9 substrate + guard-supersession inventory, D4 pre-selected-project entry for F10 reuse, D5 CONV-013 result honesty",
+      "external": true
+    },
+    "spec": {
+      "passed": true,
+      "at": "2026-07-02T11:41:23.642Z",
+      "tokens": [
+        {
+          "token": "findings",
+          "pass": true,
+          "evidence": "no open blocking findings (CRITICAL/HIGH or contract-violation) for this gate"
+        }
+      ]
+    },
+    "plan": {
+      "passed": true,
+      "at": "2026-07-02T11:42:18.130Z",
+      "tokens": [
+        {
+          "token": "spec-freeze",
+          "pass": true,
+          "evidence": "spec unchanged since the spec gate"
+        },
+        {
+          "token": "traceability-plan",
+          "pass": true,
+          "evidence": "all 14 REQ(s) trace to TASK"
+        },
+        {
+          "token": "findings",
+          "pass": true,
+          "evidence": "no open blocking findings (CRITICAL/HIGH or contract-violation) for this gate"
+        }
+      ]
+    },
+    "tests": {
+      "passed": true,
+      "at": "2026-07-02T12:48:57.259Z",
+      "tokens": [
+        {
+          "token": "spec-freeze",
+          "pass": true,
+          "evidence": "spec unchanged since the spec gate"
+        },
+        {
+          "token": "tests-red",
+          "pass": true,
+          "evidence": "tests are GREEN on a tests loopback (coverage augmentation; implementation already exists) — freeze re-captured"
+        }
+      ]
+    },
+    "implement": {
+      "passed": true,
+      "at": "2026-07-02T12:49:35.229Z",
+      "tokens": [
+        {
+          "token": "spec-freeze",
+          "pass": true,
+          "evidence": "spec unchanged since the spec gate"
+        },
+        {
+          "token": "build",
+          "pass": true,
+          "evidence": "build exited 0"
+        },
+        {
+          "token": "test",
+          "pass": true,
+          "evidence": "test exited 0"
+        },
+        {
+          "token": "test-freeze",
+          "pass": true,
+          "evidence": "test files unchanged since freeze"
+        }
+      ]
+    },
+    "review": {
+      "passed": true,
+      "at": "2026-07-02T12:49:35.543Z",
+      "tokens": [
+        {
+          "token": "spec-freeze",
+          "pass": true,
+          "evidence": "spec unchanged since the spec gate"
+        },
+        {
+          "token": "findings",
+          "pass": true,
+          "evidence": "no open blocking findings (CRITICAL/HIGH or contract-violation) for this gate"
+        }
+      ]
+    },
+    "doc-sync": {
+      "passed": true,
+      "at": "2026-07-02T12:55:57.329Z",
+      "tokens": [
+        {
+          "token": "spec-freeze",
+          "pass": true,
+          "evidence": "spec unchanged since the spec gate"
+        },
+        {
+          "token": "traceability",
+          "pass": true,
+          "evidence": "all 14 REQ(s) trace to TASK+TEST"
+        },
+        {
+          "token": "findings",
+          "pass": true,
+          "evidence": "no open blocking findings (CRITICAL/HIGH or contract-violation) for this gate"
+        }
+      ]
+    },
+    "human-review": {
+      "passed": true,
+      "at": "2026-07-02T12:55:57.400Z",
+      "evidence": "Delegated autonomous drive. Reviewed: 14-REQ spec (revised twice — pre-gate + review loopback), the cross-repo discovery that drove Orky v0.28.0 feedback submit, F7 emit->submit amendment with 7 CONV-019 supersessions, runner never-reject hardening, 5-lens review (16 findings, 2 contract blockers) all resolved + 1 fix-regression (FINDING-024) caught and fixed, 24-finding ledger, CONV-032..035. Open residuals inherited: FINDING-022→F10, 010→golden-fixture, 016 deferred (20 Modal consumers), 023 repo-hygiene. Suite 1309 green.",
+      "external": true
+    }
+  },
+  "iterations": {
+    "spec": 1,
+    "tests": 1
+  },
+  "escalations": [
+    {
+      "id": "ESC-001",
+      "phase": "review",
+      "reason": "Review fan-out: 16 findings, 2 blocking contract violations — FINDING-020 (spec's 'only six supersessions' now false after the sanctioned seventh prose repair) and FINDING-009 (spawn failures mapped to a false indeterminate cli-timeout claim). Spec-origin MEDIUMs: 012 accidental-Enter silent journey, 013 close-while-in-flight outcome dropped, 018 StrictMode acceptance mechanism unrunnable, 022 REQ-004 acceptance clauses untestable until F10. Human decision on the loopback.",
+      "kind": "judgment",
+      "finding": "FINDING-020",
+      "status": "resolved",
+      "at": "2026-07-02T11:27:09.412Z",
+      "decision": "Loop back to spec (delegated). Spec amendments: REQ-011 enumerates SEVEN supersessions + repo-wide grep scope per CONV-023 (020); pin spawn-failure→definite cli-error vs timeout-only-for-timeout incl. the runner distinction, and invoke-rejection→indeterminate copy (009/019); REQ-002 gains a visible 'Enter captures · Esc cancels' hint while keeping Enter-in-title (012); REQ-009 pins close-while-in-flight = detached completion with the outcome routed to the toast chokepoint (failures never suppressed) + draft loss on explicit close accepted (013); REQ-006/012 acceptance mechanism corrected — the structural no-effect-dispatch pin IS the StrictMode guard (018); REQ-004 acceptance honestly scoped to the slice seam now + the four render clauses explicitly inherited by F10's e2e (022); clear-failure-on-draft-edit/root-change pinned (008); projectRoot through rejectFlagLike (011); the CommandPalette useMemo reshape documented in-code + anchored-locator CONV recorded (021); per-errorKind render vectors via the e2e stub modes (014). Residuals to ride documented: 010 (cross-repo noop-shape coupling — candidate for the golden-fixture suite), 016 (focus containment — CONV proposal, defer unless cheap at the Modal seam), 017 (overflow containment — fix if trivial), 023 (NUL file — separate repo-hygiene commit outside F12).",
+      "resolvedAt": "2026-07-02T11:27:09.486Z"
+    }
+  ],
+  "concerns": [
+    "security",
+    "ux",
+    "quality"
+  ],
+  "attempts": {
+    "spec": 0,
+    "plan": 0,
+    "tests": 0,
+    "implement": 0,
+    "review": 0,
+    "doc-sync": 0
+  },
+  "implementer": {
+    "mode": "claude",
+    "agents": [
+      "orky:implementer"
+    ],
+    "winner": "orky:implementer",
+    "reason": "Loopback fix cycle, single implementer (no A-B trigger).",
+    "at": "2026-07-02T12:14:14.000Z"
+  },
+  "totalFailures": 3,
+  "loopbacks": [
+    {
+      "to": "spec",
+      "from": "review",
+      "reason": "2 blocking contract violations + 4 spec-origin MEDIUMs per ESC-001 decision",
+      "at": "2026-07-02T11:27:09.555Z"
+    },
+    {
+      "to": "tests",
+      "from": "review",
+      "reason": "FINDING-024: fix-introduced regression — detached close-in-flight toast used uniform definite wording, violating REQ-009's indeterminate-honesty MUST for cli-timeout/ipc-failure. Coordinator fix applied; adding the pin.",
+      "at": "2026-07-02T12:47:35.311Z"
+    }
+  ]
+}

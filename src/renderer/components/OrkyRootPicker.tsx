@@ -25,7 +25,17 @@ import { useOpenFocusRestore } from './use-open-focus-restore'
  * its own :focus-visible styling (index.css orky allow-list).
  */
 export function OrkyRootPicker(
-  { onSelect, onCancel }: { onSelect: (root: string) => void; onCancel: () => void }
+  { onSelect, onCancel, ariaLabel, heading, z }: {
+    onSelect: (root: string) => void
+    onCancel: () => void
+    // Feature 0012 (REQ-003): ADDITIVE, default-preserving props ONLY — a reusing flow may relabel
+    // the dialog for its own gesture. The accessible name and the visible header are configurable
+    // TOGETHER (FINDING-005) so they can never diverge; omitting all three renders every existing
+    // F9 call site byte-identically.
+    ariaLabel?: string
+    heading?: string
+    z?: number
+  }
 ) {
   // The shared load-state derivation + CONV-020 focus contract (FINDING-019 — one implementation,
   // shared with DecisionQueuePanel, never a hand-maintained copy).
@@ -57,13 +67,13 @@ export function OrkyRootPicker(
   }
 
   return (
-    <Modal onClose={onCancel} z={Z.palette}
+    <Modal onClose={onCancel} z={z ?? Z.palette}
       backdropTestId="orky-root-picker-backdrop"
       card={{ width: 480, maxHeight: '60vh', padding: 10 }}>
       <div data-testid="orky-root-picker" role="dialog" aria-modal="true"
-        aria-label="Bind Orky pane to a tracked project" onKeyDown={onKeyDown}
+        aria-label={ariaLabel ?? 'Bind Orky pane to a tracked project'} onKeyDown={onKeyDown}
         style={{ display: 'flex', flexDirection: 'column', gap: 8, minHeight: 0 }}>
-      <div style={{ fontSize: 12, color: 'var(--fg-dim, #aaa)' }}>Bind to a tracked Orky project</div>
+      <div style={{ fontSize: 12, color: 'var(--fg-dim, #aaa)' }}>{heading ?? 'Bind to a tracked Orky project'}</div>
       <div ref={listRef} tabIndex={0} role="listbox" aria-label="Tracked Orky projects"
         style={{ display: 'flex', flexDirection: 'column', gap: 2, overflowY: 'auto', minHeight: 0 }}>
         {loading && (

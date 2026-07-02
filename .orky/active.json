@@ -1,14 +1,14 @@
 {
-  "feature": ".orky/features/0009-native-orky-pane",
+  "feature": ".orky/features/0012-quick-capture-inbox",
   "projectRoot": "C:/dev/Termhalla",
-  "phase": "review",
-  "lastTickAt": "2026-07-02T08:19:56.383Z",
-  "lastAction": "fix cycle green; dispatching focused re-verification (ux + devils-advocate)",
+  "phase": "implement",
+  "lastTickAt": "2026-07-02T12:14:14.453Z",
+  "lastAction": "tests loopback gate passed; dispatching fix implementer",
   "runs": {
-    ".orky/features/0009-native-orky-pane": {
-      "phase": "review",
-      "lastTickAt": "2026-07-02T08:19:56.383Z",
-      "lastAction": "fix cycle green; dispatching focused re-verification (ux + devils-advocate)"
+    ".orky/features/0012-quick-capture-inbox": {
+      "phase": "implement",
+      "lastTickAt": "2026-07-02T12:14:14.453Z",
+      "lastAction": "tests loopback gate passed; dispatching fix implementer"
     }
   }
 }

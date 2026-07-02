@@ -83,7 +83,8 @@
       "deps": [
         "F7"
       ],
-      "status": "pending"
+      "status": "done",
+      "completedAt": "2026-07-02T12:55:57.609Z"
     },
     {
       "id": "F13",

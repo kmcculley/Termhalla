@@ -1,0 +1,289 @@
+{
+  "REQ-001": {
+    "tasks": [
+      "TASK-003",
+      "TASK-004",
+      "TASK-008",
+      "TASK-009"
+    ],
+    "tests": [
+      "TEST-495",
+      "TEST-497",
+      "TEST-498",
+      "TEST-499",
+      "TEST-500",
+      "TEST-501",
+      "TEST-504",
+      "TEST-524"
+    ],
+    "files": [
+      "src/shared/keybindings.ts",
+      "src/shared/quick.ts",
+      "src/renderer/App.tsx",
+      "src/renderer/components/CommandPalette.tsx"
+    ]
+  },
+  "REQ-002": {
+    "tasks": [
+      "TASK-006",
+      "TASK-007"
+    ],
+    "tests": [
+      "TEST-481",
+      "TEST-484",
+      "TEST-485",
+      "TEST-504",
+      "TEST-506",
+      "TEST-519",
+      "TEST-520"
+    ],
+    "files": [
+      "src/renderer/store/orky-capture-slice.ts",
+      "src/renderer/components/OrkyCaptureModal.tsx"
+    ]
+  },
+  "REQ-003": {
+    "tasks": [
+      "TASK-005",
+      "TASK-006",
+      "TASK-007"
+    ],
+    "tests": [
+      "TEST-481",
+      "TEST-486",
+      "TEST-487",
+      "TEST-504",
+      "TEST-505",
+      "TEST-528"
+    ],
+    "files": [
+      "src/renderer/components/OrkyRootPicker.tsx",
+      "src/renderer/store/orky-capture-slice.ts",
+      "src/renderer/components/OrkyCaptureModal.tsx"
+    ]
+  },
+  "REQ-004": {
+    "tasks": [
+      "TASK-006",
+      "TASK-007"
+    ],
+    "tests": [
+      "TEST-481",
+      "TEST-482",
+      "TEST-505"
+    ],
+    "files": [
+      "src/renderer/store/orky-capture-slice.ts",
+      "src/renderer/components/OrkyCaptureModal.tsx"
+    ]
+  },
+  "REQ-005": {
+    "tasks": [
+      "TASK-007",
+      "TASK-010"
+    ],
+    "tests": [
+      "TEST-488",
+      "TEST-489",
+      "TEST-504"
+    ],
+    "files": [
+      "src/renderer/components/OrkyCaptureModal.tsx"
+    ]
+  },
+  "REQ-006": {
+    "tasks": [
+      "TASK-006",
+      "TASK-007",
+      "TASK-008"
+    ],
+    "tests": [
+      "TEST-482",
+      "TEST-489",
+      "TEST-495",
+      "TEST-504",
+      "TEST-505"
+    ],
+    "files": [
+      "src/renderer/store/orky-capture-slice.ts",
+      "src/renderer/components/OrkyCaptureModal.tsx",
+      "src/renderer/App.tsx"
+    ]
+  },
+  "REQ-007": {
+    "tasks": [
+      "TASK-007"
+    ],
+    "tests": [
+      "TEST-490",
+      "TEST-504",
+      "TEST-505",
+      "TEST-506"
+    ],
+    "files": [
+      "src/renderer/components/OrkyCaptureModal.tsx"
+    ]
+  },
+  "REQ-008": {
+    "tasks": [
+      "TASK-007"
+    ],
+    "tests": [
+      "TEST-491",
+      "TEST-504",
+      "TEST-506"
+    ],
+    "files": [
+      "src/renderer/components/OrkyCaptureModal.tsx"
+    ]
+  },
+  "REQ-009": {
+    "tasks": [
+      "TASK-007"
+    ],
+    "tests": [
+      "TEST-492",
+      "TEST-506",
+      "TEST-522",
+      "TEST-523",
+      "TEST-525",
+      "TEST-526",
+      "TEST-527",
+      "TEST-528",
+      "TEST-529"
+    ],
+    "files": [
+      "src/renderer/components/OrkyCaptureModal.tsx",
+      "tests/renderer/orky-capture-structure-rev2.test.ts",
+      "tests/renderer/orky-capture-detached-honesty.test.ts",
+      "tests/e2e/orky-capture.spec.ts"
+    ]
+  },
+  "REQ-010": {
+    "tasks": [
+      "TASK-007"
+    ],
+    "tests": [
+      "TEST-471",
+      "TEST-493",
+      "TEST-504"
+    ],
+    "files": [
+      "src/renderer/components/OrkyCaptureModal.tsx"
+    ]
+  },
+  "REQ-011": {
+    "tasks": [
+      "TASK-002",
+      "TASK-005",
+      "TASK-007",
+      "TASK-010",
+      "TASK-011"
+    ],
+    "tests": [
+      "TEST-487",
+      "TEST-494",
+      "TEST-502",
+      "TEST-503",
+      "TEST-237",
+      "TEST-238",
+      "TEST-267",
+      "TEST-293",
+      "TEST-298",
+      "TEST-300"
+    ],
+    "files": [
+      "tests/main/orky-action-dispatcher.test.ts",
+      "tests/main/orky-action-dispatcher-codex-001-regression.test.ts",
+      "tests/shared/orky-action-validate.test.ts",
+      "docs/features/orky-action-dispatch.md",
+      "src/renderer/components/OrkyRootPicker.tsx",
+      "src/renderer/components/OrkyCaptureModal.tsx",
+      "src/shared/ipc-contract.ts",
+      "docs/features/quick-capture-inbox.md",
+      "CLAUDE.md",
+      "CHANGELOG.md",
+      ".orky/baseline/architecture.md"
+    ]
+  },
+  "REQ-012": {
+    "tasks": [
+      "TASK-006",
+      "TASK-007"
+    ],
+    "tests": [
+      "TEST-483",
+      "TEST-494",
+      "TEST-496",
+      "TEST-527"
+    ],
+    "files": [
+      "src/renderer/store/orky-capture-slice.ts",
+      "src/renderer/components/OrkyCaptureModal.tsx"
+    ]
+  },
+  "REQ-013": {
+    "tasks": [
+      "TASK-001",
+      "TASK-002"
+    ],
+    "tests": [
+      "TEST-469",
+      "TEST-470",
+      "TEST-471",
+      "TEST-472",
+      "TEST-473",
+      "TEST-474",
+      "TEST-475",
+      "TEST-476",
+      "TEST-477",
+      "TEST-478",
+      "TEST-479",
+      "TEST-480",
+      "TEST-237",
+      "TEST-238",
+      "TEST-267",
+      "TEST-293",
+      "TEST-298",
+      "TEST-300",
+      "TEST-512",
+      "TEST-513",
+      "TEST-514",
+      "TEST-515",
+      "TEST-516",
+      "TEST-517",
+      "TEST-518"
+    ],
+    "files": [
+      "src/main/orky/orky-action-dispatcher.ts",
+      "tests/main/orky-action-dispatcher.test.ts",
+      "tests/main/orky-action-dispatcher-codex-001-regression.test.ts",
+      "tests/main/orky-action-dispatcher-submit.test.ts",
+      "docs/features/orky-action-dispatch.md",
+      "tests/shared/orky-action-validate-projectroot-flaglike.test.ts",
+      "src/shared/orky-action-validate.ts"
+    ]
+  },
+  "REQ-014": {
+    "tasks": [
+      "TASK-012",
+      "TASK-001",
+      "TASK-007"
+    ],
+    "tests": [
+      "TEST-507",
+      "TEST-508",
+      "TEST-509",
+      "TEST-510",
+      "TEST-511",
+      "TEST-521",
+      "TEST-522"
+    ],
+    "files": [
+      "src/main/orky/orky-cli-runner.ts",
+      "src/renderer/components/OrkyCaptureModal.tsx",
+      "tests/main/orky-cli-runner-spawn-failure.test.ts",
+      "tests/renderer/orky-capture-structure-rev2.test.ts"
+    ]
+  }
+}

@@ -176,7 +176,8 @@ export interface TermhallaApi {
    *  The OrkyPane detail view's currency mechanism. */
   onRegistryRootChanged(cb: (root: string) => void): () => void
   // orkyAction:* (feature 0007) — the write-capable dispatch surface. Every mutation is performed by
-  // invoking Orky's OWN CLIs server-side; no renderer UI consumes these yet (D1/REQ-017).
+  // invoking Orky's OWN CLIs server-side. First renderer consumer: feature 0012's quick-capture
+  // modal (submitWork only); the other three actions remain consumer-less until F8/F10.
   orkyResolveEscalation(req: ResolveEscalationRequest): Promise<OrkyActionResult>
   orkySubmitWork(req: SubmitWorkRequest): Promise<OrkyActionResult>
   orkyRecordHumanGate(req: RecordHumanGateRequest): Promise<OrkyActionResult>

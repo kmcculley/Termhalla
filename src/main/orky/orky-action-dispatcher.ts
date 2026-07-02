@@ -15,14 +15,24 @@ import { OrkyActionAuditLog, type OrkyActionAuditRecord } from './orky-action-au
 import { OrkyActionQueue } from './orky-action-queue'
 
 /**
- * The `OrkyActionDispatcher` service (feature 0007, TASK-008) — the single main-process implementation
- * of the four `orkyAction:*` actions (`resolveEscalation`/`submitWork`/`recordHumanGate`/`driveStatus`).
- * Termhalla's first write-capable IPC surface into an Orky-adopted project: EVERY mutation is performed
- * by invoking one of Orky's own CLIs (`feedback emit`, `gatekeeper resolve-escalation`,
- * `gatekeeper record`); this dispatcher never writes a file under any `.orky/` tree itself (REQ-019),
- * never spawns an agent, and never drives the pipeline (D1). The ONLY four Orky subcommands this file
- * may ever invoke are the hard-coded literals below ('emit', 'resolve-escalation', 'record', 'drive') —
- * no request field ever selects a subcommand string (REQ-016).
+ * The `OrkyActionDispatcher` service (feature 0007, TASK-008; `submitWork` amended by feature 0012,
+ * REQ-013) — the single main-process implementation of the four `orkyAction:*` actions
+ * (`resolveEscalation`/`submitWork`/`recordHumanGate`/`driveStatus`). Termhalla's first write-capable
+ * IPC surface into an Orky-adopted project: EVERY mutation is performed by invoking one of Orky's own
+ * CLIs (`feedback submit`, `feedback emit`, `gatekeeper resolve-escalation`, `gatekeeper record`);
+ * this dispatcher never writes a file under any `.orky/` tree itself (REQ-019), never spawns an
+ * agent, and never drives the pipeline (D1). The ONLY five Orky subcommands this file may ever invoke
+ * are the hard-coded literals below ('emit', 'submit', 'resolve-escalation', 'record', 'drive') — no
+ * request field ever selects a subcommand string (REQ-016).
+ *
+ * `submitWork` rides the plugin's local-inbox injection `submit --app <root> --json <item>` (plugin
+ * v0.28.0+; an older plugin without `submit` exits 2 with empty stdout and surfaces honestly as
+ * `cli-unparseable`): the item lands DIRECTLY in `<root>/.orky/feedback/inbox/`, the store the
+ * orchestrator's `apply` drains for planner triage — not the outbox `emit` wrote. Unlike `emit`,
+ * `submit` is NOT best-effort: a disabled channel REFUSES loudly (exit 1 + `{ok:false, mode:'noop',
+ * error}`), which this dispatcher discriminates into the DISTINCT `feedback-disabled` non-dispatch
+ * result carrying the CLI's refusal verbatim (0007 D2 — never a silent no-op, never folded into
+ * generic `cli-error`). `resolveEscalation`'s own `feedback emit` path is untouched.
  *
  * Security layering, in order, on every action: request validation (REQ-014) -> server-side project-root
  * allowlist against `registry.roots()` (D3/REQ-004) -> server-side feature-slug confinement, featureDir
@@ -173,7 +183,8 @@ export class OrkyActionDispatcher {
     })
   }
 
-  // ── submitWork (REQ-007) — feedback-only; disabled is a DISTINCT non-dispatch failure ──────────
+  // ── submitWork (REQ-007; amended by feature 0012 REQ-013) — feedback-only via `feedback submit`
+  // (local-inbox injection); disabled is a DISTINCT non-dispatch failure, discriminated HERE ──────
   private async doSubmitWork(req: unknown): Promise<OrkyActionResult> {
     const v = validateSubmitWorkRequest(req)
     if (!v.ok) return { ok: false, path: null, dispatched: false, errorKind: 'invalid-args', error: v.error }
@@ -194,33 +205,58 @@ export class OrkyActionDispatcher {
 
     const queueKey = normalizeProjectRoot(featureDir ?? projectRoot)
     return this.queue.run(queueKey, async () => {
-      const payload: Record<string, unknown> = { title }
-      if (detail !== undefined) payload.detail = detail
-      if (phase !== undefined) payload.phase = phase
-      const args = [
-        'emit', '--app', projectRoot, '--type', 'work.request',
-        ...(feature !== undefined ? ['--feature', feature] : []),
-        '--payload', JSON.stringify(payload)
-      ]
+      // The item travels as ONE JSON argv element via the plugin's `--json` branch (REQ-013): the
+      // free-text title/detail never ride raw argv, so no `--`-prefixed value can be misparsed as a
+      // flag (the same safety property the emit `--payload` element carried).
+      const item: Record<string, unknown> = { kind: 'work.request', title }
+      if (detail !== undefined) item.detail = detail
+      if (phase !== undefined) item.phase = phase
+      if (feature !== undefined) item.feature = feature
+      const args = ['submit', '--app', projectRoot, '--json', JSON.stringify(item)]
       const run = await this.runWithAbort(feedbackCli, args)
+      // Dispatcher-level discrimination of the ONE disabled-refusal shape — exit 1 with parsed
+      // stdout {ok:false, mode:'noop'} (`submitItem` returns mode:'noop' for the disabled refusal
+      // and ONLY for it). mapCliRunToResult (byte-unchanged) folds every feedback nonzero-exit into
+      // generic cli-error, so the DISTINCT feedback-disabled outcome must be recognized here; every
+      // other shape (http/validation refusals, exit-2 internal errors, garbage/empty stdout,
+      // timeout) flows through the existing total mapping untouched.
+      const refusal = this.parseDisabledRefusal(run)
+      if (refusal !== null) {
+        return {
+          ok: false,
+          path: 'feedback',
+          feedback: 'disabled',
+          dispatched: false,
+          errorKind: 'feedback-disabled',
+          error: refusal,
+          exitCode: run.exitCode
+        } as OrkyActionResult
+      }
       const mapped = mapCliRunToResult('submitWork', 'feedback', run)
       if (!mapped.ok) {
         return { ok: false, path: 'feedback', dispatched: false, errorKind: mapped.errorKind, error: mapped.error, exitCode: mapped.exitCode } as OrkyActionResult
       }
-      const data = (mapped.data ?? {}) as { mode?: string }
-      if (data.mode !== 'noop') {
-        return { ok: true, path: 'feedback', feedback: 'enabled', dispatched: true, data: mapped.data, exitCode: mapped.exitCode } as OrkyActionResult
-      }
-      return {
-        ok: false,
-        path: 'feedback',
-        feedback: 'disabled',
-        dispatched: false,
-        errorKind: 'feedback-disabled',
-        error: `the feedback control plane is disabled for ${projectRoot}; work items cannot be submitted until it is enabled`,
-        exitCode: mapped.exitCode
-      } as OrkyActionResult
+      return { ok: true, path: 'feedback', feedback: 'enabled', dispatched: true, data: mapped.data, exitCode: mapped.exitCode } as OrkyActionResult
     })
+  }
+
+  /** The `feedback submit` disabled refusal (feature 0012, REQ-013): exit 1 with parsed stdout
+   *  `{ok:false, mode:'noop', error}` — the ONE shape the plugin returns for a disabled channel
+   *  (http/validation refusals carry other modes; internal errors carry other exit codes). Returns
+   *  the CLI's own refusal message VERBATIM (CONV-001), or null when the run is not that shape. */
+  private parseDisabledRefusal(run: CliRun): string | null {
+    if (run.timedOut || run.exitCode !== 1) return null
+    let parsed: unknown
+    try {
+      parsed = JSON.parse(run.stdout)
+    } catch {
+      return null
+    }
+    if (!isPlainObject(parsed)) return null
+    if (parsed.ok !== false || parsed.mode !== 'noop') return null
+    return typeof parsed.error === 'string' && parsed.error.length > 0
+      ? parsed.error
+      : 'the feedback write path is disabled for this project (the submit CLI refused without a message)'
   }
 
   // ── recordHumanGate (REQ-008) — gate restricted server-side, NEVER --force ─────────────────────

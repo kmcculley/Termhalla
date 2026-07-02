@@ -17,6 +17,14 @@
 // broad (e.g. rejecting on `mode==='noop'` regardless of `ok`) is caught as a regression.
 //
 // NEW file — does not modify `tests/main/orky-action-dispatcher.test.ts` (FROZEN; TEST-229..294 untouched).
+//
+// SUPERSEDED IN PART by feature 0012-quick-capture-inbox REQ-013 (CONV-019, tests phase — recorded in
+// .orky/features/0012-quick-capture-inbox/04-tests.md): doSubmitWork now rides `feedback submit`
+// (local-inbox injection), so this file's two submitWork pins are re-expressed on the submit path —
+// TEST-298 (a genuine internal error is exit 2 + {error} and must NEVER be misdiagnosed as
+// feedback-disabled) and TEST-300 (the genuine disabled shape is now the exit-1 {ok:false, mode:'noop',
+// error} refusal, still the DISTINCT non-dispatch outcome). TEST-297/299 (resolveEscalation's OWN emit
+// path) are untouched and stay green byte-unchanged.
 import { describe, it, expect, afterEach, vi } from 'vitest'
 import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
@@ -93,9 +101,13 @@ describe('OrkyActionDispatcher — FINDING-CODEX-001: a genuine feedback-CLI int
     expect(calls.map(c => c.args[0])).toEqual(['emit']) // NOT ['emit', 'resolve-escalation'] — no silent fallback
   })
 
-  it('TEST-298 REQ-002/007/011 submitWork: feedback emit exit 0 + {ok:false, mode:"noop", error:"disk full"} yields ok:false/errorKind:"cli-error" carrying "disk full" — NEVER errorKind:"feedback-disabled" with the misleading "enable it" message', async () => {
+  // SUPERSEDED (intent preserved) by feature 0012-quick-capture-inbox REQ-013, CONV-019: on the
+  // submit path a genuine internal error is the CLI's outer-catch shape — exit 2 + {error} (cli.js:153-156).
+  // The misdiagnosis guard's intent survives byte-for-byte: a real internal error maps to cli-error
+  // carrying the CLI's own message VERBATIM and is NEVER presented as the distinct feedback-disabled outcome.
+  it('TEST-298 REQ-002/007/011 submitWork: feedback submit exit 2 + {error:"disk full"} yields ok:false/errorKind:"cli-error" carrying "disk full" — NEVER errorKind:"feedback-disabled" with the misleading "enable it" message (0012/REQ-013: submit path)', async () => {
     const root = seedProject()
-    const { run } = fakeRunCli({ emit: () => ok({ ok: false, mode: 'noop', error: 'disk full', note: 'emit is non-fatal' }) })
+    const { run } = fakeRunCli({ submit: () => ({ exitCode: 2, stdout: JSON.stringify({ error: 'disk full' }), timedOut: false }) })
     const d = makeDispatcher({ roots: [root], runCli: run })
     const r = await d.submitWork({ projectRoot: root, title: 'fix the thing' })
     expect(r.ok).toBe(false)
@@ -117,12 +129,17 @@ describe('OrkyActionDispatcher — FINDING-CODEX-001: a genuine feedback-CLI int
     expect(calls.map(c => c.args[0])).toEqual(['emit', 'resolve-escalation'])
   })
 
-  it('TEST-300 REQ-007 disabled-path regression guard: submitWork with a GENUINE no-op ({ok:true, mode:"noop"}) still reports the DISTINCT feedback-disabled non-dispatch outcome exactly as before the fix', async () => {
+  // SUPERSEDED (intent preserved) by feature 0012-quick-capture-inbox REQ-013, CONV-019: the genuine
+  // disabled-channel shape on the submit path is exit 1 + {ok:false, mode:'noop', error} — submit
+  // refuses loudly; emit's exit-0 {ok:true, mode:'noop'} no-op no longer exists for submitWork. Intent
+  // unchanged: genuinely-disabled still reports the DISTINCT feedback-disabled non-dispatch outcome,
+  // and a too-broad fix (rejecting on mode:'noop' regardless of shape) is still caught by TEST-298 above.
+  it('TEST-300 REQ-007 disabled-path regression guard: submitWork with the GENUINE disabled refusal (exit 1 + {ok:false, mode:"noop", error}) still reports the DISTINCT feedback-disabled non-dispatch outcome (0012/REQ-013: submit refusal shape)', async () => {
     const root = seedProject()
-    const { run, calls } = fakeRunCli({ emit: () => ok({ ok: true, mode: 'noop', sent: false, spooled: false }) })
+    const { run, calls } = fakeRunCli({ submit: () => ({ exitCode: 1, stdout: JSON.stringify({ ok: false, mode: 'noop', error: 'feedback is disabled — the write path requires enable-feedback (an audited decision, ADR-027)' }), timedOut: false }) })
     const d = makeDispatcher({ roots: [root], runCli: run })
     const r = await d.submitWork({ projectRoot: root, title: 'fix the thing' })
     expect(r).toMatchObject({ ok: false, path: 'feedback', feedback: 'disabled', dispatched: false, errorKind: 'feedback-disabled' })
-    expect(calls.map(c => c.args[0])).toEqual(['emit'])
+    expect(calls.map(c => c.args[0])).toEqual(['submit'])
   })
 })

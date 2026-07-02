@@ -84,7 +84,7 @@ export type PaletteAction =
   | 'new-connection' | 'pin-cwd'
   | 'new-terminal' | 'new-editor' | 'new-explorer' | 'new-orky'
   | 'new-workspace' | 'broadcast' | 'save-all' | 'refresh-cloud' | 'settings'
-  | 'toggle-orky-queue'
+  | 'toggle-orky-queue' | 'capture-orky-work'
 
 export type PaletteItem =
   | { kind: 'connection'; id: string; label: string; detail: string; search: string }
@@ -144,7 +144,8 @@ export function buildCommandItems(): PaletteItem[] {
     cmd('save-all', 'Save all workspaces', 'save all workspaces'),
     cmd('refresh-cloud', 'Refresh cloud status', 'refresh cloud status'),
     cmd('settings', 'Settings', 'settings preferences options theme environment'),
-    cmd('toggle-orky-queue', 'Toggle Orky decision queue', 'orky decision queue needs you human review')
+    cmd('toggle-orky-queue', 'Toggle Orky decision queue', 'orky decision queue needs you human review'),
+    cmd('capture-orky-work', 'Capture Orky work item…', 'capture orky work idea inbox')
   ]
 }
 

@@ -19,6 +19,7 @@ import { SettingsPanel } from './components/SettingsPanel'
 import { NotesPanel } from './components/NotesPanel'
 import { DecisionQueuePanel } from './components/DecisionQueuePanel'
 import { OrkyRootPicker } from './components/OrkyRootPicker'
+import { OrkyCaptureModal } from './components/OrkyCaptureModal'
 import { SearchHistory } from './components/SearchHistory'
 import { matchShortcut, resolveBindings } from '@shared/keymap'
 import { redrawPane } from './components/terminal-registry'
@@ -36,6 +37,9 @@ export default function App() {
   // The shared OrkyRootPicker request (feature 0009, REQ-004): opened by pickOrkyRoot() from any
   // creation affordance; resolveOrkyRootPick settles the pending promise (null = cancel).
   const orkyRootPickOpen = useStore(s => s.orkyRootPickOpen)
+  // The quick-capture request (feature 0012, REQ-002): conditionally hosted so every close path
+  // unmounts the modal and a reopen starts with a fresh draft (decision #8).
+  const orkyCaptureRequest = useStore(s => s.orkyCaptureRequest)
   useEffect(() => { init() }, [init])
   useEffect(() => {
     const flush = () => { const s = useStore.getState(); void s.saveAll(); s.flushQuick(); s.flushNotes() }
@@ -138,6 +142,9 @@ export default function App() {
         case 'toggle-notes': s.setNotesOpen(!s.notesOpen); break
         case 'toggle-search': s.setSearchOpen(!s.searchOpen); break
         case 'toggle-orky-queue': s.setQueueOpen(!s.queueOpen); break
+        // Global capture chrome (feature 0012, REQ-001): reads NO active-workspace state — the
+        // chord works with zero workspaces (the toggle-orky-queue precedent above).
+        case 'capture-orky-work': s.openOrkyCapture(); break
         case 'redraw-terminal': redrawPane(s.focusedPaneId ?? ''); break
       }
     }
@@ -188,6 +195,7 @@ export default function App() {
           onSelect={root => useStore.getState().resolveOrkyRootPick(root)}
           onCancel={() => useStore.getState().resolveOrkyRootPick(null)} />
       )}
+      {orkyCaptureRequest !== null && <OrkyCaptureModal initialRoot={orkyCaptureRequest.root} />}
       <SearchHistory />
       <SshConnectionForm key={connectionFormFor === null ? 'none' : connectionFormFor === 'new' ? 'new' : connectionFormFor.id} />
     </div>

@@ -26,14 +26,20 @@ export function CommandPalette() {
   const order = useStore(s => s.order)
   const queueOpen = useStore(s => s.queueOpen)
   const setQueueOpen = useStore(s => s.setQueueOpen)
+  const openOrkyCapture = useStore(s => s.openOrkyCapture)
 
   const [query, setQuery] = useState('')
   const [sel, setSel] = useState(0)
 
   // The "current" cwd for Pin = the first terminal pane's tracked cwd in the active workspace.
+  // NOTE (FINDING-021 / TEST-495, tests/renderer/orky-capture-structure.test.ts:285): this hook is
+  // deliberately shaped as a `activeId ? … : undefined` ternary rather than an early activeId-guard
+  // return. TEST-495 locates the REAL command-activation guard by an UNANCHORED whole-file scan for
+  // the activeId-guard literal; were this hook written with that same early-return form it would be
+  // matched FIRST (it sits above the capture-orky-work case), pointing the frozen locator at the
+  // wrong site. Do NOT revert to the early return — it would silently break that guard in another file.
   const currentCwd = useMemo(() => {
-    if (!activeId) return ''
-    const ws = workspaces[activeId]
+    const ws = activeId ? workspaces[activeId] : undefined
     if (!ws) return ''
     const termId = Object.keys(ws.panes).find(id => ws.panes[id].config.kind === 'terminal')
     return termId ? paneCwd({ cwds, workspaces }, termId) : ''
@@ -62,6 +68,10 @@ export function CommandPalette() {
     // The decision-queue drawer is window chrome, not a pane — it must toggle even with no
     // active workspace (feature 0006, REQ-002), so it is handled before the guard below.
     if (item.action === 'toggle-orky-queue') { setQueueOpen(!queueOpen); close(); return }
+    // The global quick-capture modal is window chrome too (feature 0012, REQ-001) — it opens with
+    // NO active workspace, so it is handled before the guard below (the toggle-orky-queue
+    // precedent). No argument: the picker-first flow.
+    if (item.action === 'capture-orky-work') { openOrkyCapture(); close(); return }
     // Commands below need an active workspace.
     if (!activeId) return
     if (item.action === 'new-terminal') void addPaneOfKind(activeId, 'terminal')

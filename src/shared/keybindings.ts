@@ -24,12 +24,13 @@ export type Shortcut =
   | { type: 'toggle-search' }
   | { type: 'redraw-terminal' }
   | { type: 'toggle-orky-queue' }
+  | { type: 'capture-orky-work' }
 
 export type CommandId =
   | 'toggle-palette' | 'toggle-broadcast' | 'new-terminal' | 'close-workspace'
   | 'next-workspace' | 'prev-workspace' | 'open-settings' | 'toggle-maximize-pane'
   | 'toggle-minimize-pane' | 'toggle-notes' | 'toggle-search' | 'redraw-terminal'
-  | 'toggle-orky-queue'
+  | 'toggle-orky-queue' | 'capture-orky-work'
 
 export interface Command { id: CommandId; label: string; category: string; defaultChord: Chord; tip?: string }
 
@@ -50,6 +51,9 @@ export const COMMANDS: Command[] = [
   { id: 'toggle-search',        label: 'Search output history',       category: 'General',    defaultChord: c(true, true, 'f'), tip: 'search terminal output history' },
   { id: 'redraw-terminal',      label: 'Redraw terminal',             category: 'Panes',      defaultChord: c(true, true, 'l'), tip: 'redraw a garbled terminal' },
   { id: 'toggle-orky-queue',    label: 'Toggle Orky decision queue',  category: 'General',    defaultChord: c(true, true, 'o'), tip: 'open the Orky decision queue' },
+  // Feature 0012: mod+shift+u because every plausible mnemonic collides — o=queue, n=notes,
+  // w=close-workspace, i=Electron's toggleDevTools role accelerator (menu.ts), c=terminal-copy.
+  { id: 'capture-orky-work',    label: 'Capture Orky work item',      category: 'General',    defaultChord: c(true, true, 'u'), tip: 'capture an Orky work item' },
 ]
 
 /** Canonical, JSON-storable, comparable key for a chord, e.g. "mod+shift+t". */

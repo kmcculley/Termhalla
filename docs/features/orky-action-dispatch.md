@@ -3,11 +3,12 @@
 Termhalla's **first write-capable IPC surface** into an Orky-adopted project. Four `orkyAction:*`
 channels let a (future) renderer surface submit human input — resolve an escalation, submit a work
 item, record a human gate verdict, or read the pipeline's next-action status — into a project's `.orky/`
-run. This feature ships **no renderer UI** (D1): it is the dispatch substrate only. F8/F10/F12 build the
-human-facing gestures on top of it.
+run. This feature itself ships **no renderer UI** (D1): it is the dispatch substrate only. Its first
+renderer consumer is feature 0012's quick-capture modal (`submitWork` only — see
+[quick-capture-inbox](quick-capture-inbox.md)); F8/F10 build further human-facing gestures on top of it.
 
-Every mutation is performed by **invoking Orky's own CLIs** (`feedback emit`, `gatekeeper
-resolve-escalation`, `gatekeeper record`) — this feature never writes a file under any `.orky/` tree
+Every mutation is performed by **invoking Orky's own CLIs** (`feedback submit`, `feedback emit`,
+`gatekeeper resolve-escalation`, `gatekeeper record`) — this feature never writes a file under any `.orky/` tree
 itself, never spawns an agent, and never drives the pipeline (D1). The only filesystem write this
 feature performs anywhere is its own append-only audit log under Electron `userData`.
 
@@ -16,7 +17,7 @@ feature performs anywhere is its own append-only audit log under Electron `userD
 | Action | IPC channel | `TermhallaApi` method | CLI invoked |
 |---|---|---|---|
 | Resolve an escalation | `orkyAction:resolveEscalation` | `orkyResolveEscalation` | `feedback emit --type decision`, falling back to `gatekeeper resolve-escalation` |
-| Submit a work item | `orkyAction:submitWork` | `orkySubmitWork` | `feedback emit --type work.request` (no fallback) |
+| Submit a work item | `orkyAction:submitWork` | `orkySubmitWork` | `feedback submit --json` (local-inbox injection; no fallback) |
 | Record a human gate | `orkyAction:recordHumanGate` | `orkyRecordHumanGate` | `gatekeeper record` |
 | Read pipeline status | `orkyAction:driveStatus` | `orkyDriveStatus` | `gatekeeper drive` (read-only) |
 
@@ -52,15 +53,32 @@ resolve-escalation --feature <featureDir> --id <escalationId> --decision <decisi
 
 ### `submitWork` — feedback-only; disabled is a distinct, non-silent failure
 
-Invokes `feedback emit --app <projectRoot> --type work.request [--feature <slug>] --payload {title,
-detail?, phase?}`. There is **no gatekeeper fallback** for work items (D2). As with
-`resolveEscalation`, the emit result's own `ok` field is inspected before `mode` branching
-(**ESC-006**): an exit-0 emit whose parsed `ok === false` is an internal feedback-CLI error and
-returns `ok:false, path:'feedback', dispatched:false, errorKind:'cli-error', exitCode:0` carrying
-the CLI's own error — never the `feedback-disabled` outcome below. Only when `ok` is not literally
-`false` and the feedback channel is genuinely disabled (`mode === 'noop'`) does the result become
-`ok:false, errorKind:'feedback-disabled', dispatched:false` with a specific, actionable message. It
-is never a silent success that discards the human's input.
+Invokes `feedback submit --app <projectRoot> --json <JSON{kind:'work.request', title[, detail][,
+phase][, feature]}>` — the plugin's **local-inbox injection** command (v0.28.0+; amended by feature
+0012 quick-capture-inbox, REQ-013 — previously `feedback emit --type work.request`, whose outbox
+event had no shipped file-mode consumer). The item travels as ONE `JSON.stringify`'d argv element
+(the `--json` branch), so free-text never rides raw argv, and it lands DIRECTLY in
+`<root>/.orky/feedback/inbox/IN-*.json` — the exact store the orchestrator's `apply` drains into a
+`.orky/backlog.jsonl` `status:'pending'` record awaiting planner triage. There is **no gatekeeper
+fallback** for work items (D2), and unlike `emit`, `submit` is **not best-effort** — the result
+universe is:
+
+- **success (the ONLY success shape):** exit 0 + `{ok:true, mode:'file', id:'IN-…',
+  kind:'work.request', path:'inbox/…'}` → `ok:true, dispatched:true, feedback:'enabled'` (the
+  emit-era http sent/spooled ambiguity is gone from this action).
+- **disabled refusal (kept DISTINCT):** exit 1 + `{ok:false, mode:'noop', error}` — the dispatcher
+  discriminates this ONE shape (`mode:'noop'` is returned for the disabled refusal and only for it)
+  into `ok:false, errorKind:'feedback-disabled', dispatched:false` carrying the CLI's refusal
+  verbatim. It is never a silent success that discards the human's input, and never collapsed into
+  generic `cli-error`.
+- **every other refusal, exactly as mapped:** the http-mode refusal (exit 1, `mode:'http'` — an
+  http-configured project must submit via its control plane's inbox API; nothing is spooled) and
+  validation refusals (exit 1, `mode:'file'`) surface as `cli-error` with the CLI's message
+  verbatim; an exit-2 internal error stays `cli-error` (never misdiagnosed as disabled — the
+  ESC-006 invariant re-expressed on the submit path); a pre-v0.28.0 plugin without `submit` prints
+  usage to stderr with empty stdout → the honest `cli-unparseable` (the plugin-version floor for
+  this action); a timeout stays the INDETERMINATE `cli-timeout` (CONV-015 — the write may still
+  have completed).
 
 ### `recordHumanGate` — gate restricted server-side, never `--force`
 
@@ -110,16 +128,23 @@ pipeline state.
    **argument array only** (never `shell:true`, never string concatenation — no shell-injection surface),
    `child.unref()` immediately after spawn, and an `AbortController` wired so an in-flight child is
    aborted on dispatcher `dispose()`. A timed-out/aborted child resolves the action (never hangs/rejects)
-   as `errorKind:'cli-timeout'`.
+   as `errorKind:'cli-timeout'`. **Spawn-class failures are classified separately from genuine timeouts**
+   (REQ-014/FINDING-009, feature 0012): an oversized command line (e.g. `submitWork`'s uncapped
+   `--json` item, ENAMETOOLONG/E2BIG on Windows/Linux, thrown either synchronously or via the
+   callback) means the child NEVER ran, so nothing could have been written — `runOrkyCli` resolves
+   `{exitCode:null, timedOut:false}` for that class, which `mapCliRunToResult` surfaces as a
+   DEFINITE `cli-error`/`cli-unparseable`, never the indeterminate `cli-timeout`. Only the genuine
+   elapsed-time class (the execFile timeout kill, or an `AbortSignal` abort) resolves `timedOut:true`.
 7. **Total exit-code + stdout-JSON mapping** (`src/shared/orky-action-result.ts`,
    `mapCliRunToResult`) — a pure function mapping every documented `(cliKind, action, exitCode)` branch
    plus a defensive catch-all for any undocumented exit code. Non-JSON/empty/non-object stdout maps to
    `errorKind:'cli-unparseable'`, never a throw and never an assumed success.
 
-## Action surface is exactly four commands (D1 scope guard)
+## Action surface is exactly five hard-coded subcommands (D1 scope guard)
 
-The dispatcher (`src/main/orky/orky-action-dispatcher.ts`) may invoke ONLY the four hard-coded Orky
-subcommands `emit`, `resolve-escalation`, `record`, `drive` — never `loopback`, `escalate`, `check`,
+The dispatcher (`src/main/orky/orky-action-dispatcher.ts`) may invoke ONLY the five hard-coded Orky
+subcommands `emit`, `submit`, `resolve-escalation`, `record`, `drive` (`submit` joined by feature
+0012, REQ-013; `emit` remains for resolveEscalation's own feedback path) — never `loopback`, `escalate`, `check`,
 `probe`, `can-advance`, `record-implementer`, `heartbeat`, `enable-feedback`, or `disable-feedback`. No
 renderer-supplied request field ever selects a subcommand string; the subcommand is a literal per action.
 This feature never spawns a Claude/Orky agent and never runs or resumes any pipeline phase.

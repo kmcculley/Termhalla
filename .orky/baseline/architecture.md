@@ -123,7 +123,7 @@ thin around it. That pure core is what this baseline characterizes (see CHAR ids
   (Orky action-dispatch substrate).* Termhalla's **first write-capable IPC surface** into an
   Orky-adopted project: four actions (`resolveEscalation`/`submitWork`/`recordHumanGate`/`driveStatus`)
   over four new `orkyAction:*` channels. EVERY mutation is performed by invoking one of Orky's OWN CLIs
-  (`feedback emit`, `gatekeeper resolve-escalation`, `gatekeeper record`) via an abortable/`unref()`'d
+  (`feedback submit`, `feedback emit`, `gatekeeper resolve-escalation`, `gatekeeper record`) via an abortable/`unref()`'d
   `execFile` (`orky-cli-runner.ts`, argument array only, never a shell) — this dispatcher **never writes a
   file under any `.orky/` tree itself, never spawns an agent, and never drives the pipeline** (D1). Every
   `projectRoot` is checked against the SAME app-wide `OrkyRegistry.roots()` allowlist (D3) via the shared
@@ -136,7 +136,9 @@ thin around it. That pure core is what this baseline characterizes (see CHAR ids
   or rejection — is recorded in an append-only `orky-actions.jsonl` audit log under Electron `userData`
   (`orky-action-audit.ts`) — the ONLY filesystem write this feature performs anywhere; a sender rejected at
   the IPC-registrar boundary (`register-orky-action.ts`) never reaches the dispatcher and is not audited.
-  This feature ships no renderer UI (D1); see `docs/features/orky-action-dispatch.md`.
+  This feature itself ships no renderer UI (D1); its first renderer consumer is feature 0012's
+  quick-capture modal (`submitWork` only, which rides the plugin's local-inbox `feedback submit` —
+  amended there per its REQ-013); see `docs/features/orky-action-dispatch.md`.
 
 ### Shared renderer/UI logic
 - **`shared/keybindings.ts`** — command registry, chord parse/format, `resolveBindings`,

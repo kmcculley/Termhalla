@@ -38,9 +38,11 @@
 // fix (state.json escalations[2], ESC-003) requires `validateFeatureSlug`/
 // `validateResolveEscalationRequest`/`validateRecordHumanGateRequest` to reject any `feature`/`decision`/
 // `escalationId`/`evidence` value that `.startsWith('--')` BEFORE it ever reaches the dispatcher.
-// `title`/`detail`/`phase` (submitWork) are explicitly OUT OF SCOPE — they only ever travel inside a
-// `JSON.stringify(...)`-encoded `--payload` argument, never as their own raw argv element, so guarding them
-// would be over-broad (TEST-290 pins this negative case). This addition does NOT touch `src/` — it is
+// `title`/`detail`/`phase` (submitWork) are explicitly OUT OF SCOPE — they only ever travel inside ONE
+// `JSON.stringify(...)`-encoded argv element (originally emit's `--payload`; since feature
+// 0012-quick-capture-inbox REQ-013, submit's `--json` item element — prose updated per
+// FINDING-007/CONV-008, assertions byte-untouched), never as their own raw argv element, so guarding
+// them would be over-broad (TEST-290 pins this negative case). This addition does NOT touch `src/` — it is
 // authored RED, against the not-yet-updated validators, per the ESC-003 decision.
 import { describe, it, expect } from 'vitest'
 import {
@@ -319,7 +321,7 @@ describe('CLI-argument-injection guard — reject any \'--\'-prefixed value befo
     expect(okNoEvidence.ok).toBe(true)
   })
 
-  it('TEST-290 REQ-007 NEGATIVE/scope regression: submitWork\'s title/detail/phase MAY start with \'--\' and MUST STILL BE ACCEPTED — these free-text fields travel only inside the JSON-encoded --payload argument, never as their own raw argv element, so applying this guard to them would be over-broad and wrong', () => {
+  it('TEST-290 REQ-007 NEGATIVE/scope regression: submitWork\'s title/detail/phase MAY start with \'--\' and MUST STILL BE ACCEPTED — these free-text fields travel only inside ONE JSON-encoded argv element (resolveEscalation\'s --payload; submitWork\'s --json item since 0012/REQ-013 — prose updated per FINDING-007, assertions untouched), never as their own raw argv element, so applying this guard to them would be over-broad and wrong', () => {
     const titleDashes = validateSubmitWorkRequest({ projectRoot: '/p', title: '--anything' })
     expect(titleDashes.ok).toBe(true)
     if (titleDashes.ok) expect(titleDashes.req.title).toBe('--anything')

@@ -30,11 +30,15 @@
 // (per REQ-001's "a harness invokes each handler and receives an OrkyActionResult"), and threads a
 // concrete windowId only in the REQ-013 audit-specific tests.
 //
-// Exact hard-coded CLI argument arrays this suite pins (REQ-016 — the ONLY four subcommands, never a
-// request-derived string):
+// Exact hard-coded CLI argument arrays this suite pins (REQ-016 — hard-coded subcommand literals only,
+// never a request-derived string). SUPERSEDED IN PART by feature 0012-quick-capture-inbox REQ-013
+// (CONV-019, tests phase — .orky/features/0012-quick-capture-inbox/04-tests.md): submitWork now rides
+// the plugin's local-inbox `feedback submit` (v0.28.0+) instead of the outbox-writing `feedback emit`,
+// so the hard-coded set is FIVE literals ('submit' joined; 'emit' STAYS — doResolveEscalation's own
+// feedback path is untouched). Amended pins: TEST-237/238/293/267 here, TEST-298/300 in the codex file.
 //   resolveEscalation (feedback path):  ['emit','--app',projectRoot,'--type','decision','--feature',slug,'--payload',JSON]
 //   resolveEscalation (gatekeeper fallback): ['resolve-escalation','--feature',featureDir,'--id',escalationId,'--decision',decision]
-//   submitWork:     ['emit','--app',projectRoot,'--type','work.request',...(feature?['--feature',slug]:[]),'--payload',JSON]
+//   submitWork:     ['submit','--app',projectRoot,'--json',JSON.stringify({kind:'work.request',title[,detail][,phase][,feature]})]
 //   recordHumanGate: ['record','--feature',featureDir,'--gate',gate,'--verdict',verdict,...(evidence?['--evidence',evidence]:[])]  — NEVER '--force'
 //   driveStatus:    ['drive','--feature',featureDir]
 //
@@ -207,22 +211,32 @@ describe('OrkyActionDispatcher.resolveEscalation — feedback-first, gatekeeper 
 })
 
 describe('OrkyActionDispatcher.submitWork — feedback-only, disabled is a DISTINCT non-dispatch failure (REQ-007)', () => {
-  it('TEST-237 REQ-007 a feedback-ENABLED fixture emits and reports dispatched:true, ok:true', async () => {
+  // SUPERSEDED (intent preserved) by feature 0012-quick-capture-inbox REQ-013, CONV-019 (recorded in
+  // .orky/features/0012-quick-capture-inbox/04-tests.md): submitWork now invokes `feedback submit`
+  // (local-inbox injection, plugin v0.28.0+); the enabled fixture models submit's file-mode receipt —
+  // the ONLY success shape (the emit-era http/sent/spooled universe is GONE from this action). The
+  // guard's intent is unchanged: an enabled channel reports ok:true/dispatched:true via feedback.
+  it('TEST-237 REQ-007 a feedback-ENABLED fixture submits and reports dispatched:true, ok:true (0012/REQ-013: submit file-mode receipt)', async () => {
     const root = seedProject()
-    const { run } = fakeRunCli({ emit: () => ok({ ok: true, mode: 'http', event: 'evt-2', sent: true, spooled: false }) })
+    const { run } = fakeRunCli({ submit: () => ok({ ok: true, mode: 'file', id: 'IN-abc123', kind: 'work.request', path: 'inbox/IN-abc123.json' }) })
     const d = makeDispatcher({ roots: [root], runCli: run })
     const r = await d.submitWork({ projectRoot: root, title: 'fix the thing' })
     expect(r).toMatchObject({ ok: true, path: 'feedback', feedback: 'enabled', dispatched: true })
   })
 
-  it('TEST-238 REQ-007 a feedback-DISABLED fixture (mode noop) is a DISTINCT failure — ok:false, feedback-disabled, dispatched:false — NEVER a silent success; NO gatekeeper fallback exists for submitWork', async () => {
+  // SUPERSEDED (intent preserved) by feature 0012-quick-capture-inbox REQ-013, CONV-019: `submit` is
+  // NOT best-effort like emit — a disabled channel REFUSES loudly (exit 1 + {ok:false, mode:'noop',
+  // error}, feedback.js:280-282 / cli.js:88) instead of emit's exit-0 no-op. The guard's intent is
+  // unchanged: disabled stays a DISTINCT non-dispatch failure, never a silent success, and NO
+  // gatekeeper fallback exists for submitWork.
+  it('TEST-238 REQ-007 a feedback-DISABLED fixture (exit 1 + {ok:false, mode:"noop", error}) is a DISTINCT failure — ok:false, feedback-disabled, dispatched:false — NEVER a silent success; NO gatekeeper fallback exists for submitWork (0012/REQ-013: submit refusal shape)', async () => {
     const root = seedProject()
-    const { run, calls } = fakeRunCli({ emit: () => ok({ ok: true, mode: 'noop', sent: false, spooled: false }) })
+    const { run, calls } = fakeRunCli({ submit: () => ({ exitCode: 1, stdout: JSON.stringify({ ok: false, mode: 'noop', error: 'feedback is disabled — the write path requires enable-feedback (an audited decision, ADR-027)' }), timedOut: false }) })
     const d = makeDispatcher({ roots: [root], runCli: run })
     const r = await d.submitWork({ projectRoot: root, title: 'fix the thing' })
     expect(r).toMatchObject({ ok: false, path: 'feedback', feedback: 'disabled', dispatched: false, errorKind: 'feedback-disabled' })
     expect(r.error).toBeTruthy()
-    expect(calls.map(c => c.args[0])).toEqual(['emit']) // gatekeeper is NEVER called for submitWork
+    expect(calls.map(c => c.args[0])).toEqual(['submit']) // gatekeeper is NEVER called for submitWork
   })
 
   it('TEST-239 REQ-007/014 a missing/empty title returns invalid-args BEFORE any emit call', async () => {
@@ -672,25 +686,29 @@ describe('OrkyActionDispatcher — per-featureDir serialization of mutating acti
     expect(order).toEqual(['first-start', 'first-end', 'second-start', 'second-end'])
   })
 
-  it('TEST-293 REQ-015/FINDING-DA-001 doSubmitWork (no-feature project-level fallback key): two concurrent submitWork calls with NO feature field on the SAME physical projectRoot via a case/slash-DIVERGENT spelling still serialize', async () => {
+  // SUPERSEDED (intent preserved) by feature 0012-quick-capture-inbox REQ-013, CONV-019: the fixture
+  // is keyed on 'submit' (doSubmitWork's invocation after the emit→submit amendment) returning the
+  // file-mode receipt. The guard's intent — the normalizeProjectRoot fallback queue key serializes
+  // divergent spellings of the same physical root — is untouched.
+  it('TEST-293 REQ-015/FINDING-DA-001 doSubmitWork (no-feature project-level fallback key): two concurrent submitWork calls with NO feature field on the SAME physical projectRoot via a case/slash-DIVERGENT spelling still serialize (0012/REQ-013: keyed on submit)', async () => {
     const root = seedProject() // no feature dir needed -- queueKey = projectRoot directly (featureDir is undefined)
     const divergent = root.toUpperCase().replace(/\\/g, '/')
     const order: string[] = []
     let releaseFirst!: () => void
     const gate1 = new Promise<void>((resolve) => { releaseFirst = resolve })
     const run = async (_cliPath: string, args: string[]): Promise<CliRun> => {
-      if (args[0] !== 'emit') throw new Error(`unexpected subcommand: ${args[0]}`)
+      if (args[0] !== 'submit') throw new Error(`unexpected subcommand: ${args[0]}`)
       const isFirst = order.length === 0
       order.push(isFirst ? 'first-start' : 'second-start')
       if (isFirst) await gate1
       order.push(isFirst ? 'first-end' : 'second-end')
-      return ok({ ok: true, mode: 'file', event: 'evt', sent: true, spooled: false })
+      return ok({ ok: true, mode: 'file', id: 'IN-serial', kind: 'work.request', path: 'inbox/IN-serial.json' })
     }
     const d = makeDispatcher({ roots: [root], runCli: run })
     const p1 = d.submitWork({ projectRoot: root, title: 'first work item' })
     const p2 = d.submitWork({ projectRoot: divergent, title: 'second work item' })
     await new Promise(r => setTimeout(r, 30))
-    expect(order).toEqual(['first-start']) // second's emit call must NOT have started yet
+    expect(order).toEqual(['first-start']) // second's submit call must NOT have started yet
     releaseFirst()
     await Promise.all([p1, p2])
     expect(order).toEqual(['first-start', 'first-end', 'second-start', 'second-end'])
@@ -721,14 +739,19 @@ describe('OrkyActionDispatcher — per-featureDir serialization of mutating acti
   })
 })
 
-describe('OrkyActionDispatcher — scope guard: exactly four subcommands, none request-selectable (REQ-016)', () => {
-  it('TEST-267 REQ-016 source-grep: ONLY the four hard-coded subcommand literals (emit/resolve-escalation/record/drive) appear; every forbidden Orky subcommand is absent', () => {
+describe('OrkyActionDispatcher — scope guard: exactly five hard-coded subcommands, none request-selectable (REQ-016; submit joined by 0012/REQ-013)', () => {
+  // SUPERSEDED (intent preserved) by feature 0012-quick-capture-inbox REQ-013, CONV-019: 'submit'
+  // joins the REQUIRED hard-coded literal set (five, none request-selectable) — amended DELIBERATELY,
+  // not passed accidentally, because the invariant "only these hard-coded subcommands" would otherwise
+  // go silently false. 'emit' STAYS required (doResolveEscalation still rides it); the forbidden set
+  // (incl. enable-feedback/disable-feedback) is byte-unchanged.
+  it('TEST-267 REQ-016 source-grep: ONLY the five hard-coded subcommand literals (emit/submit/resolve-escalation/record/drive) appear; every forbidden Orky subcommand is absent (0012/REQ-013: submit joined)', () => {
     const src = readFileSync(join(process.cwd(), 'src', 'main', 'orky', 'orky-action-dispatcher.ts'), 'utf8')
     for (const forbidden of ['loopback', 'escalate', 'check', 'probe', 'can-advance', 'record-implementer', 'heartbeat', 'enable-feedback', 'disable-feedback']) {
       expect(src).not.toContain(`'${forbidden}'`)
       expect(src).not.toContain(`"${forbidden}"`)
     }
-    for (const required of ["'emit'", "'resolve-escalation'", "'record'", "'drive'"]) {
+    for (const required of ["'emit'", "'submit'", "'resolve-escalation'", "'record'", "'drive'"]) {
       expect(src).toContain(required)
     }
   })

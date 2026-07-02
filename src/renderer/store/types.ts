@@ -109,6 +109,13 @@ export interface State {
   orkyRootPickOpen: boolean
   pickOrkyRoot: () => Promise<string | null>
   resolveOrkyRootPick: (root: string | null) => void
+  // ── Quick-capture new-work inbox (feature 0012) — session-scoped chrome state only, nothing
+  // persisted. `null` = closed; `{root:null}` = picker-first; `{root:string}` = form-direct with
+  // the pre-selected root held byte-verbatim (D4 — the entry point F10's OrkyPane "inject" later
+  // calls). Re-invoking while open is a reference-stable no-op; close discards unconditionally.
+  orkyCaptureRequest: { root: string | null } | null
+  openOrkyCapture: (root?: string) => void
+  closeOrkyCapture: () => void
   // paneId -> monotonic focus sequence (REQ-009's MRU recency), stamped by setFocusedPane and
   // pruned by the SAME clearPaneRuntime call that drops every other per-pane map (CONV-011).
   paneFocusSeq: Record<string, number>

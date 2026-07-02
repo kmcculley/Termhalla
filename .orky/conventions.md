@@ -148,6 +148,34 @@ to it when a review surfaces a lesson general enough to outlive its feature.
   lifecycle, not only through the store/slice seam beneath it — a slice-level spy cannot see
   fetches a component's own mount effects add.
   *(from FINDING-020 in 0009-native-orky-pane)*
+- **CONV-032** — A frozen structural test that locates a code site via a whole-file `.indexOf()` (or
+  other unanchored) string search MUST anchor the search — a scoped substring, a preceding/following
+  marker, or a bounded regex — rather than a bare literal that can collide with unrelated
+  occurrences elsewhere in the same file; if an unrelated edit is reshaped purely to dodge such a
+  collision, the reshaped site MUST carry an in-code comment naming the test and the collision so a
+  future revert doesn't silently reintroduce it.
+  *(from FINDING-021 in 0012-quick-capture-inbox)*
+- **CONV-033** — An acceptance vector claiming to exercise React StrictMode's dev-only double
+  mount/effect invocation MUST name a harness that actually runs React's DEVELOPMENT build; a
+  production-build e2e (or a `node`-env unit harness that cannot mount a component at all) never
+  exercises StrictMode semantics and must not be cited as doing so — the sanctioned substitute is a
+  structural pin on the property that makes the double-invocation class impossible (e.g. the
+  mutating call site living in an event handler, never inside a `useEffect` body).
+  *(from FINDING-018 in 0012-quick-capture-inbox)*
+- **CONV-034** — When a surface owning a non-idempotent in-flight write is dismissed before the
+  write settles, the outcome MUST still be reported through a component-independent, never-silently
+  -dropped signal (e.g. a store-level toast chokepoint) — and that detached report MUST carry the
+  SAME honesty class as the in-flight/rendered path would have (indeterminate wording for an
+  indeterminate outcome such as a timeout or a transport failure whose write may still land; a
+  uniform "definite failure" message for every kind is itself a false claim that invites a
+  duplicating retry).
+  *(from FINDING-013 and its FINDING-024 refinement in 0012-quick-capture-inbox)*
+- **CONV-035** — A dialog rendered with `aria-modal="true"` MUST contain Tab focus within the
+  dialog (via the shared modal substrate, never a per-dialog copy), so the accessibility claim and
+  the keyboard reality agree; where containment isn't yet implemented at the shared seam, the gap
+  MUST be tracked as a named, shared-seam finding rather than re-discovered independently by each
+  consuming dialog.
+  *(from FINDING-016 in 0012-quick-capture-inbox)*
 
 ## Principles
 Higher-level stances that inform specs and reviews but are too broad to gate mechanically.

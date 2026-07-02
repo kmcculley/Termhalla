@@ -92,6 +92,11 @@ export function validateResolveEscalationRequest(input: unknown): ValidationResu
 
   const projectRoot = requireNonEmptyString(input, 'projectRoot')
   if (!projectRoot.ok) return projectRoot
+  // projectRoot travels as a RAW `--app <root>` argv element in every dispatch path; defend it with
+  // the same flag-like guard the other raw argv fields use (REQ-013/FINDING-011), fired right after
+  // extraction so its field-specific message wins over any later field's rejection (CONV-001).
+  const projectRootFlagLike = rejectFlagLike('projectRoot', projectRoot.value)
+  if (projectRootFlagLike) return projectRootFlagLike
 
   const slug = requireFeatureSlug(input)
   if (!slug.ok) return { ok: false, error: slug.error }
@@ -117,6 +122,11 @@ export function validateSubmitWorkRequest(input: unknown): ValidationResult<Subm
 
   const projectRoot = requireNonEmptyString(input, 'projectRoot')
   if (!projectRoot.ok) return projectRoot
+  // projectRoot travels as a RAW `--app <root>` argv element in every dispatch path; defend it with
+  // the same flag-like guard the other raw argv fields use (REQ-013/FINDING-011), fired right after
+  // extraction so its field-specific message wins over any later field's rejection (CONV-001).
+  const projectRootFlagLike = rejectFlagLike('projectRoot', projectRoot.value)
+  if (projectRootFlagLike) return projectRootFlagLike
 
   let feature: string | undefined
   if (input.feature !== undefined) {
@@ -146,6 +156,11 @@ export function validateRecordHumanGateRequest(input: unknown): ValidationResult
 
   const projectRoot = requireNonEmptyString(input, 'projectRoot')
   if (!projectRoot.ok) return projectRoot
+  // projectRoot travels as a RAW `--app <root>` argv element in every dispatch path; defend it with
+  // the same flag-like guard the other raw argv fields use (REQ-013/FINDING-011), fired right after
+  // extraction so its field-specific message wins over any later field's rejection (CONV-001).
+  const projectRootFlagLike = rejectFlagLike('projectRoot', projectRoot.value)
+  if (projectRootFlagLike) return projectRootFlagLike
 
   const slug = requireFeatureSlug(input)
   if (!slug.ok) return { ok: false, error: slug.error }
@@ -181,6 +196,11 @@ export function validateDriveStatusRequest(input: unknown): ValidationResult<Dri
 
   const projectRoot = requireNonEmptyString(input, 'projectRoot')
   if (!projectRoot.ok) return projectRoot
+  // projectRoot travels as a RAW `--app <root>` argv element in every dispatch path; defend it with
+  // the same flag-like guard the other raw argv fields use (REQ-013/FINDING-011), fired right after
+  // extraction so its field-specific message wins over any later field's rejection (CONV-001).
+  const projectRootFlagLike = rejectFlagLike('projectRoot', projectRoot.value)
+  if (projectRootFlagLike) return projectRootFlagLike
 
   const slug = requireFeatureSlug(input)
   if (!slug.ok) return { ok: false, error: slug.error }
