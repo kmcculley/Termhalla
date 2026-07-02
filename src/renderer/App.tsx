@@ -23,6 +23,7 @@ import { OrkyCaptureModal } from './components/OrkyCaptureModal'
 import { SearchHistory } from './components/SearchHistory'
 import { matchShortcut, resolveBindings } from '@shared/keymap'
 import { redrawPane } from './components/terminal-registry'
+import { focusProjectPane, revealQueueGroup } from './components/pane-reveal'
 import { api } from './api'
 
 export default function App() {
@@ -76,6 +77,16 @@ export default function App() {
       api.onTermSerialize(wsId => s().serializeWorkspace(wsId)),
       // Native Edit ▸ Settings… opens the Settings modal at the General section.
       api.onOpenSettings(() => s().openSettings({ section: 'general' })),
+      // Feature 0013: a needs-you OS notification was clicked. The main process already brought this
+      // window forward; here we hand off to where the human acts — focus the matching pane via F6's
+      // reused matcher, else open the decision-queue drawer scrolled to the project (a digest click,
+      // root === null, just opens the drawer). Read-side only: no action/registry mutation (REQ-006/007).
+      api.onOrkyNotifyFocus(root => {
+        const st = s()
+        if (root !== null && focusProjectPane(st, root)) return
+        st.setQueueOpen(true)
+        if (root !== null) revealQueueGroup(root)
+      }),
       // Main asks us to flush before it quits. Persist workspaces (cwd) + quick (SSH) and AWAIT the
       // disk writes, then confirm — so the quit/auto-update install can't race our writes to exit.
       api.onAppFlush(async () => {

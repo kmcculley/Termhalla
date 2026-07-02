@@ -1,13 +1,13 @@
 {
-  "feature": ".orky/features/0012-quick-capture-inbox",
+  "feature": ".orky/features/0013-os-needs-you-notifications",
   "projectRoot": "C:/dev/Termhalla",
   "phase": "implement",
-  "lastTickAt": "2026-07-02T12:14:14.453Z",
+  "lastTickAt": "2026-07-02T14:59:53.950Z",
   "lastAction": "tests loopback gate passed; dispatching fix implementer",
   "runs": {
-    ".orky/features/0012-quick-capture-inbox": {
+    ".orky/features/0013-os-needs-you-notifications": {
       "phase": "implement",
-      "lastTickAt": "2026-07-02T12:14:14.453Z",
+      "lastTickAt": "2026-07-02T14:59:53.950Z",
       "lastAction": "tests loopback gate passed; dispatching fix implementer"
     }
   }

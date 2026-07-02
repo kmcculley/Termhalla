@@ -91,6 +91,11 @@ export const CH = {
   shellOpenExternal: 'shell:openExternal',  // renderer -> main (open a URL in the default browser)
   previewLoadImage: 'preview:loadImage',    // renderer -> main (read file / fetch url -> data URL)
   openSettings: 'menu:open-settings',       // main -> renderer event (native Edit ▸ Settings… clicked)
+  // OS-level needs-you notifications (feature 0013). The SOLE new channel: a main -> renderer focus
+  // handoff fired when the user clicks a needs-you notification. Payload = the target project-root
+  // string (individual toast) or `null` (a digest click → open the drawer, no specific project).
+  // Deliberately OUTSIDE the frozen registry:* family — it is not a registry read/write.
+  orkyNotifyFocus: 'orkyNotify:focus',      // main -> renderer event (payload: string | null)
 } as const
 
 export interface NotifyArgs { title: string; body: string }
@@ -230,4 +235,9 @@ export interface TermhallaApi {
   previewLoadImage(src: ImageSource): Promise<ImageResult>
   /** The native Edit ▸ Settings… menu item was clicked; open the Settings modal at General. */
   onOpenSettings(cb: () => void): () => void
+  /** A needs-you OS notification was clicked (feature 0013). Payload = the project root to reveal, or
+   *  `null` for a digest click (open the decision-queue drawer with no specific project). The renderer
+   *  focuses a matching pane via F6's shared matcher, else opens+scrolls the drawer — a read-side
+   *  handoff only (no `.orky` write, no registry mutation, no action dispatch). */
+  onOrkyNotifyFocus(cb: (root: string | null) => void): () => void
 }

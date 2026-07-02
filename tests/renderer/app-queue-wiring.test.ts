@@ -37,7 +37,7 @@ describe('App.tsx — subscription + single recovery pull (REQ-003/REQ-011)', ()
     expect(src).toContain('recoveryPullFailed')   // the rejection path is explicit, never swallowed silently
   })
 
-  it('TEST-358 REQ-003 REQ-017 no new IPC by F6: F5\'s five registry channels remain, and no main/preload file knows the feature (open-formed by 0009 REQ-003)', () => {
+  it('TEST-358 REQ-003 REQ-017 no new IPC by F6: F5\'s five registry channels remain, and no main/preload file knows the F6 DRAWER (open-formed by 0009 REQ-003; regex narrowed by 0013 REQ-013)', () => {
     const registryChannels = Object.values(CH).filter(v => typeof v === 'string' && v.startsWith('registry:')).sort()
     // SUPERSEDED point-in-time pin (CONV-019, via feature 0009-native-orky-pane REQ-003's protocol;
     // DISCOVERED at F9's test design — see 0009's 04-tests.md): F6's still-true intent is "F6 itself
@@ -51,7 +51,26 @@ describe('App.tsx — subscription + single recovery pull (REQ-003/REQ-011)', ()
       ...listFiles(resolve(process.cwd(), 'src', 'main')),
       ...listFiles(resolve(process.cwd(), 'src', 'preload'))
     ]
-    const offenders = mainAndPreload.filter(f => /decision-?queue|DecisionQueue|queueOpen/i.test(readFileSync(f, 'utf8')))
+    // SUPERSEDED (CONV-019, scheduled at feature 0013-os-needs-you-notifications' TESTS phase — REQ-013 /
+    // TASK-011; see .orky/features/0013-os-needs-you-notifications/04-tests.md). This directory-scan's
+    // ACTUAL intent (verified by reading this file's header + body): F6's decision-queue DRAWER added NO
+    // main/preload wiring — it is renderer/shared-only (D2) — so the scan protects against the F6 drawer
+    // UI / `DecisionQueuePanel` component / drawer-open (`queueOpen`) state leaking into main/preload,
+    // NOT against a legitimate main-side import of the PURE shared selector. F13's observer
+    // (src/main/orky/orky-needs-you-notifier.ts) MUST `import { buildDecisionQueue } from
+    // '@shared/decision-queue'` — the first main-side consumer of the shared selector — and BOTH the
+    // symbol `buildDecisionQueue` AND the module path `@shared/decision-queue` hit the OLD regex
+    // (/decision-?queue|DecisionQueue|queueOpen/i); there is no way to import the required selector into
+    // src/main without matching. The regex is narrowed to the RENDERER-only F6 drawer surface it was
+    // actually protecting — /DecisionQueuePanel|queueOpen/i — which STILL forbids the drawer component and
+    // the queueOpen/setQueueOpen drawer-state in any src/main|src/preload file, and does NOT match the
+    // observer's shared-selector import. The registryChannels arrayContaining half above is UNTOUCHED.
+    const F6_DRAWER = /DecisionQueuePanel|queueOpen/i
+    // self-check (REQ-013 acceptance): the narrowed guard still CATCHES a planted main-side drawer
+    // reference, and PASSES on the observer's legitimate buildDecisionQueue import.
+    expect(F6_DRAWER.test('const p = <DecisionQueuePanel/>; setQueueOpen(true)')).toBe(true)
+    expect(F6_DRAWER.test("import { buildDecisionQueue } from '@shared/decision-queue'")).toBe(false)
+    const offenders = mainAndPreload.filter(f => F6_DRAWER.test(readFileSync(f, 'utf8')))
     expect(offenders).toEqual([])
   })
 })

@@ -1,0 +1,177 @@
+{
+  "feature": "0013-os-needs-you-notifications",
+  "phase": "doc-sync",
+  "gates": {
+    "brainstorm": {
+      "passed": true,
+      "at": "2026-07-02T12:57:33.094Z",
+      "evidence": "delegated-human brainstorm: D1 main-process observer over the F5 aggregate (notifies pane-less projects), D2 gate-based needs-you transitions per (project,feature,reason) with dedupe, D3 reuse 0004's tab-badge opt-in (no new switch), D4 throttle+coalesce+digest, D5 click-to-focus pane or F6 drawer",
+      "external": true
+    },
+    "spec": {
+      "passed": true,
+      "at": "2026-07-02T13:43:55.659Z",
+      "tokens": [
+        {
+          "token": "findings",
+          "pass": true,
+          "evidence": "no open blocking findings (CRITICAL/HIGH or contract-violation) for this gate"
+        }
+      ]
+    },
+    "plan": {
+      "passed": true,
+      "at": "2026-07-02T13:47:41.774Z",
+      "tokens": [
+        {
+          "token": "spec-freeze",
+          "pass": true,
+          "evidence": "spec unchanged since the spec gate"
+        },
+        {
+          "token": "traceability-plan",
+          "pass": true,
+          "evidence": "all 14 REQ(s) trace to TASK"
+        },
+        {
+          "token": "findings",
+          "pass": true,
+          "evidence": "no open blocking findings (CRITICAL/HIGH or contract-violation) for this gate"
+        }
+      ]
+    },
+    "tests": {
+      "passed": true,
+      "at": "2026-07-02T14:59:53.776Z",
+      "tokens": [
+        {
+          "token": "spec-freeze",
+          "pass": true,
+          "evidence": "spec unchanged since the spec gate"
+        },
+        {
+          "token": "tests-red",
+          "pass": true,
+          "evidence": "tests are RED (exit 1) — freeze snapshot captured"
+        }
+      ]
+    },
+    "implement": {
+      "passed": true,
+      "at": "2026-07-02T15:13:43.436Z",
+      "tokens": [
+        {
+          "token": "spec-freeze",
+          "pass": true,
+          "evidence": "spec unchanged since the spec gate"
+        },
+        {
+          "token": "build",
+          "pass": true,
+          "evidence": "build exited 0"
+        },
+        {
+          "token": "test",
+          "pass": true,
+          "evidence": "test exited 0"
+        },
+        {
+          "token": "test-freeze",
+          "pass": true,
+          "evidence": "test files unchanged since freeze"
+        }
+      ]
+    },
+    "review": {
+      "passed": true,
+      "at": "2026-07-02T15:22:23.830Z",
+      "tokens": [
+        {
+          "token": "spec-freeze",
+          "pass": true,
+          "evidence": "spec unchanged since the spec gate"
+        },
+        {
+          "token": "findings",
+          "pass": true,
+          "evidence": "no open blocking findings (CRITICAL/HIGH or contract-violation) for this gate"
+        }
+      ]
+    },
+    "doc-sync": {
+      "passed": true,
+      "at": "2026-07-02T15:28:15.705Z",
+      "tokens": [
+        {
+          "token": "spec-freeze",
+          "pass": true,
+          "evidence": "spec unchanged since the spec gate"
+        },
+        {
+          "token": "traceability",
+          "pass": true,
+          "evidence": "all 14 REQ(s) trace to TASK+TEST"
+        },
+        {
+          "token": "findings",
+          "pass": true,
+          "evidence": "no open blocking findings (CRITICAL/HIGH or contract-violation) for this gate"
+        }
+      ]
+    },
+    "human-review": {
+      "passed": true,
+      "at": "2026-07-02T15:28:15.817Z",
+      "evidence": "Delegated autonomous drive. Reviewed: 14-REQ spec (coordinator D3 opt-in amendment + 1 revision), app-wide QuickStore opt-in (no schema bump) with live-refresh mirror, main-side needs-you observer over the F5 aggregate, 7-lens review (16 findings incl. a FIVE-lens-confirmed digest-flush-timer contract violation) all resolved + 1 new LOW footgun, TEST-358 CONV-019 narrowing, CONV-036..040 promoted. Residuals: FINDING-011/016 (LOW, documented). Suite 1364 green. Standing backlog: tracked NUL file cleanup.",
+      "external": true
+    }
+  },
+  "iterations": {
+    "tests": 1
+  },
+  "escalations": [
+    {
+      "id": "ESC-001",
+      "phase": "review",
+      "reason": "Review fan-out: 2 contract blockers + MEDIUM + LOWs, all implement/plan-origin (spec REQ-004 was correct; the impl made the flush lazy). FINDING-005 (five-lens-confirmed: the tumbling-window digest has no timer, strands on quiet elapse), FINDING-006 (pane-reveal forked the MRU/focus-dispatch tail the plan said to share), FINDING-010 (reveal rAF-race: group not mounted on closed->open), FINDING-014 (keyOf newline collision on POSIX), FINDING-015 (digest emit ignores shouldNotify — mute leak), FINDING-012 (Pango markup in notification body on Linux), FINDING-011 (0004 double-notify — LOW). Human decision on the loopback.",
+      "kind": "judgment",
+      "finding": "FINDING-005",
+      "status": "resolved",
+      "at": "2026-07-02T14:43:30.988Z",
+      "decision": "Loop back to tests (delegated). Fixes: FINDING-005 — inject a fakeable timer scheduler (setTimer/clearTimer deps) onto OrkyNeedsYouNotifier; schedule the window-close flush at windowOpenedAt+COALESCE_WINDOW_MS on window open, clear on flush()/dispose(); register.ts supplies real timers; test vector: burst→advance fake clock past window with NO further transition→digest fires once; dispose clears the timer. FINDING-006 — factor the MRU-pick + setActive/setFocusedPane/requestPaneFocus tail into a shared helper both DecisionQueuePanel and pane-reveal call (the quality+DA lenses verified TEST-370 only pins selectPaneCandidates staying in the panel; the tail extraction is frozen-safe). FINDING-010 — make the reveal scroll robust to the closed->open mount (effect keyed on queueOpen+target, or retry until the group element exists), behaviorally pinned. FINDING-014 — keyOf uses a structural/NUL-safe key not newline-join. FINDING-015 — closeWindow re-consults shouldNotify before notifyDigest. FINDING-012 — escape/strip markup in the notification body (Linux Pango). FINDING-011 (LOW, 0004 coexistence double-notify) — accepted residual, documented, candidate for a later cross-coordination feature (do not fix now).",
+      "resolvedAt": "2026-07-02T14:43:31.048Z"
+    }
+  ],
+  "concerns": [
+    "ux",
+    "performance",
+    "determinism",
+    "quality"
+  ],
+  "attempts": {
+    "spec": 0,
+    "plan": 0,
+    "tests": 0,
+    "implement": 0,
+    "review": 0,
+    "doc-sync": 0
+  },
+  "implementer": {
+    "mode": "ab",
+    "agents": [
+      "orky:implementer",
+      "codex:codex-rescue"
+    ],
+    "winner": "orky:implementer",
+    "reason": "Loopback fix cycle; A-B degraded to single implementer (codex worktree env failure, documented) — determinism compensated by the frozen determinism vectors + lens.",
+    "at": "2026-07-02T14:59:53.887Z"
+  },
+  "loopbacks": [
+    {
+      "to": "tests",
+      "from": "review",
+      "reason": "2 contract blockers (005 flush-timer, 006 pane-reveal fork) + 010/012/014/015; per ESC-001",
+      "at": "2026-07-02T14:43:31.110Z"
+    }
+  ]
+}

@@ -130,6 +130,7 @@ export interface State {
   setAutoResumeClaude: (on: boolean) => void
   setCopyOnSelect: (on: boolean) => void
   setToastsEnabled: (on: boolean) => void
+  setOrkyNeedsYouNotifications: (on: boolean) => void
   drafts: Record<string, EditorDraft>
   setDraft: (key: string, draft: EditorDraft) => void
   deleteDraft: (key: string) => void

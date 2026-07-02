@@ -1,0 +1,227 @@
+{
+  "REQ-001": {
+    "tasks": [
+      "TASK-001",
+      "TASK-007"
+    ],
+    "tests": [
+      "TEST-530",
+      "TEST-564",
+      "TEST-565",
+      "TEST-567",
+      "TEST-573"
+    ],
+    "files": [
+      "src/main/orky/orky-needs-you-notifier.ts",
+      "src/main/ipc/register.ts"
+    ]
+  },
+  "REQ-002": {
+    "tasks": [
+      "TASK-001"
+    ],
+    "tests": [
+      "TEST-531",
+      "TEST-532",
+      "TEST-533"
+    ],
+    "files": [
+      "src/main/orky/orky-needs-you-notifier.ts"
+    ]
+  },
+  "REQ-003": {
+    "tasks": [
+      "TASK-002"
+    ],
+    "tests": [
+      "TEST-534",
+      "TEST-535",
+      "TEST-536",
+      "TEST-537",
+      "TEST-579",
+      "TEST-580"
+    ],
+    "files": [
+      "src/main/orky/orky-needs-you-notifier.ts"
+    ]
+  },
+  "REQ-004": {
+    "tasks": [
+      "TASK-003"
+    ],
+    "tests": [
+      "TEST-538",
+      "TEST-539",
+      "TEST-540",
+      "TEST-541",
+      "TEST-542",
+      "TEST-543",
+      "TEST-544",
+      "TEST-545",
+      "TEST-575",
+      "TEST-577"
+    ],
+    "files": [
+      "src/main/orky/orky-needs-you-notifier.ts"
+    ]
+  },
+  "REQ-005": {
+    "tasks": [
+      "TASK-004",
+      "TASK-005",
+      "TASK-008",
+      "TASK-009"
+    ],
+    "tests": [
+      "TEST-546",
+      "TEST-547",
+      "TEST-556",
+      "TEST-557",
+      "TEST-558",
+      "TEST-560",
+      "TEST-561",
+      "TEST-568",
+      "TEST-569",
+      "TEST-574",
+      "TEST-578"
+    ],
+    "files": [
+      "src/main/orky/orky-needs-you-notifier.ts",
+      "src/shared/types.ts",
+      "src/main/persistence/quick-store.ts",
+      "src/main/ipc/register-workspaces.ts",
+      "src/main/services.ts",
+      "src/renderer/store/quick-slice.ts",
+      "src/renderer/store/types.ts",
+      "src/renderer/components/GeneralSettings.tsx"
+    ]
+  },
+  "REQ-006": {
+    "tasks": [
+      "TASK-010"
+    ],
+    "tests": [
+      "TEST-567",
+      "TEST-570",
+      "TEST-573",
+      "TEST-582"
+    ],
+    "files": [
+      "src/renderer/App.tsx",
+      "src/renderer/components/DecisionQueuePanel.tsx"
+    ]
+  },
+  "REQ-007": {
+    "tasks": [
+      "TASK-010"
+    ],
+    "tests": [
+      "TEST-567",
+      "TEST-570",
+      "TEST-573",
+      "TEST-583"
+    ],
+    "files": [
+      "src/renderer/App.tsx",
+      "src/renderer/components/DecisionQueuePanel.tsx"
+    ]
+  },
+  "REQ-008": {
+    "tasks": [
+      "TASK-007",
+      "TASK-012"
+    ],
+    "tests": [
+      "TEST-559",
+      "TEST-565",
+      "TEST-566"
+    ],
+    "files": [
+      "src/main/ipc/register.ts",
+      "src/main/orky/orky-needs-you-notifier.ts"
+    ]
+  },
+  "REQ-009": {
+    "tasks": [
+      "TASK-006"
+    ],
+    "tests": [
+      "TEST-562",
+      "TEST-563"
+    ],
+    "files": [
+      "src/shared/ipc-contract.ts",
+      "src/preload/index.ts"
+    ]
+  },
+  "REQ-010": {
+    "tasks": [
+      "TASK-004"
+    ],
+    "tests": [
+      "TEST-548",
+      "TEST-549",
+      "TEST-550",
+      "TEST-573",
+      "TEST-581"
+    ],
+    "files": [
+      "src/main/orky/orky-needs-you-notifier.ts"
+    ]
+  },
+  "REQ-011": {
+    "tasks": [
+      "TASK-001"
+    ],
+    "tests": [
+      "TEST-551",
+      "TEST-552"
+    ],
+    "files": [
+      "src/main/orky/orky-needs-you-notifier.ts"
+    ]
+  },
+  "REQ-012": {
+    "tasks": [
+      "TASK-004"
+    ],
+    "tests": [
+      "TEST-553",
+      "TEST-554",
+      "TEST-555",
+      "TEST-576"
+    ],
+    "files": [
+      "src/main/orky/orky-needs-you-notifier.ts"
+    ]
+  },
+  "REQ-013": {
+    "tasks": [
+      "TASK-011"
+    ],
+    "tests": [
+      "TEST-358",
+      "TEST-533",
+      "TEST-559",
+      "TEST-562",
+      "TEST-563"
+    ],
+    "files": [
+      "tests/renderer/app-queue-wiring.test.ts"
+    ]
+  },
+  "REQ-014": {
+    "tasks": [
+      "TASK-013"
+    ],
+    "tests": [
+      "TEST-571",
+      "TEST-572"
+    ],
+    "files": [
+      "docs/features/os-needs-you-notifications.md",
+      "CLAUDE.md",
+      "CHANGELOG.md"
+    ]
+  }
+}

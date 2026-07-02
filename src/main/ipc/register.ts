@@ -1,10 +1,12 @@
+import { Notification } from 'electron'
 import type { Services } from '../services'
 import type { WindowManager } from '../window-manager'
 import type { PtyManager } from '../pty/pty-manager'
-import type { OrkyPaneStatus } from '@shared/types'
+import type { OrkyPaneStatus, OrkyRegistrySnapshot } from '@shared/types'
 import { CH } from '@shared/ipc-contract'
 import type { Disposer } from './types'
 import { OrkyStreamStatusBridge } from '../orky/orky-stream-status'
+import { OrkyNeedsYouNotifier } from '../orky/orky-needs-you-notifier'
 import { registerPty } from './register-pty'
 import { registerFs } from './register-fs'
 import { registerWorkspaces } from './register-workspaces'
@@ -74,7 +76,16 @@ export async function registerHandlers(services: Services, wm: WindowManager): P
     onPaneGone: (id) => { git.removePane(id); orkyBridge.clearPane(id) },
     onOrkyHeartbeat: (id, hb) => orkyBridge.setStreamHeartbeat(id, hb)
   })
-  registerWorkspaces({ store, quick, shells })
+  // Feature 0013 — app-wide needs-you-notifications opt-in mirror. The production `shouldNotify` gate
+  // is SYNCHRONOUS, but the preference is written renderer-side via fire-and-forget quickSave; so the
+  // composition root holds ONE mutable in-memory mirror, initialized from disk at startup and refreshed
+  // synchronously from the full QuickStore payload flowing through the EXISTING quickSave handler — no
+  // new IPC channel, no async re-read on the notify hot path, no restart (REQ-005 Wiring / FINDING-002).
+  let needsYouNotificationsMirror = (await quick.load()).orkyNeedsYouNotifications !== false
+  registerWorkspaces({
+    store, quick, shells,
+    onQuickSave: (data) => { needsYouNotificationsMirror = data.orkyNeedsYouNotifications !== false }
+  })
   registerEnv(win, envVault, send)
   registerClipboard()
   registerShell()
@@ -92,6 +103,43 @@ export async function registerHandlers(services: Services, wm: WindowManager): P
   // this composition root's `win` (REQ-002/REQ-020 cross-window widening).
   const onPaneRoot = (id: string, root: string | null): void => orkyRegistry.trackPaneRoot(id, root)
   await orkyRegistry.init()
+
+  // Feature 0013 — the cross-project OS needs-you notifier. A SECOND, independent subscription on the
+  // SAME registry aggregate `register-registry.ts` already broadcasts from (no new engine consumer —
+  // REQ-001). The observer's diff/dedupe/throttle logic is pure and lives in orky-needs-you-notifier.ts;
+  // the production sinks below construct the real Notification and, on click, bring the main window
+  // forward and hand off via the one new `orkyNotify:focus` channel (0004's register-pty.ts:85-92
+  // pattern). Strictly read-only: no .orky write, no action, no registry mutation (REQ-006/007/008).
+  const focusMainWindow = (root: string | null): void => {
+    const mw = wm.mainWindow()
+    if (!mw || mw.isDestroyed()) return
+    mw.show()
+    mw.focus()
+    if (!mw.webContents.isDestroyed()) mw.webContents.send(CH.orkyNotifyFocus, root)
+  }
+  const needsYouNotifier = new OrkyNeedsYouNotifier({
+    now: () => Date.now(),
+    shouldNotify: () => needsYouNotificationsMirror,
+    notifyOne: ({ title, body, projectRoot }) => {
+      if (!Notification.isSupported()) return
+      const n = new Notification({ title, body })
+      n.on('click', () => focusMainWindow(projectRoot))
+      n.show()
+    },
+    notifyDigest: ({ title, body }) => {
+      if (!Notification.isSupported()) return
+      const n = new Notification({ title, body })
+      n.on('click', () => focusMainWindow(null))
+      n.show()
+    },
+    // FINDING-005: the production window-close driver. The observer arms this at window open for
+    // windowOpenedAt + COALESCE_WINDOW_MS and clears it on roll/flush/dispose, so a burst-then-quiet
+    // digest fires at the boundary instead of stranding until the next transition or app teardown.
+    setTimer: (fn, ms) => setTimeout(fn, ms),
+    clearTimer: (handle) => clearTimeout(handle as ReturnType<typeof setTimeout>)
+  })
+  const unsubscribeNeedsYou = orkyRegistry.onSnapshot((snapshot: OrkyRegistrySnapshot) => needsYouNotifier.onSnapshot(snapshot))
+
   const disposers: Disposer[] = [
     registerFs(win, send),
     registerPreview(),
@@ -110,7 +158,10 @@ export async function registerHandlers(services: Services, wm: WindowManager): P
     // The shared OrkyRootEngine/OrkyRegistry lifecycle is owned ONCE here — neither registerOrky's nor
     // registerRegistry's own disposer closes it (risk note #3: a double-close of the same watchers).
     () => { orkyRegistry.dispose(); orkyEngine.dispose() },
-    () => { orkyActionDispatcher.dispose() }
+    () => { orkyActionDispatcher.dispose() },
+    // Feature 0013 — single-owner teardown: drop the second aggregate subscription and flush any
+    // pending coalesced digest exactly once (REQ-012).
+    () => { unsubscribeNeedsYou(); needsYouNotifier.dispose() }
   ]
   wm.onAllWindowsClosed(() => { for (const dispose of disposers) dispose() })
 

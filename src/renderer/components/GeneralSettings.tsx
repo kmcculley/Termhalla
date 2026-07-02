@@ -15,6 +15,8 @@ export function GeneralSettings() {
   const setCopyOnSelect = useStore(s => s.setCopyOnSelect)
   const toastsEnabled = useStore(s => s.quick.toastsEnabled)
   const setToastsEnabled = useStore(s => s.setToastsEnabled)
+  const orkyNeedsYouNotifications = useStore(s => s.quick.orkyNeedsYouNotifications)
+  const setOrkyNeedsYouNotifications = useStore(s => s.setOrkyNeedsYouNotifications)
   return (
     <div data-testid="settings-general" style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
       <label style={{ display: 'flex', gap: 8, alignItems: 'center', justifyContent: 'space-between' }}>
@@ -42,6 +44,11 @@ export function GeneralSettings() {
         <input data-testid="toasts-enabled" type="checkbox" checked={toastsEnabled === true}
           onChange={e => setToastsEnabled(e.target.checked)} />
         Show success and info toast notifications (errors always show)
+      </label>
+      <label style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+        <input data-testid="orky-needs-you-notifications" type="checkbox" checked={orkyNeedsYouNotifications !== false}
+          onChange={e => setOrkyNeedsYouNotifications(e.target.checked)} />
+        Show OS notifications when an Orky project needs a decision
       </label>
       <div>
         <button data-testid="rec-folder" onClick={() => api.recReveal()}>Open recordings folder</button>

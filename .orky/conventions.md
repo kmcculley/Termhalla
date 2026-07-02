@@ -176,6 +176,36 @@ to it when a review surfaces a lesson general enough to outlive its feature.
   MUST be tracked as a named, shared-seam finding rather than re-discovered independently by each
   consuming dialog.
   *(from FINDING-016 in 0012-quick-capture-inbox)*
+- **CONV-036** — A coalescing/debounce buffer (or any window/rate-limit mechanism) whose spec
+  promises a flush at a wall-clock deadline MUST be driven by an actually-scheduled timer (armed at
+  window/period open, cleared on close/dispose), never only lazily re-checked on the next inbound
+  event — a pure lazy-on-next-event module strands its pending output whenever the input stream goes
+  quiet, exactly the case the mechanism exists to guarantee against. Where the pure module itself
+  stays timer-free for testability, its composition root MUST inject the real scheduler.
+  *(from FINDING-005 in 0013-os-needs-you-notifications, independently confirmed by five review
+  lenses and originally proposed by FINDING-008/FINDING-013)*
+- **CONV-037** — A directory-scoped absence/scope-guard source scan (a frozen test asserting "no
+  file under X imports/mentions Y yet") MUST key its regex on the feature-specific SURFACE
+  (component name, handler, exported symbol unique to the guarded feature) — never on a shared
+  module name or import path — so a later feature that legitimately imports that shared module into
+  the scanned directory does not false-trip the guard.
+  *(from FINDING-001 in 0013-os-needs-you-notifications)*
+- **CONV-038** — Two independent notification/alert paths that can both fire for the same underlying
+  user-attention event MUST have a stated coexistence or dedupe policy (accept the duplication
+  explicitly, or suppress one path when the other already surfaced the moment) — a single moment
+  emitting duplicate, uncoordinated OS-level toasts is a defect even when each path is individually
+  correct.
+  *(from FINDING-011 in 0013-os-needs-you-notifications)*
+- **CONV-039** — A composite dedup/identity key built by joining filesystem- or user-derived string
+  fields MUST use a separator (or structural encoding, e.g. `JSON.stringify` of the tuple) that
+  provably cannot occur inside any field — never a printable or whitespace character an OS permits
+  inside a path or name — so two distinct tuples can never collide into the same key.
+  *(from FINDING-014 in 0013-os-needs-you-notifications)*
+- **CONV-040** — A paired arm/cancel (or acquire/release) lifecycle dependency injected into a class
+  or module MUST be a single all-or-nothing unit (one object, or a both-or-neither constructor
+  check) — never two independently-optional fields — so a half-supplied pair that would leak or
+  misfire the underlying resource cannot type-check.
+  *(from FINDING-016 in 0013-os-needs-you-notifications)*
 
 ## Principles
 Higher-level stances that inform specs and reviews but are too broad to gate mechanically.

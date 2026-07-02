@@ -1,7 +1,7 @@
 import { useMemo, useRef } from 'react'
 import { useStore } from '../store'
-import { caseFoldFromPlatform, matchPaneRootFromCandidates, selectMruPane, selectPaneCandidates } from '@shared/decision-queue'
-import { requestPaneFocus } from './terminal-registry'
+import { caseFoldFromPlatform, matchPaneRootFromCandidates, selectPaneCandidates } from '@shared/decision-queue'
+import { focusMruPaneMatch } from './pane-reveal'
 import { useRegistryLoadState } from './use-registry-load-state'
 import { useOpenFocusRestore } from './use-open-focus-restore'
 
@@ -75,19 +75,13 @@ export function DecisionQueuePanel() {
   /** Click-to-focus (REQ-009): the most-recently-focused matching pane in this window — the
    *  revealPaneFromSearch pattern (setActive + setFocusedPane). No match → no focus change (the
    *  open-terminal fallback is the path instead). paneFocusSeq is handler-only state, read
-   *  imperatively at event time — never subscribed with a render hook (FINDING-012). */
+   *  imperatively at event time — never subscribed with a render hook (FINDING-012). Routes through the
+   *  SHARED `focusMruPaneMatch` tail (FINDING-006) — the same helper the notification click uses, so
+   *  the MRU-pick + focus-dispatch logic has one source of truth. The panel keeps its OWN
+   *  selectPaneCandidates walk above (paneMatches / frozen TEST-370); only the tail is shared. */
   const focusProject = (projectRoot: string): void => {
     const matching = paneMatches.filter(p => p.root === projectRoot)
-    const pick = selectMruPane(
-      matching.map(p => ({ paneId: p.paneId, workspaceIndex: p.workspaceIndex })),
-      useStore.getState().paneFocusSeq
-    )
-    if (!pick) return
-    const target = matching.find(p => p.paneId === pick.paneId)
-    if (!target) return
-    setActive(target.wsId)
-    setFocusedPane(target.paneId)
-    requestPaneFocus(target.paneId)
+    focusMruPaneMatch(matching, useStore.getState().paneFocusSeq, { setActive, setFocusedPane })
   }
 
   /** Pane-less fallback (REQ-010): spawn a terminal at the project ROOT via the existing launchDir

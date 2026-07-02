@@ -116,6 +116,8 @@ const api: TermhallaApi = {
   openExternal: (url) => ipcRenderer.send(CH.shellOpenExternal, url),
   previewLoadImage: (src) => ipcRenderer.invoke(CH.previewLoadImage, src),
   onOpenSettings: pushChannel<[]>(CH.openSettings),
+  // Feature 0013: needs-you notification click → focus handoff (payload: project root | null).
+  onOrkyNotifyFocus: pushChannel<[string | null]>(CH.orkyNotifyFocus),
 }
 
 contextBridge.exposeInMainWorld('termhalla', api)

@@ -27,6 +27,10 @@ function normalizeQuick(value: unknown): QuickData {
     // Additive optional (no SCHEMA_VERSION bump): pass through when present, leave absent on legacy
     // files so the effective state reads as OFF (toasts render only when strictly true).
     toastsEnabled: typeof v.toastsEnabled === 'boolean' ? v.toastsEnabled : undefined,
+    // Additive optional (no SCHEMA_VERSION bump — quick.json is outside the migration chain): pass
+    // through only when strictly boolean; a legacy file leaves it absent, which the consumer reads as
+    // ENABLED via the `!== false` idiom (feature 0013 / REQ-005).
+    orkyNeedsYouNotifications: typeof v.orkyNeedsYouNotifications === 'boolean' ? v.orkyNeedsYouNotifications : undefined,
     keybindings: v.keybindings && typeof v.keybindings === 'object' && !Array.isArray(v.keybindings)
       ? Object.fromEntries(Object.entries(v.keybindings).filter(([, val]) => typeof val === 'string')) as Record<string, string>
       : undefined,

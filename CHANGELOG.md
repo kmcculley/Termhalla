@@ -7,6 +7,17 @@ All notable changes to Termhalla are recorded here. The format follows
 ## [Unreleased]
 
 ### Added
+- **OS-level needs-you notifications.** A new main-process observer over the cross-project
+  `registry:status` aggregate fires an OS notification whenever an Orky project transitions INTO
+  needs-you (open escalation / stalled / awaiting human-review) — including projects with **no open
+  pane**. Transitions are deduped by `(project, feature, reason)` and rate-bounded by a tumbling
+  coalesce window (at most three individual toasts per window; the rest fold into one "N projects
+  need you" digest). Clicking a notification brings the app forward and hands off over the single new
+  `orkyNotify:focus` channel — focusing the matching pane (reusing the decision-queue matcher) or
+  opening the drawer scrolled to the project. A new **app-wide opt-in** `orkyNeedsYouNotifications`
+  (a General-settings toggle, **default on**) mutes them live with no restart; it stays strictly
+  read-only on `.orky/` (no writes, no actions, no registry mutation). See
+  `docs/features/os-needs-you-notifications.md`.
 - **Quick-capture new-work inbox (global capture modal).** A new rebindable `capture-orky-work`
   command (default `Ctrl+Shift+U`) and Ctrl+K palette entry open a global, workspace-independent
   capture modal: pick a tracked Orky project (the shared root picker, relabelled for capture via
