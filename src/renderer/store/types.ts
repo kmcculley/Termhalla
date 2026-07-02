@@ -3,8 +3,9 @@ import type {
   Workspace, ShellInfo, MosaicNode, MosaicDirection, SplitDir4, TerminalConfig, TerminalStatus,
   PaneConfig, EditorConfig, ExplorerConfig, QuickStore, SshConnection, ProcInfo, CloudStatus,
   TerminalLaunch, AiSession, UsageMetrics, EditorDraft, ScheduledTask, Theme, EnvVaultState, GitStatus, RunCommand,
-  OrkyPaneStatus
+  OrkyPaneStatus, OrkyRegistrySnapshot
 } from '@shared/types'
+import type { DecisionQueueGroup } from '@shared/decision-queue'
 import type { Chord, CommandId } from '@shared/keybindings'
 import type { ImageSource } from '@shared/ipc-contract'
 import type { PaneKind } from './pane-ops'
@@ -79,6 +80,23 @@ export interface State {
   // Per-pane live Orky run status (feature 0004). A `null` push clears the key (cwd left .orky/).
   orky: Record<string, OrkyPaneStatus>
   setOrky: (id: string, status: OrkyPaneStatus | null) => void
+  // ── Cross-project decision queue (feature 0006) — runtime-only, nothing persisted (REQ-017). ──
+  // The last VALID registry:status snapshot (null until first receipt), the error text shown when
+  // none is held, the session-scoped drawer state, and the monotonic generation the recovery pull
+  // is arbitrated on (REQ-003). Loading is DERIVED: snapshot === null && error === null (REQ-011).
+  registrySnapshot: OrkyRegistrySnapshot | null
+  registryError: string | null
+  queueOpen: boolean
+  snapshotGeneration: number
+  setQueueOpen: (open: boolean) => void
+  setRegistrySnapshot: (input: unknown) => void
+  applyRecoveryPull: (input: unknown, issuedAtGeneration: number) => void
+  recoveryPullFailed: () => void
+  queueGroups: () => DecisionQueueGroup[]
+  queueCount: () => number
+  // paneId -> monotonic focus sequence (REQ-009's MRU recency), stamped by setFocusedPane and
+  // pruned by the SAME clearPaneRuntime call that drops every other per-pane map (CONV-011).
+  paneFocusSeq: Record<string, number>
   recording: Record<string, boolean>
   setRecording: (id: string, on: boolean) => void
   // A terminal whose shell process exited. A minimized pane is NOT auto-closed on exit (its

@@ -1,0 +1,342 @@
+{
+  "REQ-001": {
+    "tasks": [
+      "TASK-007",
+      "TASK-008"
+    ],
+    "tests": [
+      "TEST-330",
+      "TEST-344",
+      "TEST-359",
+      "TEST-365"
+    ],
+    "files": [
+      "src/renderer/App.tsx",
+      "src/renderer/components/DecisionQueuePanel.tsx"
+    ]
+  },
+  "REQ-002": {
+    "tasks": [
+      "TASK-004",
+      "TASK-007",
+      "TASK-010",
+      "TASK-011"
+    ],
+    "tests": [
+      "TEST-325",
+      "TEST-326",
+      "TEST-327",
+      "TEST-328",
+      "TEST-329",
+      "TEST-354",
+      "TEST-355",
+      "TEST-360",
+      "TEST-365"
+    ],
+    "files": [
+      "src/shared/keybindings.ts",
+      "src/renderer/App.tsx",
+      "src/renderer/components/StatusBar.tsx",
+      "src/renderer/components/CommandPalette.tsx"
+    ]
+  },
+  "REQ-003": {
+    "tasks": [
+      "TASK-005",
+      "TASK-007"
+    ],
+    "tests": [
+      "TEST-331",
+      "TEST-337",
+      "TEST-353",
+      "TEST-357",
+      "TEST-358",
+      "TEST-361"
+    ],
+    "files": [
+      "src/renderer/store/registry-slice.ts",
+      "src/renderer/App.tsx"
+    ]
+  },
+  "REQ-004": {
+    "tasks": [
+      "TASK-002"
+    ],
+    "tests": [
+      "TEST-301",
+      "TEST-302",
+      "TEST-303",
+      "TEST-367"
+    ],
+    "files": [
+      "src/shared/decision-queue.ts"
+    ]
+  },
+  "REQ-005": {
+    "tasks": [
+      "TASK-001",
+      "TASK-002",
+      "TASK-008"
+    ],
+    "tests": [
+      "TEST-304",
+      "TEST-305",
+      "TEST-306",
+      "TEST-307",
+      "TEST-308",
+      "TEST-346",
+      "TEST-374"
+    ],
+    "files": [
+      "src/shared/orky-status.ts",
+      "src/shared/decision-queue.ts",
+      "src/renderer/components/DecisionQueuePanel.tsx"
+    ]
+  },
+  "REQ-006": {
+    "tasks": [
+      "TASK-002",
+      "TASK-008"
+    ],
+    "tests": [
+      "TEST-306",
+      "TEST-309",
+      "TEST-310",
+      "TEST-374"
+    ],
+    "files": [
+      "src/shared/decision-queue.ts",
+      "src/renderer/components/DecisionQueuePanel.tsx"
+    ]
+  },
+  "REQ-007": {
+    "tasks": [
+      "TASK-002",
+      "TASK-005",
+      "TASK-008",
+      "TASK-010"
+    ],
+    "tests": [
+      "TEST-311",
+      "TEST-339",
+      "TEST-356",
+      "TEST-361",
+      "TEST-365"
+    ],
+    "files": [
+      "src/shared/decision-queue.ts",
+      "src/renderer/store/registry-slice.ts",
+      "src/renderer/components/DecisionQueuePanel.tsx",
+      "src/renderer/components/StatusBar.tsx"
+    ]
+  },
+  "REQ-008": {
+    "tasks": [
+      "TASK-005",
+      "TASK-008"
+    ],
+    "tests": [
+      "TEST-332",
+      "TEST-333",
+      "TEST-339"
+    ],
+    "files": [
+      "src/renderer/store/registry-slice.ts",
+      "src/renderer/components/DecisionQueuePanel.tsx"
+    ]
+  },
+  "REQ-009": {
+    "tasks": [
+      "TASK-003",
+      "TASK-006",
+      "TASK-009"
+    ],
+    "tests": [
+      "TEST-313",
+      "TEST-314",
+      "TEST-315",
+      "TEST-316",
+      "TEST-317",
+      "TEST-318",
+      "TEST-319",
+      "TEST-320",
+      "TEST-321",
+      "TEST-322",
+      "TEST-323",
+      "TEST-324",
+      "TEST-341",
+      "TEST-342",
+      "TEST-343",
+      "TEST-352",
+      "TEST-366",
+      "TEST-368",
+      "TEST-369",
+      "TEST-370"
+    ],
+    "files": [
+      "src/shared/decision-queue.ts",
+      "src/renderer/store.ts",
+      "src/renderer/store/types.ts",
+      "src/renderer/store/internals.ts",
+      "src/renderer/components/DecisionQueuePanel.tsx"
+    ]
+  },
+  "REQ-010": {
+    "tasks": [
+      "TASK-009"
+    ],
+    "tests": [
+      "TEST-351",
+      "TEST-367",
+      "TEST-369",
+      "TEST-371",
+      "TEST-372"
+    ],
+    "files": [
+      "src/renderer/components/DecisionQueuePanel.tsx"
+    ]
+  },
+  "REQ-011": {
+    "tasks": [
+      "TASK-005",
+      "TASK-007",
+      "TASK-008"
+    ],
+    "tests": [
+      "TEST-337",
+      "TEST-338",
+      "TEST-340",
+      "TEST-345",
+      "TEST-357",
+      "TEST-361",
+      "TEST-365"
+    ],
+    "files": [
+      "src/renderer/store/registry-slice.ts",
+      "src/renderer/App.tsx",
+      "src/renderer/components/DecisionQueuePanel.tsx"
+    ]
+  },
+  "REQ-012": {
+    "tasks": [
+      "TASK-008"
+    ],
+    "tests": [
+      "TEST-340",
+      "TEST-345",
+      "TEST-365"
+    ],
+    "files": [
+      "src/renderer/components/DecisionQueuePanel.tsx"
+    ]
+  },
+  "REQ-013": {
+    "tasks": [
+      "TASK-005",
+      "TASK-008"
+    ],
+    "tests": [
+      "TEST-303",
+      "TEST-312",
+      "TEST-334",
+      "TEST-335",
+      "TEST-336",
+      "TEST-338",
+      "TEST-345",
+      "TEST-373",
+      "TEST-374"
+    ],
+    "files": [
+      "src/renderer/store/registry-slice.ts",
+      "src/renderer/components/DecisionQueuePanel.tsx"
+    ]
+  },
+  "REQ-014": {
+    "tasks": [
+      "TASK-008",
+      "TASK-010"
+    ],
+    "tests": [
+      "TEST-348",
+      "TEST-349",
+      "TEST-354",
+      "TEST-365",
+      "TEST-371",
+      "TEST-372"
+    ],
+    "files": [
+      "src/renderer/components/DecisionQueuePanel.tsx",
+      "src/renderer/components/StatusBar.tsx"
+    ]
+  },
+  "REQ-015": {
+    "tasks": [
+      "TASK-008"
+    ],
+    "tests": [
+      "TEST-301",
+      "TEST-346",
+      "TEST-347",
+      "TEST-365"
+    ],
+    "files": [
+      "src/renderer/components/DecisionQueuePanel.tsx"
+    ]
+  },
+  "REQ-016": {
+    "tasks": [
+      "TASK-008"
+    ],
+    "tests": [
+      "TEST-350"
+    ],
+    "files": [
+      "src/renderer/components/DecisionQueuePanel.tsx"
+    ]
+  },
+  "REQ-017": {
+    "tasks": [
+      "TASK-005",
+      "TASK-009",
+      "TASK-012"
+    ],
+    "tests": [
+      "TEST-330",
+      "TEST-344",
+      "TEST-353",
+      "TEST-358",
+      "TEST-362",
+      "TEST-367"
+    ],
+    "files": [
+      "src/renderer/store/registry-slice.ts",
+      "src/renderer/components/DecisionQueuePanel.tsx"
+    ]
+  },
+  "REQ-018": {
+    "tasks": [
+      "TASK-014"
+    ],
+    "tests": [
+      "TEST-364"
+    ],
+    "files": [
+      "docs/features/decision-queue.md",
+      "CLAUDE.md",
+      "CHANGELOG.md",
+      ".orky/baseline/architecture.md"
+    ]
+  },
+  "REQ-019": {
+    "tasks": [
+      "TASK-013"
+    ],
+    "tests": [
+      "TEST-362",
+      "TEST-363"
+    ],
+    "files": [
+      "tests/shared/registry-no-renderer-ui.test.ts"
+    ]
+  }
+}

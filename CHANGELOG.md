@@ -7,6 +7,20 @@ All notable changes to Termhalla are recorded here. The format follows
 ## [Unreleased]
 
 ### Added
+- **Orky decision-queue drawer (the registry aggregate's first renderer UI).** A right-side,
+  window-chrome drawer (a sibling of the notes drawer — not a pane kind, no `SCHEMA_VERSION` change)
+  listing every feature across every tracked Orky project that **needs a human right now** — open
+  escalation, stalled active run, or autonomous-gates-green awaiting human review — grouped by
+  project and deterministically ordered by the same comparator the pane chip uses. Toggled from a
+  new status-bar affordance (with a live count badge that stays current while the drawer is closed),
+  a Ctrl+K palette entry, and a new rebindable `toggle-orky-queue` command (default `Ctrl+Shift+O`).
+  Clicking an entry focuses the most-recently-focused matching pane in the window (matched
+  renderer-side on the pane's cwd, the same signal the aggregate binds on); a project with no open
+  pane gets an "open terminal here" fallback that spawns a terminal at the project root. Strictly
+  read-only and renderer-only: it consumes feature 0005's `registry:status` push plus one
+  generation-guarded `registry:current` recovery pull — no new IPC, no main/preload change, no
+  `.orky/` write, nothing persisted (the drawer always starts closed). See
+  `docs/features/decision-queue.md`.
 - **Orky contract handshake at startup (runtime skew detection, log-only).** A fire-and-forget
   `verifyOrkyContract()` (`src/main/orky/orky-contract-handshake.ts`) now runs once from the
   composition root: it locates the installed gatekeeper cli.js (`ORKY_PLUGIN_DIR`), invokes its

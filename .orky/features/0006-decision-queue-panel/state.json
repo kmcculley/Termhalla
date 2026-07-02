@@ -1,0 +1,184 @@
+{
+  "feature": "0006-decision-queue-panel",
+  "phase": "doc-sync",
+  "gates": {
+    "brainstorm": {
+      "passed": true,
+      "at": "2026-07-02T01:19:23.967Z",
+      "evidence": "delegated-human brainstorm: D1 window-scoped drawer (not a pane kind), D2 renderer-only over F5 aggregate, D3 needs-human-now membership with deterministic ordering, D4 click-to-focus + open-terminal fallback, D5 explicit loading/empty/error states",
+      "external": true
+    },
+    "spec": {
+      "passed": true,
+      "at": "2026-07-02T01:54:00.332Z",
+      "tokens": [
+        {
+          "token": "findings",
+          "pass": true,
+          "evidence": "no open blocking findings (CRITICAL/HIGH or contract-violation) for this gate"
+        }
+      ]
+    },
+    "plan": {
+      "passed": true,
+      "at": "2026-07-02T01:59:45.743Z",
+      "tokens": [
+        {
+          "token": "spec-freeze",
+          "pass": true,
+          "evidence": "spec unchanged since the spec gate"
+        },
+        {
+          "token": "traceability-plan",
+          "pass": true,
+          "evidence": "all 19 REQ(s) trace to TASK"
+        },
+        {
+          "token": "findings",
+          "pass": true,
+          "evidence": "no open blocking findings (CRITICAL/HIGH or contract-violation) for this gate"
+        }
+      ]
+    },
+    "tests": {
+      "passed": true,
+      "at": "2026-07-02T03:25:36.122Z",
+      "tokens": [
+        {
+          "token": "spec-freeze",
+          "pass": true,
+          "evidence": "spec unchanged since the spec gate"
+        },
+        {
+          "token": "tests-red",
+          "pass": true,
+          "evidence": "tests are RED (exit 1) — freeze snapshot captured"
+        }
+      ]
+    },
+    "implement": {
+      "passed": true,
+      "at": "2026-07-02T04:25:04.075Z",
+      "tokens": [
+        {
+          "token": "spec-freeze",
+          "pass": true,
+          "evidence": "spec unchanged since the spec gate"
+        },
+        {
+          "token": "build",
+          "pass": true,
+          "evidence": "build exited 0"
+        },
+        {
+          "token": "test",
+          "pass": true,
+          "evidence": "test exited 0"
+        },
+        {
+          "token": "test-freeze",
+          "pass": true,
+          "evidence": "test files unchanged since freeze"
+        }
+      ]
+    },
+    "review": {
+      "passed": true,
+      "at": "2026-07-02T04:25:04.285Z",
+      "tokens": [
+        {
+          "token": "spec-freeze",
+          "pass": true,
+          "evidence": "spec unchanged since the spec gate"
+        },
+        {
+          "token": "findings",
+          "pass": true,
+          "evidence": "no open blocking findings (CRITICAL/HIGH or contract-violation) for this gate"
+        }
+      ]
+    },
+    "doc-sync": {
+      "passed": true,
+      "at": "2026-07-02T04:32:38.584Z",
+      "tokens": [
+        {
+          "token": "spec-freeze",
+          "pass": true,
+          "evidence": "spec unchanged since the spec gate"
+        },
+        {
+          "token": "traceability",
+          "pass": true,
+          "evidence": "all 19 REQ(s) trace to TASK+TEST"
+        },
+        {
+          "token": "findings",
+          "pass": true,
+          "evidence": "no open blocking findings (CRITICAL/HIGH or contract-violation) for this gate"
+        }
+      ]
+    },
+    "human-review": {
+      "passed": true,
+      "at": "2026-07-02T04:32:38.676Z",
+      "evidence": "Delegated autonomous drive (Kevin, 2026-07-01). Reviewed: 19-REQ spec (revised once pre-gate via adversarial spec review), 14-task plan, 74-test suite incl. sanctioned TEST-070 supersession and the TEST-324 correction (a frozen test contradicting the frozen spec — caught by review), implementation through two fix loopbacks, all 23 findings resolved, CONV-019..021 promoted, one residual (FINDING-023 pinning test) explicitly inherited by F8.",
+      "external": true
+    }
+  },
+  "iterations": {
+    "tests": 1,
+    "implement": 1
+  },
+  "escalations": [
+    {
+      "id": "ESC-001",
+      "phase": "review",
+      "reason": "Review fan-out found 3 blocking HIGH/contract findings, all tests-phase-origin: FINDING-008 (fallback keyboard-dead, no keyboard-activation coverage existed), FINDING-020 (frozen TEST-324 pins match-failure fall-through where the frozen spec REQ-009 mandates availability gating — a frozen test contradicting the frozen spec), FINDING-021 (only 2 of 9 consumed fields validated; malformed push crashes the renderer, TEST-312 too shallow). Human decision needed on the loopback.",
+      "kind": "judgment",
+      "finding": "FINDING-020",
+      "status": "resolved",
+      "at": "2026-07-02T03:05:54.208Z",
+      "decision": "Loop back to tests (delegated-human decision, autonomous drive authorization 2026-07-01). All three blockers are tests-phase-origin. Test-designer: (1) amend TEST-324's seam vector — the matcher seam keeps skip-on-invalid, but candidate AVAILABILITY gating per REQ-009 moves to the caller and gets its own pinned seam (live cwd when known; config.cwd only when no live cwd; gitStatus.root only when neither) — this is the sanctioned frozen-test amendment correcting a test that contradicts the frozen spec; (2) add keyboard-activation coverage for the pane-less fallback (structural target-guard pin + e2e keyboard vector) per FINDING-008; (3) deepen the TEST-312 family per FINDING-021: mistyped consumed fields (object/number garbage in reason/phase/gateN/gateM/lastActivityAt/detail) yield no item, no crash, no NaN into the comparator; (4) fix the TS2783 fixture wart (FINDING-018) in the same sanctioned touch. Implementer then fixes 008/020/021 plus the cheap MEDIUMs (009 aria count announce, 010 focus management, 012 getState read) and LOWs where trivial (011/013/014/019).",
+      "resolvedAt": "2026-07-02T03:06:14.396Z"
+    }
+  ],
+  "concerns": [
+    "ux",
+    "performance",
+    "determinism",
+    "quality"
+  ],
+  "attempts": {
+    "spec": 0,
+    "plan": 0,
+    "tests": 0,
+    "implement": 0,
+    "review": 0,
+    "doc-sync": 0
+  },
+  "implementer": {
+    "mode": "claude",
+    "agents": [
+      "orky:implementer"
+    ],
+    "winner": "orky:implementer",
+    "reason": "Loopback fix cycle: same audited single-implementer degrade as the initial implement (codex worktree environment failure documented on F7; determinism covered by frozen tests + determinism lens).",
+    "at": "2026-07-02T03:25:36.364Z"
+  },
+  "totalFailures": 2,
+  "loopbacks": [
+    {
+      "to": "tests",
+      "from": "review",
+      "reason": "3 HIGH/contract findings, all tests-origin (FINDING-008/020/021): missing keyboard coverage, TEST-324 contradicts REQ-009, TEST-312 too shallow",
+      "at": "2026-07-02T03:06:14.711Z"
+    },
+    {
+      "to": "implement",
+      "from": "review",
+      "reason": "FINDING-023 (MEDIUM, below threshold): unconditional focus-restore on drawer close fights the non-modal click-to-focus gesture; fix is the ux-lens-specified conditional restore",
+      "at": "2026-07-02T04:23:40.410Z"
+    }
+  ]
+}

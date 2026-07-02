@@ -210,6 +210,15 @@ option {
   outline-offset: 1px;
 }
 
+/* Decision-queue drawer (feature 0006): window chrome outside the .mosaic subtree, so it carries
+   its own visible focus ring (CONV-007/REQ-014) — native buttons AND the focusable .dq-row item
+   rows (generic focusable containers; no ARIA button role — FINDING-008). */
+[data-testid="decision-queue-panel"] :is(button, .dq-row):focus-visible {
+  outline: 2px solid var(--accent, #1e88e5);
+  outline-offset: -2px;
+}
+[data-testid="decision-queue-panel"] .dq-row:hover { background: rgba(255, 255, 255, 0.06); }
+
 /* Editor pane's own tab strip. The strip is a flex SIBLING of the Monaco host in
    a flex column, so any rule that changes a child's BOX (border/padding/font)
    shifts the strip height, perturbs Monaco's layout measurement, and corrupts

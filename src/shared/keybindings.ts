@@ -23,11 +23,13 @@ export type Shortcut =
   | { type: 'toggle-notes' }
   | { type: 'toggle-search' }
   | { type: 'redraw-terminal' }
+  | { type: 'toggle-orky-queue' }
 
 export type CommandId =
   | 'toggle-palette' | 'toggle-broadcast' | 'new-terminal' | 'close-workspace'
   | 'next-workspace' | 'prev-workspace' | 'open-settings' | 'toggle-maximize-pane'
   | 'toggle-minimize-pane' | 'toggle-notes' | 'toggle-search' | 'redraw-terminal'
+  | 'toggle-orky-queue'
 
 export interface Command { id: CommandId; label: string; category: string; defaultChord: Chord; tip?: string }
 
@@ -47,6 +49,7 @@ export const COMMANDS: Command[] = [
   { id: 'toggle-notes',         label: 'Toggle notes panel',          category: 'General',    defaultChord: c(true, true, 'n'), tip: 'open the project notes panel' },
   { id: 'toggle-search',        label: 'Search output history',       category: 'General',    defaultChord: c(true, true, 'f'), tip: 'search terminal output history' },
   { id: 'redraw-terminal',      label: 'Redraw terminal',             category: 'Panes',      defaultChord: c(true, true, 'l'), tip: 'redraw a garbled terminal' },
+  { id: 'toggle-orky-queue',    label: 'Toggle Orky decision queue',  category: 'General',    defaultChord: c(true, true, 'o'), tip: 'open the Orky decision queue' },
 ]
 
 /** Canonical, JSON-storable, comparable key for a chord, e.g. "mod+shift+t". */

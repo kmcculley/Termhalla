@@ -24,6 +24,8 @@ export function CommandPalette() {
   const pushToast = useStore(s => s.pushToast)
   const openSettings = useStore(s => s.openSettings)
   const order = useStore(s => s.order)
+  const queueOpen = useStore(s => s.queueOpen)
+  const setQueueOpen = useStore(s => s.setQueueOpen)
 
   const [query, setQuery] = useState('')
   const [sel, setSel] = useState(0)
@@ -57,6 +59,9 @@ export function CommandPalette() {
     if (item.kind === 'dir') { launchDir(item.path); close(); return }
     if (item.action === 'new-connection') { setConnectionForm('new'); setOpen(false); return }
     if (item.action === 'pin-cwd') { pinDir(currentCwd); return /* keep open to show the new ★ */ }
+    // The decision-queue drawer is window chrome, not a pane — it must toggle even with no
+    // active workspace (feature 0006, REQ-002), so it is handled before the guard below.
+    if (item.action === 'toggle-orky-queue') { setQueueOpen(!queueOpen); close(); return }
     // Commands below need an active workspace.
     if (!activeId) return
     if (item.action === 'new-terminal') void addPaneOfKind(activeId, 'terminal')

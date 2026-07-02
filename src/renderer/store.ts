@@ -26,6 +26,7 @@ import { createKeybindingsSlice } from './store/keybindings-slice'
 import { createNotesSlice } from './store/notes-slice'
 import { createSearchSlice } from './store/search-slice'
 import { createPreviewSlice } from './store/preview-slice'
+import { createRegistrySlice } from './store/registry-slice'
 
 // Re-exported so existing `import { ... } from '../store'` call sites keep working.
 export type { ThemeScope } from './store/types'
@@ -86,6 +87,10 @@ export const useStore = create<State>((set, get) => {
 
   const deps: SliceDeps = { set, get, scheduleAutosave, scheduleQuickSave, scheduleNotesSave, commitPane }
 
+  // Monotonic focus-sequence counter for paneFocusSeq (feature 0006, REQ-009): session-scoped
+  // recency for the decision queue's click-to-focus MRU pick. Never persisted.
+  let paneFocusCounter = 0
+
   return {
     // ---- initial state ----
     shells: [],
@@ -112,6 +117,12 @@ export const useStore = create<State>((set, get) => {
     notes: {},
     notesOpen: false,
     notesProjectKey: null,
+    // Decision queue (feature 0006): runtime-only; the drawer always starts closed (REQ-017).
+    registrySnapshot: null,
+    registryError: null,
+    queueOpen: false,
+    snapshotGeneration: 0,
+    paneFocusSeq: {},
     cloud: [],
     envVault: { exists: false, unlocked: false },
     schedules: {},
@@ -134,6 +145,7 @@ export const useStore = create<State>((set, get) => {
     ...createNotesSlice(deps),
     ...createSearchSlice(deps),
     ...createPreviewSlice(deps),
+    ...createRegistrySlice(deps),
 
     // ---- core: bootstrap + persistence ----
     init: async () => {
@@ -155,7 +167,17 @@ export const useStore = create<State>((set, get) => {
       set(s => {
         const workspaces = { ...s.workspaces }
         for (const ws of loaded) if (ws) workspaces[ws.id] = ws
-        for (const id of Object.keys(workspaces)) if (!workspaceIds.includes(id)) delete workspaces[id]
+        // Panes departing with a moved-away workspace go through the SAME per-pane runtime cleanup
+        // closePane/closeWorkspace use (clearPaneRuntime — CONV-011/FINDING-017): without it, every
+        // runtime map (statuses/cwds/.../paneFocusSeq) leaked entries for panes this window no
+        // longer hosts, and a redocked workspace inherited stale pre-departure focus ranks.
+        const departedPaneIds: string[] = []
+        for (const id of Object.keys(workspaces)) {
+          if (!workspaceIds.includes(id)) {
+            departedPaneIds.push(...Object.keys(workspaces[id].panes))
+            delete workspaces[id]
+          }
+        }
         const order = workspaceIds.filter(id => workspaces[id])
         // Derive the per-ws view-state maps from each workspace's persisted record (REQ-007/008),
         // seeding only newly loaded ones so an existing window's live maps aren't clobbered.
@@ -169,7 +191,13 @@ export const useStore = create<State>((set, get) => {
         }
         for (const id of Object.keys(minimized)) if (!workspaces[id]) delete minimized[id]
         for (const id of Object.keys(maximized)) if (!workspaces[id]) delete maximized[id]
-        return { workspaces, order, minimized, maximized, activeId: order.length ? (activeId ?? order[0]) : null }
+        return {
+          workspaces, order, minimized, maximized,
+          activeId: order.length ? (activeId ?? order[0]) : null,
+          // Spread only when something departed, so a no-drop assignment keeps every runtime-map
+          // reference (no spurious subscriber re-renders on routine win:assignment pushes).
+          ...(departedPaneIds.length ? clearPaneRuntime(s, departedPaneIds) : {})
+        }
       })
       if (isMain && get().order.length === 0) get().newWorkspace('Workspace 1')
     },
@@ -352,7 +380,12 @@ export const useStore = create<State>((set, get) => {
       requestPaneFocus(paneId)
     },
 
-    setFocusedPane: (paneId) => set({ focusedPaneId: paneId }),
+    // Also stamps the pane's focus recency (feature 0006, REQ-009); the entry is pruned by the
+    // same clearPaneRuntime call that drops the pane's other runtime maps (CONV-011).
+    setFocusedPane: (paneId) => set(s => ({
+      focusedPaneId: paneId,
+      paneFocusSeq: { ...s.paneFocusSeq, [paneId]: ++paneFocusCounter }
+    })),
 
     /** Move a pane to another workspace THIS window already hosts, following it with the active tab.
      *  Terminals keep scrollback (snapshot stash) + their running PTY (re-adopted by pty:spawn);

@@ -111,8 +111,11 @@ thin around it. That pure core is what this baseline characterizes (see CHAR ids
   still has exactly one chokidar watcher. The persisted list lives in a new, self-versioned
   **`orky-registry.json`** under `userData` (`src/main/persistence/orky-registry-store.ts`,
   `{version:1, roots:[...]}`, atomic write; independent of `SCHEMA_VERSION`). The aggregate is pushed over
-  a new app-global `registry:status` IPC channel (`src/main/ipc/register-registry.ts`); this feature ships
-  no renderer UI.
+  a new app-global `registry:status` IPC channel (`src/main/ipc/register-registry.ts`); its first renderer
+  consumer is feature 0006's decision-queue drawer (`src/renderer/components/DecisionQueuePanel.tsx` +
+  `src/renderer/store/registry-slice.ts`), which subscribes to the push plus one generation-guarded
+  `registry:current` recovery pull — read surface only; the mutation surface
+  (`registry:addRoot`/`removeRoot`) still has no renderer consumer.
 - **`src/main/orky/orky-action-dispatcher.ts`** (`OrkyActionDispatcher`) — *added by feature 0007
   (Orky action-dispatch substrate).* Termhalla's **first write-capable IPC surface** into an
   Orky-adopted project: four actions (`resolveEscalation`/`submitWork`/`recordHumanGate`/`driveStatus`)

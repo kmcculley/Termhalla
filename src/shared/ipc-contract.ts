@@ -149,8 +149,9 @@ export interface TermhallaApi {
   orkyUnwatch(id: string): void
   /** Live per-pane Orky status push; a `null` payload means the pane is no longer a bound Orky run. */
   onOrkyStatus(cb: (paneId: string, status: OrkyPaneStatus | null) => void): () => void
-  /** Cross-project registry aggregate (feature 0005, D1 — IPC/data-only, no renderer UI consumes this
-   *  yet). App-global broadcast (NOT pane-scoped) of the COMPLETE current aggregate on every change. */
+  /** Cross-project registry aggregate (feature 0005; its first renderer consumer is feature 0006's
+   *  decision-queue drawer). App-global broadcast (NOT pane-scoped) of the COMPLETE current
+   *  aggregate on every change. */
   onRegistryStatus(cb: (snapshot: OrkyRegistrySnapshot) => void): () => void
   /** Pull the current aggregate snapshot on demand (recovers a missed push, mirrors `cloudCurrent`). */
   registryCurrent(): Promise<OrkyRegistrySnapshot>

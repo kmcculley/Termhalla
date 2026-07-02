@@ -1,14 +1,14 @@
 {
-  "feature": ".orky/features/0007-orky-action-dispatch",
+  "feature": ".orky/features/0006-decision-queue-panel",
   "projectRoot": "C:/dev/Termhalla",
-  "phase": "review",
-  "lastTickAt": "2026-07-02T01:05:10.392Z",
-  "lastAction": "re-deriving review gate after DA-004 spec amendment",
+  "phase": "implement",
+  "lastTickAt": "2026-07-02T04:24:17.532Z",
+  "lastAction": "FINDING-023 conditional-restore fix applied (coordinator, ux-lens-specified)",
   "runs": {
-    ".orky/features/0007-orky-action-dispatch": {
-      "phase": "review",
-      "lastTickAt": "2026-07-02T01:05:10.392Z",
-      "lastAction": "re-deriving review gate after DA-004 spec amendment"
+    ".orky/features/0006-decision-queue-panel": {
+      "phase": "implement",
+      "lastTickAt": "2026-07-02T04:24:17.532Z",
+      "lastAction": "FINDING-023 conditional-restore fix applied (coordinator, ux-lens-specified)"
     }
   }
 }

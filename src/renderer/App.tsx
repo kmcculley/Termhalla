@@ -17,6 +17,7 @@ import { Toasts } from './components/Toasts'
 import { ImageLightbox } from './components/ImageLightbox'
 import { SettingsPanel } from './components/SettingsPanel'
 import { NotesPanel } from './components/NotesPanel'
+import { DecisionQueuePanel } from './components/DecisionQueuePanel'
 import { SearchHistory } from './components/SearchHistory'
 import { matchShortcut, resolveBindings } from '@shared/keymap'
 import { redrawPane } from './components/terminal-registry'
@@ -26,8 +27,8 @@ export default function App() {
   const init = useStore(s => s.init)
   // Scope the subscription: a bare useStore() re-renders the root (and every workspace host)
   // on ANY store change — cwd/proc/usage/status churn included. Only these three drive App.
-  const { activeId, workspaces, order, notesOpen } = useStore(
-    useShallow(s => ({ activeId: s.activeId, workspaces: s.workspaces, order: s.order, notesOpen: s.notesOpen }))
+  const { activeId, workspaces, order, notesOpen, queueOpen } = useStore(
+    useShallow(s => ({ activeId: s.activeId, workspaces: s.workspaces, order: s.order, notesOpen: s.notesOpen, queueOpen: s.queueOpen }))
   )
   const isMainWindow = useStore(s => s.isMainWindow)
   const connectionFormFor = useStore(s => s.connectionFormFor)
@@ -54,6 +55,10 @@ export default function App() {
       api.onAiSession((id, ai) => s().setAiSession(id, ai)),
       api.onUsageMetrics((id, m) => s().setUsage(id, m)),
       api.onOrkyStatus((id, st) => s().setOrky(id, st)),
+      // Cross-project registry aggregate (feature 0006, REQ-003): app-level so the decision-queue
+      // badge stays live while the drawer is closed. Routed through the slice's single ingestion
+      // chokepoint (deep-equal short-circuit + generation stamp).
+      api.onRegistryStatus(snapshot => s().setRegistrySnapshot(snapshot)),
       api.onRecState((id, state) => s().setRecording(id, state.recording)),
       api.onEnvState(state => s().setEnvState(state)),
       api.onWinAssignment(a => { void s().applyAssignment(a) }),
@@ -75,6 +80,14 @@ export default function App() {
     // onCloudStatus listener above was attached, it's lost and dedup blocks a re-send, leaving the
     // chip stuck on "cloud status…". Pull the current status now to recover it.
     void api.cloudCurrent().then(statuses => s().setCloud(statuses)).catch(() => {})
+    // Same missed-push recovery for the registry aggregate (feature 0006, REQ-003/REQ-011) — ONE
+    // pull, generation-guarded: the generation is captured at ISSUE time, so a stale late-settling
+    // result is discarded if any snapshot (push or pull) was applied after the pull was issued.
+    // The rejection path is explicit (an error state, REQ-013), never swallowed silently.
+    const issuedAtGeneration = s().snapshotGeneration
+    void api.registryCurrent()
+      .then(snapshot => s().applyRecoveryPull(snapshot, issuedAtGeneration))
+      .catch(() => s().recoveryPullFailed())
     return () => offs.forEach(off => off())
   }, [])
 
@@ -117,6 +130,7 @@ export default function App() {
         }
         case 'toggle-notes': s.setNotesOpen(!s.notesOpen); break
         case 'toggle-search': s.setSearchOpen(!s.searchOpen); break
+        case 'toggle-orky-queue': s.setQueueOpen(!s.queueOpen); break
         case 'redraw-terminal': redrawPane(s.focusedPaneId ?? ''); break
       }
     }
@@ -151,6 +165,7 @@ export default function App() {
           })}
         </div>
         {notesOpen && <NotesPanel />}
+        {queueOpen && <DecisionQueuePanel />}
       </div>
       <StatusBar />
       <UsageWatcher />

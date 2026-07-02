@@ -88,6 +88,21 @@ to it when a review surfaces a lesson general enough to outlive its feature.
   that implements it; an arbitration recorded only in `state.json`/tests leaves the frozen spec
   contradicting the frozen tests.
   *(from FINDING-DA-004 in 0007-orky-action-dispatch)*
+- **CONV-019** — A frozen scope-guard test asserting the ABSENCE of a future consumer ("no X
+  consumes Y yet") MUST name the feature expected to retire it, and that consumer feature's spec
+  MUST retire/supersede the guard atomically in the same change, at the tests phase, never
+  silently during implementation.
+  *(from FINDING-001 in 0006-decision-queue-panel)*
+- **CONV-020** — A non-modal drawer/panel opened via a keyboard command (chord or palette entry)
+  MUST move focus into the opened surface on open, and on close MUST restore focus to its toggle
+  ONLY IF focus is still inside the panel at close time — never unconditionally, and never
+  yanking focus from a surface the user (or the panel's own gesture) intentionally focused while
+  the panel stayed open.
+  *(from FINDING-010 / FINDING-023 in 0006-decision-queue-panel)*
+- **CONV-021** — Store state that a component reads ONLY inside an event handler (never to affect
+  rendered output) MUST be read via `getState()` at event time, never subscribed with a render
+  hook.
+  *(from FINDING-012 in 0006-decision-queue-panel)*
 
 ## Principles
 Higher-level stances that inform specs and reviews but are too broad to gate mechanically.

@@ -212,6 +212,7 @@ related area:
 | Orky pipeline status (read-only `.orky/` mirror, except F7's CLI-mediated writes below — never a direct file write) + cross-project orky-registry aggregate | `src/main/orky/`, `src/shared/orky-status.ts`, `src/shared/orky-registry.ts` | [orky-status](docs/features/orky-status.md) |
 | Orky OSC heartbeat (stream-derived status, fallback for bare-SSH panes) | `src/main/status/orky-osc-parser.ts`, `src/main/orky/orky-stream-status.ts` | [orky-osc-heartbeat](docs/features/orky-osc-heartbeat.md) |
 | Orky action dispatch (write-capable IPC into an Orky-adopted project, via Orky's own CLIs — never a direct `.orky/` write, never drives the pipeline) | `src/main/orky/orky-action-dispatcher.ts` | [orky-action-dispatch](docs/features/orky-action-dispatch.md) |
+| Orky decision-queue drawer (renderer consumer of the `registry:status` aggregate — read-only "what needs me now" queue) | `src/renderer/components/DecisionQueuePanel.tsx`, `src/renderer/store/registry-slice.ts`, `src/shared/decision-queue.ts` | [decision-queue](docs/features/decision-queue.md) |
 | Per-project notepad | `src/main/persistence/notes-store.ts`, `src/renderer/components/NotesPanel.tsx` | [notepad](docs/features/notepad.md) |
 | SSH / favorites store | `src/main/persistence/quick-store.ts`, `src/shared/quick.ts` | [ssh-favorites](docs/features/ssh-favorites.md) |
 | Multi-window / undock | `src/main/window-manager.ts` (+ `-core.ts`), `src/main/services.ts` | [window-management](docs/features/window-management.md) |

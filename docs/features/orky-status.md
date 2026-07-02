@@ -102,8 +102,10 @@ byte-derived status.
 ## Cross-project registry (feature 0005)
 
 Feature 0005 **generalizes** the single-root, pane-scoped watcher above to a **set of roots** rolled up
-into one pane-independent, cross-project aggregate. It introduces no renderer UI (D1) — it is IPC/data
-only; a later feature (F6) is the first consumer.
+into one pane-independent, cross-project aggregate. Its first renderer consumer is feature 0006's
+[decision-queue drawer](./decision-queue.md), which subscribes to the `registry:status` push (plus one
+`registry:current` recovery pull); the mutation surface (`registry:addRoot`/`removeRoot`) still has no
+renderer consumer.
 
 - **`OrkyRootEngine`** (`src/main/orky/orky-root-engine.ts`) is the per-root watch/read machinery
   *extracted* from 0004's `OrkyTracker` (a pure, behavior-preserving refactor — `OrkyTracker`'s own public

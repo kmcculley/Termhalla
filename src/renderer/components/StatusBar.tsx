@@ -25,12 +25,21 @@ export function StatusBar() {
   const launchCommand = useStore(s => s.launchCommand)
   const [openFor, setOpenFor] = useState<string | null>(null)
   const overrides = useStore(s => s.quick.keybindings)
+  // Decision queue (feature 0006): the badge reads the SAME memoized queueCount selector the
+  // drawer's list derives from (REQ-007) — never a second count. Live while the drawer is closed.
+  const queueOpen = useStore(s => s.queueOpen)
+  const setQueueOpen = useStore(s => s.setQueueOpen)
+  const queueCount = useStore(s => s.queueCount())
   const [tipIdx, setTipIdx] = useState(0)
   useEffect(() => {
     const t = setInterval(() => setTipIdx(i => nextTipIndex(i, TIP_COMMANDS.length)), 7000)
     return () => clearInterval(t)
   }, [])
   const resolved = resolveBindings(overrides)
+  // The tooltip chord derives from the user-customizable registry (CONV-005) — never a hard-coded
+  // chord literal; a rebind updates this text, an explicit 'none' unbind drops the suffix.
+  const queueChord = resolved['toggle-orky-queue']
+  const queueTitle = `Toggle Orky decision queue${queueChord ? ` (${formatChord(queueChord)})` : ''}`
   const tipId = TIP_COMMANDS[tipIdx % TIP_COMMANDS.length]
   const tipCmd = COMMANDS.find(c => c.id === tipId)
   const tipChord = resolved[tipId]
@@ -87,6 +96,23 @@ export function StatusBar() {
       <button data-testid="notes-toggle" type="button" title="Toggle notes (project notepad)"
         onClick={() => useStore.getState().setNotesOpen(!useStore.getState().notesOpen)}
         style={{ background: 'transparent', border: 'none', cursor: 'pointer', font: 'inherit', color: 'var(--fg-dim, #aaa)', padding: 0 }}>📝</button>
+      <button data-testid="orky-queue-toggle" type="button" title={queueTitle}
+        // The accessible NAME carries the live count (FINDING-009): aria-label overrides element
+        // content in accessible-name computation, so the visible badge alone would leave the
+        // needs-you signal unannounced to assistive technology.
+        aria-label={`Toggle Orky decision queue${queueCount > 0 ? `, ${queueCount} waiting` : ''}`}
+        aria-expanded={queueOpen}
+        onClick={() => setQueueOpen(!queueOpen)}
+        style={{ background: 'transparent', border: 'none', cursor: 'pointer', font: 'inherit',
+          color: 'var(--fg-dim, #aaa)', padding: 0, display: 'inline-flex', alignItems: 'center', gap: 3 }}>
+        📋{queueCount > 0 && (
+          <span data-testid="orky-queue-badge"
+            style={{ background: 'var(--status-needs-input, #e0a030)', color: 'var(--panel, #1e1e1e)',
+              borderRadius: 8, padding: '0 5px', fontSize: 11, lineHeight: '14px' }}>
+            {queueCount}
+          </span>
+        )}
+      </button>
       {tipText && <span data-testid="statusbar-tip" style={{ whiteSpace: 'nowrap', opacity: 0.85 }}>{tipText}</span>}
     </div>
   )

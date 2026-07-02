@@ -84,10 +84,17 @@ export type PaletteAction =
   | 'new-connection' | 'pin-cwd'
   | 'new-terminal' | 'new-editor' | 'new-explorer'
   | 'new-workspace' | 'broadcast' | 'save-all' | 'refresh-cloud' | 'settings'
+  | 'toggle-orky-queue'
 
 export type PaletteItem =
   | { kind: 'connection'; id: string; label: string; detail: string; search: string }
-  | { kind: 'dir'; path: string; favorite: boolean; search: string }
+  // `label` is never SET on dir items (their display label derives from `path`, and
+  // CommandPalette's render narrows on `kind`), but the optional field must stay declared:
+  // frozen TEST-329 (tests/shared/keybindings-toggle-queue.test.ts:61) reads `item!.label` off
+  // the UN-NARROWED PaletteItem union — `Array.prototype.find` does not narrow — so removing it
+  // fails `npm run typecheck` with TS2339 (re-verified at the F6 review loopback, FINDING-019).
+  // Removable only alongside a sanctioned tests-phase touch that narrows TEST-329's read.
+  | { kind: 'dir'; path: string; favorite: boolean; search: string; label?: string }
   | { kind: 'action'; action: PaletteAction; label: string; search: string }
 
 /** Build the merged, ordered palette list: connections (recent-first), favorite dirs,
@@ -135,7 +142,8 @@ export function buildCommandItems(): PaletteItem[] {
     cmd('broadcast', 'Broadcast to all terminals', 'broadcast send all terminals'),
     cmd('save-all', 'Save all workspaces', 'save all workspaces'),
     cmd('refresh-cloud', 'Refresh cloud status', 'refresh cloud status'),
-    cmd('settings', 'Settings', 'settings preferences options theme environment')
+    cmd('settings', 'Settings', 'settings preferences options theme environment'),
+    cmd('toggle-orky-queue', 'Toggle Orky decision queue', 'orky decision queue needs you human review')
   ]
 }
 

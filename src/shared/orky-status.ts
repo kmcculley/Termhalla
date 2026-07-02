@@ -276,8 +276,11 @@ const REASON_RANK: Record<Exclude<OrkyReason, null>, number> = {
 function reasonRank(r: OrkyReason): number {
   return r == null ? 3 : REASON_RANK[r]
 }
-/** Total ordering: needsHuman-first, then reason rank, then newer activity, then feature-id ascending. */
-function compareFeatures(a: OrkyFeatureStatus, b: OrkyFeatureStatus): number {
+/** Total ordering: needsHuman-first, then reason rank, then newer activity, then feature-id ascending.
+ *  Exported (feature 0006, REQ-005) so the decision-queue builder ranks cross-project groups with the
+ *  SAME comparator the chip selector uses — a visibility change only; the single definition lives here
+ *  and is never copied. */
+export function compareOrkyFeatures(a: OrkyFeatureStatus, b: OrkyFeatureStatus): number {
   if (a.needsHuman !== b.needsHuman) return a.needsHuman ? -1 : 1
   const ra = reasonRank(a.reason), rb = reasonRank(b.reason)
   if (ra !== rb) return ra - rb
@@ -288,7 +291,7 @@ function compareFeatures(a: OrkyFeatureStatus, b: OrkyFeatureStatus): number {
 /** The single most-needs-you feature, fully order-independent. Empty input → null. */
 export function selectChipFeature(features: OrkyFeatureStatus[] | undefined | null): OrkyFeatureStatus | null {
   if (!Array.isArray(features) || features.length === 0) return null
-  return [...features].sort(compareFeatures)[0]
+  return [...features].sort(compareOrkyFeatures)[0]
 }
 
 // ── Pane roll-up + chip label (REQ-007/008/020/021) ───────────────────────────────────────────────
@@ -317,7 +320,7 @@ export function orkyPaneStatus(features: OrkyFeatureStatus[] | undefined | null)
   // the full list could surface a clean-done feature that `inPopover` excludes, so the chip would name a
   // feature its own popover omits. When the eligible set is empty (e.g. an all-clean-done project sitting
   // between runs) there is no chip → the cleared/idle shape (no `null`-phase chip over an empty popover).
-  const shown = list.filter(inPopover).sort(compareFeatures)
+  const shown = list.filter(inPopover).sort(compareOrkyFeatures)
   const chip = selectChipFeature(shown)
   if (!chip) {
     return { kind: 'idle', label: '', needsHuman: false, failed: false, features: [], chipFeature: null }
