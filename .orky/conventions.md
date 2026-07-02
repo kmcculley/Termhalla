@@ -206,6 +206,29 @@ to it when a review surfaces a lesson general enough to outlive its feature.
   check) — never two independently-optional fields — so a half-supplied pair that would leak or
   misfire the underlying resource cannot type-check.
   *(from FINDING-016 in 0013-os-needs-you-notifications)*
+- **CONV-041** — A container-level pointer-activation (click) handler MUST be target-guarded, or
+  nested interactive controls MUST stop propagation, so a nested control's activation never also
+  fires the container's own gesture — the pointer twin of CONV-030.
+  *(from FINDING-001 in 0008-queue-answer-resume-actions)*
+- **CONV-042** — An inline form region revealed by an explicit open gesture MUST move keyboard focus
+  into its first interactive field on open — the inline-form twin of CONV-020's drawer open-focus
+  rule.
+  *(from FINDING-016 in 0008-queue-answer-resume-actions)*
+- **CONV-043** — A single-line inline text input paired with exactly ONE submit control MUST
+  dispatch that submit on Enter (respecting the submit's disabled conditions), never requiring
+  pointer or Tab traversal to complete the flow.
+  *(from FINDING-017 in 0008-queue-answer-resume-actions)*
+- **CONV-044** — After a non-idempotent submit succeeds, the submitting affordance MUST be disarmed
+  (input cleared, form closed, or submit disabled) until the user re-arms it — a still-armed form
+  holding the same payload is a duplicate-write invite.
+  *(from FINDING-020 in 0008-queue-answer-resume-actions)*
+- **CONV-045** — A client-side pre-write verification guarding a write that has no server-side
+  compare-and-set MUST either be enforced inside the write's own serialized critical section or the
+  spec MUST explicitly disclose the residual verify-to-write race window.
+  *(from FINDING-021 in 0008-queue-answer-resume-actions)*
+- **CONV-046** — A focus-on-mount substrate may only be mounted by an explicit user open gesture — a
+  data-driven remount or surface swap MUST NOT move keyboard focus.
+  *(from FINDING-022 in 0008-queue-answer-resume-actions)*
 
 ## Principles
 Higher-level stances that inform specs and reviews but are too broad to gate mechanically.

@@ -1,0 +1,177 @@
+{
+  "feature": "0008-queue-answer-resume-actions",
+  "phase": "doc-sync",
+  "gates": {
+    "brainstorm": {
+      "passed": true,
+      "at": "2026-07-02T15:30:02.591Z",
+      "evidence": "delegated-human brainstorm: D1 answer/resume on F6 queue entries via F7 dispatch only (no new write code), D2 context-driven answer (escalation resolve / human-review verdict), D3 resume=drive, D4 per-entry pending/result/disabled honest states (CONV-013/034), D5 factor the action layer for F10 reuse",
+      "external": true
+    },
+    "spec": {
+      "passed": true,
+      "at": "2026-07-02T16:24:50.342Z",
+      "tokens": [
+        {
+          "token": "findings",
+          "pass": true,
+          "evidence": "no open blocking findings (CRITICAL/HIGH or contract-violation) for this gate"
+        }
+      ]
+    },
+    "plan": {
+      "passed": true,
+      "at": "2026-07-02T16:29:20.096Z",
+      "tokens": [
+        {
+          "token": "spec-freeze",
+          "pass": true,
+          "evidence": "spec unchanged since the spec gate"
+        },
+        {
+          "token": "traceability-plan",
+          "pass": true,
+          "evidence": "all 15 REQ(s) trace to TASK"
+        },
+        {
+          "token": "findings",
+          "pass": true,
+          "evidence": "no open blocking findings (CRITICAL/HIGH or contract-violation) for this gate"
+        }
+      ]
+    },
+    "tests": {
+      "passed": true,
+      "at": "2026-07-02T22:43:08.250Z",
+      "tokens": [
+        {
+          "token": "spec-freeze",
+          "pass": true,
+          "evidence": "spec unchanged since the spec gate"
+        },
+        {
+          "token": "tests-red",
+          "pass": true,
+          "evidence": "tests are RED (exit 1) — freeze snapshot captured"
+        }
+      ]
+    },
+    "implement": {
+      "passed": true,
+      "at": "2026-07-02T23:01:15.411Z",
+      "tokens": [
+        {
+          "token": "spec-freeze",
+          "pass": true,
+          "evidence": "spec unchanged since the spec gate"
+        },
+        {
+          "token": "build",
+          "pass": true,
+          "evidence": "build exited 0"
+        },
+        {
+          "token": "test",
+          "pass": true,
+          "evidence": "test exited 0"
+        },
+        {
+          "token": "test-freeze",
+          "pass": true,
+          "evidence": "test files unchanged since freeze"
+        }
+      ]
+    },
+    "review": {
+      "passed": true,
+      "at": "2026-07-02T23:11:16.029Z",
+      "tokens": [
+        {
+          "token": "spec-freeze",
+          "pass": true,
+          "evidence": "spec unchanged since the spec gate"
+        },
+        {
+          "token": "findings",
+          "pass": true,
+          "evidence": "no open blocking findings (CRITICAL/HIGH or contract-violation) for this gate"
+        }
+      ]
+    },
+    "doc-sync": {
+      "passed": true,
+      "at": "2026-07-02T23:17:46.430Z",
+      "tokens": [
+        {
+          "token": "spec-freeze",
+          "pass": true,
+          "evidence": "spec unchanged since the spec gate"
+        },
+        {
+          "token": "traceability",
+          "pass": true,
+          "evidence": "all 15 REQ(s) trace to TASK+TEST"
+        },
+        {
+          "token": "findings",
+          "pass": true,
+          "evidence": "no open blocking findings (CRITICAL/HIGH or contract-violation) for this gate"
+        }
+      ]
+    },
+    "human-review": {
+      "passed": true,
+      "at": "2026-07-02T23:17:46.539Z",
+      "evidence": "Delegated autonomous drive. Reviewed: 15-REQ spec (Q1 resume-as-terminal-launch resolution respecting TOS posture + 2 pre-gate revisions), answer/resume write actions via F7 dispatch, shared useOrkyEntryActions/launchTerminalAt seams for F10, 7-lens review (22 findings incl. a two-lens-confirmed detached-SUCCESS contract violation) all resolved + 2 new LOW residuals, TEST-584..623 + 6 frozen-pin CONV-019 amendments, CONV-041..046 promoted. Codex cross-check wedged by API error, cancelled (additive). Suite 1398 green. Residuals: FINDING-021/022 (LOW, documented).",
+      "external": true
+    }
+  },
+  "iterations": {
+    "tests": 1
+  },
+  "escalations": [
+    {
+      "id": "ESC-001",
+      "phase": "review",
+      "reason": "Review fan-out (6 lenses; codex additive cross-check wedged in queue by an API error, cancelled — degrade-gracefully). One contract blocker + real MEDIUMs, mixed origin. FINDING-012 (two-lens: detached SUCCESS silently dropped, REQ-010/CONV-034 — plan-origin), FINDING-009 (pre-check defeats the shared-flight fan-out → the F10 cross-instance reuse shows no result, implement), FINDING-013 (preview drops phase/reason; frozen fixtures used an unreal drive shape, tests), FINDING-016/017/020 (ux: no open-focus, dead Enter, form stays armed post-success=duplicate-invite), plus LOWs 008/011/019/021. Human decision on the loopback.",
+      "kind": "judgment",
+      "finding": "FINDING-012",
+      "status": "resolved",
+      "at": "2026-07-02T22:22:45.489Z",
+      "decision": "Loop back to tests (delegated). Fixes: FINDING-012 — deliver() MUST route a detached SUCCESS through the never-suppressed pushToast too (mirror F12 OrkyCaptureModal), honesty-class preserved; pin it. FINDING-009 — drop the redundant hook-level isInFlight pre-check so the core's withSingleFlight fan-out reaches every mounted instance (the second instance renders the settled result, not silent revert); pin the two-instance POST-SETTLE state. FINDING-013 — settlePreview renders next + phase + reason from the REAL gk.drive shape ({next,phase,reason}); fix the frozen fixtures that flattened it to the unreal {next:'run-phase spec'} and add a real-shape vector. FINDING-016 — move focus into the inline input on open (reuse useOpenFocusRestore). FINDING-017 — Enter in the single decision input submits (form or onKeyDown, CONV-030-guarded). FINDING-020 — disarm the form on success (close + clear) so a settled answer can't be re-fired against a now-resolved escalation. FINDING-008/010 — add a narrow launchTerminalAt(cwd,launch) store action instead of exposing raw commitPane on State; keep REQ-014 behavior. FINDING-011 — scope the rendered result/error to the active control (reset phase on open). FINDING-019 — role=status on dq-action-result/pending. FINDING-021 (LOW, spec-origin verify->write TOCTOU) + its proposed CONV — accept as a documented residual (same class as the disclosed cross-window one; the gatekeeper re-resolve is idempotent-enough), do NOT fix now; record it.",
+      "resolvedAt": "2026-07-02T22:22:45.561Z"
+    }
+  ],
+  "concerns": [
+    "security",
+    "ux",
+    "quality",
+    "networking"
+  ],
+  "attempts": {
+    "spec": 0,
+    "plan": 0,
+    "tests": 0,
+    "implement": 0,
+    "review": 0,
+    "doc-sync": 0
+  },
+  "implementer": {
+    "mode": "ab",
+    "agents": [
+      "orky:implementer",
+      "codex:codex-rescue"
+    ],
+    "winner": "orky:implementer",
+    "reason": "Loopback fix cycle; A-B degraded to single implementer (codex worktree env failure, documented on F7). Networking/honesty compensated by the frozen indeterminate+detached-toast vectors + the networking review lens.",
+    "at": "2026-07-02T22:43:08.363Z"
+  },
+  "loopbacks": [
+    {
+      "to": "tests",
+      "from": "review",
+      "reason": "1 contract blocker (012 detached-success drop) + 009/013/016/017/020 + LOWs; per ESC-001",
+      "at": "2026-07-02T22:22:45.642Z"
+    }
+  ]
+}

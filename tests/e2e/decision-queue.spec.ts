@@ -6,8 +6,15 @@
 //
 //   TEST-365 — REQ-001/002/007/011/012: status-bar toggle + rebindable chord, live badge with the
 //              drawer CLOSED, drawer renders outside every .mosaic subtree, empty vs list states.
-//   TEST-366 — REQ-009: clicking a queue item focuses the matching pane in the real renderer
-//              (`process` undefined in the main world — the fold mode must come from navigator).
+//   TEST-366 — REQ-009: clicking a queue item's BODY focuses the matching pane in the real
+//              renderer (`process` undefined in the main world — the fold mode must come from
+//              navigator). AMENDED 2026-07-02 by feature 0008-queue-answer-resume-actions
+//              (REQ-013/REQ-015, CONV-019): the row now hosts a nested, pointer-ISOLATED actions
+//              region, so Playwright's default CENTER-point click became layout-dependent — the
+//              click now targets the row's top-left body padding explicitly. The pinned intent
+//              (a row-BODY click focuses the pane, exactly once) is unchanged; the complementary
+//              half (a click INSIDE the actions region must NOT focus the pane) is pinned by
+//              tests/e2e/orky-queue-actions.spec.ts TEST-610.
 //   TEST-367 — REQ-010/017: a persisted, pane-less project shows "open terminal here", activating it
 //              spawns a terminal at the project ROOT with zero workspaces present; the fixtured
 //              `.orky/` tree is byte-identical afterwards; a relaunch starts with the drawer closed.
@@ -96,7 +103,7 @@ test('TEST-365 REQ-001 REQ-002 REQ-007 REQ-011 REQ-012 toggle surfaces, live bad
   const pid = app.process().pid; await app.close().catch(() => {}); killTree(pid)
 })
 
-test('TEST-366 REQ-009 clicking a queue item focuses the matching pane in the packaged renderer (process is undefined there)', async () => {
+test('TEST-366 REQ-009 clicking a queue item BODY focuses the matching pane in the packaged renderer (process is undefined there; body-click amended by feature 0008 — CONV-019)', async () => {
   test.setTimeout(60_000)
   const userData = mkdtempSync(join(tmpdir(), 'termh-dq2-'))
   const proj = seedEscalatedProject()
@@ -111,8 +118,11 @@ test('TEST-366 REQ-009 clicking a queue item focuses the matching pane in the pa
   const item = win.locator('[data-testid="decision-queue-item"]')
   await expect(item).toHaveCount(1, { timeout: 20_000 })
 
-  // Move focus away from the terminal, then click-to-focus must bring it back to the matched pane.
-  await item.click()
+  // Move focus away from the terminal, then a ROW-BODY click must bring it back to the matched
+  // pane. Click the top-left body padding EXPLICITLY (feature 0008 amendment, CONV-019): the
+  // default center-point click could land inside the row's 0008 actions region, whose pointer
+  // isolation (0008 REQ-015) deliberately does NOT fire the row's focus-project gesture.
+  await item.click({ position: { x: 12, y: 10 } })
   await expect(win.locator('textarea.xterm-helper-textarea')).toBeFocused({ timeout: 10_000 })
   // The matched pane's project has an open pane → its item shows NO fallback affordance (REQ-010).
   await expect(win.locator('[data-testid="decision-queue-open-terminal"]')).toHaveCount(0)

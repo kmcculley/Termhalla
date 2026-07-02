@@ -7,6 +7,10 @@
 // asserted end-to-end in tests/e2e/decision-queue.spec.ts.
 // Runs RED: src/renderer/components/DecisionQueuePanel.tsx and src/shared/decision-queue.ts do not
 // exist yet (every read here requires them).
+// AMENDED 2026-07-02 by feature 0008-queue-answer-resume-actions (REQ-013, CONV-019, at ITS tests
+// phase): TEST-353's DecisionQueuePanel.tsx read-only clause is superseded — see that test's note.
+// Every other pin in this file is byte-unchanged and verified TOLERANT of F8's panel additions
+// (0008 02-spec.md "Frozen-guard inventory").
 import { describe, it, expect } from 'vitest'
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
@@ -135,8 +139,24 @@ describe('fold-mode call path — the test-green/runtime-broken trap (REQ-009 / 
   })
 })
 
-describe('scope guard — strictly read-only, chrome-only, nothing persisted (REQ-017/REQ-003)', () => {
-  it('TEST-353 REQ-017 REQ-003 the feature\'s own files exist and contain no mutation call, no CLI, no child_process, no persistence hook', () => {
+describe('scope guard — F6 core stays read-only; the panel clause is SUPERSEDED by feature 0008 (REQ-017/REQ-003; CONV-019)', () => {
+  // SUPERSESSION NOTE (CONV-019 — a recorded retirement, executed by feature
+  // 0008-queue-answer-resume-actions' TEST-DESIGNER at ITS tests phase, per 0008 REQ-013/TASK-009;
+  // this closes the pre-CONV-019 gap that this guard named no retiring feature):
+  //   F6 shipped this panel STRICTLY read-only and this guard originally pinned all three files as
+  //   "no mutation call, no CLI". Feature 0008 is the DESIGNED first write-capable consumer of the
+  //   queue: DecisionQueuePanel now composes the shared <OrkyEntryActions> region
+  //   (src/renderer/components/orky-entry-actions.tsx), whose api.orky* dispatch lives in THAT
+  //   module — never in the panel. Still-true intent, re-expressed:
+  //     - src/shared/decision-queue.ts and src/renderer/store/registry-slice.ts keep EVERY
+  //       original ban BYTE-EQUIVALENT below (they stay pure/read-only; 0008 does not touch them);
+  //     - DecisionQueuePanel.tsx MAY compose the 0008 action region (the OrkyEntryActions
+  //       component name trips no banned literal — verified in 0008's spec) but must still contain
+  //       no raw CLI/child_process/registry-mutation call OF ITS OWN; its api.orky*-free dispatch
+  //       discipline is additionally pinned by tests/renderer/orky-entry-actions-structure.test.ts
+  //       (TEST-602);
+  //     - nothing persists.
+  it('TEST-353 REQ-017 REQ-003 the F6 files exist; the pure module + slice contain no mutation call/CLI/child_process; the panel (which may mount the 0008 OrkyEntryActions region) contains no such call of its OWN; nothing persists', () => {
     const files = [
       'src/shared/decision-queue.ts',
       'src/renderer/store/registry-slice.ts',

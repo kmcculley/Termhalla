@@ -7,6 +7,27 @@ All notable changes to Termhalla are recorded here. The format follows
 ## [Unreleased]
 
 ### Added
+- **Answer + resume actions on decision-queue entries.** Every entry in the Orky decision-queue
+  drawer now carries a write-capable actions region: **answer** the entry inline (an escalation
+  gets a decision-text input; a human-review entry gets a pass/fail verdict with optional
+  evidence; a stalled entry offers no answer), a read-only **next-action preview** off
+  `driveStatus` (never claims the pipeline advanced), and **resume-in-terminal** — one gesture
+  opens a visible terminal at the entry's project root running `claude` with `/orky:resume` as its
+  initial prompt (a user-owned session, never a background drive). The escalation target is
+  identity-bound: sourced from the `registry:detail` channel at display time, shown beside the
+  input, and re-verified against a fresh pull at submit — a changed world refuses honestly instead
+  of landing the decision on a different escalation. Dispatch rides EXCLUSIVELY the existing
+  `orkyAction:*` bridges (no new IPC/preload/main surface) behind a cross-instance single-flight
+  gate, results are keyed on the dispatcher's own `ok`/`dispatched`/`errorKind` (with
+  `cli-timeout`/`ipc-failure`/`cli-unparseable` treated as indeterminate for a mutating answer,
+  and the distinct `feedback-disabled` no-write outcome), and a mid-flight drawer close detaches
+  the settled outcome to a store-level toast — a failure never-suppressed, a success on the same
+  suppressible kind the in-view region would have shown — so no outcome, success or failure, is
+  ever silently dropped. Resume-in-terminal rides a new narrow `launchTerminalAt` store action
+  (not the raw pane-commit primitive) to keep the same least-privilege shape every other
+  pane-opening action follows. The action layer (`OrkyEntryTarget` /
+  `useOrkyEntryActions` / `OrkyEntryActions`) is pane-agnostic for F10's OrkyPane to mount
+  verbatim. See `docs/features/queue-answer-resume-actions.md`.
 - **OS-level needs-you notifications.** A new main-process observer over the cross-project
   `registry:status` aggregate fires an OS notification whenever an Orky project transitions INTO
   needs-you (open escalation / stalled / awaiting human-review) — including projects with **no open

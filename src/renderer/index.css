@@ -229,6 +229,14 @@ option {
 }
 [data-testid="orky-root-picker"] button:hover { border-color: var(--accent, #1e88e5); }
 
+/* Queue-entry actions region (feature 0008): the shared dq-action chrome mounted inside
+   decision-queue rows today and F10's OrkyPane rows next — the rule rides the region's own class
+   so every host gets the visible keyboard-focus ring (CONV-007 — never outline-suppressed). */
+.dq-actions :is(button, input):focus-visible {
+  outline: 2px solid var(--accent, #1e88e5);
+  outline-offset: 1px;
+}
+
 /* Quick-capture modal (feature 0012): body-portalled window chrome, so it carries its own visible
    keyboard-focus ring + hover affordance (CONV-007 — never outline-suppressed). */
 [data-testid="orky-capture"] :is(button, input, textarea):focus-visible {

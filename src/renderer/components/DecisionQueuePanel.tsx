@@ -4,13 +4,18 @@ import { caseFoldFromPlatform, matchPaneRootFromCandidates, selectPaneCandidates
 import { focusMruPaneMatch } from './pane-reveal'
 import { useRegistryLoadState } from './use-registry-load-state'
 import { useOpenFocusRestore } from './use-open-focus-restore'
+import { OrkyEntryActions } from './orky-entry-actions'
 
 /** Right-side Orky decision-queue drawer (feature 0006): a window-chrome sibling of the notes
  *  drawer, NOT a mosaic pane kind (REQ-001). Renders the cross-project needs-a-human-now queue off
  *  the store's registry slice — it never recomputes membership/count locally and wires no IPC of
  *  its own (the subscription is app-level so the badge stays live while this drawer is closed).
- *  Strictly read-only: clicking an item focuses a matching pane; the pane-less fallback spawns a
- *  terminal at the project root via the existing launchDir path (REQ-009/REQ-010/REQ-017). */
+ *  The panel itself stays dispatch-free: clicking an item focuses a matching pane; the pane-less
+ *  fallback spawns a terminal at the project root via the existing launchDir path (REQ-009/
+ *  REQ-010/REQ-017). Feature 0008 mounts the shared OrkyEntryActions region inside each row
+ *  (answer / next-action preview / resume-in-terminal); every Orky dispatch lives in that module —
+ *  never here — and the region isolates its own pointer events, so an action click never fires
+ *  the row's focus-project gesture while a row-BODY click keeps working (0008 REQ-015). */
 export function DecisionQueuePanel() {
   // The shared load-state derivation (feature 0009, FINDING-019): loading/failed come from the ONE
   // exported rule, never a per-component restatement of the slice's derived-loading contract.
@@ -157,6 +162,11 @@ export function DecisionQueuePanel() {
                   // a Children-Presentational role, which would strip nested controls from the
                   // accessibility tree (FINDING-008). The keydown target-guards so a bubbled key
                   // event from a nested control is never preventDefault()ed into a silent no-op.
+                  // Feature 0008: each row hosts the shared actions region BELOW its body line, so
+                  // the row's own click surface (the body, incl. its top-left padding — the point
+                  // the frozen e2e clicks) stays clear of the pointer-isolated actions slot. The
+                  // region's boundary stopPropagation keeps action clicks out of the row's
+                  // focus-project gesture (0008 REQ-015); the row keydown already target-guards.
                   return hasPane ? (
                     <div key={it.featureSlug} data-testid="decision-queue-item" tabIndex={0}
                       data-project-root={it.projectRoot} data-feature={it.featureSlug}
@@ -166,8 +176,11 @@ export function DecisionQueuePanel() {
                         if (e.target !== e.currentTarget) return
                         if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); focusProject(it.projectRoot) }
                       }}
-                      style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '3px 8px', cursor: 'pointer' }}>
-                      {body}
+                      style={{ display: 'flex', flexDirection: 'column', gap: 4, padding: '3px 8px', cursor: 'pointer' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        {body}
+                      </div>
+                      <OrkyEntryActions target={{ projectRoot: it.projectRoot, featureSlug: it.featureSlug, reason: it.status.reason }} />
                     </div>
                   ) : (
                     // Pane-less: the row itself is NON-interactive (no focus, no cursor, no hover —
@@ -176,15 +189,18 @@ export function DecisionQueuePanel() {
                     // AT-exposed by construction (REQ-010/REQ-014).
                     <div key={it.featureSlug} data-testid="decision-queue-item"
                       data-project-root={it.projectRoot} data-feature={it.featureSlug}
-                      style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '3px 8px' }}>
-                      {body}
-                      <button type="button" data-testid="decision-queue-open-terminal"
-                        data-project-root={it.projectRoot}
-                        title="Open a terminal at this project root"
-                        onClick={() => openTerminalAt(it.projectRoot)}
-                        style={{ flex: 'none', fontSize: 11 }}>
-                        open terminal here
-                      </button>
+                      style={{ display: 'flex', flexDirection: 'column', gap: 4, padding: '3px 8px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        {body}
+                        <button type="button" data-testid="decision-queue-open-terminal"
+                          data-project-root={it.projectRoot}
+                          title="Open a terminal at this project root"
+                          onClick={() => openTerminalAt(it.projectRoot)}
+                          style={{ flex: 'none', fontSize: 11 }}>
+                          open terminal here
+                        </button>
+                      </div>
+                      <OrkyEntryActions target={{ projectRoot: it.projectRoot, featureSlug: it.featureSlug, reason: it.status.reason }} />
                     </div>
                   )
                 })}

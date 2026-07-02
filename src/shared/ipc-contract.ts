@@ -182,7 +182,9 @@ export interface TermhallaApi {
   onRegistryRootChanged(cb: (root: string) => void): () => void
   // orkyAction:* (feature 0007) — the write-capable dispatch surface. Every mutation is performed by
   // invoking Orky's OWN CLIs server-side. First renderer consumer: feature 0012's quick-capture
-  // modal (submitWork only); the other three actions remain consumer-less until F8/F10.
+  // modal (submitWork only); resolveEscalation, recordHumanGate and driveStatus are consumed by
+  // feature 0008's queue entry actions (orky-entry-actions.tsx), with F10's OrkyPane as the next
+  // planned reuse of the same shared action layer.
   orkyResolveEscalation(req: ResolveEscalationRequest): Promise<OrkyActionResult>
   orkySubmitWork(req: SubmitWorkRequest): Promise<OrkyActionResult>
   orkyRecordHumanGate(req: RecordHumanGateRequest): Promise<OrkyActionResult>

@@ -1,0 +1,129 @@
+{
+  "REQ-001": {
+    "tasks": ["TASK-008", "TASK-010"],
+    "tests": ["TEST-597", "TEST-602", "TEST-607", "TEST-608", "TEST-619"],
+    "files": [
+      "src/renderer/components/orky-entry-actions.tsx",
+      "src/renderer/components/orky-entry-actions-core.ts",
+      "src/renderer/components/DecisionQueuePanel.tsx"
+    ]
+  },
+  "REQ-002": {
+    "tasks": ["TASK-003", "TASK-008"],
+    "tests": ["TEST-587", "TEST-601", "TEST-608", "TEST-611"],
+    "files": [
+      "src/renderer/components/orky-entry-actions.tsx",
+      "src/renderer/components/orky-entry-actions-core.ts",
+      "src/renderer/components/DecisionQueuePanel.tsx"
+    ]
+  },
+  "REQ-003": {
+    "tasks": ["TASK-002"],
+    "tests": ["TEST-588", "TEST-589", "TEST-590", "TEST-591", "TEST-608", "TEST-612", "TEST-622"],
+    "files": [
+      "src/renderer/components/orky-entry-actions.tsx",
+      "src/renderer/components/orky-entry-actions-core.ts"
+    ]
+  },
+  "REQ-004": {
+    "tasks": ["TASK-003", "TASK-007"],
+    "tests": ["TEST-592", "TEST-608", "TEST-611", "TEST-620", "TEST-621"],
+    "files": [
+      "src/renderer/components/orky-entry-actions.tsx",
+      "src/renderer/components/orky-entry-actions-core.ts"
+    ]
+  },
+  "REQ-005": {
+    "tasks": ["TASK-003", "TASK-004"],
+    "tests": ["TEST-593", "TEST-596", "TEST-604", "TEST-607", "TEST-608", "TEST-609"],
+    "files": [
+      "src/renderer/components/orky-entry-actions.tsx",
+      "src/renderer/components/orky-entry-actions-core.ts"
+    ]
+  },
+  "REQ-006": {
+    "tasks": ["TASK-003", "TASK-004", "TASK-010"],
+    "tests": ["TEST-599", "TEST-608", "TEST-617", "TEST-620"],
+    "files": [
+      "src/renderer/components/orky-entry-actions.tsx"
+    ]
+  },
+  "REQ-007": {
+    "tasks": ["TASK-001", "TASK-005", "TASK-007"],
+    "tests": ["TEST-584", "TEST-585", "TEST-586", "TEST-600", "TEST-608", "TEST-615"],
+    "files": [
+      "src/renderer/components/orky-entry-actions.tsx",
+      "src/renderer/components/orky-entry-actions-core.ts"
+    ]
+  },
+  "REQ-008": {
+    "tasks": ["TASK-005", "TASK-007"],
+    "tests": ["TEST-593", "TEST-608", "TEST-611", "TEST-618", "TEST-621", "TEST-622"],
+    "files": [
+      "src/renderer/components/orky-entry-actions.tsx",
+      "src/renderer/components/orky-entry-actions-core.ts"
+    ]
+  },
+  "REQ-009": {
+    "tasks": ["TASK-005", "TASK-007"],
+    "tests": ["TEST-594", "TEST-595", "TEST-596", "TEST-605"],
+    "files": [
+      "src/renderer/components/orky-entry-actions.tsx",
+      "src/renderer/components/orky-entry-actions-core.ts"
+    ]
+  },
+  "REQ-010": {
+    "tasks": ["TASK-006"],
+    "tests": ["TEST-586", "TEST-605", "TEST-623"],
+    "files": [
+      "src/renderer/components/orky-entry-actions.tsx",
+      "src/renderer/components/orky-entry-actions-core.ts"
+    ]
+  },
+  "REQ-011": {
+    "tasks": ["TASK-001", "TASK-007", "TASK-008", "TASK-010"],
+    "tests": ["TEST-591", "TEST-601", "TEST-602", "TEST-615"],
+    "files": [
+      "src/renderer/components/orky-entry-actions.tsx",
+      "src/renderer/components/orky-entry-actions-core.ts",
+      "src/renderer/components/DecisionQueuePanel.tsx"
+    ]
+  },
+  "REQ-012": {
+    "tasks": ["TASK-007", "TASK-008"],
+    "tests": ["TEST-606", "TEST-608", "TEST-616", "TEST-617", "TEST-618", "TEST-620"],
+    "files": [
+      "src/renderer/components/orky-entry-actions.tsx",
+      "src/renderer/components/DecisionQueuePanel.tsx"
+    ]
+  },
+  "REQ-013": {
+    "tasks": ["TASK-008", "TASK-009", "TASK-010", "TASK-011"],
+    "tests": ["TEST-598", "TEST-613", "TEST-614", "TEST-353", "TEST-366"],
+    "files": [
+      "tests/renderer/decision-queue-panel-structure.test.ts",
+      "tests/e2e/decision-queue.spec.ts",
+      "src/shared/ipc-contract.ts",
+      "docs/features/queue-answer-resume-actions.md",
+      "CLAUDE.md",
+      "CHANGELOG.md"
+    ]
+  },
+  "REQ-014": {
+    "tasks": ["TASK-004"],
+    "tests": ["TEST-604", "TEST-609", "TEST-619"],
+    "files": [
+      "src/renderer/components/orky-entry-actions.tsx",
+      "src/renderer/store.ts",
+      "src/renderer/store/types.ts"
+    ]
+  },
+  "REQ-015": {
+    "tasks": ["TASK-007", "TASK-008"],
+    "tests": ["TEST-603", "TEST-610", "TEST-366"],
+    "files": [
+      "src/renderer/components/orky-entry-actions.tsx",
+      "src/renderer/components/DecisionQueuePanel.tsx"
+    ]
+  }
+}

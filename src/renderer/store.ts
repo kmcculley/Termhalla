@@ -547,6 +547,19 @@ export const useStore = create<State>((set, get) => {
       commitPane(wsId, { kind: 'terminal', shellId, cwd: '', name: launch.title, launch }, firstTarget(ws), 'row')
     },
 
+    /** The NARROW resume-in-terminal composition (feature 0008, REQ-014 / FINDING-008): ONE
+     *  terminal pane at `cwd` running `launch`. Kind, shell and placement are fixed HERE — the
+     *  launchCommand-shaped pattern every pane-opening entry point follows; no capability-bearing
+     *  field rides through — and the F6 pane-less fallback creates a workspace when the window
+     *  has none. The raw pane-commit primitive stays store-internal (SliceDeps only). */
+    launchTerminalAt: (cwd, launch) => {
+      const wsId = get().activeId ?? get().newWorkspace('Workspace 1')
+      const ws = get().workspaces[wsId]
+      if (!ws) return
+      const shellId = defaultShellId(get())
+      commitPane(wsId, { kind: 'terminal', shellId, cwd, name: launch.title, launch }, firstTarget(ws), 'row')
+    },
+
     // ---- core: transient UI ----
     setPaletteOpen: (open) => set({ paletteOpen: open }),
     setBroadcastOpen: (open) => set({ broadcastOpen: open }),

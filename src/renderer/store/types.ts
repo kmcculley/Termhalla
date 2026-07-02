@@ -147,6 +147,12 @@ export interface State {
   envVault: EnvVaultState
   setEnvState: (s: EnvVaultState) => void
   launchCommand: (launch: TerminalLaunch) => void
+  /** The NARROW resume-in-terminal composition (feature 0008, REQ-014 / FINDING-008): opens ONE
+   *  terminal pane at `cwd` running `launch` — the pairing neither launchDir (cwd only) nor
+   *  launchCommand (launch only, cwd '') covers. Kind, shell and placement are fixed internally
+   *  (the launchCommand-shaped pattern); no capability-bearing field rides through. The raw
+   *  pane-commit primitive stays store-internal, threaded to slices via SliceDeps below. */
+  launchTerminalAt: (cwd: string, launch: TerminalLaunch) => void
   updatePaneConfig: (wsId: string, paneId: string, patch: Partial<Omit<EditorConfig, 'kind'> & Omit<ExplorerConfig, 'kind'> & Omit<TerminalConfig, 'kind'>>) => void
   registerEditorPane: (paneId: string) => void
   addEditor: (wsId: string, targetPaneId: string | null, dir: MosaicDirection, splitDir?: SplitDir4) => string
