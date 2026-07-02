@@ -1,0 +1,14 @@
+{
+  "projectRoot": "C:\\Users\\kevin\\AppData\\Local\\Temp\\orky-contract-fixture-NEjVWG",
+  "feature": ".orky\\features\\0001-golden",
+  "phase": "implement",
+  "lastTickAt": "2026-07-02T00:24:47.124Z",
+  "lastAction": "golden",
+  "runs": {
+    ".orky\\features\\0001-golden": {
+      "phase": "implement",
+      "lastTickAt": "2026-07-02T00:24:47.124Z",
+      "lastAction": "golden"
+    }
+  }
+}

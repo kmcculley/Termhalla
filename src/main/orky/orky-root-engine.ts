@@ -21,12 +21,16 @@ interface ConsumerSession { token: object; orkyDir: string }
 /** One shared watcher + debounced re-read per resolved `.orky/` root (REQ-014). The computed status is
  *  fanned out to every `onStatus` subscriber (regardless of which consumer triggered the read), so N
  *  consumers (panes AND the registry's persisted entries) in one project share ONE chokidar watcher and
- *  ONE file-read per event rather than N× amplification. */
+ *  ONE file-read per event rather than N× amplification. `gen` is the per-root re-read generation — a
+ *  monotonically increasing token every `reread` claims before its first await and re-checks after
+ *  every await, so an older, slower re-read overlapped by a newer one abandons instead of emitting
+ *  stale status LAST (the same session-identity race pattern the consumer slots already use). */
 interface Root {
   watcher: FSWatcher | null
   timer: ReturnType<typeof setTimeout> | null
   orkyDir: string
   consumers: Set<string>
+  gen: number
 }
 
 export interface OrkyRootEngineOpts {
@@ -93,7 +97,7 @@ export class OrkyRootEngine {
     this.consumerSessions.set(consumerId, sess) // claim BEFORE the first await (session-identity race pattern)
 
     let r = this.roots.get(orkyDir)
-    if (!r) { r = { watcher: null, timer: null, orkyDir, consumers: new Set() }; this.roots.set(orkyDir, r) }
+    if (!r) { r = { watcher: null, timer: null, orkyDir, consumers: new Set(), gen: 0 }; this.roots.set(orkyDir, r) }
     r.consumers.add(consumerId)
 
     await this.reread(orkyDir) // immediate read of the current on-disk state, fanned to all subscribers
@@ -157,6 +161,9 @@ export class OrkyRootEngine {
     if (!r) return
     if (r.timer) clearTimeout(r.timer)
     r.timer = setTimeout(() => { void this.reread(orkyDir) }, this.debounceMs)
+    // Unref'd (mirrors StatusEngine's interval): a pending debounce never keeps the Electron main
+    // process alive on its own.
+    ;(r.timer as { unref?: () => void }).unref?.()
   }
 
   private emitStatus(orkyDir: string, status: OrkyPaneStatus | null): void {
@@ -164,21 +171,24 @@ export class OrkyRootEngine {
   }
 
   /** Read + parse active.json and every feature's state/findings for one root, map to a roll-up, and
-   *  fan it out to every `onStatus` subscriber. Re-checks the root identity after every await so a
-   *  superseding removeConsumer/dispose wins cleanly. A root whose `orkyDir` does not exist on disk at
-   *  all surfaces `status: null` (REQ-018) instead of an empty-but-valid roll-up. */
+   *  fan it out to every `onStatus` subscriber. Re-checks the root identity AND the re-read generation
+   *  after every await so a superseding removeConsumer/dispose — or a NEWER overlapping re-read of the
+   *  same root (the walk covers up to `MAX_FEATURE_DIRS` dirs, so an older read can resolve after a
+   *  newer one) — wins cleanly, never emitting stale status last. A root whose `orkyDir` does not
+   *  exist on disk at all surfaces `status: null` (REQ-018) instead of an empty-but-valid roll-up. */
   private async reread(orkyDir: string): Promise<void> {
     const r = this.roots.get(orkyDir)
     if (!r) return
+    const gen = ++r.gen // claim the generation BEFORE the first await (session-identity race pattern)
     const now = this.now()
 
     let dirExists = false
     try { dirExists = (await stat(orkyDir)).isDirectory() } catch { dirExists = false }
-    if (this.roots.get(orkyDir) !== r) return
+    if (this.roots.get(orkyDir) !== r || r.gen !== gen) return
     if (!dirExists) { this.emitStatus(orkyDir, null); return }
 
     const active = await this.readJson(join(orkyDir, 'active.json'), { warnOnFail: false, sizeCap: true })
-    if (this.roots.get(orkyDir) !== r) return
+    if (this.roots.get(orkyDir) !== r || r.gen !== gen) return
     const activeSlug = activeFeatureSlug(active)
     const activePhase = activeFeaturePhase(active)
     const lastTickAt = activeLastTick(active)
@@ -186,7 +196,7 @@ export class OrkyRootEngine {
     let slugs: string[] = []
     try { slugs = await readdir(join(orkyDir, 'features')) }
     catch { slugs = [] }
-    if (this.roots.get(orkyDir) !== r) return
+    if (this.roots.get(orkyDir) !== r || r.gen !== gen) return
     if (slugs.length > MAX_FEATURE_DIRS) {
       console.warn(`[orky] features/ has ${slugs.length} entries; capping at ${MAX_FEATURE_DIRS} (REQ-015)`)
       slugs = slugs.slice(0, MAX_FEATURE_DIRS)
@@ -199,14 +209,14 @@ export class OrkyRootEngine {
       // outside the project — skip any symlinked entry rather than following it.
       let isLink = false
       try { isLink = (await lstat(fdir)).isSymbolicLink() } catch { continue }
-      if (this.roots.get(orkyDir) !== r) return
+      if (this.roots.get(orkyDir) !== r || r.gen !== gen) return
       if (isLink) { console.warn(`[orky] skipping symlinked feature dir: ${fdir} (REQ-015)`); continue }
 
       const rawState = await this.readJson(join(fdir, 'state.json'), { warnOnFail: true, sizeCap: true })
-      if (this.roots.get(orkyDir) !== r) return
+      if (this.roots.get(orkyDir) !== r || r.gen !== gen) return
       if (rawState === undefined) continue // unreadable / malformed / oversized → skipped, others still report
       const rawFindings = await this.readJson(join(fdir, 'findings.json'), { warnOnFail: false, sizeCap: true })
-      if (this.roots.get(orkyDir) !== r) return
+      if (this.roots.get(orkyDir) !== r || r.gen !== gen) return
 
       const raw = normalizeFeatureRaw(rawState)
       const findings = normalizeFindings(rawFindings)
@@ -218,7 +228,7 @@ export class OrkyRootEngine {
         now, this.thresholdMs
       ))
     }
-    if (this.roots.get(orkyDir) !== r) return
+    if (this.roots.get(orkyDir) !== r || r.gen !== gen) return
     const status = orkyPaneStatus(features)
     this.emitStatus(orkyDir, status)
   }

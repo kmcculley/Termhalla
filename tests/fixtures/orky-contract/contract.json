@@ -1,0 +1,100 @@
+{
+  "contract_version": 1,
+  "phases": [
+    "brainstorm",
+    "spec",
+    "plan",
+    "tests",
+    "implement",
+    "review",
+    "doc-sync",
+    "human-review"
+  ],
+  "phase_order": [
+    "intake",
+    "brainstorm",
+    "spec",
+    "plan",
+    "tests",
+    "implement",
+    "review",
+    "doc-sync",
+    "human"
+  ],
+  "human_gates": [
+    "brainstorm",
+    "human-review"
+  ],
+  "drive_actions": [
+    "await-human",
+    "run-phase",
+    "retry-phase",
+    "loop-back",
+    "escalate",
+    "done"
+  ],
+  "blocking_severities": [
+    "CRITICAL",
+    "HIGH"
+  ],
+  "severity_rank": {
+    "INFO": 0,
+    "LOW": 1,
+    "MEDIUM": 2,
+    "HIGH": 3,
+    "CRITICAL": 4
+  },
+  "finding_normalization": {
+    "status": "compare case-insensitively; canonical form is lowercase (e.g. \"open\")",
+    "severity": "compare case-insensitively; canonical form is UPPERCASE (e.g. \"HIGH\")"
+  },
+  "osc": {
+    "code": 9999,
+    "v": 1,
+    "terminator": "BEL",
+    "max_payload_bytes": 4096,
+    "fields": [
+      "v",
+      "feature",
+      "phase",
+      "gate",
+      "needsHuman",
+      "reason",
+      "action"
+    ]
+  },
+  "active": {
+    "file": ".orky/active.json",
+    "fields": [
+      "feature",
+      "projectRoot",
+      "phase",
+      "lastTickAt",
+      "lastAction",
+      "runs"
+    ],
+    "runs": "map keyed by feature dir: { phase, lastTickAt, lastAction } per concurrent run"
+  },
+  "state": {
+    "gate_fields": [
+      "passed",
+      "at",
+      "tokens",
+      "evidence",
+      "external",
+      "override"
+    ],
+    "escalation_fields": [
+      "id",
+      "phase",
+      "reason",
+      "kind",
+      "finding",
+      "status",
+      "at",
+      "decision",
+      "resolvedAt"
+    ],
+    "escalation_open_status": "open"
+  }
+}

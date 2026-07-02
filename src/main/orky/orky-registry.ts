@@ -99,20 +99,34 @@ export class OrkyRegistry {
       this.paneRoots.set(paneId, canonical)
       void this.engine.addConsumer(`pane:${paneId}`, join(canonical, '.orky'))
     }
+    // Prune the departed root's cached status AFTER the (possible) re-add above, so a pane merely
+    // re-resolving the SAME root keeps its live status; a root that genuinely left both membership
+    // sources drops its `statusByRoot` entry instead of leaking it for the session's lifetime.
+    if (prev !== undefined) this.pruneStatus(prev)
     this.recompute()
   }
 
   /** Validates (TASK-003), then on success idempotently adds the normalized root to the persisted list,
    *  persists it, begins tracking it, and recomputes + emits. NEVER throws; on failure the list is left
-   *  unchanged (REQ-009/REQ-016). */
+   *  unchanged (REQ-009/REQ-016).
+   *
+   *  Persist-FIRST discipline: the next list is saved to the store BEFORE `this.persistedRoots` is
+   *  touched, and a rejected save (disk full / EPERM) returns a structured `{ok:false}` result with
+   *  memory unchanged — never a memory/disk divergence, and never a rejection propagated through
+   *  register-registry.ts to the renderer (which would contradict the never-throws contract above). A
+   *  later retry of the same root starts clean instead of no-op'ing on poisoned in-memory state. */
   async addRoot(input: unknown): Promise<RegistryMutationResult> {
     return this.exclusive(async () => {
       const v = await validateRegistryRoot(input)
       if (!v.ok) return { ok: false, roots: [...this.persistedRoots], error: v.error }
       const root = this.resolveCanonical(v.root)
       if (!this.persistedRoots.includes(root)) {
-        this.persistedRoots = sortUnique([...this.persistedRoots, root])
-        await this.store.save(this.persistedRoots)
+        const next = sortUnique([...this.persistedRoots, root])
+        try { await this.store.save(next) }
+        catch (e) {
+          return { ok: false, roots: [...this.persistedRoots], error: `failed to persist the root list: ${(e as Error).message}` }
+        }
+        this.persistedRoots = next
         await this.engine.addConsumer(`persisted:${root}`, join(root, '.orky'))
         this.recompute()
       }
@@ -128,16 +142,24 @@ export class OrkyRegistry {
    *  Routed through `resolveCanonical` (FINDING-SEC-010) — the SAME case/slash-folding lookup
    *  `addRoot`/`trackPaneRoot` use — so a `removeRoot` call naming a case/slash-divergent but physically
    *  identical spelling of an already-tracked root still finds and removes it, instead of silently
-   *  no-op'ing (`{ok:true}`, REQ-010's "MUST remove" otherwise unmet) while the root stays watched. */
+   *  no-op'ing (`{ok:true}`, REQ-010's "MUST remove" otherwise unmet) while the root stays watched.
+   *
+   *  Persist-FIRST, same as `addRoot`: the shrunk list is saved BEFORE memory is touched; a rejected
+   *  save returns `{ok:false}` with the root surviving in BOTH memory and store — never diverged. */
   async removeRoot(input: unknown): Promise<RegistryMutationResult> {
     return this.exclusive(async () => {
       if (typeof input !== 'string') return { ok: true, roots: [...this.persistedRoots] }
       let normalized: string
       try { normalized = this.resolveCanonical(resolve(input)) } catch { return { ok: true, roots: [...this.persistedRoots] } }
       if (!this.persistedRoots.includes(normalized)) return { ok: true, roots: [...this.persistedRoots] }
-      this.persistedRoots = this.persistedRoots.filter(r => r !== normalized)
-      await this.store.save(this.persistedRoots)
+      const next = this.persistedRoots.filter(r => r !== normalized)
+      try { await this.store.save(next) }
+      catch (e) {
+        return { ok: false, roots: [...this.persistedRoots], error: `failed to persist the root list: ${(e as Error).message}` }
+      }
+      this.persistedRoots = next
       this.engine.removeConsumer(`persisted:${normalized}`)
+      this.pruneStatus(normalized)
       this.recompute()
       return { ok: true, roots: [...this.persistedRoots] }
     })
@@ -189,6 +211,17 @@ export class OrkyRegistry {
       if (normalizeProjectRoot(existing) === key) return existing
     }
     return resolve(root)
+  }
+
+  /** Drop a root's cached engine status once it has left BOTH membership sources (no pane consumer AND
+   *  not persisted). Without this, `statusByRoot` only ever grows — every engine emit `set`s an entry,
+   *  nothing ever deleted — an unbounded leak over a long session of opening/closing projects. A root
+   *  still held by the OTHER source keeps its status (a `removeRoot` while a pane is open must not
+   *  blank the surviving `source:'pane'` entry). */
+  private pruneStatus(root: string): void {
+    if (this.persistedRoots.includes(root)) return
+    for (const r of this.paneRoots.values()) if (r === root) return
+    this.statusByRoot.delete(root)
   }
 
   /** Serializes mutating calls (addRoot/removeRoot) through a single chain so a concurrent add+remove

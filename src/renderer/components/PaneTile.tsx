@@ -16,15 +16,9 @@ import { RunCommandsMenu } from './RunCommandsMenu'
 import { SplitMenu } from './SplitMenu'
 import { OrkyPopover } from './OrkyPopover'
 import { setTileSize, clearTileSize } from './pane-geometry'
-import type { OrkyKind } from '@shared/types'
+import { paneBorderStatus } from './pane-status'
 
 export type PaneMenu = 'proc' | 'cwd' | 'schedule' | 'git' | 'run' | 'split' | 'orky'
-
-/** Map an Orky run's kind onto the byte-status border model so the Orky precedence (REQ-014) reuses
- *  the existing `term-busy` / `term-needs-input` border treatment. `done`/`cleared` read as `idle`. */
-const ORKY_KIND_TO_TERM: Record<OrkyKind, 'idle' | 'busy' | 'needs-input'> = {
-  busy: 'busy', 'needs-input': 'needs-input', idle: 'idle', done: 'idle', cleared: 'idle'
-}
 
 const SHELL_CHIP_LABEL: Record<string, string> = {
   'Windows PowerShell': 'pwsh',
@@ -63,10 +57,11 @@ export function PaneTile({ wsId, paneId, path }: { wsId: string; paneId: string;
   // Orky precedence (REQ-014): for a bound Orky run the Orky-derived kind drives the border + badge,
   // taking precedence over the byte-derived (OSC 133) status; the byte status itself is NOT recomputed
   // (baseline REQ-004 untouched) — this is a pure render-time composition. Falls back to byte-status
-  // when the pane is not a bound Orky run (cleared). The failed flag maps to failure styling (REQ-006).
+  // when the pane is not a bound Orky run (cleared) OR when the roll-up is the non-null IDLE shape
+  // (`chipFeature: null` — the same condition that hides the chip; see pane-status.ts), so an idle
+  // Orky project never masks a real busy/needs-input border or a real failure treatment (REQ-006).
   const byteState = status?.state ?? 'idle'
-  const state = orky ? ORKY_KIND_TO_TERM[orky.kind] : byteState
-  const failed = orky ? orky.failed : status?.lastExit === 'failure'
+  const { state, failed } = paneBorderStatus(orky, byteState, status?.lastExit)
   const statusClass = alerts.border ? `term-status term-${state}${failed ? ' term-failure' : ''}` : ''
   const needsInput = state === 'needs-input'
   const baseName = pane?.config.name ?? pane?.config.kind ?? 'Pane'

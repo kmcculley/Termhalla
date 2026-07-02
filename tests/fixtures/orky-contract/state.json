@@ -1,0 +1,29 @@
+{
+  "feature": "0001-golden",
+  "phase": "tests",
+  "gates": {
+    "brainstorm": {
+      "passed": true,
+      "at": "2026-07-02T00:24:46.896Z",
+      "evidence": "golden fixture",
+      "external": true
+    },
+    "tests": {
+      "passed": true,
+      "at": "2026-07-02T00:24:47.076Z",
+      "tokens": [
+        {
+          "token": "tests-red",
+          "pass": true,
+          "evidence": "tests are RED (exit 1) — freeze snapshot captured"
+        }
+      ]
+    }
+  },
+  "iterations": {},
+  "escalations": [],
+  "concerns": [],
+  "attempts": {
+    "tests": 0
+  }
+}

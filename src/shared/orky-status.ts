@@ -126,14 +126,18 @@ export function gateFrontier(gates: unknown): OrkyPhase | null {
 
 // ── Open-blocking findings (REQ-002) ──────────────────────────────────────────────────────────────
 const BLOCKING_SEVERITY = new Set(['CRITICAL', 'HIGH'])
-/** Count open findings that are CRITICAL/HIGH OR a contract violation. Total; no silent capping. */
+/** Count open findings that are CRITICAL/HIGH OR a contract violation. Total; no silent capping.
+ *  `status`/`severity` are compared CASE-INSENSITIVELY, matching the producer's own normalization
+ *  (the gatekeeper's `contract.finding_normalization`: status canonical-lowercase, severity
+ *  canonical-UPPERCASE, both compared case-insensitively) — a mixed-case finding ("Open"/"high")
+ *  from an older or hand-edited ledger still counts instead of silently dropping out of `●k open`. */
 export function openBlockingCount(findings: OrkyFinding[] | undefined | null): number {
   if (!Array.isArray(findings)) return 0
   let n = 0
   for (const f of findings) {
     if (!isObject(f)) continue
-    if (f.status !== 'open') continue
-    if (BLOCKING_SEVERITY.has(String(f.severity)) || f.contract_violation === true) n++
+    if (String(f.status).toLowerCase() !== 'open') continue
+    if (BLOCKING_SEVERITY.has(String(f.severity).toUpperCase()) || f.contract_violation === true) n++
   }
   return n
 }

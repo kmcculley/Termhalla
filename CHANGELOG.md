@@ -7,6 +7,14 @@ All notable changes to Termhalla are recorded here. The format follows
 ## [Unreleased]
 
 ### Added
+- **Golden Orky-contract fixtures (real producer output, committed).** `tests/fixtures/orky-contract/`
+  now holds artifacts the REAL Orky producer emitted — `gatekeeper contract`'s machine-readable
+  contract, a genuine `state.json`/`active.json` driven through the real gatekeeper, and a raw OSC
+  heartbeat byte sequence — regenerated via `tools/generate-orky-contract-fixtures.mjs` (producer path
+  overridable with `ORKY_PLUGIN_DIR`) and committed so the suite runs green without Orky present. A
+  new contract test pins `ORKY_PHASES`, the OSC code/prefix and payload byte cap, and the shared-mapper
+  normalization of the real artifacts against them — the test that finally catches phase-list drift
+  whenever the fixtures are refreshed against a newer Orky.
 - **Orky action-dispatch substrate (first write-capable IPC surface).** A new main-process
   `OrkyActionDispatcher` service exposes exactly four actions over four new `orkyAction:*` channels —
   `resolveEscalation`, `submitWork`, `recordHumanGate`, `driveStatus` — Termhalla's first
@@ -107,6 +115,32 @@ All notable changes to Termhalla are recorded here. The format follows
   failure feedback is never silenced.
 
 ### Fixed
+- **Idle Orky roll-up no longer masks the pane's real border/failure treatment.** `orkyPaneStatus([])`
+  returns a non-null idle roll-up (`chipFeature: null`) whenever a project has no popover-eligible
+  features, and PaneTile keyed the border precedence on the roll-up merely being **present** — so a
+  terminal sitting in an idle Orky project lost its real busy/needs-input border and its
+  `lastExit: 'failure'` accent while the chip correctly hid itself. The precedence now keys on the
+  SAME `chipFeature` condition the chip uses (extracted as the pure `paneBorderStatus` helper); an
+  idle roll-up falls through to the byte-derived status.
+- **Mixed-case Orky findings count toward `●k open`.** `openBlockingCount` compared finding
+  `status`/`severity` exact-case, but the producer compares case-insensitively (canonical
+  `open`/`HIGH`, per `gatekeeper contract`'s `finding_normalization`). Termhalla now folds case the
+  same way, so an `"Open"`/`"Critical"` finding no longer silently drops out of the chip count.
+- **A stale overlapped `.orky/` re-read can no longer clobber a newer one.** Two overlapping re-reads
+  of the SAME root had no ordering guard — an older, slower read (the walk covers up to 200 feature
+  dirs) could resolve after a newer one and emit stale status last. `OrkyRootEngine.reread` now stamps
+  a per-root, monotonically increasing generation token (claimed before the first await, re-checked
+  after every await — the existing session-identity race pattern) and abandons when superseded. The
+  300ms debounce timer is also `unref()`'d (mirroring `StatusEngine`) so a pending re-read never keeps
+  the Electron main process alive.
+- **Registry mutations persist FIRST and honor the never-throws contract.** `registry:addRoot` /
+  `registry:removeRoot` mutated the in-memory persisted list **before** `store.save(...)`, so a save
+  rejection (disk full / EPERM) left memory diverged from disk and propagated a rejection through the
+  IPC registrar to the renderer — contradicting the documented "NEVER throws; on failure the list is
+  left unchanged" contract. The next list is now saved before memory is touched; a failed save
+  resolves to a structured `{ok:false, …}` result with the list unchanged in both places, and a later
+  retry of the same root starts clean. The registry also **prunes** a root's cached status when it
+  leaves both membership sources (`statusByRoot` previously only ever grew over a long session).
 - **Restoring a minimized Claude pane no longer re-issues `claude --resume`.** Minimizing then
   restoring a terminal running Claude Code — and any other re-adoption of a still-running PTY (a
   same-window cross-workspace move or a multi-window handoff) — kept the live session running but

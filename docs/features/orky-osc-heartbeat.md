@@ -147,6 +147,13 @@ Termhalla parses it here; Orky emits it; the two sides can silently drift over t
   against THIS embedded contract; none of them exercise a live Orky process. Tests therefore verify only
   that the Termhalla code matches the contract as documented here and in `02-spec.md` — not that the real
   Orky CLI matches it.
+- **Golden-fixture backstop:** `tests/shared/orky-contract-golden.test.ts` additionally asserts the
+  parser against a **committed snapshot of real producer output** — `tests/fixtures/orky-contract/`
+  holds `gatekeeper contract`'s machine-readable contract (OSC code, `max_payload_bytes`, the phase
+  list) and a raw `osc-heartbeat` byte sequence captured from the real CLI, regenerated with
+  `tools/generate-orky-contract-fixtures.mjs` (producer path overridable via `ORKY_PLUGIN_DIR`). The
+  test itself still spawns nothing and runs green without Orky present; refreshing the fixtures
+  against a newer Orky is what turns contract drift into a red test.
 
 ## Architecture
 

@@ -11,14 +11,20 @@ ever modifying it.
 - **Toolbar Orky chip** — `feature · phase · gate N/M · ●k open`, where `feature` is the slug, `phase`
   is the current pipeline phase, `N/M` is gates-passed / total gates, and `k` is the count of open
   *blocking* findings (CRITICAL/HIGH or contract violations). The `●k open` segment is omitted at
-  `k === 0`; the count is shown verbatim (never silently capped).
+  `k === 0`; the count is shown verbatim (never silently capped). Finding `status`/`severity` are
+  compared **case-insensitively**, matching the producer's own normalization (canonical `open` /
+  `HIGH`, per `gatekeeper contract`'s `finding_normalization`) — a mixed-case finding still counts.
 - **Detail popover** — clicking the chip opens a `<body>`-portalled popover (`orky-menu`) listing every
   non-idle feature, ranked most-needs-you-first, each with its phase, gate progress, open count, and an
   actionable "needs you" reason.
 - **Border precedence** — for a bound Orky run, the Orky-derived status takes precedence over the
   byte-derived (OSC 133) terminal status for the pane border and the workspace tab badge. The
   byte-status computation itself is unchanged; this is a render-time composition. The complementary
-  ✨ AI chip + context-% remain visible.
+  ✨ AI chip + context-% remain visible. The precedence keys on the SAME `chipFeature` condition that
+  shows the chip — an **idle** roll-up (the non-null `chipFeature: null` shape a project with no
+  popover-eligible features produces) falls through to the byte-derived border and `lastExit`
+  failure treatment instead of masking them (`paneBorderStatus` in
+  `src/renderer/components/pane-status.ts`).
 - **Tab badge roll-up** — a workspace tab lights its 🔔 needs-you badge if any Orky pane has a feature
   that needs a human, folded through the same `resolveAlerts(cfg.alerts).tabBadge` opt-in that gates
   terminal needs-input. The opt-in governs only the badge summary — it never hides the pane's Orky chip
@@ -64,6 +70,7 @@ pipeline leaves `state.json.phase` at `doc-sync` and records `human-review` only
 | Renderer watch reconciler | `src/renderer/components/OrkyWatcher.tsx` |
 | Per-pane store state | `src/renderer/store/runtime-slice.ts` (`orky` / `setOrky`) |
 | Toolbar chip + popover | `src/renderer/components/PaneToolbar.tsx`, `OrkyPopover.tsx`, `PaneTile.tsx` |
+| Border precedence (pure, chip-condition gated) | `src/renderer/components/pane-status.ts` (`paneBorderStatus`) |
 | Tab-badge roll-up | `src/renderer/components/tab-badge.ts` |
 
 ### The watcher
@@ -106,7 +113,10 @@ only; a later feature (F6) is the first consumer.
   `OrkyTracker` facade and the new `OrkyRegistry` — constructed ONCE by the composition root
   (`services.ts`). A root tracked by N panes AND the persisted explicit list below still gets exactly
   **one** chokidar watcher + one debounced re-read process-wide; this is engine-wide now, not merely
-  per-`OrkyTracker`-instance.
+  per-`OrkyTracker`-instance. Re-reads are **generation-guarded** per root (a monotonically increasing
+  token claimed before the first await, re-checked after every await — the session-identity race
+  pattern), so a stale overlapped re-read abandons instead of emitting after a newer one; the debounce
+  timer is `unref()`'d so a pending re-read never keeps the main process alive.
 - **`OrkyRegistry`** (`src/main/orky/orky-registry.ts`) is the cross-project aggregator. Its membership is
   the **union** of (a) every currently-open pane's resolved `.orky/` root (ephemeral — fed by the SAME
   `OrkyTracker.watch()`/`unwatch()` resolution via `registerOrky`'s `onPaneRoot` hook, not a duplicate
@@ -120,7 +130,11 @@ only; a later feature (F6) is the first consumer.
   **complete** current `OrkyRegistrySnapshot` on every membership/status change, never a diff),
   `registry:current` (pull the current snapshot), `registry:roots` (pull the persisted list only),
   `registry:addRoot` / `registry:removeRoot` (mutate the persisted list; validated, idempotent, never
-  throw). See `src/shared/ipc-contract.ts`.
+  throw). Mutations are **persist-first**: the next list is saved to disk before memory is touched, so
+  a rejected save (disk full / EPERM) resolves to a structured `{ok:false, …}` result with memory and
+  disk still agreeing — never a rejection through the registrar. A root that leaves both membership
+  sources also has its cached status pruned (the per-root status map never grows unbounded). See
+  `src/shared/ipc-contract.ts`.
 - **Persistence** — a new, self-versioned `orky-registry.json` under Electron `userData`
   (`src/main/persistence/orky-registry-store.ts`), shape `{ version: 1, roots: string[] }`, normalized on
   load/write and written via the shared `atomicWrite` helper (temp-then-rename). Its `version` is
@@ -168,6 +182,14 @@ differences a future maintainer re-syncing the mirror MUST NOT undo:
   `human-review` here — renaming it back to `human` would zero `gateN`'s match on the recorded key.
 
 So a re-sync MUST be against `DRIVER_WORK_PHASES` + the recorded gate keys, **not** `PHASE_ORDER`. The
-tests verify only that the code matches this embedded list — they cannot detect drift from Orky's *real*
-pipeline; updating `ORKY_PHASES` is a manual data-update follow-up. `human-review` is a real, final gate
-and counts toward `M`.
+unit tests verify only that the code matches this embedded list — they cannot detect *live* drift from
+Orky's real pipeline; updating `ORKY_PHASES` is a manual data-update follow-up. `human-review` is a
+real, final gate and counts toward `M`.
+
+**Golden-fixture backstop:** `tests/shared/orky-contract-golden.test.ts` asserts `ORKY_PHASES` (plus
+the OSC code/prefix and payload byte cap) against a **committed snapshot of real producer output** —
+`tests/fixtures/orky-contract/` holds `gatekeeper contract`'s machine-readable contract, a genuine
+`state.json`/`active.json`, and a raw OSC heartbeat byte sequence, regenerated with
+`tools/generate-orky-contract-fixtures.mjs` (producer path overridable via `ORKY_PLUGIN_DIR`). It runs
+green without Orky present; refreshing the fixtures against a newer Orky is what surfaces phase-list
+drift as a red test — the manual re-sync above now has a mechanical check.
