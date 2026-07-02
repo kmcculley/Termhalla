@@ -1,7 +1,9 @@
-import { useEffect, useMemo, useRef } from 'react'
+import { useMemo, useRef } from 'react'
 import { useStore } from '../store'
 import { caseFoldFromPlatform, matchPaneRootFromCandidates, selectMruPane, selectPaneCandidates } from '@shared/decision-queue'
 import { requestPaneFocus } from './terminal-registry'
+import { useRegistryLoadState } from './use-registry-load-state'
+import { useOpenFocusRestore } from './use-open-focus-restore'
 
 /** Right-side Orky decision-queue drawer (feature 0006): a window-chrome sibling of the notes
  *  drawer, NOT a mosaic pane kind (REQ-001). Renders the cross-project needs-a-human-now queue off
@@ -10,8 +12,9 @@ import { requestPaneFocus } from './terminal-registry'
  *  Strictly read-only: clicking an item focuses a matching pane; the pane-less fallback spawns a
  *  terminal at the project root via the existing launchDir path (REQ-009/REQ-010/REQ-017). */
 export function DecisionQueuePanel() {
-  const registrySnapshot = useStore(s => s.registrySnapshot)
-  const registryError = useStore(s => s.registryError)
+  // The shared load-state derivation (feature 0009, FINDING-019): loading/failed come from the ONE
+  // exported rule, never a per-component restatement of the slice's derived-loading contract.
+  const { registrySnapshot, registryError, loading, failed } = useRegistryLoadState()
   const groups = useStore(s => s.queueGroups())
   const setQueueOpen = useStore(s => s.setQueueOpen)
   const workspaces = useStore(s => s.workspaces)
@@ -31,18 +34,7 @@ export function DecisionQueuePanel() {
   // the drawer stays open; an unconditional restore would later yank focus away from that pane,
   // splitting the visual focus indicator from where keystrokes land (FINDING-023).
   const closeRef = useRef<HTMLButtonElement>(null)
-  useEffect(() => {
-    const prev = document.activeElement instanceof HTMLElement ? document.activeElement : null
-    closeRef.current?.focus()
-    return () => {
-      const collapsed = document.activeElement === null || document.activeElement === document.body
-      if (!collapsed) return // focus is somewhere intentional (e.g. the pane the user just focused)
-      const target = prev && document.contains(prev)
-        ? prev
-        : document.querySelector<HTMLElement>('[data-testid="orky-queue-toggle"]')
-      target?.focus()
-    }
-  }, [])
+  useOpenFocusRestore(closeRef, '[data-testid="orky-queue-toggle"]')
 
   // Fold mode for the pane↔root matcher (REQ-009 / FINDING-003): derived ONCE from the DOM-standard
   // navigator global — the one platform signal that exists in the contextIsolated main world.
@@ -105,9 +97,6 @@ export function DecisionQueuePanel() {
     if (!useStore.getState().activeId) newWorkspace('Workspace 1')
     launchDir(projectRoot)
   }
-
-  const loading = registrySnapshot === null && registryError === null
-  const failed = registrySnapshot === null && registryError !== null
 
   return (
     <div data-testid="decision-queue-panel" role="complementary" aria-label="Orky decision queue"

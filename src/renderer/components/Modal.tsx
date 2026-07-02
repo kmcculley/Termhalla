@@ -58,12 +58,20 @@ export function Modal({ onClose, align = 'center', z = Z.dialog, backdropTestId,
   // dialog closes to open another (e.g. command palette → SSH form), both unmount/mount in the same
   // commit; refocusing the terminal here would steal focus from the new dialog's autoFocus and leave
   // the user unable to type into it. So count open modals and defer the refocus to a microtask,
-  // firing only if no overlay remains by then.
+  // firing only if no overlay remains by then — and ONLY if focus actually COLLAPSED out of the
+  // removed overlay (activeElement fell to body/null). An overlay that deliberately restored focus
+  // on close (the OrkyRootPicker's CONV-020 restore to its opener, the split compass's trigger
+  // refocus) must never have it yanked into a terminal a microtask later (feature 0009,
+  // FINDING-026) — the same collapsed-focus rule the restoring surfaces themselves use.
   useEffect(() => {
     openModals++
     return () => {
       openModals--
-      void Promise.resolve().then(() => { if (openModals === 0) useStore.getState().refocusActivePane() })
+      void Promise.resolve().then(() => {
+        if (openModals !== 0) return
+        const el = document.activeElement
+        if (el === null || el === document.body) useStore.getState().refocusActivePane()
+      })
     }
   }, [])
   const overlay: CSSProperties = {

@@ -26,10 +26,15 @@ import type { Send, Disposer } from './types'
  *  with the `current`/`roots` handlers' own "never leak" rule above) so the caller can distinguish a
  *  rejected sender from a validation failure inside `OrkyRegistry` itself.
  *
- *  The returned disposer removes all four handlers and unsubscribes `onSnapshot` but deliberately does
- *  NOT call `registry.dispose()` — the SHARED `OrkyRootEngine`/`OrkyRegistry` lifecycle is owned ONCE by
- *  the composition root (also used by `registerOrky`), never duplicated across registrars (plan risk
- *  note #3). */
+ *  Feature 0009 extends this registrar with the two read-domain surfaces of the native OrkyPane:
+ *  the `registry:detail` pull (member-roots-only, validated inside `OrkyRegistry.detail`) and the
+ *  `registry:rootChanged` push (a bare project-root string per completed engine re-read — the
+ *  detail view's currency mechanism). No other channel joins here.
+ *
+ *  The returned disposer removes all five handlers and unsubscribes `onSnapshot`/`onRootChanged` but
+ *  deliberately does NOT call `registry.dispose()` — the SHARED `OrkyRootEngine`/`OrkyRegistry`
+ *  lifecycle is owned ONCE by the composition root (also used by `registerOrky`), never duplicated
+ *  across registrars (plan risk note #3). */
 export function registerRegistry(
   registry: OrkyRegistry,
   send: Send,
@@ -58,13 +63,36 @@ export function registerRegistry(
     }
     return registry.removeRoot(root)
   })
+  // registry:detail (feature 0009, REQ-006): the read-only per-root detail PULL. The registrar
+  // passes the RAW (possibly malformed) argument straight through — membership/type validation
+  // lives inside OrkyRegistry.detail (the addRoot/removeRoot precedent). An unknown sender gets the
+  // STRUCTURED unknown-sender rejection and the registry is never consulted (no filesystem read is
+  // performed), never a throw. Pull-only: nothing is ever broadcast on this channel.
+  ipcMain.handle(CH.registryDetail, (e: IpcMainInvokeEvent, root: unknown) => {
+    if (!isKnownWindowSender(e.sender)) {
+      return {
+        ok: false,
+        root: typeof root === 'string' ? root : String(root),
+        error: 'unknown sender: this window is not recognized by the window manager, so the Orky detail read was refused',
+        errorKind: 'unknown-sender'
+      }
+    }
+    return registry.detail(root)
+  })
   const unsubscribe = registry.onSnapshot((snapshot) => send(CH.registryStatus, snapshot))
+  // registry:rootChanged (feature 0009, REQ-022): every completed engine re-read of a root
+  // broadcasts the BARE project-root string app-globally — the OrkyPane detail view's currency
+  // mechanism. Rides OrkyRegistry's existing engine subscription (no new engine consumer); wired
+  // exactly like the onSnapshot line above and unsubscribed in the same disposer.
+  const unsubscribeRootChanged = registry.onRootChanged((root) => send(CH.registryRootChanged, root))
 
   return () => {
     ipcMain.removeHandler(CH.registryCurrent)
     ipcMain.removeHandler(CH.registryRoots)
     ipcMain.removeHandler(CH.registryAddRoot)
     ipcMain.removeHandler(CH.registryRemoveRoot)
+    ipcMain.removeHandler(CH.registryDetail)
     unsubscribe()
+    unsubscribeRootChanged()
   }
 }

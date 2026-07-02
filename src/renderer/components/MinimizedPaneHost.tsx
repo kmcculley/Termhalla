@@ -2,6 +2,7 @@ import { useStore } from '../store'
 import { TerminalPane } from './TerminalPane'
 import { EditorPane } from './EditorPane'
 import { ExplorerPane } from './ExplorerPane'
+import { OrkyPane } from './OrkyPane'
 import { getTileSize } from './pane-geometry'
 
 /**
@@ -40,6 +41,9 @@ export function MinimizedPaneHost({ wsId, paneId }: { wsId: string; paneId: stri
       {pane.config.kind === 'terminal' && <TerminalPane paneId={paneId} wsId={wsId} config={pane.config} />}
       {pane.config.kind === 'editor' && <EditorPane paneId={paneId} wsId={wsId} config={pane.config} />}
       {pane.config.kind === 'explorer' && <ExplorerPane paneId={paneId} wsId={wsId} config={pane.config} />}
+      {/* The orky pane mounts here HIDDEN (feature 0009, REQ-010 T3): its notification fetches are
+          suppressed into a stale mark until restore — the concrete displayed/hidden boundary. */}
+      {pane.config.kind === 'orky' && <OrkyPane paneId={paneId} wsId={wsId} config={pane.config} hidden />}
     </div>
   )
 }

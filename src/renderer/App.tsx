@@ -18,6 +18,7 @@ import { ImageLightbox } from './components/ImageLightbox'
 import { SettingsPanel } from './components/SettingsPanel'
 import { NotesPanel } from './components/NotesPanel'
 import { DecisionQueuePanel } from './components/DecisionQueuePanel'
+import { OrkyRootPicker } from './components/OrkyRootPicker'
 import { SearchHistory } from './components/SearchHistory'
 import { matchShortcut, resolveBindings } from '@shared/keymap'
 import { redrawPane } from './components/terminal-registry'
@@ -32,6 +33,9 @@ export default function App() {
   )
   const isMainWindow = useStore(s => s.isMainWindow)
   const connectionFormFor = useStore(s => s.connectionFormFor)
+  // The shared OrkyRootPicker request (feature 0009, REQ-004): opened by pickOrkyRoot() from any
+  // creation affordance; resolveOrkyRootPick settles the pending promise (null = cancel).
+  const orkyRootPickOpen = useStore(s => s.orkyRootPickOpen)
   useEffect(() => { init() }, [init])
   useEffect(() => {
     const flush = () => { const s = useStore.getState(); void s.saveAll(); s.flushQuick(); s.flushNotes() }
@@ -59,6 +63,9 @@ export default function App() {
       // badge stays live while the drawer is closed. Routed through the slice's single ingestion
       // chokepoint (deep-equal short-circuit + generation stamp).
       api.onRegistryStatus(snapshot => s().setRegistrySnapshot(snapshot)),
+      // Per-root change notification (feature 0009, REQ-022): routed into ONE store action whose
+      // fan-out is per-root targeted — only OrkyPanes bound to a matching root fetch/re-render.
+      api.onRegistryRootChanged(root => s().notifyOrkyRootChanged(root)),
       api.onRecState((id, state) => s().setRecording(id, state.recording)),
       api.onEnvState(state => s().setEnvState(state)),
       api.onWinAssignment(a => { void s().applyAssignment(a) }),
@@ -176,6 +183,11 @@ export default function App() {
       <SettingsPanel />
       <BroadcastDialog />
       <CommandPalette />
+      {orkyRootPickOpen && (
+        <OrkyRootPicker
+          onSelect={root => useStore.getState().resolveOrkyRootPick(root)}
+          onCancel={() => useStore.getState().resolveOrkyRootPick(null)} />
+      )}
       <SearchHistory />
       <SshConnectionForm key={connectionFormFor === null ? 'none' : connectionFormFor === 'new' ? 'new' : connectionFormFor.id} />
     </div>

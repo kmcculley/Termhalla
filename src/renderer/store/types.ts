@@ -9,6 +9,7 @@ import type { DecisionQueueGroup } from '@shared/decision-queue'
 import type { Chord, CommandId } from '@shared/keybindings'
 import type { ImageSource } from '@shared/ipc-contract'
 import type { PaneKind } from './pane-ops'
+import type { OrkyPaneDetailEntry } from './orky-pane-slice'
 
 export type ThemeScope =
   | { kind: 'app' }
@@ -94,6 +95,20 @@ export interface State {
   recoveryPullFailed: () => void
   queueGroups: () => DecisionQueueGroup[]
   queueCount: () => number
+  // ── Native OrkyPane (feature 0009) — per-pane detail runtime, runtime-only; pruned through the
+  // SAME clearPaneRuntime seam as every other per-pane map (CONV-011/REQ-017). Actions live in
+  // orky-pane-slice.ts (fetch/coalesce/discard, per-root notification fan-out, hidden boundary,
+  // rebind). orkyRootPickOpen is the one-shot OrkyRootPicker request the creation affordances and
+  // the split compass share (resolved with the picked root, or null on cancel).
+  orkyPaneDetail: Record<string, OrkyPaneDetailEntry>
+  fetchOrkyDetail: (paneId: string, root: string) => void
+  notifyOrkyRootChanged: (root: string) => void
+  setOrkyPaneHidden: (paneId: string, hidden: boolean) => void
+  rebindOrkyPane: (wsId: string, paneId: string, root: string) => void
+  addOrky: (wsId: string, targetPaneId: string | null, dir: MosaicDirection, root: string, splitDir?: SplitDir4) => string
+  orkyRootPickOpen: boolean
+  pickOrkyRoot: () => Promise<string | null>
+  resolveOrkyRootPick: (root: string | null) => void
   // paneId -> monotonic focus sequence (REQ-009's MRU recency), stamped by setFocusedPane and
   // pruned by the SAME clearPaneRuntime call that drops every other per-pane map (CONV-011).
   paneFocusSeq: Record<string, number>

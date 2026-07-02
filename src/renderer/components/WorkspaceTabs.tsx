@@ -96,6 +96,7 @@ export function WorkspaceTabs() {
         <option value="terminal">Terminal</option>
         <option value="editor">Editor</option>
         <option value="explorer">Explorer</option>
+        <option value="orky">Orky</option>
       </select>
       <button data-testid="broadcast-button" title="Broadcast to all terminals (Ctrl+Shift+Enter)"
         onClick={() => setBroadcastOpen(!broadcastOpen)}>⇉</button>

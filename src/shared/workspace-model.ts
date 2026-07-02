@@ -178,7 +178,7 @@ export function deserializeWorkspace(json: string): Workspace {
   if (typeof ws.id !== 'string' || typeof ws.panes !== 'object') {
     throw new Error('Invalid workspace file: bad shape')
   }
-  return normalizeViewState(ws)
+  return normalizeViewState(normalizeOrkyBindings(ws))
 }
 
 // Future versions add cases here; v1 is identity.
@@ -191,7 +191,35 @@ function migrate(ws: Workspace, version: number): Workspace {
   // none, so it loads with empty view-state — never an identity that leaves the fields undefined to
   // be guessed at downstream (REQ-009: explicit, no silent data loss).
   if (version < 7) w = { ...w, minimized: [], maximized: null }
+  // v7 -> v8 (feature 0009, REQ-002): the persisted `orky` pane kind joined PaneConfig. This step
+  // is a DOCUMENTED IDENTITY — a pre-v8 record cannot contain an `orky` pane, so no field is
+  // rewritten. The bump exists so a pre-v8 build rejects a v8 file via the "newer than supported"
+  // guard above instead of loading a pane kind it cannot render.
+  if (version < 8) w = { ...w }
   return w
+}
+
+/** Load tolerance for a malformed persisted `orky` binding (feature 0009, REQ-020): an `orky` pane
+ *  whose `config.root` is missing or non-string is coerced to `''` — the tolerated unbound-on-load
+ *  value — so downstream code never sees a non-string binding and the pane renders the explicit
+ *  unbound state instead of being dropped or throwing (CONV-002). Applied at EVERY instantiation
+ *  path of the persisted shape (FINDING-032): workspace-file load (`deserializeWorkspace`, the
+ *  `normalizeViewState` precedent — migrated output passes through it too) AND template
+ *  instantiation (`workspaceFromTemplate` — `quick.json` templates are validated only as an array,
+ *  so a hand-edited template is exactly the hostile input this seam exists for). A well-formed
+ *  binding (and every non-orky pane) passes through untouched, keeping the serialize→deserialize
+ *  round trip byte-identical (REQ-002). */
+function normalizeOrkyBindings(ws: Workspace): Workspace {
+  let panes = ws.panes
+  let changed = false
+  for (const id of Object.keys(ws.panes ?? {})) {
+    const pane = ws.panes[id]
+    const cfg = pane?.config as { kind?: unknown; root?: unknown } | undefined
+    if (!cfg || cfg.kind !== 'orky' || typeof cfg.root === 'string') continue
+    if (!changed) { panes = { ...ws.panes }; changed = true }
+    panes[id] = { ...pane, config: { ...(pane.config as object), root: '' } as PaneConfig }
+  }
+  return changed ? { ...ws, panes } : ws
 }
 
 /** Normalize a workspace's persisted view-state on load: drop dangling paneId references (an entry
@@ -262,12 +290,16 @@ export function templateFromWorkspace(ws: Workspace, id: string, name: string): 
   }
 }
 
-/** Instantiate a fresh workspace from a template (new pane ids), restoring its theme override. */
+/** Instantiate a fresh workspace from a template (new pane ids), restoring its theme override.
+ *  The instantiated panes pass through the SAME malformed-orky-binding coercion the workspace-file
+ *  loader applies (REQ-020 / FINDING-032): `quick.json`'s loader validates templates only as
+ *  `Array.isArray`, and `remapPaneIds` clones configs opaquely — without this seam a hand-edited
+ *  template's non-string `root` would reach the renderer verbatim and throw at render time. */
 export function workspaceFromTemplate(tpl: WorkspaceTemplate, wsId: string, name: string, uuid: () => string): Workspace {
   const { layout, panes } = remapPaneIds(tpl.layout, tpl.panes, uuid)
-  return {
+  return normalizeOrkyBindings({
     id: wsId, name, layout, panes,
     theme: tpl.theme ? cloneConfig(tpl.theme) : undefined,
     runCommands: tpl.runCommands ? cloneConfig(tpl.runCommands) : undefined
-  }
+  })
 }

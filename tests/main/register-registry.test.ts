@@ -33,17 +33,28 @@ vi.mock('electron', () => ({
 import { CH } from '@shared/ipc-contract'
 import { registerRegistry } from '../../src/main/ipc/register-registry'
 
+// AMENDED by feature 0009-native-orky-pane (REQ-003's CONV-019 protocol; DISCOVERED at F9's test
+// design — see 0009's 04-tests.md): F9 extends this registrar with the registry:detail pull and the
+// registry:rootChanged push (0009 REQ-006/REQ-022), so the fake registry surface gains the two new
+// members the REAL registrar now consumes (`detail`, `onRootChanged`). Every F5 assertion below is
+// otherwise byte-unchanged except TEST-138's closed removed-handler set (open-formed; the exact
+// post-F9 set is pinned in tests/main/register-registry-detail.test.ts, TEST-413).
 function makeFakeRegistry() {
   const snapshotSubs: Array<(s: unknown) => void> = []
+  const rootChangedSubs: Array<(root: string) => void> = []
   return {
     current: vi.fn(() => ['current-snapshot']),
     roots: vi.fn(() => ['/proj/a']),
     addRoot: vi.fn(async (r: unknown) => ({ ok: true, root: r, roots: ['/proj/a'] })),
     removeRoot: vi.fn(async (r: unknown) => ({ ok: true, roots: [] })),
+    detail: vi.fn(async (root: unknown) => ({ ok: false, root: String(root), error: 'fake', errorKind: 'root-not-tracked' })),
     onSnapshot: vi.fn((cb: (s: unknown) => void) => { snapshotSubs.push(cb); return () => { const i = snapshotSubs.indexOf(cb); if (i >= 0) snapshotSubs.splice(i, 1) } }),
+    onRootChanged: vi.fn((cb: (root: string) => void) => { rootChangedSubs.push(cb); return () => { const i = rootChangedSubs.indexOf(cb); if (i >= 0) rootChangedSubs.splice(i, 1) } }),
     dispose: vi.fn(),
     __fireSnapshot: (s: unknown) => { for (const cb of snapshotSubs) cb(s) },
-    __subCount: () => snapshotSubs.length
+    __subCount: () => snapshotSubs.length,
+    __fireRootChanged: (root: string) => { for (const cb of rootChangedSubs) cb(root) },
+    __rootChangedSubCount: () => rootChangedSubs.length
   }
 }
 
@@ -100,9 +111,12 @@ describe('registerRegistry — ipcMain.handle wiring (REQ-008/REQ-009/REQ-010/RE
     expect(registry.__subCount()).toBe(1)
 
     dispose()
-    expect(removedHandlers.sort()).toEqual([
+    // AMENDED by 0009 REQ-003's protocol (see the makeFakeRegistry note): open-formed — the F5 four
+    // must all be removed; F9's registrar additionally removes its own registry:detail handler
+    // (exact post-F9 set pinned in tests/main/register-registry-detail.test.ts, TEST-413).
+    expect(removedHandlers).toEqual(expect.arrayContaining([
       CH.registryAddRoot, CH.registryCurrent, CH.registryRemoveRoot, CH.registryRoots
-    ].sort())
+    ]))
     expect(registry.__subCount()).toBe(0) // unsubscribed — no further send() after teardown
     expect(registry.dispose).not.toHaveBeenCalled()
   })

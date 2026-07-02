@@ -79,6 +79,8 @@ const api: TermhallaApi = {
   registryRoots: () => ipcRenderer.invoke(CH.registryRoots),
   registryAddRoot: (root) => ipcRenderer.invoke(CH.registryAddRoot, root),
   registryRemoveRoot: (root) => ipcRenderer.invoke(CH.registryRemoveRoot, root),
+  registryDetail: (root) => ipcRenderer.invoke(CH.registryDetail, root),
+  onRegistryRootChanged: pushChannel<[string]>(CH.registryRootChanged),
   orkyResolveEscalation: (req) => ipcRenderer.invoke(CH.orkyActionResolveEscalation, req),
   orkySubmitWork: (req) => ipcRenderer.invoke(CH.orkyActionSubmitWork, req),
   orkyRecordHumanGate: (req) => ipcRenderer.invoke(CH.orkyActionRecordHumanGate, req),

@@ -1,4 +1,4 @@
-import type { ShellInfo, Workspace, AppState, TerminalStatus, DirEntry, ReadResult, StatResult, FsChange, TerminalLaunch, QuickStore, ProcInfo, CloudStatus, AiSession, UsageMetrics, EditorDraft, EnvVaultData, RecState, EnvVaultState, GitStatus, SearchHit, SearchStats, OrkyPaneStatus, OrkyRegistrySnapshot, RegistryMutationResult, OrkyActionResult, ResolveEscalationRequest, SubmitWorkRequest, RecordHumanGateRequest, DriveStatusRequest } from './types'
+import type { ShellInfo, Workspace, AppState, TerminalStatus, DirEntry, ReadResult, StatResult, FsChange, TerminalLaunch, QuickStore, ProcInfo, CloudStatus, AiSession, UsageMetrics, EditorDraft, EnvVaultData, RecState, EnvVaultState, GitStatus, SearchHit, SearchStats, OrkyPaneStatus, OrkyRegistrySnapshot, RegistryMutationResult, OrkyRootDetailResult, OrkyActionResult, ResolveEscalationRequest, SubmitWorkRequest, RecordHumanGateRequest, DriveStatusRequest } from './types'
 
 export const CH = {
   listShells: 'shells:list',
@@ -51,6 +51,11 @@ export const CH = {
   registryRoots: 'registry:roots',          // renderer -> main (pull the persisted explicit root list)
   registryAddRoot: 'registry:addRoot',      // renderer -> main (add a root to the persisted list)
   registryRemoveRoot: 'registry:removeRoot', // renderer -> main (remove a root from the persisted list)
+  // Native OrkyPane read surfaces (feature 0009) — both in the registry:* READ domain, grep-visibly
+  // distinct from the orkyAction:* mutation domain. The pull is member-roots-only and read-only; the
+  // push is the detail view's currency mechanism (fires on EVERY completed engine re-read).
+  registryDetail: 'registry:detail',          // renderer -> main (pull ONE tracked root's full Orky detail)
+  registryRootChanged: 'registry:rootChanged', // main -> renderer event (APP-GLOBAL; payload = the project-root string ONLY)
   // orkyAction:* (feature 0007) — Termhalla's first write-capable IPC surface into an Orky-adopted
   // project. A domain DISTINCT from the read-only orky:* channels above (grep-visible separation).
   // All four are renderer -> main request/response calls; this feature introduces NO push channel.
@@ -161,6 +166,15 @@ export interface TermhallaApi {
   registryAddRoot(root: string): Promise<RegistryMutationResult>
   /** Remove a root from the persisted explicit list (idempotent no-op if absent). */
   registryRemoveRoot(root: string): Promise<RegistryMutationResult>
+  /** Pull ONE tracked root's full Orky detail — per-gate records, findings, escalations — for the
+   *  native OrkyPane (feature 0009). Read-only; accepts only a current aggregate MEMBER root
+   *  (anything else gets a structured `ok:false` result, never a throw, never an arbitrary-path
+   *  read). */
+  registryDetail(root: string): Promise<OrkyRootDetailResult>
+  /** Per-root change notification (feature 0009): fired on EVERY completed engine re-read of a
+   *  root — no delta gating — carrying the bare project-root string only (never a status/snapshot).
+   *  The OrkyPane detail view's currency mechanism. */
+  onRegistryRootChanged(cb: (root: string) => void): () => void
   // orkyAction:* (feature 0007) — the write-capable dispatch surface. Every mutation is performed by
   // invoking Orky's OWN CLIs server-side; no renderer UI consumes these yet (D1/REQ-017).
   orkyResolveEscalation(req: ResolveEscalationRequest): Promise<OrkyActionResult>

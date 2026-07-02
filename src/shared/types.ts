@@ -104,6 +104,64 @@ export interface RegistryMutationResult {
   error?: string        // specific + actionable when ok === false (CONV-001)
 }
 
+// ── Native OrkyPane per-root detail (feature 0009) — the `registry:detail` wire types (REQ-007).
+// Read-only, runtime-only (not persisted); derived main-side from the SAME @shared/orky-status
+// mapper pipeline the aggregate uses, PLUS the detail layers the aggregate drops (per-gate
+// records, findings entries, escalation entries). Every field is total over malformed input: a
+// missing/mistyped source field maps to its pinned null/''/false default, never a throw, and never
+// a mistyped value passed through to be rendered.
+
+/** One canonical gate's recorded outcome (null fields = not recorded). */
+export interface OrkyGateDetail {
+  phase: OrkyPhase               // one of ORKY_PHASES, emitted in canonical order
+  passed: boolean | null         // gates[phase].passed === true/false; null = no entry yet
+  at: number | null              // parseOrkyTimestamp(gates[phase].at) — epoch ms, tz-safe
+  evidence: string | null        // gates[phase].evidence when a string
+  external: boolean              // gates[phase].external === true (human-recorded)
+}
+
+export interface OrkyFindingDetail {
+  id: string | null              // f.id when a non-empty string
+  lens: string | null
+  severity: string | null        // verbatim (producer-normalized; display uppercases nothing)
+  status: string | null          // verbatim ('open' / 'resolved' / …)
+  gate: string | null
+  claim: string                  // verbatim; '' when absent/mistyped (never rendered mistyped)
+  blocking: boolean              // the SHARED isBlockingFinding(f) verdict (@shared/orky-status)
+}
+
+export interface OrkyEscalationDetail {
+  id: string | null
+  phase: string | null
+  status: string | null          // 'open' / 'resolved', verbatim
+  reason: string                 // '' when absent
+  kind: string | null
+  at: number | null              // parseOrkyTimestamp(e.at)
+  decision: string | null
+  resolvedAt: number | null
+}
+
+export interface OrkyFeatureDetail {
+  slug: string                   // the feature DIR name from the sorted walk — UNIQUE by construction
+                                 // (FINDING-021: status.feature is state.json's `feature` field with the
+                                 // '(unknown)' fallback and can collide; slug is the per-feature KEY for
+                                 // React rows, disclosure state, and data-feature — REQ-007/REQ-012)
+  status: OrkyFeatureStatus      // the SAME orkyFeatureStatus mapper output the aggregate uses
+  gates: OrkyGateDetail[]        // exactly ORKY_PHASES.length entries, canonical order
+  findings: OrkyFindingDetail[]  // findings.json array order, verbatim
+  findingsUnreadable: boolean    // findings.json EXISTS but stayed unreadable/oversized after the bounded retry (REQ-008)
+  escalations: OrkyEscalationDetail[] // state.json array order, verbatim
+}
+
+export type OrkyRootDetailResult =
+  | { ok: true; root: string; activeFeature: string | null;
+      computedAt: number;                 // the ONE injected clock instant every status/stall datum in this payload used (REQ-007/REQ-009)
+      features: OrkyFeatureDetail[];      // sorted by status.feature codepoint, slug codepoint tiebreak (TOTAL — REQ-014)
+      skippedFeatures: string[];          // slugs whose state.json EXISTS but stayed unreadable/oversized after the bounded retry — never silently dropped (REQ-008)
+      featuresCapped: boolean }           // true iff the MAX_FEATURE_DIRS cap truncated the SORTED walk (CONV-003)
+  | { ok: false; root: string; error: string;                      // specific + actionable (CONV-001)
+      errorKind: 'root-not-tracked' | 'orky-missing' | 'unknown-sender' }
+
 export interface AlertConfig {
   border?: boolean
   tabBadge?: boolean
@@ -218,13 +276,26 @@ export interface ExplorerConfig {
   theme?: Partial<Theme>
 }
 
+/** Persisted config of a native Orky pane (feature 0009, REQ-001/REQ-005): a first-class mosaic
+ *  pane kind bound to ONE tracked project. `root` is the persisted binding (the dir containing
+ *  `.orky/`), stored VERBATIM in the aggregate's case-preserved spelling — never re-cased,
+ *  re-slashed, or re-resolved on save/load; matching against membership uses the fold-injected
+ *  `sameProjectRoot` equality instead. `''` is the tolerated unbound-on-load degenerate value
+ *  (REQ-020) — never written by the creation flow. */
+export interface OrkyConfig {
+  kind: 'orky'
+  root: string
+  name?: string
+  theme?: Partial<Theme>
+}
+
 /** A persisted unsaved editor buffer (hot-exit). Keyed by `paneId::path` in the draft store. */
 export interface EditorDraft {
   content: string    // the unsaved buffer text to restore
   baseline: string   // the disk text the buffer diverged from (for on-reopen conflict detection)
 }
 
-export type PaneConfig = TerminalConfig | EditorConfig | ExplorerConfig
+export type PaneConfig = TerminalConfig | EditorConfig | ExplorerConfig | OrkyConfig
 
 export interface PaneNode {
   paneId: string
@@ -375,7 +446,10 @@ export interface SearchStats {
   oldest: number | null
 }
 
-export const SCHEMA_VERSION = 7
+// v7 → v8 (feature 0009): the persisted `orky` pane kind joined PaneConfig. The v<8 migration step
+// is a documented identity (workspace-model.ts); the bump exists so pre-v8 builds reject a v8 file
+// via the "newer than supported" guard instead of loading a pane kind they cannot render (REQ-002).
+export const SCHEMA_VERSION = 8
 
 /** A saved, named command a user can run on click in a terminal. Persisted (pane- or
  *  workspace-scoped). Runtime sending reuses encodeBroadcast(command, 'keys', true). */

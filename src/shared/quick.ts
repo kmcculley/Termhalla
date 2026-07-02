@@ -82,7 +82,7 @@ export function nextRecentDirs(
 
 export type PaletteAction =
   | 'new-connection' | 'pin-cwd'
-  | 'new-terminal' | 'new-editor' | 'new-explorer'
+  | 'new-terminal' | 'new-editor' | 'new-explorer' | 'new-orky'
   | 'new-workspace' | 'broadcast' | 'save-all' | 'refresh-cloud' | 'settings'
   | 'toggle-orky-queue'
 
@@ -138,6 +138,7 @@ export function buildCommandItems(): PaletteItem[] {
     cmd('new-terminal', 'New terminal', 'new terminal pane shell'),
     cmd('new-editor', 'New editor', 'new editor pane file'),
     cmd('new-explorer', 'New explorer…', 'new explorer pane folder directory'),
+    cmd('new-orky', 'New Orky pane…', 'new orky pane project pipeline status'),
     cmd('new-workspace', 'New workspace', 'new workspace tab'),
     cmd('broadcast', 'Broadcast to all terminals', 'broadcast send all terminals'),
     cmd('save-all', 'Save all workspaces', 'save all workspaces'),

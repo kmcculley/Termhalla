@@ -137,7 +137,8 @@ related area:
   xterm scrollback / Monaco models and kills the live PTY). The minimize/restore transition REUSES the
   same-window cross-workspace move machinery (snapshot stash + `beginPaneTransit` + idempotent `pty:spawn`
   re-adoption); it MUST NOT call `api.ptyKill`/`closePane`/`teardownPanes`. View-state (`minimized` list +
-  `maximized` id) is persisted per-workspace (`SCHEMA_VERSION` 7); the renderer derives the maps on load and
+  `maximized` id) is persisted per-workspace (added under the `SCHEMA_VERSION` 6→7 migration, 0003; the
+  constant itself is now 8, bumped 7→8 by 0009's `orky` pane kind); the renderer derives the maps on load and
   folds them back on save — it never writes app-state. The per-workspace tray (`MinimizedTray`) is a
   workspace-body sibling of `.mosaic` (not inside a tile), so it needs no portal; its chips carry
   focus/hover styling in `index.css` (the portalled `pane-menu` Minimize item must be in those allow-lists
@@ -213,6 +214,7 @@ related area:
 | Orky OSC heartbeat (stream-derived status, fallback for bare-SSH panes) | `src/main/status/orky-osc-parser.ts`, `src/main/orky/orky-stream-status.ts` | [orky-osc-heartbeat](docs/features/orky-osc-heartbeat.md) |
 | Orky action dispatch (write-capable IPC into an Orky-adopted project, via Orky's own CLIs — never a direct `.orky/` write, never drives the pipeline) | `src/main/orky/orky-action-dispatcher.ts` | [orky-action-dispatch](docs/features/orky-action-dispatch.md) |
 | Orky decision-queue drawer (renderer consumer of the `registry:status` aggregate — read-only "what needs me now" queue) | `src/renderer/components/DecisionQueuePanel.tsx`, `src/renderer/store/registry-slice.ts`, `src/shared/decision-queue.ts` | [decision-queue](docs/features/decision-queue.md) |
+| Native Orky pane (persisted `orky` pane kind — read-only full-project status via the `registry:detail` pull + `registry:rootChanged` push; the SCHEMA_VERSION v7→v8 bump) | `src/renderer/components/OrkyPane.tsx` (+ `OrkyRootPicker.tsx`), `src/renderer/store/orky-pane-slice.ts`, `src/shared/orky-pane.ts`, `src/main/orky/orky-root-detail.ts` | [orky-pane](docs/features/orky-pane.md) |
 | Per-project notepad | `src/main/persistence/notes-store.ts`, `src/renderer/components/NotesPanel.tsx` | [notepad](docs/features/notepad.md) |
 | SSH / favorites store | `src/main/persistence/quick-store.ts`, `src/shared/quick.ts` | [ssh-favorites](docs/features/ssh-favorites.md) |
 | Multi-window / undock | `src/main/window-manager.ts` (+ `-core.ts`), `src/main/services.ts` | [window-management](docs/features/window-management.md) |

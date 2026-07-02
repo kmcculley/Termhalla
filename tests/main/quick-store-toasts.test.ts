@@ -38,7 +38,10 @@ describe('QuickStore — toastsEnabled (additive optional)', () => {
     expect(loaded.toastsEnabled === true).toBe(false)
   })
 
-  it('TEST-008: SCHEMA_VERSION is the current persisted schema version', () => {
-    expect(SCHEMA_VERSION).toBe(7)
+  // SUPERSEDED point-in-time pin (CONV-019): the file header already anticipated this ("later
+  // features may [bump]; TEST-008 pins the current SCHEMA_VERSION constant value") — re-pinned
+  // 7→8 by feature 0009-native-orky-pane (REQ-003, see 0009's 04-tests.md).
+  it('TEST-008: SCHEMA_VERSION is the current persisted schema version (re-pinned at 8 by 0009 REQ-003)', () => {
+    expect(SCHEMA_VERSION).toBe(8)
   })
 })

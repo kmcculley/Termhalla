@@ -1,11 +1,13 @@
 import { dirname, join, resolve } from 'node:path'
-import type { OrkyPaneStatus, OrkyRegistrySnapshot, RegistryMutationResult } from '@shared/types'
+import type { OrkyPaneStatus, OrkyRegistrySnapshot, OrkyRootDetailResult, RegistryMutationResult } from '@shared/types'
 import { mergeRegistryMembership, buildRegistrySnapshot } from '@shared/orky-registry'
 import { OrkyRootEngine } from './orky-root-engine'
 import { OrkyRegistryStore } from '../persistence/orky-registry-store'
 import { normalizeProjectRoot, validateRegistryRoot } from './validate-root'
+import { assembleOrkyRootDetail } from './orky-root-detail'
 
 type SnapshotListener = (snapshot: OrkyRegistrySnapshot) => void
+type RootChangedListener = (root: string) => void
 
 /**
  * The cross-project aggregator (feature 0005, TASK-007) — generalizes 0004's single-root, pane-scoped
@@ -34,14 +36,22 @@ export class OrkyRegistry {
   private statusByRoot = new Map<string, OrkyPaneStatus | null>()
   private snapshot: OrkyRegistrySnapshot = []
   private listeners = new Set<SnapshotListener>()
+  private rootChangedListeners = new Set<RootChangedListener>()
   private readonly unsubscribeEngine: () => void
   private mutationChain: Promise<unknown> = Promise.resolve()
   private disposed = false
 
   constructor(private readonly engine: OrkyRootEngine, private readonly store: OrkyRegistryStore) {
     this.unsubscribeEngine = engine.onStatus((orkyDir, status) => {
-      this.statusByRoot.set(dirname(orkyDir), status)
+      const root = dirname(orkyDir)
+      this.statusByRoot.set(root, status)
       this.recompute()
+      // Per-root change notification (feature 0009, REQ-022): fired on EVERY completed engine
+      // re-read — including the null-status emit for a vanished orkyDir — with the same
+      // case-preserved project-root spelling the snapshot/statusByRoot key on. Deliberately NO
+      // delta gating (decision #7): the aggregate is lossy along exactly the detail dimensions,
+      // so value-identity of the roll-up says nothing about the detail data's currency.
+      for (const cb of [...this.rootChangedListeners]) cb(root)
     })
   }
 
@@ -49,6 +59,14 @@ export class OrkyRegistry {
   onSnapshot(cb: SnapshotListener): () => void {
     this.listeners.add(cb)
     return () => { this.listeners.delete(cb) }
+  }
+
+  /** Subscribe to per-root completed-re-read notifications (feature 0009, REQ-022). Rides the ONE
+   *  existing `engine.onStatus` subscription this instance already holds — registering here adds NO
+   *  engine consumer. Returns an unsubscribe function. */
+  onRootChanged(cb: RootChangedListener): () => void {
+    this.rootChangedListeners.add(cb)
+    return () => { this.rootChangedListeners.delete(cb) }
   }
 
   /** Load the persisted explicit list and begin tracking every entry (pane-independent — REQ-004),
@@ -165,6 +183,38 @@ export class OrkyRegistry {
     })
   }
 
+  /** Read-only per-root detail (feature 0009, REQ-006/REQ-007/REQ-008): the full per-gate /
+   *  findings / escalations payload for ONE current aggregate MEMBER root. Argument validation
+   *  lives HERE (the addRoot/removeRoot precedent, never the registrar): a non-string or
+   *  non-member input gets a structured `root-not-tracked` rejection NAMING the input (CONV-001)
+   *  and performs no filesystem read — the channel can never be used to read arbitrary paths.
+   *  Membership is matched by NORMALIZED key (case/slash-folded) against BOTH sources (pane and
+   *  persisted), and the read runs against the TRACKED case-preserved spelling. Stateless and
+   *  one-shot (no engine consumer, no watcher, no write); never throws or rejects (CONV-002). */
+  async detail(root: unknown): Promise<OrkyRootDetailResult> {
+    if (typeof root !== 'string') {
+      return {
+        ok: false,
+        root: String(root),
+        error: `registry detail refused: ${String(root)} is not a tracked project root ` +
+          '(expected one of the aggregate member root strings; got a non-string value)',
+        errorKind: 'root-not-tracked'
+      }
+    }
+    const member = this.memberSpelling(root)
+    if (member === null) {
+      return {
+        ok: false,
+        root,
+        error: `registry detail refused: ${root} is not a tracked project root — only current ` +
+          'aggregate members (open-pane or persisted roots) can be read. Open a terminal in that ' +
+          'project or add it to the tracked list first.',
+        errorKind: 'root-not-tracked'
+      }
+    }
+    return assembleOrkyRootDetail(member, { now: () => Date.now() })
+  }
+
   /** Pure read: the last computed snapshot. Never mutates, never emits (REQ-011). */
   current(): OrkyRegistrySnapshot { return this.snapshot }
 
@@ -186,6 +236,7 @@ export class OrkyRegistry {
     for (const root of this.persistedRoots) this.engine.removeConsumer(`persisted:${root}`)
     this.unsubscribeEngine()
     this.listeners.clear()
+    this.rootChangedListeners.clear()
   }
 
   /** Resolve `root` to an ALREADY-TRACKED spelling that case-insensitively (win32) matches it, if one
@@ -203,6 +254,16 @@ export class OrkyRegistry {
    *  a pane-first root written into the persisted store via a later `addRoot` is stored REQ-006-normalized
    *  rather than carrying forward a stray forward-slash spelling. */
   private resolveCanonical(root: string): string {
+    return this.findTrackedSpelling(root) ?? resolve(root)
+  }
+
+  /** The ONE membership-source scan (FINDING-018 — never duplicated): the ALREADY-TRACKED,
+   *  case-preserved spelling matching `root` by normalized key across BOTH sources (pane and
+   *  persisted), or `null` when no member matches. Both `resolveCanonical` (which falls back to
+   *  `resolve(root)` for first-seen roots) and `memberSpelling` (which must refuse non-members)
+   *  delegate here, so the matching semantics can never silently desync between the two.
+   *  `normalizeProjectRoot` throws propagate to the caller (resolveCanonical parity). */
+  private findTrackedSpelling(root: string): string | null {
     const key = normalizeProjectRoot(root)
     for (const existing of this.paneRoots.values()) {
       if (normalizeProjectRoot(existing) === key) return existing
@@ -210,7 +271,15 @@ export class OrkyRegistry {
     for (const existing of this.persistedRoots) {
       if (normalizeProjectRoot(existing) === key) return existing
     }
-    return resolve(root)
+    return null
+  }
+
+  /** The ALREADY-TRACKED, case-preserved spelling matching `root` by normalized key (either
+   *  membership source), or `null` when `root` is not a current member (feature 0009, REQ-006 —
+   *  `detail`'s membership gate; the same fold semantics `resolveCanonical` uses, but NEVER falling
+   *  back to the raw input: a non-member must be refused, not read). */
+  private memberSpelling(root: string): string | null {
+    try { return this.findTrackedSpelling(root) } catch { return null }
   }
 
   /** Drop a root's cached engine status once it has left BOTH membership sources (no pane consumer AND

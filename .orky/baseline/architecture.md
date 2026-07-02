@@ -115,7 +115,10 @@ thin around it. That pure core is what this baseline characterizes (see CHAR ids
   consumer is feature 0006's decision-queue drawer (`src/renderer/components/DecisionQueuePanel.tsx` +
   `src/renderer/store/registry-slice.ts`), which subscribes to the push plus one generation-guarded
   `registry:current` recovery pull — read surface only; the mutation surface
-  (`registry:addRoot`/`removeRoot`) still has no renderer consumer.
+  (`registry:addRoot`/`removeRoot`) still has no renderer consumer. *Extended by feature 0009 (native
+  Orky pane)* with two more read-only surfaces in the same registrar: `registry:detail` (a
+  renderer→main pull, per-tracked-root, membership-gated) and `registry:rootChanged` (a bare-string
+  main→renderer push on every completed engine re-read) — see [orky-pane](../../docs/features/orky-pane.md).
 - **`src/main/orky/orky-action-dispatcher.ts`** (`OrkyActionDispatcher`) — *added by feature 0007
   (Orky action-dispatch substrate).* Termhalla's **first write-capable IPC surface** into an
   Orky-adopted project: four actions (`resolveEscalation`/`submitWork`/`recordHumanGate`/`driveStatus`)

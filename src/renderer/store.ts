@@ -27,6 +27,8 @@ import { createNotesSlice } from './store/notes-slice'
 import { createSearchSlice } from './store/search-slice'
 import { createPreviewSlice } from './store/preview-slice'
 import { createRegistrySlice } from './store/registry-slice'
+import { createOrkyPaneSlice } from './store/orky-pane-slice'
+import { caseFoldFromPlatform } from '@shared/decision-queue'
 
 // Re-exported so existing `import { ... } from '../store'` call sites keep working.
 export type { ThemeScope } from './store/types'
@@ -91,6 +93,10 @@ export const useStore = create<State>((set, get) => {
   // recency for the decision queue's click-to-focus MRU pick. Never persisted.
   let paneFocusCounter = 0
 
+  // The pending OrkyRootPicker request's resolver (feature 0009, REQ-004): held in closure (a
+  // function is not renderable state); orkyRootPickOpen mirrors it for the App-level chrome mount.
+  let orkyRootPickResolve: ((root: string | null) => void) | null = null
+
   return {
     // ---- initial state ----
     shells: [],
@@ -122,6 +128,9 @@ export const useStore = create<State>((set, get) => {
     registryError: null,
     queueOpen: false,
     snapshotGeneration: 0,
+    // Native OrkyPane (feature 0009): runtime-only detail state + the shared root-picker request.
+    orkyPaneDetail: {},
+    orkyRootPickOpen: false,
     paneFocusSeq: {},
     cloud: [],
     envVault: { exists: false, unlocked: false },
@@ -146,6 +155,16 @@ export const useStore = create<State>((set, get) => {
     ...createSearchSlice(deps),
     ...createPreviewSlice(deps),
     ...createRegistrySlice(deps),
+    // Native OrkyPane detail slice (feature 0009): the preload bridge and the fold mode are
+    // INJECTED here — the fold is derived ONCE via caseFoldFromPlatform(navigator.platform), the
+    // one platform signal that exists in the contextIsolated main world (REQ-005 / FINDING-003).
+    ...createOrkyPaneSlice({
+      set,
+      get,
+      registryDetail: (root) => api.registryDetail(root),
+      caseFold: caseFoldFromPlatform(navigator.platform),
+      updatePaneConfig: (wsId, paneId, patch) => get().updatePaneConfig(wsId, paneId, patch)
+    }),
 
     // ---- core: bootstrap + persistence ----
     init: async () => {
@@ -431,7 +450,8 @@ export const useStore = create<State>((set, get) => {
       return commitPane(wsId, { kind: 'terminal', shellId, cwd }, targetPaneId, lay.direction, false, lay.position)
     },
 
-    addPaneOfKind: (wsId, kind) => dispatchAddPane(get(), wsId, kind, () => api.openFolder()),
+    addPaneOfKind: (wsId, kind) =>
+      dispatchAddPane(get(), wsId, kind, () => api.openFolder(), () => get().pickOrkyRoot()),
 
     closePane: (wsId, paneId) => {
       const ws = removePane(get().workspaces[wsId], paneId)
@@ -456,6 +476,29 @@ export const useStore = create<State>((set, get) => {
     addExplorer: (wsId, targetPaneId, dir, root, splitDir) => {
       const lay = splitDir ? splitDirToLayout(splitDir) : { direction: dir, position: 'after' as const }
       return commitPane(wsId, { kind: 'explorer', root }, targetPaneId, lay.direction, false, lay.position)
+    },
+
+    // Native OrkyPane (feature 0009, REQ-001/REQ-004/REQ-005): mirrors addExplorer exactly —
+    // config.root is committed VERBATIM (the picker hands over the aggregate entry's spelling).
+    addOrky: (wsId, targetPaneId, dir, root, splitDir) => {
+      const lay = splitDir ? splitDirToLayout(splitDir) : { direction: dir, position: 'after' as const }
+      return commitPane(wsId, { kind: 'orky', root }, targetPaneId, lay.direction, false, lay.position)
+    },
+
+    /** Open the shared OrkyRootPicker chrome (feature 0009, REQ-004) and resolve with the picked
+     *  member root (verbatim) or null on cancel/Escape. A superseding request cancels the stale
+     *  one so at most one picker is ever pending. */
+    pickOrkyRoot: () => new Promise<string | null>((resolvePick) => {
+      orkyRootPickResolve?.(null)
+      orkyRootPickResolve = resolvePick
+      set({ orkyRootPickOpen: true })
+    }),
+
+    resolveOrkyRootPick: (root) => {
+      const resolvePick = orkyRootPickResolve
+      orkyRootPickResolve = null
+      set({ orkyRootPickOpen: false })
+      resolvePick?.(root)
     },
 
     openExplorerHere: (wsId, paneId) => {

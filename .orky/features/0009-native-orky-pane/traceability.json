@@ -1,0 +1,153 @@
+{
+  "links": [
+    {
+      "req": "REQ-001",
+      "tasks": ["TASK-003", "TASK-012", "TASK-016", "TASK-017"],
+      "tests": ["TEST-377", "TEST-383", "TEST-435", "TEST-437", "TEST-440", "TEST-443"],
+      "files": ["src/shared/types.ts", "src/renderer/store/pane-ops.ts", "src/renderer/components/OrkyPane.tsx", "src/renderer/components/PaneTile.tsx", "src/renderer/components/MinimizedPaneHost.tsx"]
+    },
+    {
+      "req": "REQ-002",
+      "tasks": ["TASK-003", "TASK-004"],
+      "tests": ["TEST-375", "TEST-376", "TEST-377", "TEST-378", "TEST-379", "TEST-380", "TEST-443"],
+      "files": ["src/shared/types.ts", "src/shared/workspace-model.ts"]
+    },
+    {
+      "req": "REQ-003",
+      "tasks": ["TASK-019"],
+      "tests": ["TEST-344", "TEST-001", "TEST-020", "TEST-087", "TEST-038", "TEST-008", "TEST-384", "TEST-069", "TEST-358", "TEST-138"],
+      "files": [
+        "tests/renderer/decision-queue-panel-structure.test.ts",
+        "tests/shared/minimize-persistence.test.ts",
+        "tests/shared/orky-status.test.ts",
+        "tests/main/orky-registry-store.test.ts",
+        "tests/main/orky-osc-structural.test.ts",
+        "tests/main/quick-store-toasts.test.ts",
+        "tests/shared/registry-ipc-contract.test.ts",
+        "tests/renderer/app-queue-wiring.test.ts",
+        "tests/main/register-registry.test.ts"
+      ]
+    },
+    {
+      "req": "REQ-004",
+      "tasks": ["TASK-009", "TASK-012", "TASK-013", "TASK-014", "TASK-015"],
+      "tests": ["TEST-434", "TEST-435", "TEST-436", "TEST-440", "TEST-442", "TEST-445", "TEST-455", "TEST-456", "TEST-464", "TEST-465"],
+      "files": [
+        "src/renderer/components/OrkyRootPicker.tsx",
+        "src/renderer/store/pane-ops.ts",
+        "src/shared/quick.ts",
+        "src/renderer/components/CommandPalette.tsx",
+        "src/renderer/components/WorkspaceTabs.tsx",
+        "src/renderer/components/SplitMenu.tsx"
+      ]
+    },
+    {
+      "req": "REQ-005",
+      "tasks": ["TASK-002", "TASK-010", "TASK-016"],
+      "tests": ["TEST-385", "TEST-386", "TEST-387", "TEST-388", "TEST-426", "TEST-432", "TEST-443"],
+      "files": ["src/shared/orky-pane.ts", "src/renderer/store.ts", "src/renderer/components/OrkyPane.tsx"]
+    },
+    {
+      "req": "REQ-006",
+      "tasks": ["TASK-005", "TASK-006", "TASK-008"],
+      "tests": ["TEST-409", "TEST-410", "TEST-411", "TEST-413", "TEST-414", "TEST-415", "TEST-416", "TEST-417"],
+      "files": ["src/shared/ipc-contract.ts", "src/main/orky/orky-registry.ts", "src/main/ipc/register-registry.ts", "src/preload/index.ts"]
+    },
+    {
+      "req": "REQ-007",
+      "tasks": ["TASK-001", "TASK-006"],
+      "tests": ["TEST-389", "TEST-392", "TEST-393", "TEST-394", "TEST-395", "TEST-396", "TEST-398", "TEST-399", "TEST-430", "TEST-459"],
+      "files": ["src/shared/orky-status.ts", "src/main/orky/orky-root-detail.ts"]
+    },
+    {
+      "req": "REQ-008",
+      "tasks": ["TASK-006"],
+      "tests": ["TEST-400", "TEST-401", "TEST-402", "TEST-403", "TEST-404", "TEST-405", "TEST-406", "TEST-407", "TEST-408", "TEST-418", "TEST-457", "TEST-458", "TEST-467"],
+      "files": ["src/main/orky/orky-root-detail.ts", "src/main/ipc/register-registry.ts"]
+    },
+    {
+      "req": "REQ-009",
+      "tasks": ["TASK-016"],
+      "tests": ["TEST-428", "TEST-429", "TEST-430", "TEST-398", "TEST-442", "TEST-451", "TEST-452", "TEST-453", "TEST-454"],
+      "files": ["src/renderer/components/OrkyPane.tsx"]
+    },
+    {
+      "req": "REQ-010",
+      "tasks": ["TASK-010", "TASK-011", "TASK-016", "TASK-017"],
+      "tests": ["TEST-420", "TEST-421", "TEST-422", "TEST-423", "TEST-424", "TEST-430", "TEST-446", "TEST-447", "TEST-448", "TEST-449", "TEST-450", "TEST-454", "TEST-466", "TEST-468"],
+      "files": ["src/renderer/store.ts", "src/renderer/App.tsx", "src/renderer/components/OrkyPane.tsx", "src/renderer/components/MinimizedPaneHost.tsx", "src/renderer/components/PaneTile.tsx"]
+    },
+    {
+      "req": "REQ-011",
+      "tasks": ["TASK-009", "TASK-016"],
+      "tests": ["TEST-425", "TEST-428", "TEST-434", "TEST-444", "TEST-449"],
+      "files": ["src/renderer/components/OrkyRootPicker.tsx", "src/renderer/components/OrkyPane.tsx"]
+    },
+    {
+      "req": "REQ-012",
+      "tasks": ["TASK-016"],
+      "tests": ["TEST-429", "TEST-442", "TEST-453"],
+      "files": ["src/renderer/components/OrkyPane.tsx"]
+    },
+    {
+      "req": "REQ-013",
+      "tasks": ["TASK-001", "TASK-006", "TASK-018"],
+      "tests": ["TEST-391", "TEST-399", "TEST-408", "TEST-418", "TEST-433"],
+      "files": ["src/shared/orky-status.ts", "src/main/orky/orky-root-detail.ts"]
+    },
+    {
+      "req": "REQ-014",
+      "tasks": ["TASK-006", "TASK-016"],
+      "tests": ["TEST-397", "TEST-400", "TEST-431", "TEST-460"],
+      "files": ["src/main/orky/orky-root-detail.ts", "src/renderer/components/OrkyPane.tsx"]
+    },
+    {
+      "req": "REQ-015",
+      "tasks": ["TASK-001", "TASK-016"],
+      "tests": ["TEST-389", "TEST-390", "TEST-391", "TEST-431"],
+      "files": ["src/shared/orky-status.ts", "src/renderer/components/OrkyPane.tsx"]
+    },
+    {
+      "req": "REQ-016",
+      "tasks": ["TASK-010", "TASK-016"],
+      "tests": ["TEST-422"],
+      "files": ["src/renderer/store.ts", "src/renderer/components/OrkyPane.tsx"]
+    },
+    {
+      "req": "REQ-017",
+      "tasks": ["TASK-010", "TASK-017", "TASK-018"],
+      "tests": ["TEST-427", "TEST-450"],
+      "files": ["src/renderer/store.ts", "src/renderer/store/internals.ts", "src/renderer/components/PaneTile.tsx", "src/renderer/components/MinimizedPaneHost.tsx"]
+    },
+    {
+      "req": "REQ-018",
+      "tasks": ["TASK-009", "TASK-016"],
+      "tests": ["TEST-438", "TEST-444", "TEST-445", "TEST-456", "TEST-464"],
+      "files": ["src/renderer/components/OrkyRootPicker.tsx", "src/renderer/components/OrkyPane.tsx"]
+    },
+    {
+      "req": "REQ-019",
+      "tasks": ["TASK-016"],
+      "tests": ["TEST-439", "TEST-462", "TEST-463"],
+      "files": ["src/renderer/components/OrkyPane.tsx"]
+    },
+    {
+      "req": "REQ-020",
+      "tasks": ["TASK-004"],
+      "tests": ["TEST-381", "TEST-382", "TEST-461"],
+      "files": ["src/shared/workspace-model.ts"]
+    },
+    {
+      "req": "REQ-021",
+      "tasks": ["TASK-020"],
+      "tests": ["TEST-441", "TEST-467"],
+      "files": ["docs/features/orky-pane.md", "CLAUDE.md", "CHANGELOG.md", ".orky/baseline/architecture.md"]
+    },
+    {
+      "req": "REQ-022",
+      "tasks": ["TASK-005", "TASK-007", "TASK-008", "TASK-010", "TASK-011"],
+      "tests": ["TEST-412", "TEST-413", "TEST-414", "TEST-419", "TEST-421", "TEST-426", "TEST-466"],
+      "files": ["src/shared/ipc-contract.ts", "src/main/orky/orky-registry.ts", "src/main/ipc/register-registry.ts", "src/preload/index.ts", "src/renderer/store.ts", "src/renderer/App.tsx"]
+    }
+  ]
+}

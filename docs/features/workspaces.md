@@ -74,7 +74,7 @@ The menu has four items:
 
 | Item | Behaviour |
 |---|---|
-| **Rename** | Switches the title to an inline text field. The value is saved as an optional `name` field on the pane config (all three pane kinds — terminal, editor, explorer — support it). |
+| **Rename** | Switches the title to an inline text field. The value is saved as an optional `name` field on the pane config (every pane kind — terminal, editor, explorer, orky — supports it). |
 | **Move to workspace ▸** | Sub-menu listing the other workspaces the current window hosts, plus **New Workspace**. See [Cross-workspace move](#cross-workspace-move) below. |
 | **Settings** | Opens the unified Settings panel (`src/renderer/components/WorkspaceView.tsx`) with that pane pre-selected, covering the same surfaces previously reached by the dedicated 🎨/🔑/⚙ title-bar buttons (which were removed). |
 | **Close** | Removes the pane from the layout (same as the existing × button). |

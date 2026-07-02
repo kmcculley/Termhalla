@@ -173,8 +173,11 @@ describe('Synthetic-fixtures-only constraint: no live-process/network dependency
 })
 
 describe('No persistence, no writes, no schema bump (REQ-017)', () => {
-  it('TEST-038 REQ-017 SCHEMA_VERSION is unchanged by this feature (it persists nothing)', () => {
-    expect(SCHEMA_VERSION).toBe(7)
+  // SUPERSEDED point-in-time pin (CONV-019): re-pinned 7→8 by feature 0009-native-orky-pane
+  // (REQ-003, see 0009's 04-tests.md). 0014's invariant — IT persists nothing — is historical fact;
+  // 8 is 0009's sanctioned bump, not 0014's.
+  it('TEST-038 REQ-017 SCHEMA_VERSION is unchanged by this feature (it persists nothing; re-pinned at 8 by 0009 REQ-003)', () => {
+    expect(SCHEMA_VERSION).toBe(8)
   })
 
   it('TEST-039 REQ-017 the parser, the heartbeat mapper, the StatusEngine wiring, and the fs/stream bridge expose no filesystem-write API', () => {

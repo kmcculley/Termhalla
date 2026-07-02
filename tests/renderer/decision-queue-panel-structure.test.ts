@@ -22,9 +22,15 @@ describe('DecisionQueuePanel — drawer, not a pane kind (REQ-001)', () => {
     expect(read('src/renderer/store/pane-ops.ts')).not.toMatch(/decision-?queue/i)
     expect(read('src/renderer/components/WorkspaceView.tsx')).not.toContain('DecisionQueuePanel')
     expect(read('src/renderer/components/PaneTile.tsx')).not.toContain('DecisionQueuePanel')
-    // The persisted model is untouched: same three pane kinds, same schema version.
-    expect(read('src/shared/types.ts')).toMatch(/export type PaneConfig = TerminalConfig \| EditorConfig \| ExplorerConfig/)
-    expect(SCHEMA_VERSION).toBe(7)
+    // SUPERSEDED point-in-time pins (CONV-019, amended by feature 0009-native-orky-pane REQ-003 —
+    // see 0009's 04-tests.md). F6's still-true intent is "F6 added no pane kind and persisted
+    // nothing", NOT "the union/schema never evolve". Re-expressed open-form: no decision-queue pane
+    // kind exists (the pane-ops/WorkspaceView pins above plus the types.ts scan below), the union
+    // still CONTAINS the three original members as its head (later kinds may append), and the
+    // schema-version pin follows the constant's sanctioned 0009 bump (7→8).
+    expect(read('src/shared/types.ts')).toMatch(/export type PaneConfig = TerminalConfig \| EditorConfig \| ExplorerConfig(\s*\|\s*\w+Config)*/)
+    expect(read('src/shared/types.ts')).not.toMatch(/DecisionQueueConfig|QueuePaneConfig/)
+    expect(SCHEMA_VERSION).toBe(8)
   })
 })
 

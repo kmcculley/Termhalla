@@ -4,18 +4,18 @@ import { useStore, paneCwd } from '../store'
 import { Z, SURFACE } from './Modal'
 import type { SplitDir4 } from '@shared/types'
 
-type Kind = 'terminal' | 'editor' | 'explorer'
+type Kind = 'terminal' | 'editor' | 'explorer' | 'orky'
 
 const DIR_LABEL: Record<SplitDir4, string> = {
   up: 'Split up', down: 'Split down', left: 'Split left', right: 'Split right'
 }
 const DIR_GLYPH: Record<SplitDir4, string> = { up: '▲', down: '▼', left: '◀', right: '▶' }
-const KIND_LABEL: Record<Kind, string> = { terminal: 'Terminal', editor: 'Editor', explorer: 'Explorer' }
+const KIND_LABEL: Record<Kind, string> = { terminal: 'Terminal', editor: 'Editor', explorer: 'Explorer', orky: 'Orky' }
 
-// Estimated popover box (compass grid + 3 kind buttons + padding/gaps). Used only to clamp/flip the
+// Estimated popover box (compass grid + 4 kind buttons + padding/gaps). Used only to clamp/flip the
 // anchor into the viewport; a few px of drift here just shifts the popover, never clips it.
 const EST_W = 168
-const EST_H = 200
+const EST_H = 228
 
 /** Combined split popover: a four-direction compass (up/left/right/down) plus a Terminal/Editor/
  *  Explorer kind selector. Opening commits nothing; picking a kind sets the selection; activating a
@@ -32,6 +32,24 @@ export function SplitMenu(
   const addTerminal = useStore(s => s.addTerminal)
   const addEditor = useStore(s => s.addEditor)
   const addExplorer = useStore(s => s.addExplorer)
+  const addOrky = useStore(s => s.addOrky)
+  const pickOrkyRoot = useStore(s => s.pickOrkyRoot)
+  // The orky kind is only offerable when the held registry snapshot has a member (the explorer/cwd
+  // disabled precedent — feature 0009, REQ-004c); a null (not-yet-settled) snapshot disables too.
+  const hasOrkyMember = useStore(s => (s.registrySnapshot?.length ?? 0) > 0)
+  // The disabled button's accessible name MUST distinguish its two causes (FINDING-027, amended
+  // decision #4c): while the snapshot has NOT settled (the slice's derived-loading rule —
+  // registrySnapshot === null with no held error) the name is the LOADING wording, mirroring the
+  // picker's own loading state; ONLY a genuinely-held [] snapshot gets the genuinely-empty wording
+  // — a user WITH tracked projects is never told none exist during the startup window. A held
+  // registry error (no snapshot) names that third state rather than mis-describing either.
+  const registryLoading = useStore(s => s.registrySnapshot === null && s.registryError === null)
+  const registryFailed = useStore(s => s.registrySnapshot === null && s.registryError !== null)
+  const orkyDisabledName = registryLoading
+    ? 'Orky (waiting: tracked Orky projects are still loading…)'
+    : registryFailed
+      ? 'Orky (disabled: the tracked Orky projects could not be read)'
+      : 'Orky (disabled: no tracked Orky project yet — open a terminal in a project containing .orky/ to track one)'
   const cwd = useStore(s => paneCwd(s, paneId))
   const [kind, setKind] = useState<Kind>('terminal')
   // The visibly highlighted / roving-tabindex direction. Defaults to right (today's primary). Tracked
@@ -69,6 +87,14 @@ export function SplitMenu(
   const commit = (dir: SplitDir4) => {
     if (kind === 'terminal') addTerminal(wsId, paneId, 'row', dir)
     else if (kind === 'editor') addEditor(wsId, paneId, 'row', dir)
+    else if (kind === 'orky') {
+      // Feature 0009 (REQ-004c): a direction activation closes the compass and opens the SAME
+      // root picker as every other creation affordance; selecting a root commits the directional
+      // split with that root VERBATIM, cancel commits nothing.
+      close()
+      void pickOrkyRoot().then(root => { if (root) addOrky(wsId, paneId, 'row', root, dir) })
+      return
+    }
     else if (cwd) addExplorer(wsId, paneId, 'row', cwd, dir)
     close()
   }
@@ -116,8 +142,9 @@ export function SplitMenu(
 
   const kindButton = (k: Kind) => (
     <button key={k} type="button" data-testid={`split-kind-${k}-${paneId}`}
-      aria-pressed={kind === k} aria-label={KIND_LABEL[k]}
-      disabled={k === 'explorer' && !cwd}
+      aria-pressed={kind === k}
+      aria-label={k === 'orky' && !hasOrkyMember ? orkyDisabledName : KIND_LABEL[k]}
+      disabled={(k === 'explorer' && !cwd) || (k === 'orky' && !hasOrkyMember)}
       onClick={() => setKind(k)}
       style={{
         ...PAINT, fontWeight: kind === k ? 700 : 400, opacity: kind === k ? 1 : 0.7,
@@ -147,6 +174,7 @@ export function SplitMenu(
           {kindButton('terminal')}
           {kindButton('editor')}
           {kindButton('explorer')}
+          {kindButton('orky')}
         </div>
       </div>
     </>,

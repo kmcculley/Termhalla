@@ -6,6 +6,7 @@ import { useStore, paneCwd } from '../store'
 import { TerminalPane } from './TerminalPane'
 import { EditorPane } from './EditorPane'
 import { ExplorerPane } from './ExplorerPane'
+import { OrkyPane } from './OrkyPane'
 import { ScheduleDialog } from './ScheduleDialog'
 import { PaneToolbar } from './PaneToolbar'
 import { PaneContextMenu } from './PaneContextMenu'
@@ -38,6 +39,16 @@ export function PaneTile({ wsId, paneId, path }: { wsId: string; paneId: string;
   const isMax = useStore(s => s.maximized[wsId] === paneId)
   const setFocusedPane = useStore(s => s.setFocusedPane)
   const updatePaneConfig = useStore(s => s.updatePaneConfig)
+  // The INACTIVE-workspace host (feature 0009, REQ-010 / FINDING-013): App.tsx keeps every
+  // workspace mounted and hides the inactive ones (visibility: hidden), so a pane in a background
+  // workspace is mounted-but-NOT-displayed. The OrkyPane's fetch discipline keys on EFFECTIVE
+  // visibility across ALL THREE keep-mounted-but-hidden hosts — this boolean threads the
+  // workspace-activity AND maximized-over halves in (the MinimizedPaneHost passes `hidden` for
+  // the third; a sibling's maximize hides this tile via .ws-max visibility:hidden without
+  // unmounting it, FINDING-035). Value-stable selectors: switching between two OTHER workspaces
+  // or maximize churn on OTHER workspaces never re-renders this tile.
+  const wsInactive = useStore(s => s.activeId !== wsId)
+  const maximizedOver = useStore(s => { const m = s.maximized[wsId]; return m != null && m !== paneId })
 
   const [menu, setMenu] = useState<PaneMenu | null>(null)
   const [ctx, setCtx] = useState<{ x: number; y: number } | null>(null)
@@ -144,6 +155,7 @@ export function PaneTile({ wsId, paneId, path }: { wsId: string; paneId: string;
         {pane?.config.kind === 'terminal' && termCfg && <TerminalPane paneId={paneId} wsId={wsId} config={termCfg} />}
         {pane?.config.kind === 'editor' && <EditorPane paneId={paneId} wsId={wsId} config={pane.config} />}
         {pane?.config.kind === 'explorer' && <ExplorerPane paneId={paneId} wsId={wsId} config={pane.config} />}
+        {pane?.config.kind === 'orky' && <OrkyPane paneId={paneId} wsId={wsId} config={pane.config} hidden={wsInactive || maximizedOver} />}
         {!pane && <div>missing pane</div>}
       </div>
       {ctx && <PaneContextMenu wsId={wsId} paneId={paneId} x={ctx.x} y={ctx.y}

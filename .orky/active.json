@@ -1,14 +1,14 @@
 {
-  "feature": ".orky/features/0006-decision-queue-panel",
+  "feature": ".orky/features/0009-native-orky-pane",
   "projectRoot": "C:/dev/Termhalla",
-  "phase": "implement",
-  "lastTickAt": "2026-07-02T04:24:17.532Z",
-  "lastAction": "FINDING-023 conditional-restore fix applied (coordinator, ux-lens-specified)",
+  "phase": "review",
+  "lastTickAt": "2026-07-02T08:19:56.383Z",
+  "lastAction": "fix cycle green; dispatching focused re-verification (ux + devils-advocate)",
   "runs": {
-    ".orky/features/0006-decision-queue-panel": {
-      "phase": "implement",
-      "lastTickAt": "2026-07-02T04:24:17.532Z",
-      "lastAction": "FINDING-023 conditional-restore fix applied (coordinator, ux-lens-specified)"
+    ".orky/features/0009-native-orky-pane": {
+      "phase": "review",
+      "lastTickAt": "2026-07-02T08:19:56.383Z",
+      "lastAction": "fix cycle green; dispatching focused re-verification (ux + devils-advocate)"
     }
   }
 }

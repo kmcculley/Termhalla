@@ -37,11 +37,16 @@ describe('App.tsx — subscription + single recovery pull (REQ-003/REQ-011)', ()
     expect(src).toContain('recoveryPullFailed')   // the rejection path is explicit, never swallowed silently
   })
 
-  it('TEST-358 REQ-003 REQ-017 no new IPC: the registry channel set is exactly F5\'s five, and no main/preload file knows the feature', () => {
+  it('TEST-358 REQ-003 REQ-017 no new IPC by F6: F5\'s five registry channels remain, and no main/preload file knows the feature (open-formed by 0009 REQ-003)', () => {
     const registryChannels = Object.values(CH).filter(v => typeof v === 'string' && v.startsWith('registry:')).sort()
-    expect(registryChannels).toEqual([
+    // SUPERSEDED point-in-time pin (CONV-019, via feature 0009-native-orky-pane REQ-003's protocol;
+    // DISCOVERED at F9's test design — see 0009's 04-tests.md): F6's still-true intent is "F6 itself
+    // added no IPC", not "the registry read domain never grows" — F9 sanctions registry:detail +
+    // registry:rootChanged (exact post-F9 set pinned in tests/main/register-registry-detail.test.ts,
+    // TEST-409). Open-form: F5's five channels remain present.
+    expect(registryChannels).toEqual(expect.arrayContaining([
       'registry:addRoot', 'registry:current', 'registry:removeRoot', 'registry:roots', 'registry:status'
-    ])
+    ]))
     const mainAndPreload = [
       ...listFiles(resolve(process.cwd(), 'src', 'main')),
       ...listFiles(resolve(process.cwd(), 'src', 'preload'))

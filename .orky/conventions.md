@@ -103,6 +103,51 @@ to it when a review surfaces a lesson general enough to outlive its feature.
   rendered output) MUST be read via `getState()` at event time, never subscribed with a render
   hook.
   *(from FINDING-012 in 0006-decision-queue-panel)*
+- **CONV-022** — A frozen test asserting the CURRENT VALUE of a shared, legitimately-evolving
+  global (a schema-version constant, a closed type-union shape) as a proxy for "my feature didn't
+  change it" MUST instead pin an invariant scoped to its own feature (or name the sanctioned
+  amendment path in its header), so a later feature's legitimate change doesn't false-positive
+  several unrelated frozen suites at once.
+  *(from the REQ-003 six-guard collision in 0009-native-orky-pane)*
+- **CONV-023** — A spec claim of an exhaustive enumeration of colliding frozen tests ("full list",
+  "grep verified") MUST state the exact grep pattern and scope used, and the pattern MUST target
+  the pinned literal value repo-wide — never a sweep of already-known files.
+  *(from FINDING-001 in 0009-native-orky-pane)*
+- **CONV-024** — A detail/summary view whose refresh triggers key on changes to a LOSSY roll-up
+  MUST have an independent currency mechanism (or an explicit staleness contract) for the data the
+  roll-up omits — a summary-keyed trigger can only refresh what the summary can see.
+  *(from FINDING-003 in 0009-native-orky-pane)*
+- **CONV-025** — An enforced cap/truncation over a filesystem (or other unordered) enumeration MUST
+  be applied to a deterministically-ordered list, never to raw enumeration order, so which items
+  survive the cap is a pure function of the underlying state.
+  *(from FINDING-006 in 0009-native-orky-pane)*
+- **CONV-026** — A load-time coercion that guarantees "downstream code never sees X" MUST be
+  applied at EVERY deserialization/instantiation path of that persisted shape (the primary loader,
+  templates, imports/duplications), or the guarantee must explicitly name the paths it covers.
+  *(from FINDING-032 in 0009-native-orky-pane)*
+- **CONV-027** — An on-disk test fixture MUST NOT rely on case-only-distinct paths (they collapse
+  to one file on a case-insensitive filesystem); any case-sensitivity property must be exercised
+  through a pure in-memory seam instead.
+  *(from the FINDING-010 loopback in 0009-native-orky-pane)*
+- **CONV-028** — A keep-mounted-but-hidden host added anywhere in the renderer (minimized,
+  inactive-workspace, maximize-over, or any future overlay host) MUST thread its hiding into every
+  pane-kind runtime gate that keys on effective visibility, and that gate's tests MUST enumerate
+  every such host — not only the ones that existed when the gate was written.
+  *(from FINDING-013 / FINDING-035 in 0009-native-orky-pane)*
+- **CONV-029** — A component consuming a theme/status CSS variable MUST reference a variable name
+  actually defined by the theme system or a `:root` rule, using that token's standard fallback — a
+  `var()` with an undefined name plus a novel fallback literal is a hard-coded color a
+  hex-in-fallback source scan cannot catch.
+  *(from FINDING-025 in 0009-native-orky-pane)*
+- **CONV-030** — A container-level key handler that intercepts activation keys (Enter/Space) MUST
+  target-guard so a nested native control's own activation is never suppressed or redirected —
+  Enter on a focused button must activate that button.
+  *(from FINDING-023 in 0009-native-orky-pane)*
+- **CONV-031** — A pinned trigger/count discipline whose boundary is a component lifecycle
+  transition (mount/unmount, hidden→displayed) MUST be tested through the real component
+  lifecycle, not only through the store/slice seam beneath it — a slice-level spy cannot see
+  fetches a component's own mount effects add.
+  *(from FINDING-020 in 0009-native-orky-pane)*
 
 ## Principles
 Higher-level stances that inform specs and reviews but are too broad to gate mechanically.

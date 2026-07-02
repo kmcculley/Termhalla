@@ -7,6 +7,23 @@ All notable changes to Termhalla are recorded here. The format follows
 ## [Unreleased]
 
 ### Added
+- **Native Orky pane — a first-class, persisted pane kind for one project's FULL pipeline status.**
+  `PaneConfig` gains `orky` (bound to one tracked project root, stored verbatim/case-preserved),
+  creatable from the command palette ("New Orky pane…"), the tab bar's add-pane select, and the
+  split compass — all through a shared tracked-root picker. The pane renders EVERY feature
+  (including the idle/clean-done ones the popover and decision-queue omit) with per-gate records,
+  findings (with the shared blocking verdict), and escalations, read over a new read-only
+  `registry:detail` pull with deterministic sort-before-cap bounds, a bounded torn-write retry, and
+  surfaced (never silent) unreadable markers. A new lightweight `registry:rootChanged` push (the
+  bare project-root string, per completed engine re-read) keeps a displayed pane current — hidden
+  panes mark themselves stale and refresh once on restore; other roots' churn re-renders nothing.
+  Unbound/unreadable/error states are explicit, with a keyboard-operable re-bind flow. Strictly
+  read-only; each row reserves an empty actions slot for F10. See `docs/features/orky-pane.md`.
+- **Workspace schema bump: SCHEMA_VERSION v7 → v8** (the first since pane view-state in 0003), so
+  the new persisted `orky` pane kind rides the migration chain: the v<8 step is a documented
+  identity (a pre-v8 record cannot contain an orky pane), and an **older Termhalla build will
+  refuse to load a v8 workspace file** ("newer than supported") rather than render a pane kind it
+  does not know. A malformed persisted orky binding loads as unbound instead of dropping the pane.
 - **Orky decision-queue drawer (the registry aggregate's first renderer UI).** A right-side,
   window-chrome drawer (a sibling of the notes drawer — not a pane kind, no `SCHEMA_VERSION` change)
   listing every feature across every tracked Orky project that **needs a human right now** — open

@@ -1,6 +1,6 @@
 import type { ShellInfo, Workspace, MosaicDirection, SplitDir4, AiSession, AiTool, TerminalStatus } from '@shared/types'
 
-export type PaneKind = 'terminal' | 'editor' | 'explorer'
+export type PaneKind = 'terminal' | 'editor' | 'explorer' | 'orky'
 
 /** The store actions `dispatchAddPane` needs, narrowed so the helper is api-free and unit-testable
  *  (the renderer `api` module touches `window`, so anything importing it can't run under vitest). */
@@ -9,6 +9,7 @@ export interface PaneActions {
   addTerminal: (wsId: string, target: string | null, dir: MosaicDirection, splitDir?: SplitDir4) => unknown
   addEditor: (wsId: string, target: string | null, dir: MosaicDirection, splitDir?: SplitDir4) => unknown
   addExplorer: (wsId: string, target: string | null, dir: MosaicDirection, root: string, splitDir?: SplitDir4) => unknown
+  addOrky: (wsId: string, target: string | null, dir: MosaicDirection, root: string, splitDir?: SplitDir4) => unknown
 }
 
 /** The shell a new terminal should use: the user's explicit pick, else the first detected shell,
@@ -24,21 +25,27 @@ export function firstTarget(ws: Workspace): string | null {
 }
 
 /** Add a pane of `kind` to `wsId`, splitting off its first existing pane. No-ops for a missing
- *  workspace, and the explorer branch prompts for a folder first (and skips if cancelled).
- *  Centralizes the kind→action dispatch that was triplicated (and had drifted) across App,
- *  CommandPalette and WorkspaceTabs. */
+ *  workspace; the explorer branch prompts for a folder first (and skips if cancelled), and the
+ *  orky branch (feature 0009, REQ-004) prompts through its OWN injected, api-free root-picker
+ *  callback — ONE callback per concept, no primary+override pair (CONV-006) — committing the
+ *  picked root VERBATIM (REQ-005) and nothing at all on cancel. Centralizes the kind→action
+ *  dispatch that was triplicated (and had drifted) across App, CommandPalette and WorkspaceTabs. */
 export async function dispatchAddPane(
   s: PaneActions,
   wsId: string,
   kind: PaneKind,
-  openFolder: () => Promise<string | null>
+  openFolder: () => Promise<string | null>,
+  pickOrkyRoot?: () => Promise<string | null>
 ): Promise<void> {
   const ws = s.workspaces[wsId]
   if (!ws) return
   const target = firstTarget(ws)
   if (kind === 'terminal') s.addTerminal(wsId, target, 'row')
   else if (kind === 'editor') s.addEditor(wsId, target, 'row')
-  else {
+  else if (kind === 'orky') {
+    const root = await pickOrkyRoot?.()
+    if (root) s.addOrky(wsId, target, 'row', root)
+  } else {
     const root = await openFolder()
     if (root) s.addExplorer(wsId, target, 'row', root)
   }

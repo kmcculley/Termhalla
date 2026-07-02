@@ -1,0 +1,189 @@
+{
+  "feature": "0009-native-orky-pane",
+  "phase": "doc-sync",
+  "gates": {
+    "brainstorm": {
+      "passed": true,
+      "at": "2026-07-02T04:34:17.258Z",
+      "evidence": "delegated-human brainstorm: D1 first-class persisted pane kind + schema bump, D2 explicit tracked-root binding with unbound state, D3 F5 aggregate + new read-only per-root detail channel, D4 read-only with F10 actions region reserved, D5 reuse F6/orky-status substrate",
+      "external": true
+    },
+    "spec": {
+      "passed": true,
+      "at": "2026-07-02T08:40:09.695Z",
+      "tokens": [
+        {
+          "token": "findings",
+          "pass": true,
+          "evidence": "no open blocking findings (CRITICAL/HIGH or contract-violation) for this gate"
+        }
+      ]
+    },
+    "plan": {
+      "passed": true,
+      "at": "2026-07-02T08:40:09.869Z",
+      "tokens": [
+        {
+          "token": "spec-freeze",
+          "pass": true,
+          "evidence": "spec unchanged since the spec gate"
+        },
+        {
+          "token": "traceability-plan",
+          "pass": true,
+          "evidence": "all 22 REQ(s) trace to TASK"
+        },
+        {
+          "token": "findings",
+          "pass": true,
+          "evidence": "no open blocking findings (CRITICAL/HIGH or contract-violation) for this gate"
+        }
+      ]
+    },
+    "tests": {
+      "passed": true,
+      "at": "2026-07-02T08:40:25.443Z",
+      "tokens": [
+        {
+          "token": "spec-freeze",
+          "pass": true,
+          "evidence": "spec unchanged since the spec gate"
+        },
+        {
+          "token": "tests-red",
+          "pass": true,
+          "evidence": "tests are GREEN on a tests loopback (coverage augmentation; implementation already exists) — freeze re-captured"
+        }
+      ]
+    },
+    "implement": {
+      "passed": true,
+      "at": "2026-07-02T08:41:04.607Z",
+      "tokens": [
+        {
+          "token": "spec-freeze",
+          "pass": true,
+          "evidence": "spec unchanged since the spec gate"
+        },
+        {
+          "token": "build",
+          "pass": true,
+          "evidence": "build exited 0"
+        },
+        {
+          "token": "test",
+          "pass": true,
+          "evidence": "test exited 0"
+        },
+        {
+          "token": "test-freeze",
+          "pass": true,
+          "evidence": "test files unchanged since freeze"
+        }
+      ]
+    },
+    "review": {
+      "passed": true,
+      "at": "2026-07-02T08:41:21.852Z",
+      "tokens": [
+        {
+          "token": "spec-freeze",
+          "pass": true,
+          "evidence": "spec unchanged since the spec gate"
+        },
+        {
+          "token": "findings",
+          "pass": true,
+          "evidence": "no open blocking findings (CRITICAL/HIGH or contract-violation) for this gate"
+        }
+      ]
+    },
+    "doc-sync": {
+      "passed": true,
+      "at": "2026-07-02T08:51:01.961Z",
+      "tokens": [
+        {
+          "token": "spec-freeze",
+          "pass": true,
+          "evidence": "spec unchanged since the spec gate"
+        },
+        {
+          "token": "traceability",
+          "pass": true,
+          "evidence": "all 22 REQ(s) trace to TASK+TEST"
+        },
+        {
+          "token": "findings",
+          "pass": true,
+          "evidence": "no open blocking findings (CRITICAL/HIGH or contract-violation) for this gate"
+        }
+      ]
+    },
+    "human-review": {
+      "passed": true,
+      "at": "2026-07-02T08:51:02.050Z",
+      "evidence": "Delegated autonomous drive (Kevin, 2026-07-01). Reviewed: 22-REQ spec through three sanctioned loopbacks (pre-gate revision, test-defect fixtures, review-driven spec rewrite of the displayed model + FINDING-035 third host), SCHEMA_VERSION 7->8 migration, two new read-only IPC surfaces, 103 TESTs, 37-finding ledger (30 resolved/merged; 7 open documented residuals incl. FINDING-036/037 inherited by F10/backlog), CONV-022..031 promoted. Suite 1249 green; build green.",
+      "external": true
+    }
+  },
+  "iterations": {
+    "tests": 1,
+    "spec": 2
+  },
+  "escalations": [
+    {
+      "id": "ESC-001",
+      "phase": "review",
+      "reason": "Seven-lens review: 8 distinct blocking contract violations on a green 1229-test implementation. Deepest root cause is spec-level (FINDING-013: REQ-010's 'displayed' built on the false premise that workspace switches unmount panes — they stay mounted hidden). Blockers: 013 (background-workspace fetching), 020 (restore/re-bind fetch counts, merged from 3 lenses), 023 (picker Enter-on-Cancel commits a pane), 024 (REQ-009 display set incomplete), 025 (theme-dead status var), 028 (stat-failure classified as absence), 029 (re-bind renders stale root's detail). Spec-origin non-blockers to fold in: 021 (wire lacks unique slug), 027 (compass loading copy), 031 (follow-up fires while hidden), 032 (template path bypasses coercion). Human decision on the loopback.",
+      "kind": "judgment",
+      "finding": "FINDING-013",
+      "status": "resolved",
+      "at": "2026-07-02T07:10:51.842Z",
+      "decision": "Loop back to spec (delegated-human decision, autonomous drive authorization). Spec-writer amends: (1) REQ-010 redefine 'displayed' against the REAL mount model — a pane is displayed iff its tile is in its window's ACTIVE workspace's visible mosaic and not minimized (background workspaces stay mounted hidden; FINDING-013) — and pin the follow-up-fetch x hidden/unbound transition matrix (FINDING-031); keep the restore/re-bind fetch-count acceptance (zero non-stale / exactly one stale or re-bind) but ground it in remount reality (FINDING-020); (2) REQ-007/wire: detail features carry the unique dir slug; rows/disclosure key on it (FINDING-021); (3) REQ-020: binding coercion MUST cover every instantiation path incl. templates (FINDING-032, promote its CONV proposal); (4) decision #4c compass copy distinguishes loading from empty (FINDING-027); (5) REQ-008 notes 033's accepted cross-file staleness class. Then tests loopback pins everything that slipped the node-env harness: background-workspace non-fetch, component-level fetch counts, the picker's FULL keyboard matrix (Enter on Cancel/option in every state — the F6 class again), gate-at + stall rendering, a generalized theme-var-validity scan (every var(--x) referenced must be defined somewhere — new guard class), stat-failure surfacing, re-bind detail clearing + root guard, settle-while-hidden suppression. Then implementer fixes 013/020/023/024/025/026/028/029/031/032 + cheap non-blockers (011 leaf lstat, 018 shared memberSpelling helper, 019 reuse extraction where cheap); 012/014/015/016/033 may ride as documented residuals if their fixes prove non-trivial.",
+      "resolvedAt": "2026-07-02T07:11:13.821Z"
+    }
+  ],
+  "concerns": [
+    "ux",
+    "performance",
+    "determinism",
+    "quality"
+  ],
+  "attempts": {
+    "spec": 0,
+    "plan": 0,
+    "tests": 0,
+    "implement": 0,
+    "review": 0,
+    "doc-sync": 0
+  },
+  "implementer": {
+    "mode": "claude",
+    "agents": [
+      "orky:implementer"
+    ],
+    "winner": "orky:implementer",
+    "reason": "Loopback fix cycle; same audited single-implementer degrade (codex worktree env failure; determinism lens + frozen vectors compensate).",
+    "at": "2026-07-02T07:51:03.372Z"
+  },
+  "loopbacks": [
+    {
+      "to": "tests",
+      "from": "implement",
+      "reason": "FINDING-010: three phase-4 test defects (syntax error blocking execution; two case-insensitive-filesystem-impossible fixtures)",
+      "at": "2026-07-02T06:48:01.129Z"
+    },
+    {
+      "to": "spec",
+      "from": "review",
+      "reason": "8 blocking contract violations; deepest root cause spec-level (FINDING-013 false unmount premise; 021/027/031/032 spec-origin)",
+      "at": "2026-07-02T07:11:13.896Z"
+    },
+    {
+      "to": "spec",
+      "from": "review",
+      "reason": "FINDING-035 (MEDIUM, spec-origin): maximize is a third keep-mounted-hidden host the amended REQ-010 enumeration missed; one-sentence spec amendment + one structural pin + one-condition fix",
+      "at": "2026-07-02T08:37:29.388Z"
+    }
+  ]
+}

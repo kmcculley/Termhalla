@@ -23,7 +23,14 @@ describe('Registry IPC channels (REQ-022)', () => {
   it('TEST-069 REQ-022 every registry channel name is unique and does not collide with any existing CH value', () => {
     const values = Object.values(CH as Record<string, string>)
     const registryValues = values.filter(v => v.startsWith('registry:'))
-    expect(registryValues.length).toBe(5)
+    // SUPERSEDED point-in-time pin (CONV-019, via feature 0009-native-orky-pane REQ-003's protocol;
+    // DISCOVERED at F9's test design — see 0009's 04-tests.md): a closed COUNT of a legitimately-
+    // growing channel family. Open-form: F5's five channels must all exist (exact values pinned in
+    // TEST-068); F9 adds registry:detail + registry:rootChanged and pins the exact post-F9 set in
+    // tests/main/register-registry-detail.test.ts (TEST-409).
+    expect(registryValues).toEqual(expect.arrayContaining([
+      'registry:status', 'registry:current', 'registry:roots', 'registry:addRoot', 'registry:removeRoot'
+    ]))
     expect(new Set(values).size).toBe(values.length) // no duplicate channel string anywhere in CH
   })
 })

@@ -126,18 +126,29 @@ export function gateFrontier(gates: unknown): OrkyPhase | null {
 
 // ── Open-blocking findings (REQ-002) ──────────────────────────────────────────────────────────────
 const BLOCKING_SEVERITY = new Set(['CRITICAL', 'HIGH'])
+/** The per-entry blocking predicate — extracted VERBATIM from `openBlockingCount`'s loop body
+ *  (feature 0009, REQ-007/REQ-013/REQ-015 — the ONE sanctioned shared refactor of this file;
+ *  behavior-identical, equivalence-tested): a finding blocks iff it is an object, its `status` is
+ *  `open` (case-insensitive), and its `severity` is CRITICAL/HIGH (case-insensitive) OR it carries
+ *  an explicit `contract_violation === true`. Case-insensitivity matches the producer's own
+ *  normalization contract (the gatekeeper's `contract.finding_normalization`: status
+ *  canonical-lowercase, severity canonical-UPPERCASE, both compared case-insensitively) — a
+ *  mixed-case finding ("Open"/"high") from an older or hand-edited ledger still counts. Total on
+ *  junk: a non-object / missing-field entry is simply not blocking, never a throw. */
+export function isBlockingFinding(f: unknown): boolean {
+  if (!isObject(f)) return false
+  if (String(f.status).toLowerCase() !== 'open') return false
+  return BLOCKING_SEVERITY.has(String(f.severity).toUpperCase()) || f.contract_violation === true
+}
+
 /** Count open findings that are CRITICAL/HIGH OR a contract violation. Total; no silent capping.
- *  `status`/`severity` are compared CASE-INSENSITIVELY, matching the producer's own normalization
- *  (the gatekeeper's `contract.finding_normalization`: status canonical-lowercase, severity
- *  canonical-UPPERCASE, both compared case-insensitively) — a mixed-case finding ("Open"/"high")
- *  from an older or hand-edited ledger still counts instead of silently dropping out of `●k open`. */
+ *  Delegates the per-entry rule to the exported `isBlockingFinding` above (one predicate
+ *  definition — 0009's detail payload and this counter can never drift). */
 export function openBlockingCount(findings: OrkyFinding[] | undefined | null): number {
   if (!Array.isArray(findings)) return 0
   let n = 0
   for (const f of findings) {
-    if (!isObject(f)) continue
-    if (String(f.status).toLowerCase() !== 'open') continue
-    if (BLOCKING_SEVERITY.has(String(f.severity).toUpperCase()) || f.contract_violation === true) n++
+    if (isBlockingFinding(f)) n++
   }
   return n
 }

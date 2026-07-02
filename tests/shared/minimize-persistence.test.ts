@@ -21,8 +21,13 @@ const mins = (w: Workspace): string[] => (w as VS).minimized ?? []
 const maxd = (w: Workspace): string | null => (w as VS).maximized ?? null
 
 describe('schema bump + migration (REQ-009)', () => {
-  it('TEST-001 REQ-009 SCHEMA_VERSION is bumped to 7 for the persisted view-state', () => {
-    expect(SCHEMA_VERSION).toBe(7)
+  // SUPERSEDED point-in-time pin (CONV-019): 0003 bumped 6→7 (historical fact); feature
+  // 0009-native-orky-pane (REQ-003) sanctions the 7→8 bump, so the value pin is re-pinned at the
+  // current constant in the SAME change as F9's suite (see
+  // .orky/features/0009-native-orky-pane/04-tests.md). 0003's real invariant — the v6→v7
+  // view-state migration semantics below — is untouched.
+  it('TEST-001 REQ-009 SCHEMA_VERSION is the current persisted schema version (0003 bumped 6→7; re-pinned at 8 by 0009 REQ-003)', () => {
+    expect(SCHEMA_VERSION).toBe(8)
   })
 
   it('TEST-002 REQ-009 a prior-version record (no view-state) loads with empty view-state and no data loss', () => {
