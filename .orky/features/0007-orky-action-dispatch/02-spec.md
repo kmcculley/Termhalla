@@ -228,32 +228,44 @@ slug resolves to the correct absolute `featureDir`; a well-formed slug for a non
 
 ### REQ-006 — `resolveEscalation`: feedback-first with a gatekeeper direct fallback (D2) — `enterprise-arch` `quality`
 `resolveEscalation(req)` MUST first attempt `feedback emit --app <projectRoot> --type decision --feature
-<slug> --payload <json{escalationId, decision}>`. It MUST inspect the emit's `mode`: when `mode !== 'noop'`
-the decision was accepted by the live control plane → return `{ ok:true, path:'feedback',
-feedback:'enabled', dispatched:true, data:<emit result> }`. When `mode === 'noop'` (feedback disabled) it MUST
-fall back to `gatekeeper resolve-escalation --feature <featureDir> --id <escalationId> --decision <decision>`
-and return `{ ok:true, path:'gatekeeper', feedback:'disabled', dispatched:true, data:<escalation obj> }`. The
-result MUST make the taken path unambiguous so the audit trail (REQ-013) and F8's UI can show which route ran.
-A gatekeeper fallback that exits 2 (e.g. unknown escalation id) MUST return `errorKind:'cli-error'` with the
-CLI's message.
+<slug> --payload <json{escalationId, decision}>`. It MUST inspect the emit result's own `ok` field FIRST
+(**Amended (ESC-006):** parsed `ok:false` takes precedence over mode-based branching): a feedback-emit exit-0
+result whose parsed `ok === false` is an INTERNAL ERROR of the feedback CLI and MUST return `{ ok:false,
+path:'feedback', dispatched:false, errorKind:'cli-error', exitCode:0, error:<the CLI's own error message> }`
+— the gatekeeper fallback MUST NOT run for it. Only when `ok` is not literally `false` does the `mode`
+branching apply: when `mode !== 'noop'` the decision was accepted by the live control plane → return `{
+ok:true, path:'feedback', feedback:'enabled', dispatched:true, data:<emit result> }`. When `mode === 'noop'`
+(feedback genuinely disabled) it MUST fall back to `gatekeeper resolve-escalation --feature <featureDir> --id
+<escalationId> --decision <decision>` and return `{ ok:true, path:'gatekeeper', feedback:'disabled',
+dispatched:true, data:<escalation obj> }`. The result MUST make the taken path unambiguous so the audit trail
+(REQ-013) and F8's UI can show which route ran. A gatekeeper fallback that exits 2 (e.g. unknown escalation
+id) MUST return `errorKind:'cli-error'` with the CLI's message.
 **Acceptance:** against a feedback-enabled fixture the call emits (mode `file`/`http`), never touches
-gatekeeper, and reports `path:'feedback'`; against a disabled fixture it emits (mode `noop`) then runs
-gatekeeper direct, mutates `state.json`'s escalation to `resolved`, and reports `path:'gatekeeper',
-feedback:'disabled'`; a non-existent `escalationId` on the fallback path returns `cli-error` with a specific
-message.
+gatekeeper, and reports `path:'feedback'`; against a disabled fixture it emits (exit 0, `ok:true`, mode
+`noop`) then runs gatekeeper direct, mutates `state.json`'s escalation to `resolved`, and reports
+`path:'gatekeeper', feedback:'disabled'` (pinned by TEST-299); an emit returning exit 0 with `{ok:false,
+mode:'noop', error}` yields `ok:false, errorKind:'cli-error'` carrying the CLI's own error with NO gatekeeper
+invocation (ESC-006; pinned by TEST-295/TEST-297); a non-existent `escalationId` on the fallback path returns
+`cli-error` with a specific message.
 
 ### REQ-007 — `submitWork`: feedback-only; disabled is surfaced distinctly, never a silent drop (D2/CONV-001) — `quality` `enterprise-arch`
 `submitWork(req)` MUST invoke `feedback emit --app <projectRoot> --type work.request [--feature <slug>]
---payload <json{title, detail?, phase?}>`. When `mode !== 'noop'` → `{ ok:true, path:'feedback',
-feedback:'enabled', dispatched:true, data:<emit result> }`. When `mode === 'noop'` there is NO fallback (work
-items have no direct gatekeeper equivalent), so the result MUST be a DISTINCT non-dispatch outcome — `{
-ok:false, path:'feedback', feedback:'disabled', dispatched:false, errorKind:'feedback-disabled', error:'the
-feedback control plane is disabled for <root>; work items cannot be submitted until it is enabled' }` — never a
-success that silently discards the human's input.
+--payload <json{title, detail?, phase?}>`. The emit result's own `ok` field takes precedence over mode-based
+branching (**Amended (ESC-006)**): an exit-0 emit whose parsed `ok === false` is an INTERNAL ERROR and MUST
+return `{ ok:false, path:'feedback', dispatched:false, errorKind:'cli-error', exitCode:0, error:<the CLI's
+own error message> }` — never the `feedback-disabled` outcome below. Only when `ok` is not literally `false`
+does the `mode` branching apply: when `mode !== 'noop'` → `{ ok:true, path:'feedback', feedback:'enabled',
+dispatched:true, data:<emit result> }`. When `mode === 'noop'` (feedback genuinely disabled) there is NO
+fallback (work items have no direct gatekeeper equivalent), so the result MUST be a DISTINCT non-dispatch
+outcome — `{ ok:false, path:'feedback', feedback:'disabled', dispatched:false, errorKind:'feedback-disabled',
+error:'the feedback control plane is disabled for <root>; work items cannot be submitted until it is enabled'
+}` — never a success that silently discards the human's input.
 **Acceptance:** against a feedback-enabled fixture the work item is emitted and `dispatched:true`; against a
-disabled fixture the result is `ok:false, errorKind:'feedback-disabled', dispatched:false` with a specific,
-actionable message and the outbox is unchanged (nothing durably written); `title` missing/empty →
-`invalid-args` (REQ-014) before any emit.
+disabled fixture (exit 0, `ok:true`, mode `noop`) the result is `ok:false, errorKind:'feedback-disabled',
+dispatched:false` with a specific, actionable message and the outbox is unchanged (nothing durably written)
+(pinned by TEST-300); an emit returning exit 0 with `{ok:false, mode:'noop', error}` yields `ok:false,
+errorKind:'cli-error'` carrying the CLI's own error, NOT `feedback-disabled` (ESC-006; pinned by TEST-298);
+`title` missing/empty → `invalid-args` (REQ-014) before any emit.
 
 ### REQ-008 — `recordHumanGate`: gate restricted server-side to `{brainstorm, human-review}`, never `--force` — `security`
 `recordHumanGate(req)` MUST reject any `gate` outside `{brainstorm, human-review}` in the main process BEFORE

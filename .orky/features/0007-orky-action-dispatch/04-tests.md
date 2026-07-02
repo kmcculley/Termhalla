@@ -504,3 +504,75 @@ exit code 1
 
 1037 = 1033 (prior green baseline, post-ESC-003) + 4 new tests. All other 139 files remain green — this
 loopback touches no other test file and no production code.
+
+## Loopback (ESC-006, 2026-07-02): feedback-emit internal-error misdiagnosis guard (FINDING-CODEX-001 fix, TEST-295..TEST-300)
+
+**Context.** The codex-cross-check lens (review, attempt 1 post-ESC-004-loopback) filed FINDING-CODEX-001
+(HIGH, `contract_violation:true`), independently verified by the coordinator: `mapCliRunToResult`
+(`src/shared/orky-action-result.ts:60-62`) maps ANY feedback-CLI exit-0 to `{ok:true, data:parsed}`
+without ever inspecting the parsed stdout's own `ok` field. 02-spec.md's "Verified CLI contract" documents
+TWO distinct feedback-emit exit-0 stdout shapes: success `{ok:true, mode, event, sent, spooled}` and an
+INTERNAL error `{ok:false, mode:'noop', error, note:'emit is non-fatal'}` — and critically, BOTH the
+disabled-channel no-op AND the internal-error case report `mode:'noop'`. Because the dispatcher
+(`doResolveEscalation`/`doSubmitWork` in `src/main/orky/orky-action-dispatcher.ts`) branches only on
+`data.mode !== 'noop'` — never on `data.ok` — a genuine internal feedback-CLI error (e.g. disk full while
+spooling the outbox) is silently misdiagnosed as "feedback disabled": `resolveEscalation` falls back to
+the gatekeeper CLI (masking the real error behind whatever the fallback happens to return) and
+`submitWork` reports `errorKind:'feedback-disabled'` with a misleading "the feedback control plane is
+disabled ... enable it" message, instead of `ok:false/errorKind:'cli-error'` carrying the CLI's own error.
+This violates REQ-002's failure contract (`ok:false` must carry a specific, actionable `error` AND a
+machine-routable `errorKind` for ANY failure) and REQ-011's explicit requirement that feedback emit's
+`mode`/`ok` fields drive REQ-006/REQ-007's branching and that the CLI's own `{error}` message MUST be
+surfaced.
+
+The human reviewed and approved the fix (`state.json` escalations[5], ESC-006): make the feedback exit-0
+mapper in `mapCliRunToResult` inspect the parsed object's `ok` field BEFORE any per-action `mode` handling
+— when `parsed.ok === false`, return `{ok:false, exitCode:0, errorKind:'cli-error', error:<parsed.error or
+a specific default>}` — so both `resolveEscalation` and `submitWork` surface the feedback CLI's real
+failure instead of treating it as merely disabled. `exitCode` stays `0` on this branch (ESC-006: the
+process genuinely exited 0; only `ok` reports the semantic failure). The dispatcher's existing
+`mode !== 'noop'` branching is UNCHANGED and remains correct for the genuine disabled-channel case (which
+is now reached only once `mapCliRunToResult` has already confirmed `parsed.ok !== false`). This section
+documents the TEST-295..TEST-300 addition authored to pin that required behavior — RED today (3 of 6:
+TEST-295/297/298; TEST-296/299/300 are regression guards that pass against the pre-fix code by
+construction; see below), since the guard does not yet exist in `src/shared/orky-action-result.ts`. No file under `src/` was
+touched by this pass (test-designer-only loopback, same integrity boundary as the original phase 4 and the
+ESC-003/ESC-004 loopbacks above). No REQ was added or renumbered; these are new acceptance-criterion tests
+against the EXISTING, frozen REQ-002 (uniform, discriminated result shape) and REQ-011 (total exit-code +
+stdout-JSON mapping) — REQ-006/REQ-007 (the dispatcher's mode-branching consequence) and REQ-011's own
+"CLI's own `{error}` message MUST be surfaced" clause are also directly implicated, but per the
+coordinator's brief the new TEST-IDs are recorded in `traceability.json` under REQ-002 and REQ-011 only.
+
+Two NEW files (neither modifies any existing FROZEN test file — `tests/shared/orky-action-result.test.ts`
+TEST-178..195 and `tests/main/orky-action-dispatcher.test.ts` TEST-229..294 are untouched), continuing the
+project-wide TEST-NNN sequence from **TEST-295** (TEST-294, added by the ESC-004 loopback above, was the
+prior project-wide high-water mark, re-verified by grepping the full `tests/` tree for the actual max
+`TEST-NNN` before picking a starting number — no test anywhere exceeds TEST-294) through **TEST-300**:
+
+| TEST-ID | REQ(s) | File | Assertion |
+|---|---|---|---|
+| TEST-295 | REQ-002/011 | `tests/shared/orky-action-result-codex-001-regression.test.ts` | `mapCliRunToResult('resolveEscalation','feedback',...)` on exit 0 with parsed `{ok:false, mode:'noop', error:'boom', note:'emit is non-fatal'}` → `{ok:false, errorKind:'cli-error', exitCode:0, error}` where `error` contains `'boom'` — NOT a silent `ok:true`. |
+| TEST-296 | REQ-002/011 | same | Regression guard: exit 0 with parsed `{ok:true, mode:'file', ...}` is STILL `ok:true` with `data` verbatim — the success path must not regress when the `ok:false` branch is added. |
+| TEST-297 | REQ-002/011 | `tests/main/orky-action-dispatcher-codex-001-regression.test.ts` | Dispatcher `resolveEscalation`: feedback-emit CLI call returns exit 0 + `{ok:false, mode:'noop', error:'disk full'}` → the action result is `ok:false/errorKind:'cli-error'` carrying `'disk full'`; the gatekeeper-fallback CLI call MUST NEVER run (`calls` shows only `['emit']`) — no silent misreported disabled-mode success. |
+| TEST-298 | REQ-002/011 | same | Dispatcher `submitWork`: the identical feedback-emit stimulus (exit 0 + `{ok:false, mode:'noop', error:'disk full'}`) → `ok:false/errorKind:'cli-error'` carrying `'disk full'` — NEVER `errorKind:'feedback-disabled'` with the misleading "enable it" message. |
+| TEST-299 | REQ-002/011 | same | Disabled-path regression guard: `resolveEscalation` with a GENUINE no-op (`{ok:true, mode:'noop'}`) still falls back to gatekeeper and succeeds (`path:'gatekeeper', feedback:'disabled', dispatched:true`) exactly as before the fix. |
+| TEST-300 | REQ-002/011 | same | Disabled-path regression guard: `submitWork` with a GENUINE no-op (`{ok:true, mode:'noop'}`) still reports the distinct `feedback-disabled` non-dispatch outcome (`ok:false, dispatched:false, errorKind:'feedback-disabled'`) exactly as before the fix. |
+
+### RED verification (this addition)
+
+```
+npx vitest run tests/shared/orky-action-result-codex-001-regression.test.ts tests/main/orky-action-dispatcher-codex-001-regression.test.ts
+ Test Files  2 failed (2)
+      Tests  3 failed | 3 passed (6)
+```
+
+TEST-295 (mapper, internal-error case), TEST-297 (dispatcher resolveEscalation, internal-error case), and
+TEST-298 (dispatcher submitWork, internal-error case) FAIL today — confirming the defect: every one of
+these currently reports either a silent `ok:true` (TEST-295) or a misdiagnosed
+`gatekeeper`-fallback-success / `errorKind:'feedback-disabled'` (TEST-297/298) instead of
+`ok:false/errorKind:'cli-error'`. TEST-296 (mapper success-path regression), TEST-299, and TEST-300
+(dispatcher disabled-path regression guards) correctly PASS today by construction — the genuine
+success/disabled behaviors are already correct and must remain so once the fix lands. This suite was run
+in isolation (only the two new files) per the coordinator's instruction not to run the full suite while
+another agent concurrently edits unrelated files; no other test file was touched or re-run by this pass.
+

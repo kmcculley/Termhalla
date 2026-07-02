@@ -59,7 +59,22 @@ export function mapCliRunToResult(action: DispatchAction, cliKind: CliKind, run:
 
   if (cliKind === 'feedback') {
     // feedback emit ALWAYS exits 0; any other exit is undocumented/defensive.
-    if (exitCode === 0) return { ok: true, exitCode, data: parsed }
+    if (exitCode === 0) {
+      // FINDING-CODEX-001 (ESC-006): feedback emit reports its OWN internal errors as
+      // {ok:false, mode:'noop', error, note:'emit is non-fatal'} while still exiting 0 — the same
+      // mode:'noop' as the genuine disabled-channel no-op. Inspect parsed.ok here (the single shared
+      // choke point) so a real internal error is never misdiagnosed downstream as "feedback disabled"
+      // (REQ-002/REQ-011).
+      if (parsed.ok === false) {
+        return {
+          ok: false,
+          exitCode,
+          errorKind: 'cli-error',
+          error: parsedErrorMessage(parsed) ?? `the ${cliKind} command reported an internal error`
+        }
+      }
+      return { ok: true, exitCode, data: parsed }
+    }
     return {
       ok: false,
       exitCode,

@@ -2,6 +2,13 @@
   "feature": ".orky/features/0007-orky-action-dispatch",
   "projectRoot": "C:/dev/Termhalla",
   "phase": "review",
-  "lastTickAt": "2026-07-01T17:45:18.448Z",
-  "lastAction": "ESC-004 fix (queue-key normalization) landed and re-verified resolved by devils-advocate. Review fan-out resumed: networking lens filed FINDING-NET-001..003 (open, non-blocking); enterprise-arch lens filed FINDING-ARCH-001..003 (open, non-blocking). Codex cross-check dispatched; before its background job could be confirmed cancelled on timeout it filed FINDING-CODEX-001 (HIGH, contract_violation:true -- feedback-emit internal errors, {ok:false, mode:'noop', error}, are silently misdiagnosed as 'feedback disabled' because mapCliRunToResult (orky-action-result.ts:60-62) never inspects the parsed ok field, only exitCode, and the dispatcher's doResolveEscalation/doSubmitWork branch only on data.mode). Verified independently by the coordinator; escalated as ESC-006 -- STOPPED for human decision before looping back to tests for a fix. `gatekeeper check --phase review` currently fails (1 open blocking finding). Do NOT proceed to doc-sync until ESC-006 is resolved."
+  "lastTickAt": "2026-07-02T01:05:10.392Z",
+  "lastAction": "re-deriving review gate after DA-004 spec amendment",
+  "runs": {
+    ".orky/features/0007-orky-action-dispatch": {
+      "phase": "review",
+      "lastTickAt": "2026-07-02T01:05:10.392Z",
+      "lastAction": "re-deriving review gate after DA-004 spec amendment"
+    }
+  }
 }

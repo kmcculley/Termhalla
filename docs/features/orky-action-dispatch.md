@@ -39,18 +39,28 @@ interface OrkyActionResult {
 ### `resolveEscalation` — feedback-first, gatekeeper direct fallback
 
 First attempts `feedback emit --app <projectRoot> --type decision --feature <slug> --payload
-{escalationId, decision}`. When the emit's `mode !== 'noop'` the decision was accepted by the live
-control plane: `path:'feedback', feedback:'enabled', dispatched:true`. When `mode === 'noop'` (feedback
-disabled for the project) it falls back to `gatekeeper resolve-escalation --feature <featureDir> --id
-<escalationId> --decision <decision>`, mutating `state.json`'s escalation directly: `path:'gatekeeper',
-feedback:'disabled', dispatched:true`.
+{escalationId, decision}`. The emit result's own `ok` field is inspected FIRST, before any `mode`
+branching (**ESC-006**): a feedback-emit that exits 0 but whose parsed stdout itself reports
+`ok:false` is an INTERNAL error of the feedback CLI (e.g. disk full while spooling) — this returns
+`ok:false, path:'feedback', dispatched:false, errorKind:'cli-error', exitCode:0` carrying the CLI's
+own error message, and the gatekeeper fallback below is **never** attempted for it. Only when `ok`
+is not literally `false` does `mode` branching apply: when `mode !== 'noop'` the decision was
+accepted by the live control plane: `path:'feedback', feedback:'enabled', dispatched:true`. When
+`mode === 'noop'` (feedback genuinely disabled for the project) it falls back to `gatekeeper
+resolve-escalation --feature <featureDir> --id <escalationId> --decision <decision>`, mutating
+`state.json`'s escalation directly: `path:'gatekeeper', feedback:'disabled', dispatched:true`.
 
 ### `submitWork` — feedback-only; disabled is a distinct, non-silent failure
 
 Invokes `feedback emit --app <projectRoot> --type work.request [--feature <slug>] --payload {title,
-detail?, phase?}`. There is **no gatekeeper fallback** for work items (D2) — when the feedback channel is
-disabled (`mode === 'noop'`), the result is `ok:false, errorKind:'feedback-disabled', dispatched:false`
-with a specific, actionable message. It is never a silent success that discards the human's input.
+detail?, phase?}`. There is **no gatekeeper fallback** for work items (D2). As with
+`resolveEscalation`, the emit result's own `ok` field is inspected before `mode` branching
+(**ESC-006**): an exit-0 emit whose parsed `ok === false` is an internal feedback-CLI error and
+returns `ok:false, path:'feedback', dispatched:false, errorKind:'cli-error', exitCode:0` carrying
+the CLI's own error — never the `feedback-disabled` outcome below. Only when `ok` is not literally
+`false` and the feedback channel is genuinely disabled (`mode === 'noop'`) does the result become
+`ok:false, errorKind:'feedback-disabled', dispatched:false` with a specific, actionable message. It
+is never a silent success that discards the human's input.
 
 ### `recordHumanGate` — gate restricted server-side, never `--force`
 

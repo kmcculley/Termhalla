@@ -1,6 +1,6 @@
 {
   "feature": "0007-orky-action-dispatch",
-  "phase": "review",
+  "phase": "doc-sync",
   "gates": {
     "brainstorm": {
       "passed": true,
@@ -10,7 +10,7 @@
     },
     "spec": {
       "passed": true,
-      "at": "2026-07-01T10:21:47.491Z",
+      "at": "2026-07-02T01:04:28.884Z",
       "tokens": [
         {
           "token": "findings",
@@ -21,7 +21,7 @@
     },
     "plan": {
       "passed": true,
-      "at": "2026-07-01T10:23:56.712Z",
+      "at": "2026-07-02T01:04:29.133Z",
       "tokens": [
         {
           "token": "spec-freeze",
@@ -42,7 +42,7 @@
     },
     "tests": {
       "passed": true,
-      "at": "2026-07-01T17:09:53.209Z",
+      "at": "2026-07-02T01:04:37.782Z",
       "tokens": [
         {
           "token": "spec-freeze",
@@ -52,13 +52,13 @@
         {
           "token": "tests-red",
           "pass": true,
-          "evidence": "tests are RED (exit 1) — freeze snapshot captured"
+          "evidence": "tests are GREEN on a tests loopback (coverage augmentation; implementation already exists) — freeze re-captured"
         }
       ]
     },
     "implement": {
       "passed": true,
-      "at": "2026-07-01T17:15:13.219Z",
+      "at": "2026-07-02T01:05:10.211Z",
       "tokens": [
         {
           "token": "spec-freeze",
@@ -83,8 +83,8 @@
       ]
     },
     "review": {
-      "passed": false,
-      "at": "2026-07-01T17:43:35.103Z",
+      "passed": true,
+      "at": "2026-07-02T01:05:10.479Z",
       "tokens": [
         {
           "token": "spec-freeze",
@@ -93,15 +93,42 @@
         },
         {
           "token": "findings",
-          "pass": false,
-          "evidence": "1 open blocking finding(s): FINDING-CODEX-001(contract)"
+          "pass": true,
+          "evidence": "no open blocking findings (CRITICAL/HIGH or contract-violation) for this gate"
         }
       ]
+    },
+    "doc-sync": {
+      "passed": true,
+      "at": "2026-07-02T01:16:48.842Z",
+      "tokens": [
+        {
+          "token": "spec-freeze",
+          "pass": true,
+          "evidence": "spec unchanged since the spec gate"
+        },
+        {
+          "token": "traceability",
+          "pass": true,
+          "evidence": "all 20 REQ(s) trace to TASK+TEST"
+        },
+        {
+          "token": "findings",
+          "pass": true,
+          "evidence": "no open blocking findings (CRITICAL/HIGH or contract-violation) for this gate"
+        }
+      ]
+    },
+    "human-review": {
+      "passed": true,
+      "at": "2026-07-02T01:16:48.924Z",
+      "evidence": "Human review delegated to autonomous drive by Kevin (2026-07-01 'drive the rest of the work queued up for termhalla automatically without my input'). Reviewed: CODEX-001 contract fix (A-B implement, 6-lens re-review all clean, codex cross-verified), DA-004 spec amendment propagated via sanctioned spec loopback, DA-005 doc fix, 14 open LOW/MEDIUM findings accepted as non-blocking residual (tracked on ledger; CONV-013..018 promoted so their lessons bind future features).",
+      "external": true
     }
   },
   "iterations": {
-    "spec": 1,
-    "tests": 3
+    "spec": 2,
+    "tests": 4
   },
   "escalations": [
     {
@@ -154,8 +181,10 @@
       "reason": "Coordinator (doc-sync run) found the review gate's cached PASS is stale: gatekeeper check --phase review now reports pass:false with 1 open blocking finding, FINDING-CODEX-001 (HIGH, contract_violation:true, lens codex-cross-check, status open, no resolvedAt). Claim: mapCliRunToResult (src/shared/orky-action-result.ts:60-68) treats every feedback-emit exit-0 as ok:true purely from the process exit code, without inspecting the CLI's own parsed stdout {ok:false, mode:'noop', error, note:'emit is non-fatal'} shape that 02-spec.md documents for an internal feedback-emit failure. Consequence: resolveEscalation's mode==='noop' branch and submitWork's feedback-disabled branch cannot distinguish a genuine internal feedback-CLI error from an ordinary feedback.enabled===false no-op -- a real emit failure (e.g. disk full) is silently mapped to 'feedback disabled' / a successful gatekeeper fallback instead of ok:false/errorKind:'cli-error' carrying the CLI's own error message, violating REQ-002's failure contract and REQ-011's explicit mode/ok+{error} handling. This finding was filed after state.json's review gate token was cached as passed (active.json shows dispatch:codex-cross-check at 17:40:00Z, ~2min before the cached review pass at 17:42:10Z), so the cached gate state in state.json is stale relative to current ground truth. Per my standing instruction, a HIGH/contract-violation finding must be escalated and I must stop for human review rather than proceeding to doc-sync. gatekeeper drive independently confirms next:'escalate', route_to:'implement'. I have not modified findings.json, tests/, or any source file.",
       "kind": "judgment",
       "finding": "FINDING-CODEX-001",
-      "status": "open",
-      "at": "2026-07-01T17:44:04.992Z"
+      "status": "resolved",
+      "at": "2026-07-01T17:44:04.992Z",
+      "decision": "Stale cached review PASS acknowledged; superseded by ESC-006 resolution — same finding (FINDING-CODEX-001). Review gate has been re-derived as failed; proceeding per ESC-006.",
+      "resolvedAt": "2026-07-02T00:08:05.239Z"
     },
     {
       "id": "ESC-006",
@@ -163,8 +192,10 @@
       "reason": "Codex cross-check lens (attempt 1, after security/quality/devils-advocate/networking/enterprise-arch all cleared or carried forward non-blocking findings this cycle) filed FINDING-CODEX-001 (HIGH, contract_violation:true), independently verified by the coordinator by reading the current source: mapCliRunToResult (src/shared/orky-action-result.ts:60-62) maps ANY feedback-emit exit-0 to {ok:true, data:parsed} without ever inspecting the parsed object's own ok field, even though 02-spec.md documents feedback emit's stdout shape as {ok:true, mode, event, sent, spooled} on success vs {ok:false, mode:'noop', error, note:'emit is non-fatal'} on an INTERNAL error (both cases use mode:'noop' when the channel is inactive OR erroring) and REQ-011 explicitly states 'its mode/ok fields drive REQ-006/REQ-007'. Downstream, doResolveEscalation (orky-action-dispatcher.ts:157-160) and doSubmitWork (orky-action-dispatcher.ts:210-222) branch ONLY on data.mode !== 'noop', never on data.ok -- confirmed by direct re-read of both methods. Consequence: a genuine feedback-emit internal error (e.g. disk-full writing the outbox spool) is silently misdiagnosed as 'feedback disabled' -- resolveEscalation falls back to the gatekeeper CLI (functionally masks the error, though it goes unaudited/unsurfaced), and submitWork returns errorKind:'feedback-disabled' with a misleading 'the feedback control plane is disabled ... enable it' message instead of surfacing the CLI's own real error, violating REQ-002's failure contract (ok:false with actionable error/errorKind for any real failure) and REQ-011's explicit ok-field handling. This is a genuine, independently-verified contract gap on this feature's write-capable IPC surface -- not a duplicate of FINDING-DA-002 (which concerns the SUCCESS/enabled path's dispatched:true over-promise, a different failure mode). RECOMMENDATION: fix mapCliRunToResult's feedback+exit-0 branch (src/shared/orky-action-result.ts:60-62) to inspect parsed.ok -- when parsed.ok===false, return {ok:false, exitCode:0, errorKind:'cli-error', error: parsedErrorMessage(parsed) ?? a default} instead of unconditionally {ok:true, data:parsed} -- since mapCliRunToResult is the SINGLE shared choke point both doResolveEscalation and doSubmitWork already call, this avoids duplicating an ok-check at both dispatcher call sites and keeps the mode-vs-ok distinction where REQ-011 documents it belongs. Requires a loopback to tests (fresh test-designer coverage: feedback emit returning {ok:false, mode:'noop', error:'boom'} must yield errorKind:'cli-error' carrying that message for both resolveEscalation and submitWork, not a 'disabled' misdiagnosis) then a fresh implementer fix -- outside what I'm authorized to decide/fix unilaterally per the coordinator's standing HIGH-finding escalation rule. Stopping here; findings.json otherwise clean (15 other entries: FINDING-SEC-001/FINDING-DA-001 resolved+re-verified, 10 open LOW/MEDIUM non-blocking across quality/devils-advocate/networking/enterprise-arch, none contract-violating).",
       "kind": "judgment",
       "finding": "FINDING-CODEX-001",
-      "status": "open",
-      "at": "2026-07-01T17:45:18.448Z"
+      "status": "resolved",
+      "at": "2026-07-01T17:45:18.448Z",
+      "decision": "Fix as recommended (human-delegated decision, Kevin authorized autonomous drive 2026-07-01): loop back to tests. Test-designer adds regression coverage — feedback emit stdout {ok:false, mode:'noop', error} on exit 0 must map to {ok:false, errorKind:'cli-error', error:<CLI's own message>} for BOTH resolveEscalation and submitWork, never a 'feedback-disabled' misdiagnosis. Then implementer fixes mapCliRunToResult's feedback+exit-0 branch (src/shared/orky-action-result.ts) to inspect parsed.ok — the single shared choke point — per REQ-002/REQ-011. Dispatcher call sites stay branch-on-mode for the disabled path; ok:false takes precedence.",
+      "resolvedAt": "2026-07-02T00:08:05.316Z"
     }
   ],
   "concerns": [
@@ -178,7 +209,8 @@
     "plan": 0,
     "tests": 0,
     "implement": 0,
-    "review": 2
+    "review": 0,
+    "doc-sync": 0
   },
   "loopbacks": [
     {
@@ -204,15 +236,29 @@
       "from": "review",
       "reason": "ESC-004 resolved: key the action queue by normalizeProjectRoot(featureDir), not the raw string, at all 3 dispatcher call sites, closing a concurrent-write race for case/slash-divergent projectRoot spellings of the same physical feature.",
       "at": "2026-07-01T16:51:20.678Z"
+    },
+    {
+      "to": "tests",
+      "from": "review",
+      "reason": "ESC-006 resolved: add RED coverage for FINDING-CODEX-001 (feedback-emit internal error misdiagnosed as disabled), then fix mapCliRunToResult",
+      "at": "2026-07-02T00:08:05.386Z"
+    },
+    {
+      "to": "spec",
+      "from": "review",
+      "reason": "FINDING-DA-004: propagate the ESC-006 ok-precedence arbitration into REQ-006/REQ-007 normative text (currently mode-only, contradicts frozen TEST-297/298 under literal reading). Minimal wording amendment; behavior already pinned by tests.",
+      "at": "2026-07-02T00:55:39.761Z"
     }
   ],
   "implementer": {
-    "mode": "claude",
+    "mode": "ab",
     "agents": [
-      "orky:implementer"
+      "orky:implementer",
+      "codex:codex-rescue"
     ],
     "winner": "orky:implementer",
-    "reason": "Router selected ab (networking is a tagged concern for this feature overall), but this specific fix is a 3-callsite queue-key substitution (raw featureDir -> normalizeProjectRoot(featureDir)) with zero networking surface -- no CLI invocation shape, timeout, retry, or serialization-protocol change, only the in-process Map key. A parallel Codex candidate would duplicate a single-file, single-pattern fix already fully pinned by TEST-291..294 with no design latitude. Skipping the A/B pairing as redundant for this iteration; single claude implementer dispatched.",
-    "at": "2026-07-01T17:11:12.277Z"
-  }
+    "reason": "A-B on networking concern: codex candidate blocked (could not reach target worktree; no changes produced); claude candidate passed all arbitration criteria (6/6 regression incl. RED-baseline confirmation, 1067/1067 full suite, no new typecheck errors, exact ESC-006 fix shape, minimal blast radius)",
+    "at": "2026-07-02T00:38:55.739Z"
+  },
+  "totalFailures": 3
 }

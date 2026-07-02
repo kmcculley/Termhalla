@@ -60,6 +60,34 @@ to it when a review surfaces a lesson general enough to outlive its feature.
   test on a shared file inside one feature's own frozen suite has no atomic cross-feature update path
   and turns every legitimate refactor elsewhere into a false-positive loopback for an unrelated feature.
   *(from FINDING-DA-010 in 0014-orky-osc-heartbeat)*
+- **CONV-013** — A result flag named for a completed effect (`dispatched`/`applied`/`resolved`)
+  MUST NOT be set true for an action that was only durably QUEUED to an asynchronous transport
+  whose application is deferred and conditional — distinguish "queued" from "applied" in the
+  returned shape.
+  *(from FINDING-DA-002 in 0007-orky-action-dispatch)*
+- **CONV-014** — An abortable/`unref()`'d subprocess pattern proven safe for a READ-ONLY child
+  MUST NOT be applied unchanged to a child that performs a non-atomic durable write; hard-aborting
+  such a child on dispose/window-close can tear the write — let it finish (if already `unref()`'d
+  and timeout-bounded) or make the write atomic before it may be aborted.
+  *(from FINDING-NET-001 in 0007-orky-action-dispatch)*
+- **CONV-015** — A timeout/abort result for a non-idempotent mutating operation MUST surface the
+  outcome as INDETERMINATE (never a definite non-dispatch), so callers do not blindly retry a
+  possibly-applied write.
+  *(from FINDING-NET-002 in 0007-orky-action-dispatch)*
+- **CONV-016** — An audit/attribution record for a durable mutation MUST capture a redaction-safe
+  correlation identifier for the artifact it produced (a transport event id, a recorded
+  timestamp/id) — not only the fact and coarse outcome of the attempt — so an audit entry can be
+  reconciled against the mutated system's own state after the fact.
+  *(from FINDING-ARCH-001 in 0007-orky-action-dispatch)*
+- **CONV-017** — A best-effort audit/integrity log's write failures MUST be surfaced through an
+  operator-observable signal (a metric/counter, a persisted log, or a one-time notification), never
+  console-only, so silent loss of the audit trail is itself detectable.
+  *(from FINDING-ARCH-002 in 0007-orky-action-dispatch)*
+- **CONV-018** — An escalation decision that changes or disambiguates a REQ's required behavior
+  MUST be propagated into the spec artifact (normative text + acceptance) in the same loopback
+  that implements it; an arbitration recorded only in `state.json`/tests leaves the frozen spec
+  contradicting the frozen tests.
+  *(from FINDING-DA-004 in 0007-orky-action-dispatch)*
 
 ## Principles
 Higher-level stances that inform specs and reviews but are too broad to gate mechanically.

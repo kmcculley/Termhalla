@@ -30,7 +30,13 @@
       "TEST-186",
       "TEST-234",
       "TEST-235",
-      "TEST-177"
+      "TEST-177",
+      "TEST-295",
+      "TEST-296",
+      "TEST-297",
+      "TEST-298",
+      "TEST-299",
+      "TEST-300"
     ],
     "files": [
       "src/shared/types.ts",
@@ -107,7 +113,10 @@
       "TEST-192",
       "TEST-234",
       "TEST-235",
-      "TEST-236"
+      "TEST-236",
+      "TEST-295",
+      "TEST-297",
+      "TEST-299"
     ],
     "files": [
       "src/main/orky/orky-action-dispatcher.ts"
@@ -124,7 +133,9 @@
       "TEST-237",
       "TEST-238",
       "TEST-239",
-      "TEST-290"
+      "TEST-290",
+      "TEST-298",
+      "TEST-300"
     ],
     "files": [
       "src/main/orky/orky-action-dispatcher.ts"
@@ -213,7 +224,13 @@
       "TEST-195",
       "TEST-211",
       "TEST-212",
-      "TEST-251"
+      "TEST-251",
+      "TEST-295",
+      "TEST-296",
+      "TEST-297",
+      "TEST-298",
+      "TEST-299",
+      "TEST-300"
     ],
     "files": [
       "src/shared/orky-action-result.ts"

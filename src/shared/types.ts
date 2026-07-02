@@ -409,7 +409,10 @@ export type OrkyActionErrorKind =
   | 'feedback-disabled'   // submitWork with no live control plane and no fallback (REQ-007)
   | 'orky-cli-not-found'  // the Orky CLI could not be located (REQ-012)
   | 'cli-timeout'         // the CLI child exceeded the timeout / was aborted (REQ-010/REQ-011)
-  | 'cli-error'           // the CLI threw / exited with an error code (exit 2) (REQ-011)
+  | 'cli-error'           // the CLI threw / exited with an error code (exit 2), OR (ESC-006) a
+                          // feedback emit that exited 0 but whose own parsed stdout reports
+                          // {ok:false} — an in-band internal error, not a disabled channel
+                          // (REQ-006/REQ-007/REQ-011)
   | 'cli-unparseable'     // the CLI stdout was not the expected JSON object (REQ-011)
 
 /** The uniform result of every action (CONV-001: `ok:false` always carries `errorKind` + a specific
