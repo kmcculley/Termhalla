@@ -38,6 +38,9 @@ export default function App() {
   // The shared OrkyRootPicker request (feature 0009, REQ-004): opened by pickOrkyRoot() from any
   // creation affordance; resolveOrkyRootPick settles the pending promise (null = cancel).
   const orkyRootPickOpen = useStore(s => s.orkyRootPickOpen)
+  // The F11-owned cockpit picker request (feature 0011, REQ-003): a SEPARATE one-shot flag (the
+  // OrkyCaptureModal pattern) so the F9 request above stays default-labelled for its callers.
+  const orkyCockpitPickOpen = useStore(s => s.orkyCockpitPickOpen)
   // The quick-capture request (feature 0012, REQ-002): conditionally hosted so every close path
   // unmounts the modal and a reopen starts with a fresh draft (decision #8).
   const orkyCaptureRequest = useStore(s => s.orkyCaptureRequest)
@@ -205,6 +208,13 @@ export default function App() {
         <OrkyRootPicker
           onSelect={root => useStore.getState().resolveOrkyRootPick(root)}
           onCancel={() => useStore.getState().resolveOrkyRootPick(null)} />
+      )}
+      {orkyCockpitPickOpen && (
+        <OrkyRootPicker
+          ariaLabel="Open a project cockpit workspace"
+          heading="Open a cockpit workspace for a tracked Orky project"
+          onSelect={root => useStore.getState().resolveOrkyCockpitPick(root)}
+          onCancel={() => useStore.getState().resolveOrkyCockpitPick(null)} />
       )}
       {orkyCaptureRequest !== null && <OrkyCaptureModal initialRoot={orkyCaptureRequest.root} />}
       <SearchHistory />

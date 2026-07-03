@@ -30,6 +30,7 @@ export function DecisionQueuePanel() {
   const setFocusedPane = useStore(s => s.setFocusedPane)
   const launchDir = useStore(s => s.launchDir)
   const newWorkspace = useStore(s => s.newWorkspace)
+  const newOrkyWorkspace = useStore(s => s.newOrkyWorkspace)
 
   // Focus management (FINDING-010): opening the drawer (chord, palette, or toggle) moves keyboard
   // focus INTO it — otherwise a keyboard open leaves focus in an xterm pane, which consumes Tab,
@@ -134,8 +135,22 @@ export function DecisionQueuePanel() {
                 style={{ borderBottom: '1px solid var(--border, #333)', paddingBottom: 4 }}>
                 <div title={g.projectRoot}
                   style={{ padding: '6px 8px 2px', fontSize: 12, fontWeight: 600,
-                    whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                  {g.projectName}
+                    display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span style={{ flex: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    {g.projectName}
+                  </span>
+                  {/* Feature 0011 (REQ-004): jump from the cross-project "needs me" surface to a
+                      full cockpit — the PRE-SELECTED newOrkyWorkspace(root) path, no picker step.
+                      Propagation-stopped so no container gesture co-fires (CONV-030/CONV-041);
+                      the panel-wide :focus-visible allow-list rule covers this native button. */}
+                  <button type="button" data-testid="decision-queue-open-cockpit"
+                    data-project-root={g.projectRoot}
+                    title="Open project cockpit"
+                    aria-label={`Open a cockpit workspace for ${g.projectName}`}
+                    onClick={e => { e.stopPropagation(); void newOrkyWorkspace(g.projectRoot) }}
+                    style={{ flex: 'none', fontSize: 11, fontWeight: 400 }}>
+                    open cockpit
+                  </button>
                 </div>
                 {g.items.map(it => {
                   const body = (

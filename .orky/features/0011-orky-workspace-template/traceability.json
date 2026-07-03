@@ -1,0 +1,54 @@
+{
+  "REQ-001": {
+    "tasks": ["TASK-001"],
+    "tests": ["TEST-649", "TEST-650", "TEST-651", "TEST-652", "TEST-665", "TEST-673"],
+    "files": ["src/shared/orky-cockpit.ts"]
+  },
+  "REQ-002": {
+    "tasks": ["TASK-003"],
+    "tests": ["TEST-653", "TEST-654", "TEST-655", "TEST-656", "TEST-664", "TEST-673", "TEST-676", "TEST-461"],
+    "files": ["src/renderer/store.ts"]
+  },
+  "REQ-003": {
+    "tasks": ["TASK-005", "TASK-006", "TASK-007"],
+    "tests": ["TEST-656", "TEST-666", "TEST-667", "TEST-668", "TEST-672", "TEST-673", "TEST-674", "TEST-679", "TEST-680", "TEST-681", "TEST-682", "TEST-683"],
+    "files": [
+      "src/renderer/store.ts",
+      "src/renderer/App.tsx",
+      "src/shared/quick.ts",
+      "src/renderer/components/CommandPalette.tsx",
+      "src/renderer/components/TemplatesMenu.tsx"
+    ]
+  },
+  "REQ-004": {
+    "tasks": ["TASK-004", "TASK-008"],
+    "tests": ["TEST-657", "TEST-658", "TEST-659", "TEST-660", "TEST-669", "TEST-675"],
+    "files": [
+      "src/renderer/store.ts",
+      "src/renderer/components/DecisionQueuePanel.tsx"
+    ]
+  },
+  "REQ-005": {
+    "tasks": ["TASK-010"],
+    "tests": ["TEST-664", "TEST-665", "TEST-673", "TEST-678", "TEST-679", "TEST-683", "TEST-420"],
+    "files": ["src/shared/orky-cockpit.ts", "src/renderer/store.ts"]
+  },
+  "REQ-006": {
+    "tasks": ["TASK-002", "TASK-003"],
+    "tests": ["TEST-654", "TEST-655", "TEST-661", "TEST-662", "TEST-663", "TEST-670", "TEST-672", "TEST-677", "TEST-678"],
+    "files": [
+      "src/renderer/store/types.ts",
+      "src/renderer/store.ts",
+      "src/renderer/store/quick-slice.ts"
+    ]
+  },
+  "REQ-007": {
+    "tasks": ["TASK-002", "TASK-009"],
+    "tests": ["TEST-663", "TEST-670", "TEST-671", "TEST-619"],
+    "files": [
+      "src/renderer/store/types.ts",
+      "src/renderer/store.ts",
+      "src/renderer/store/quick-slice.ts"
+    ]
+  }
+}

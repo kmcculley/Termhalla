@@ -7,6 +7,18 @@ All notable changes to Termhalla are recorded here. The format follows
 ## [Unreleased]
 
 ### Added
+- **Per-project Orky cockpit workspace.** One gesture opens a fresh "cockpit" workspace for a
+  tracked Orky project: an Orky pane bound to the project plus a **plain terminal at the project
+  root** (no auto-run — no command is auto-typed, no launch override, no injected env) in a 50/50
+  row split, named `Orky: <project folder>`. Three entry points: a command-palette action
+  (**New Orky project workspace…**), a built-in never-deletable first row in the templates menu
+  (**Orky project cockpit…**), and an **open cockpit** button on each decision-queue project
+  group header (the pre-selected path — no picker; case/slash-variant roots converge onto the
+  tracked spelling, and untracked/loading/failed registry states are refused with distinct,
+  actionable copy). Both picker-driven entries reuse the shared tracked-root picker, relabelled
+  for the cockpit gesture. The cockpit is a real workspace — save it as a template with the
+  normal explicit gesture; the cockpit flow itself never writes `quick.json`. See
+  `docs/features/orky-workspace-template.md`.
 - **Inline Orky actions in the native Orky pane.** Every feature row of the Orky pane now mounts
   the SAME shared actions region the decision-queue drawer uses (feature 0008's
   `OrkyEntryActions`, composed — never forked): answer an open escalation inline (the escalation
@@ -230,6 +242,13 @@ All notable changes to Termhalla are recorded here. The format follows
   failure feedback is never silenced.
 
 ### Fixed
+- **Template-instantiated workspaces are now durable (they survive window reloads and
+  quit→relaunch).** The shipped "new workspace from template" menu path
+  (`newWorkspaceFromTemplate`) registered the workspace but never reported it into main's
+  authoritative window arrangement, so it was **silently lost** on the next pushed assignment
+  (window reload, main-promotion, move/redock) and orphaned across quit→relaunch. The shared seam
+  now calls `reportAssignment` on the success path (over the existing `winReport` channel — no
+  new IPC or write path), fixing the loss for ALL templates, previously saved ones included.
 - **Orky pane inline actions stay reachable in a narrow tile.** The `orky-pane-row-actions` slot
   was `flex: none` (unshrinkable at the region's max-content width), forcing the features list
   into horizontal overflow-scroll in a split tile; it is now shrinkable (`minWidth: 0`) so the

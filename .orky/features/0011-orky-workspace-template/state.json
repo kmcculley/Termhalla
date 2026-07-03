@@ -1,0 +1,176 @@
+{
+  "feature": "0011-orky-workspace-template",
+  "phase": "doc-sync",
+  "gates": {
+    "brainstorm": {
+      "passed": true,
+      "at": "2026-07-03T02:53:04.731Z",
+      "evidence": "delegated-human brainstorm: D1 reuse the workspace-template mechanism + an Orky preset generator (OrkyPane + terminal in project root, no new kinds/schema), D2 single-gesture pick-a-tracked-project via OrkyRootPicker (+ pre-selected path), D3 saveable reusable template, D4 composition/wiring only no new write/dispatch/IPC, D5 honor accumulated CONVs + layout determinism",
+      "external": true
+    },
+    "spec": {
+      "passed": true,
+      "at": "2026-07-03T03:31:44.457Z",
+      "tokens": [
+        {
+          "token": "findings",
+          "pass": true,
+          "evidence": "no open blocking findings (CRITICAL/HIGH or contract-violation) for this gate"
+        }
+      ]
+    },
+    "plan": {
+      "passed": true,
+      "at": "2026-07-03T03:34:51.080Z",
+      "tokens": [
+        {
+          "token": "spec-freeze",
+          "pass": true,
+          "evidence": "spec unchanged since the spec gate"
+        },
+        {
+          "token": "traceability-plan",
+          "pass": true,
+          "evidence": "all 7 REQ(s) trace to TASK"
+        },
+        {
+          "token": "findings",
+          "pass": true,
+          "evidence": "no open blocking findings (CRITICAL/HIGH or contract-violation) for this gate"
+        }
+      ]
+    },
+    "tests": {
+      "passed": true,
+      "at": "2026-07-03T04:54:47.196Z",
+      "tokens": [
+        {
+          "token": "spec-freeze",
+          "pass": true,
+          "evidence": "spec unchanged since the spec gate"
+        },
+        {
+          "token": "tests-red",
+          "pass": true,
+          "evidence": "tests are RED (exit 1) — freeze snapshot captured"
+        }
+      ]
+    },
+    "implement": {
+      "passed": true,
+      "at": "2026-07-03T05:07:04.248Z",
+      "tokens": [
+        {
+          "token": "spec-freeze",
+          "pass": true,
+          "evidence": "spec unchanged since the spec gate"
+        },
+        {
+          "token": "build",
+          "pass": true,
+          "evidence": "build exited 0"
+        },
+        {
+          "token": "test",
+          "pass": true,
+          "evidence": "test exited 0"
+        },
+        {
+          "token": "test-freeze",
+          "pass": true,
+          "evidence": "test files unchanged since freeze"
+        }
+      ]
+    },
+    "review": {
+      "passed": true,
+      "at": "2026-07-03T05:08:09.330Z",
+      "tokens": [
+        {
+          "token": "spec-freeze",
+          "pass": true,
+          "evidence": "spec unchanged since the spec gate"
+        },
+        {
+          "token": "findings",
+          "pass": true,
+          "evidence": "no open blocking findings (CRITICAL/HIGH or contract-violation) for this gate"
+        }
+      ]
+    },
+    "doc-sync": {
+      "passed": true,
+      "at": "2026-07-03T05:13:06.905Z",
+      "tokens": [
+        {
+          "token": "spec-freeze",
+          "pass": true,
+          "evidence": "spec unchanged since the spec gate"
+        },
+        {
+          "token": "traceability",
+          "pass": true,
+          "evidence": "all 7 REQ(s) trace to TASK+TEST"
+        },
+        {
+          "token": "findings",
+          "pass": true,
+          "evidence": "no open blocking findings (CRITICAL/HIGH or contract-violation) for this gate"
+        }
+      ]
+    },
+    "human-review": {
+      "passed": true,
+      "at": "2026-07-03T05:13:06.988Z",
+      "evidence": "Delegated autonomous drive. FINAL feature. Reviewed: 7-REQ composition spec that ALSO fixed a real shipped defect (newWorkspaceFromTemplate never reported → silent workspace loss for ALL templates, repaired via SliceDeps reportAssignment), the cockpit generator + single-gesture flow, 5-lens review (findings 005-010) all resolved incl. 2 e2e test-authoring defects (e2e now WITNESSED 7/7 green) + the focus-into-terminal fix, CONV-054..056. Suite 1447 green. Follow-ups: CONV-018 spec-prose amendment (REQ-005 frozen), NUL cleanup at commit.",
+      "external": true
+    }
+  },
+  "iterations": {
+    "tests": 1
+  },
+  "escalations": [
+    {
+      "id": "ESC-001",
+      "phase": "review",
+      "reason": "5-lens review of the final feature: 1 blocker + MEDIUMs/LOW, no contract violations, implementation faithful to all 7 REQs. FINDING-008 (HIGH, tests-origin): the e2e was witnessed (4/6) — 2 test-authoring defects: TEST-677 uses [data-tab-id] during the rename state (tab renders ws-rename- input) so it never reaches 2; TEST-678 hasText:'CK' matches 'cockpit'. Both fixable → 6/6 witnessed (the workspace-loss-fix e2e runs WITHOUT pty). Also FINDING-007 (focus stranded on body after picker-mediated cockpit gesture), FINDING-006/009 (REQ-005 spec prose describes a live-PTY vehicle the tests correctly didn't implement — CONV-018 spec-vs-test residual, structural pins cover it), FINDING-010 (cancel tested from 1 of 4 picker states). Human decision on the loopback.",
+      "kind": "judgment",
+      "finding": "FINDING-008",
+      "status": "resolved",
+      "at": "2026-07-03T04:35:37.222Z",
+      "decision": "Loop back to tests (delegated). Fixes: FINDING-008 — amend the 2 frozen e2e defects (TEST-677: select the tab by a selector valid in the rename state or wait for rename commit before counting tabs; TEST-678: disambiguate the tpl-orky-cockpit locator away from the hasText 'CK'/'cockpit' collision — exact testid/role), then WITNESS the full orky-cockpit e2e 6/6 green. FINDING-007 — the picker-mediated cockpit gesture must leave focus on a sane target (the new cockpit's pane / a stable element), not body; pin + fix. FINDING-010 — add cancel-from-loading/error/empty picker-state coverage. FINDING-006/009 — REQ-005's live-PTY acceptance prose is a documented residual: the tests correctly pin saved-file argv/layout (not live pty, per FINDING-017); record in 04-tests.md that the structural/argv pins are the honest vehicle and the live-terminal sub-assertion is env-gated, accept as residual (do NOT chase the native rebuild — winpty's build script is broken in this checkout, a separate human toolchain fix). LOW: FINDING-010 pin; the NUL file (CONV-050) commit deliberately as a git rm --cached in doc-sync/commit.",
+      "resolvedAt": "2026-07-03T04:35:37.295Z"
+    }
+  ],
+  "concerns": [
+    "ux",
+    "quality",
+    "determinism",
+    "security"
+  ],
+  "attempts": {
+    "spec": 0,
+    "plan": 0,
+    "tests": 0,
+    "implement": 0,
+    "review": 0,
+    "doc-sync": 0
+  },
+  "implementer": {
+    "mode": "claude",
+    "agents": [
+      "orky:implementer"
+    ],
+    "winner": "orky:implementer",
+    "reason": "Loopback fix cycle, single implementer (focus fix + e2e defects were tests-phase).",
+    "at": "2026-07-03T04:54:47.279Z"
+  },
+  "loopbacks": [
+    {
+      "to": "tests",
+      "from": "review",
+      "reason": "1 blocker (008 e2e test defects) + 007 focus + 010 coverage; 006/009 residual; per ESC-001",
+      "at": "2026-07-03T04:35:37.375Z"
+    }
+  ]
+}

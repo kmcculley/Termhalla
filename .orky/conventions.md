@@ -262,6 +262,20 @@ to it when a review surfaces a lesson general enough to outlive its feature.
   MUST be reported like a detached outcome (e.g. through the same never-silently-dropped toast
   chokepoint), never rendered only into the invisible surface.
   *(from FINDING-018 in 0010-orky-pane-inline-actions)*
+- **CONV-054** — A spec that routes a requirement through a shipped seam with a KNOWN defect MUST
+  either fix the seam in-scope or state the defect's user-visible consequence in that requirement's
+  own normative text and acceptance — never write an acceptance whose green result masks the known
+  failure (e.g. a loader-only round-trip that never exercises the gapped boundary).
+  *(from FINDING-001 in 0011-orky-workspace-template)*
+- **CONV-055** — A creation gesture that closes a picker/modal into a surface it just created MUST
+  land keyboard focus in the created surface (or a named target), never on `<body>` via a
+  focus-restore whose captured opener unmounted together with the invoking chrome in the same
+  batched commit.
+  *(from FINDING-007 in 0011-orky-workspace-template)*
+- **CONV-056** — An e2e locator that must resolve exactly ONE element MUST NOT rely on a string
+  `hasText` filter (case-insensitive substring matching), which can spuriously match inside a
+  sibling row's own label — use an exact-text regex or a unique testid instead.
+  *(from FINDING-008 in 0011-orky-workspace-template)*
 
 ## Principles
 Higher-level stances that inform specs and reviews but are too broad to gate mechanically.

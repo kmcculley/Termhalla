@@ -109,6 +109,17 @@ export interface State {
   orkyRootPickOpen: boolean
   pickOrkyRoot: () => Promise<string | null>
   resolveOrkyRootPick: (root: string | null) => void
+  // ── Per-project Orky cockpit workspace (feature 0011) — the single-gesture "work this project"
+  // entry point. newOrkyWorkspace: no argument = the F11-labelled shared-picker flow (cancel
+  // resolves null, creates nothing); with an argument = the pre-selected path — the picker is
+  // skipped and the root is membership-validated against the HELD registry snapshot via the
+  // fold-injected sameProjectRoot equality (refusals toast and resolve null; all four registry
+  // states are honored). orkyCockpitPickOpen/resolveOrkyCockpitPick are the F11-owned one-shot
+  // picker request (the pickOrkyRoot pattern — deliberately NOT the shared F9 request, which
+  // stays default-labelled for its three existing callers).
+  newOrkyWorkspace: (root?: string) => Promise<string | null>
+  orkyCockpitPickOpen: boolean
+  resolveOrkyCockpitPick: (root: string | null) => void
   // ── Quick-capture new-work inbox (feature 0012) — session-scoped chrome state only, nothing
   // persisted. `null` = closed; `{root:null}` = picker-first; `{root:string}` = form-direct with
   // the pre-selected root held byte-verbatim (D4 — the entry point F10's OrkyPane "inject" later
@@ -219,4 +230,9 @@ export interface SliceDeps {
   scheduleQuickSave: () => void
   scheduleNotesSave: (key: string) => void
   commitPane: (wsId: string, cfg: PaneConfig, target: string | null, dir: MosaicDirection, markEditor?: boolean, position?: 'before' | 'after') => string
+  /** The store-root window-arrangement reporter (the existing `winReport` closure, store.ts).
+   *  Threaded to slices per feature 0011's decision-9 repair (FINDING-001) so
+   *  `newWorkspaceFromTemplate` can report the workspace it registers into main's authoritative
+   *  windows[]; kept OFF the public State surface (the FINDING-008 narrow-surface discipline). */
+  reportAssignment: () => void
 }

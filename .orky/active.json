@@ -1,14 +1,14 @@
 {
-  "feature": ".orky/features/0010-orky-pane-inline-actions",
+  "feature": ".orky/features/0011-orky-workspace-template",
   "projectRoot": "C:/dev/Termhalla",
   "phase": "implement",
-  "lastTickAt": "2026-07-03T02:03:04.263Z",
-  "lastAction": "tests loopback gate passed; dispatching fix implementer",
+  "lastTickAt": "2026-07-03T04:54:47.352Z",
+  "lastAction": "tests loopback gate passed; dispatching focus-fix implementer",
   "runs": {
-    ".orky/features/0010-orky-pane-inline-actions": {
+    ".orky/features/0011-orky-workspace-template": {
       "phase": "implement",
-      "lastTickAt": "2026-07-03T02:03:04.263Z",
-      "lastAction": "tests loopback gate passed; dispatching fix implementer"
+      "lastTickAt": "2026-07-03T04:54:47.352Z",
+      "lastAction": "tests loopback gate passed; dispatching focus-fix implementer"
     }
   }
 }

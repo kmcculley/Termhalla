@@ -2,7 +2,9 @@ import { create } from 'zustand'
 import { v4 as uuid } from 'uuid'
 import type { Workspace, PaneConfig, EditorConfig } from '@shared/types'
 import { EMPTY_QUICK } from '@shared/types'
-import { createWorkspace, removePane, reorderIds, movePane, carryTheme, splitDirToLayout, restorePane as restorePaneModel } from '@shared/workspace-model'
+import { createWorkspace, removePane, reorderIds, movePane, carryTheme, splitDirToLayout, restorePane as restorePaneModel, workspaceFromTemplate } from '@shared/workspace-model'
+import { orkyCockpitTemplate } from '@shared/orky-cockpit'
+import { sameProjectRoot } from '@shared/orky-pane'
 import { encodeBroadcast, terminalPaneIds } from '@shared/broadcast'
 import { schedulesWithout } from '@shared/schedule'
 import { api } from './api'
@@ -88,7 +90,7 @@ export const useStore = create<State>((set, get) => {
     api.winReport({ windowId: s.windowId, workspaceIds: s.order, activeId: s.activeId })
   }
 
-  const deps: SliceDeps = { set, get, scheduleAutosave, scheduleQuickSave, scheduleNotesSave, commitPane }
+  const deps: SliceDeps = { set, get, scheduleAutosave, scheduleQuickSave, scheduleNotesSave, commitPane, reportAssignment }
 
   // Monotonic focus-sequence counter for paneFocusSeq (feature 0006, REQ-009): session-scoped
   // recency for the decision queue's click-to-focus MRU pick. Never persisted.
@@ -97,6 +99,16 @@ export const useStore = create<State>((set, get) => {
   // The pending OrkyRootPicker request's resolver (feature 0009, REQ-004): held in closure (a
   // function is not renderable state); orkyRootPickOpen mirrors it for the App-level chrome mount.
   let orkyRootPickResolve: ((root: string | null) => void) | null = null
+
+  // The F11-owned one-shot cockpit picker request's resolver (feature 0011, REQ-003) — the
+  // pickOrkyRoot pattern, deliberately a SEPARATE request so the F9 picker stays default-labelled
+  // for its three existing callers; orkyCockpitPickOpen mirrors it for the App-level mount.
+  let orkyCockpitPickResolve: ((root: string | null) => void) | null = null
+
+  // Fold mode for the cockpit's pre-selected-root membership matching (feature 0011, REQ-004):
+  // derived ONCE at composition from the one platform signal available in the contextIsolated
+  // main world (the TEST-432 discipline — never a `process` read on the renderer path).
+  const cockpitCaseFold = caseFoldFromPlatform(navigator.platform)
 
   return {
     // ---- initial state ----
@@ -132,6 +144,8 @@ export const useStore = create<State>((set, get) => {
     // Native OrkyPane (feature 0009): runtime-only detail state + the shared root-picker request.
     orkyPaneDetail: {},
     orkyRootPickOpen: false,
+    // Per-project Orky cockpit workspace (feature 0011): the F11-owned picker request flag.
+    orkyCockpitPickOpen: false,
     paneFocusSeq: {},
     cloud: [],
     envVault: { exists: false, unlocked: false },
@@ -277,6 +291,75 @@ export const useStore = create<State>((set, get) => {
       scheduleAutosave()
       reportAssignment()
       return ws.id
+    },
+
+    /** Per-project Orky cockpit workspace (feature 0011, REQ-002/REQ-003/REQ-004): open a fresh
+     *  workspace holding an Orky pane bound to a tracked project + a plain terminal at that root.
+     *  No argument → the F11-labelled shared picker resolves the root (cancel creates nothing).
+     *  With an argument → the picker is skipped; the root is membership-validated against the
+     *  HELD registry snapshot via the fold-injected shared equality and the cockpit is built from
+     *  the AGGREGATE MEMBER's spelling (case/slash-variant callers converge). Instantiation rides
+     *  the ONE shipped template seam (fresh pane ids + F9's malformed-binding coercion, CONV-026);
+     *  registration matches newWorkspace above IN FULL — including the load-bearing arrangement
+     *  report (FINDING-001: an unreported workspace is silently deleted by the next pushed
+     *  assignment and lost across quit→relaunch). Refusal/cancel paths create and report NOTHING.
+     *  The success tail LANDS keyboard focus in the new cockpit's terminal (FINDING-007). */
+    newOrkyWorkspace: async (root) => {
+      let target: string
+      if (root === undefined) {
+        const picked = await new Promise<string | null>((resolvePick) => {
+          orkyCockpitPickResolve?.(null)
+          orkyCockpitPickResolve = resolvePick
+          set({ orkyCockpitPickOpen: true })
+        })
+        if (picked === null) return null
+        target = picked // the shared picker lists only held members, in the aggregate's spelling
+      } else {
+        const s = get()
+        if (s.registrySnapshot === null) {
+          // Membership is UNKNOWN, not absent — never the not-tracked copy (REQ-004/FINDING-003).
+          if (s.registryError !== null) {
+            get().pushToast(`Orky registry failed — project membership cannot be verified: ${s.registryError}`, 'error')
+          } else {
+            get().pushToast('The Orky registry snapshot is still loading — try the cockpit again once tracked projects arrive.', 'error')
+          }
+          return null
+        }
+        const member = s.registrySnapshot
+          .map(e => (e && typeof e.root === 'string' ? e.root : ''))
+          .find(m => m.length > 0 && sameProjectRoot(root, m, { caseFold: cockpitCaseFold }))
+        if (member === undefined) {
+          get().pushToast(`${root} is not tracked by Orky — open a terminal inside a project containing a .orky/ directory to track it, then retry.`, 'error')
+          return null
+        }
+        target = member // the tracked spelling, never the caller's variant (REQ-004)
+      }
+      const tpl = orkyCockpitTemplate({ root: target, shellId: defaultShellId(get()) })
+      const ws = workspaceFromTemplate(tpl, uuid(), tpl.name, uuid)
+      set(s => ({ workspaces: { ...s.workspaces, [ws.id]: ws }, order: [...s.order, ws.id], activeId: ws.id }))
+      scheduleAutosave()
+      reportAssignment()
+      // FINDING-007 (ESC-001 loopback): the explicit cockpit gesture LANDS keyboard focus in the
+      // created workspace — the precedent every pane-opening action sets (each ends in a
+      // requestPaneFocus so the user can type immediately); CONV-046 sanctions gesture-mounted
+      // focus (it bans focus-on-mount only for DATA-DRIVEN remounts). Without this, the picker-mediated
+      // gestures strand a keyboard user on <body>: the invoking chrome (palette / templates menu)
+      // unmounts in the same batched commit that mounts the picker, so the picker's CONV-020
+      // restore has only <body> to collapse back onto and the next keystrokes are silently
+      // swallowed. Target the cockpit's TERMINAL pane: it is the ready-to-type half (D4's plain
+      // shell at the project root) and the only cockpit pane kind that registers a focuser (the
+      // orky pane registers none, so a request aimed at it could never land — see
+      // terminal-registry); requestPaneFocus retries until the pane's focuser registers post-mount.
+      const termPaneId = Object.keys(ws.panes).find(id => ws.panes[id].config.kind === 'terminal')
+      if (termPaneId) requestPaneFocus(termPaneId)
+      return ws.id
+    },
+
+    resolveOrkyCockpitPick: (root) => {
+      const resolvePick = orkyCockpitPickResolve
+      orkyCockpitPickResolve = null
+      set({ orkyCockpitPickOpen: false })
+      resolvePick?.(root)
     },
 
     renameWorkspace: (id, name) => {

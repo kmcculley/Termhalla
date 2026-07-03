@@ -18,6 +18,7 @@ export function CommandPalette() {
   const setConnectionForm = useStore(s => s.setConnectionForm)
   const addPaneOfKind = useStore(s => s.addPaneOfKind)
   const newWorkspace = useStore(s => s.newWorkspace)
+  const newOrkyWorkspace = useStore(s => s.newOrkyWorkspace)
   const setBroadcastOpen = useStore(s => s.setBroadcastOpen)
   const saveAll = useStore(s => s.saveAll)
   const refreshCloud = useStore(s => s.refreshCloud)
@@ -79,6 +80,10 @@ export function CommandPalette() {
     else if (item.action === 'new-explorer') void addPaneOfKind(activeId, 'explorer')
     else if (item.action === 'new-orky') void addPaneOfKind(activeId, 'orky')
     else if (item.action === 'new-workspace') newWorkspace(`Workspace ${order.length + 1}`)
+    // Feature 0011 (REQ-003): the cockpit gesture — opens the F11-labelled picker, then the
+    // picked project's cockpit workspace. Below the guard: no active workspace ⇒ the same
+    // silent no-op new-workspace has (the spec-pinned precedent).
+    else if (item.action === 'new-orky-workspace') void newOrkyWorkspace()
     else if (item.action === 'broadcast') setBroadcastOpen(true)
     else if (item.action === 'save-all') { void saveAll(); pushToast('Workspaces saved') }
     else if (item.action === 'refresh-cloud') refreshCloud()
