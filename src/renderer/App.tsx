@@ -185,7 +185,11 @@ export default function App() {
             return (
               <div key={id} data-testid="workspace-host" data-ws={id} data-active={isActive ? 'true' : 'false'}
                 aria-hidden={!isActive}
+                // Opaque background: a descendant of a HIDDEN sibling host can override
+                // `visibility: hidden` (e.g. the maximize punch-through) — the active host must
+                // mask whatever paints beneath it even where its own content is transparent.
                 style={{ ...themeCssVarsPartial(ws.theme ?? {}), position: 'absolute', inset: 0, visibility: isActive ? 'visible' : 'hidden',
+                  background: 'var(--bg, #1e1e1e)',
                   pointerEvents: isActive ? 'auto' : 'none', zIndex: isActive ? 1 : 0 }}>
                 <WorkspaceView ws={ws} />
               </div>

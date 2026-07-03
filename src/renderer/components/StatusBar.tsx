@@ -90,6 +90,15 @@ export function StatusBar() {
         </div>
       ))}
       <div style={{ flex: 1 }} />
+      {/* The rotating tip sits LEFT of the buttons: its width changes every rotation, and as the
+          rightmost element it would shove the search/notes/queue buttons sideways each time.
+          Here the spacer absorbs the width change and the buttons stay pinned to the right edge. */}
+      {tipText && (
+        <span data-testid="statusbar-tip"
+          style={{ whiteSpace: 'nowrap', opacity: 0.85, overflow: 'hidden', textOverflow: 'ellipsis', minWidth: 0 }}>
+          {tipText}
+        </span>
+      )}
       <button data-testid="search-toggle" type="button" title="Search output history (Ctrl+Shift+F)"
         onClick={() => useStore.getState().setSearchOpen(true)}
         style={{ background: 'transparent', border: 'none', cursor: 'pointer', font: 'inherit', color: 'var(--fg-dim, #aaa)', padding: 0 }}>🔍</button>
@@ -113,7 +122,6 @@ export function StatusBar() {
           </span>
         )}
       </button>
-      {tipText && <span data-testid="statusbar-tip" style={{ whiteSpace: 'nowrap', opacity: 0.85 }}>{tipText}</span>}
     </div>
   )
 }

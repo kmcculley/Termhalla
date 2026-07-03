@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useShallow } from 'zustand/react/shallow'
 import { useStore } from '../store'
 import type { PaneKind } from '../store/pane-ops'
@@ -36,6 +36,11 @@ export function WorkspaceTabs() {
   const [renameText, setRenameText] = useState('')
   const [menuFor, setMenuFor] = useState<{ id: string; x: number; y: number } | null>(null)
   const [templatesOpen, setTemplatesOpen] = useState(false)
+  // The templates menu is transient chrome: a modal opening over it (e.g. Settings via Ctrl+,)
+  // must dismiss it — otherwise its invisible full-viewport click-catcher survives the modal
+  // round-trip and silently swallows the next click on the tab strip (frozen TEST-018).
+  const settingsOpen = useStore(s => s.settings !== null)
+  useEffect(() => { if (settingsOpen) setTemplatesOpen(false) }, [settingsOpen])
   const { ghost, beginTabDrag } = useTabDrag(setActive, moveWorkspace)
 
   const startRename = (id: string) => { setRenameText(workspaces[id]?.name ?? ''); setRenamingId(id); setMenuFor(null) }
@@ -56,7 +61,11 @@ export function WorkspaceTabs() {
 
   return (
     <div data-testid="workspace-tabs" role="tablist" aria-label="Workspaces"
-      style={{ display: 'flex', gap: 4, padding: 4, background: 'var(--panel, #1e1e1e)', alignItems: 'center', fontSize: 'var(--font-size, 13px)' }}>
+      // The strip must keep a CONSTANT height: when crowded, tabs shrink with an ellipsis instead of
+      // letting their text wrap to a second line. A wrap-driven height change resizes the terminal
+      // area → full ConPTY repaint → the status tracker sees "output" → the badge flips → the strip
+      // un-wraps — a self-sustaining oscillation. Guarded by tests/e2e/tab-strip.spec.ts.
+      style={{ display: 'flex', flexWrap: 'nowrap', gap: 4, padding: 4, background: 'var(--panel, #1e1e1e)', alignItems: 'center', fontSize: 'var(--font-size, 13px)' }}>
       {order.map(id => (
         renamingId === id ? (
           <input key={id} data-testid={`ws-rename-${id}`} autoFocus value={renameText}
@@ -64,7 +73,7 @@ export function WorkspaceTabs() {
             onChange={e => setRenameText(e.target.value)}
             onKeyDown={e => { if (e.key === 'Enter') commitRename(id); else if (e.key === 'Escape') setRenamingId(null) }}
             onBlur={() => commitRename(id)}
-            style={{ width: 120 }} />
+            style={{ width: 120, flexShrink: 0 }} />
         ) : (
           <button key={id} data-testid={`tab-${id}`} data-tab-id={id}
             data-active={id === activeId}
@@ -74,21 +83,22 @@ export function WorkspaceTabs() {
             onPointerDown={beginTabDrag(id)}
             onDoubleClick={() => startRename(id)}
             onContextMenu={e => { e.preventDefault(); setMenuFor({ id, x: e.clientX, y: e.clientY }) }}
-            style={{ fontWeight: id === activeId ? 700 : 400 }}>
+            style={{ fontWeight: id === activeId ? 700 : 400,
+              whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', minWidth: 0, maxWidth: 200 }}>
             {workspaces[id].name}{badges[id] ?? ''}
           </button>
         )
       ))}
-      <button data-testid="new-workspace"
+      <button data-testid="new-workspace" style={{ flexShrink: 0 }}
         onClick={() => { const id = newWorkspace(`Workspace ${order.length + 1}`); startRename(id) }}>+</button>
-      <button data-testid="templates-button" title="Workspace templates"
+      <button data-testid="templates-button" title="Workspace templates" style={{ flexShrink: 0 }}
         onClick={() => setTemplatesOpen(o => !o)}>▾</button>
       <span style={{ flex: 1 }} />
-      <select data-testid="shell-picker" value={newTerminalShellId ?? ''}
+      <select data-testid="shell-picker" value={newTerminalShellId ?? ''} style={{ flexShrink: 0 }}
         onChange={e => setNewTerminalShell(e.target.value)}>
         {shells.map(s => <option key={s.id} value={s.id}>{s.label}</option>)}
       </select>
-      <select data-testid="add-pane" value="" onChange={e => {
+      <select data-testid="add-pane" value="" style={{ flexShrink: 0 }} onChange={e => {
         const kind = e.target.value as PaneKind; e.currentTarget.value = ''
         if (activeId) void addPaneOfKind(activeId, kind)
       }}>
@@ -98,9 +108,9 @@ export function WorkspaceTabs() {
         <option value="explorer">Explorer</option>
         <option value="orky">Orky</option>
       </select>
-      <button data-testid="broadcast-button" title="Broadcast to all terminals (Ctrl+Shift+Enter)"
+      <button data-testid="broadcast-button" title="Broadcast to all terminals (Ctrl+Shift+Enter)" style={{ flexShrink: 0 }}
         onClick={() => setBroadcastOpen(!broadcastOpen)}>⇉</button>
-      <button data-testid="save-workspace" onClick={() => saveAll()}>Save</button>
+      <button data-testid="save-workspace" style={{ flexShrink: 0 }} onClick={() => saveAll()}>Save</button>
 
       {menuFor && (
         <>

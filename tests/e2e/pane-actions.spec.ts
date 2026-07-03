@@ -99,6 +99,33 @@ test('move to a new workspace keeps the pane alive', async () => {
 // TEST-023 — REQ-014: updated to the combined-popover contract — select the Terminal kind THEN
 // activate a direction to commit the sibling split (no kind-click-immediately-commits, no
 // `split-col-`). The portal guarantee for the popover is asserted by split-compass.spec.ts TEST-007.
+/** A maximized pane must not bleed through other workspaces. The maximize CSS punches
+ *  `visibility: visible` through `.ws-max`'s sibling-hiding — but `visibility: hidden` on the
+ *  INACTIVE workspace host is overridable by that same descendant rule, so without scoping the
+ *  punch-through to the active host, the maximized tile keeps painting under a transparent (e.g.
+ *  brand-new empty) workspace. */
+test('a maximized pane stays hidden when another (empty) workspace is active', async () => {
+  test.setTimeout(40_000)
+  const { app, paneId: a } = await launchWithTerminal()
+  const win = await app.firstWindow()
+
+  await win.getByTestId(`max-${a}`).click()
+  await expect(win.getByTestId(`tile-${a}`)).toBeVisible()
+
+  // New empty workspace (dismiss the auto-opened rename). Its body is transparent — exactly where
+  // a bleed-through would show.
+  await win.getByTestId('new-workspace').click()
+  await win.keyboard.press('Escape')
+  await expect(win.getByTestId('add-first-terminal')).toBeVisible({ timeout: 10_000 })
+  await expect(win.getByTestId(`tile-${a}`)).not.toBeVisible()
+
+  // Switching back, the maximized pane is visible again.
+  await win.locator('[data-tab-id]').first().click()
+  await expect(win.getByTestId(`tile-${a}`)).toBeVisible({ timeout: 10_000 })
+
+  const pid = app.process().pid; await app.close().catch(() => {}); killTree(pid)
+})
+
 test('TEST-023 REQ-014 maximize hides siblings; restore brings them back', async () => {
   test.setTimeout(40_000)
   const { app, paneId: a } = await launchWithTerminal()

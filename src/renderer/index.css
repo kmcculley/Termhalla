@@ -297,7 +297,11 @@ option {
    pane gets one legitimate resize. data-max is set imperatively by PaneTile. */
 .ws-max .mosaic-tile { visibility: hidden; pointer-events: none; }
 .ws-max .mosaic-split { visibility: hidden; pointer-events: none; }
-.ws-max .mosaic-tile[data-max="1"] {
+/* The punch-through is scoped to the ACTIVE workspace host: `visibility: visible` on a descendant
+   overrides `visibility: hidden` on ANY ancestor, so an unscoped rule would keep an inactive
+   workspace's maximized tile painting through the hidden host — visibly bleeding under a
+   transparent (e.g. brand-new empty) active workspace. Guarded by pane-actions.spec.ts. */
+[data-testid="workspace-host"][data-active="true"] .ws-max .mosaic-tile[data-max="1"] {
   visibility: visible; pointer-events: auto;
   inset: 0 !important; width: 100% !important; height: 100% !important; z-index: 3;
 }

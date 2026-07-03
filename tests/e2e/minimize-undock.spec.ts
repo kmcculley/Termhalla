@@ -21,6 +21,20 @@ async function tileIds(win: Page): Promise<string[]> {
   return win.locator('[data-testid^="tile-"]').evaluateAll(els =>
     els.map(e => ((e as { getAttribute(n: string): string | null }).getAttribute('data-testid') || '').replace('tile-', '')))
 }
+/** Find the torn-off floating window. The transient OS drag-ghost window also appears in
+ *  app.windows() during/just after a drag, so "any window ≠ main" can grab the wrong (or an
+ *  already-closed) page — select by the floating header instead. */
+async function findFloating(app: ElectronApplication, main: Page): Promise<Page> {
+  for (let tries = 0; tries < 100; tries++) {
+    for (const w of app.windows()) {
+      if (w === main || w.isClosed()) continue
+      const n = await w.getByTestId('floating-header').count().catch(() => 0)
+      if (n > 0) return w
+    }
+    await new Promise(r => setTimeout(r, 200))
+  }
+  throw new Error('no floating window with a floating-header appeared')
+}
 async function tearOffFirstTab(win: Page): Promise<void> {
   const tab = win.getByTestId('workspace-tabs').locator('[data-tab-id]').first()
   const box = await tab.boundingBox()
@@ -55,8 +69,9 @@ test('TEST-035 REQ-015 undock preserves a minimized pane without double-mounting
   await main.getByTestId('workspace-tabs').locator('[data-tab-id]').first().click()
 
   await tearOffFirstTab(main)
-  await expect.poll(() => app.windows().length, { timeout: 20_000 }).toBeGreaterThan(1)
-  const floating = app.windows().find(w => w !== main)!
+  // The transient OS drag-ghost window also appears in app.windows() during/just after a drag —
+  // select the real floating window by its header, not "any window ≠ main".
+  const floating = await findFloating(app, main)
   await expect(floating.getByTestId('floating-header')).toBeVisible({ timeout: 15_000 })
 
   // The minimized state travelled with the workspace: chip present, pane not tiled, sibling tiled once.

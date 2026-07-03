@@ -21,15 +21,27 @@ export function useTabDrag(
     if (e.button !== 0) return
     const startX = e.clientX, startY = e.clientY
     let dragging = false
+    // Screen-cursor feed for the OS-level ghost window: the DOM ghost below clips at the window
+    // edge, so main shows a mini window once the cursor leaves every app window. Throttled to one
+    // send per frame (pointermove can fire at mouse polling rate).
+    let ghostQueued: { x: number; y: number; name: string } | null = null
+    const flushGhost = () => {
+      if (ghostQueued) { api.winDragGhost(ghostQueued); ghostQueued = null }
+    }
     const onMove = (me: PointerEvent) => {
       if (!dragging && Math.hypot(me.clientX - startX, me.clientY - startY) < DRAG_THRESHOLD_PX) return
       dragging = true
       setGhost({ x: me.clientX, y: me.clientY, id })
+      const name = useStore.getState().workspaces[id]?.name ?? ''
+      if (!ghostQueued) requestAnimationFrame(flushGhost)
+      ghostQueued = { x: me.screenX, y: me.screenY, name }
     }
     const onUp = (ue: PointerEvent) => {
       window.removeEventListener('pointermove', onMove)
       window.removeEventListener('pointerup', onUp)
       setGhost(null)
+      ghostQueued = null                        // cancel any queued move racing the end signal
+      if (dragging) api.winDragGhost(null)      // drag over: drop the OS ghost on every path
       if (!dragging) { setActive(id); return }
       const overTab = (ue.target as HTMLElement | null)?.closest?.('[data-tab-id]') as HTMLElement | null
       const overId = overTab?.dataset.tabId

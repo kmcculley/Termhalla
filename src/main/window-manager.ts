@@ -3,15 +3,16 @@ import { resolve } from 'node:path'
 import { v4 as uuid } from 'uuid'
 import {
   CH,
-  type WinDragEndArgs, type WinRedockArgs, type WinReportArgs,
+  type WinDragEndArgs, type WinDragGhostArgs, type WinRedockArgs, type WinReportArgs,
   type WinAssignment, type TermSnapshotArgs
 } from '@shared/ipc-contract'
 import { SCHEMA_VERSION, type AppState, type WindowState } from '@shared/types'
 import { clampWindowState, DEFAULT_WINDOW_STATE } from './window-state'
 import {
-  undock, redock, decideDrop, windowOf,
+  undock, redock, decideDrop, ghostVisibleAt, windowOf,
   type CoreState, type Strip
 } from './window-manager-core'
+import { DragGhost } from './drag-ghost'
 import { coordinateFlush } from './quit-flush'
 
 /** Height (px) of the main window's tab strip — the drop zone for re-docking a torn-off tab. */
@@ -67,6 +68,7 @@ export class WindowManager {
   private transitTimers = new Map<string, ReturnType<typeof setTimeout>>() // paneId -> GC timer
   private snapshots = new Map<string, string>()        // paneId -> captured ANSI snapshot
   private inflight: Inflight | null = null
+  private ghost = new DragGhost()                       // OS-level tear-off drag ghost (cosmetic)
   private persistTimer: ReturnType<typeof setTimeout> | null = null
   private quitting = false
   private closedCbs: (() => void)[] = []
@@ -77,7 +79,7 @@ export class WindowManager {
 
   /** The app is quitting: snapshot the final arrangement+bounds once, and let every window close
    *  normally (no re-dock interception, no shrinking per-window persist). */
-  beginQuit(): void { this.quitting = true; this.persistState() }
+  beginQuit(): void { this.quitting = true; this.ghost.destroy(); this.persistState() }
 
   /** Ask every live window to flush its renderer-owned state (workspaces, quick) to disk, and wait
    *  until all confirm or `timeoutMs` elapses. The renderer flush is fire-and-forget on `beforeunload`
@@ -189,7 +191,7 @@ export class WindowManager {
     for (const [pid, wid] of this.paneOwner) {
       if (wid === id) { this.paneOwner.delete(pid); this.endTransit(pid); this.transit.delete(pid); this.snapshots.delete(pid) }
     }
-    if (this.wins.size === 0) for (const cb of this.closedCbs) cb()
+    if (this.wins.size === 0) { this.ghost.destroy(); for (const cb of this.closedCbs) cb() }
   }
 
   mainWindow(): BrowserWindow { return this.wins.get(this.mainWindowId())! }
@@ -300,6 +302,7 @@ export class WindowManager {
 
   private registerIpc(): void {
     ipcMain.on(CH.winDragEnd, (_e, a: WinDragEndArgs) => { void this.onDragEnd(a) })
+    ipcMain.on(CH.winDragGhost, (e, a: WinDragGhostArgs | null) => this.onDragGhost(e.sender, a))
     ipcMain.on(CH.winRedock, (_e, a: WinRedockArgs) => { void this.move(a.workspaceId, this.resolveTarget(a.targetWindowId)) })
     ipcMain.on(CH.winReport, (_e, a: WinReportArgs) => this.onReport(a))
     ipcMain.on(CH.termSnapshot, (_e, a: TermSnapshotArgs) => this.onSnapshot(a))
@@ -326,9 +329,25 @@ export class WindowManager {
     this.persistState()
   }
 
+  /** Tear-off ghost updates (validated + sender-scoped like every renderer→main window channel).
+   *  The OS ghost shows only while the cursor is outside every app window — inside one, the
+   *  renderer's DOM ghost covers it (an OS chip there would double the visual). `null` = drag end. */
+  private onDragGhost(sender: WebContents, a: WinDragGhostArgs | null): void {
+    if (!this.windowIdOf(sender)) return
+    if (!a || typeof a.x !== 'number' || typeof a.y !== 'number' ||
+        !Number.isFinite(a.x) || !Number.isFinite(a.y) || typeof a.name !== 'string') {
+      this.ghost.destroy()
+      return
+    }
+    const bounds = [...this.wins.values()].filter(w => !w.isDestroyed()).map(w => w.getBounds())
+    if (ghostVisibleAt({ x: a.x, y: a.y }, bounds)) this.ghost.moveTo(a.x, a.y, a.name.slice(0, 60))
+    else this.ghost.hide()
+  }
+
   // ── tear-off / re-dock with live handoff ──────────────────────────────────────────────────────
 
   private async onDragEnd(a: WinDragEndArgs): Promise<void> {
+    this.ghost.destroy()   // belt: the drop consumes the drag regardless of the renderer's null send
     const sourceWinId = windowOf(this.core, a.workspaceId)
     if (!sourceWinId) return
     const decision = decideDrop(a.cursor, sourceWinId, this.strips())

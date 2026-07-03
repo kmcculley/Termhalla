@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import type { CSSProperties, HTMLAttributes, ReactNode } from 'react'
 import { useStore } from '../store'
@@ -74,6 +74,15 @@ export function Modal({ onClose, align = 'center', z = Z.dialog, backdropTestId,
       })
     }
   }, [])
+  // On open, pull keyboard focus INTO the dialog — a modal opened over a focused terminal (e.g.
+  // Settings via Ctrl+,) otherwise leaves focus in the xterm textarea, so typing keeps going to the
+  // shell behind the scrim. Guarded: if a child already took focus (autoFocus inputs — the palette,
+  // broadcast, env passphrase, SSH form — commit before this effect runs), never yank it.
+  const cardRef = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    const card = cardRef.current
+    if (card && !card.contains(document.activeElement)) card.focus()
+  }, [])
   const overlay: CSSProperties = {
     position: 'fixed', inset: 0, background: BACKDROP, zIndex: z,
     ...(align === 'center'
@@ -82,7 +91,8 @@ export function Modal({ onClose, align = 'center', z = Z.dialog, backdropTestId,
   }
   return createPortal(
     <div data-testid={backdropTestId} onClick={onClose} style={overlay}>
-      <div data-testid={cardTestId} className="ui-pop-in" onClick={e => e.stopPropagation()} {...cardProps} style={{ ...CARD_BASE, ...card }}>
+      <div data-testid={cardTestId} className="ui-pop-in" ref={cardRef} tabIndex={-1}
+        onClick={e => e.stopPropagation()} {...cardProps} style={{ ...CARD_BASE, ...card, outline: 'none' }}>
         {children}
       </div>
     </div>,

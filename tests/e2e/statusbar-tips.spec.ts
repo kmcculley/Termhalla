@@ -39,3 +39,23 @@ test('status bar shows a shortcut tip that reflects the current binding', async 
 
   const pid = app.process().pid; await app.close().catch(() => {}); killTree(pid)
 })
+
+/** The rotating tip's width changes every few seconds; it must sit LEFT of the search/notes/orky
+ *  buttons so they stay pinned to the right edge instead of shifting with each tip. */
+test('status-bar buttons sit right of the rotating tip and never move with it', async () => {
+  test.setTimeout(45_000)
+  const userData = mkdtempSync(join(tmpdir(), 'termh-tip-order-'))
+  const app = await launch(userData)
+  const win = await app.firstWindow()
+  await win.getByTestId('add-first-terminal').click()
+  await expect(win.locator('[data-testid^="terminal-"]')).toBeVisible({ timeout: 15_000 })
+
+  const tip = win.getByTestId('statusbar-tip')
+  await expect(tip).toBeVisible()
+  const tipBox = await tip.boundingBox()
+  const searchBox = await win.getByTestId('search-toggle').boundingBox()
+  if (!tipBox || !searchBox) throw new Error('missing status-bar boxes')
+  expect(tipBox.x + tipBox.width).toBeLessThanOrEqual(searchBox.x)
+
+  const pid = app.process().pid; await app.close().catch(() => {}); killTree(pid)
+})

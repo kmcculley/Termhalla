@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import {
-  windowOf, undock, redock, decideDrop,
-  type CoreState, type Strip
+  windowOf, undock, redock, decideDrop, ghostVisibleAt,
+  type CoreState, type Strip, type Rect
 } from '../../src/main/window-manager-core'
 
 const base: CoreState = { windows: [
@@ -63,5 +63,25 @@ describe('decideDrop', () => {
   })
   it('is a no-op when dropped back on its own strip', () => {
     expect(decideDrop({ x: 100, y: 10 }, 'main', strips)).toEqual({ action: 'none' })
+  })
+})
+
+describe('ghostVisibleAt', () => {
+  const wins: Rect[] = [
+    { x: 0, y: 0, width: 800, height: 600 },
+    { x: 1000, y: 100, width: 400, height: 300 }
+  ]
+  it('is hidden while the cursor is inside any app window (the DOM ghost covers there)', () => {
+    expect(ghostVisibleAt({ x: 400, y: 300 }, wins)).toBe(false)
+    expect(ghostVisibleAt({ x: 1100, y: 200 }, wins)).toBe(false)
+    expect(ghostVisibleAt({ x: 0, y: 0 }, wins)).toBe(false) // inclusive top-left edge
+  })
+  it('shows once the cursor leaves every app window', () => {
+    expect(ghostVisibleAt({ x: 850, y: 300 }, wins)).toBe(true)  // in the gap between windows
+    expect(ghostVisibleAt({ x: 400, y: 700 }, wins)).toBe(true)  // below the main window
+    expect(ghostVisibleAt({ x: 800, y: 300 }, wins)).toBe(true)  // exclusive right edge
+  })
+  it('shows when there are no windows at all (defensive)', () => {
+    expect(ghostVisibleAt({ x: 1, y: 1 }, [])).toBe(true)
   })
 })

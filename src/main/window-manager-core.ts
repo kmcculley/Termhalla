@@ -57,6 +57,17 @@ export function redock(
   return { state: { windows }, closedWindowId }
 }
 
+/** A window's outer bounds in screen coordinates. */
+export interface Rect { x: number; y: number; width: number; height: number }
+
+/** The OS-level tear-off ghost shows only while the drag cursor is OUTSIDE every app window:
+ *  inside one, the renderer's DOM ghost already tracks the cursor, and a DOM element clips at the
+ *  window edge — which is exactly where this takes over. */
+export function ghostVisibleAt(cursor: Point, windows: Rect[]): boolean {
+  return !windows.some(b =>
+    cursor.x >= b.x && cursor.x < b.x + b.width && cursor.y >= b.y && cursor.y < b.y + b.height)
+}
+
 function inStrip(p: Point, s: Strip): boolean {
   return p.x >= s.x && p.x <= s.x + s.width && p.y >= s.y && p.y <= s.y + s.height
 }

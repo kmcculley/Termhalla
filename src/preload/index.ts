@@ -101,6 +101,7 @@ const api: TermhallaApi = {
   clipboardWrite: (text) => ipcRenderer.send(CH.clipboardWrite, text),
   clipboardRead: () => ipcRenderer.invoke(CH.clipboardRead),
   winDragEnd: (a) => ipcRenderer.send(CH.winDragEnd, a),
+  winDragGhost: (a) => ipcRenderer.send(CH.winDragGhost, a),
   winRedock: (a) => ipcRenderer.send(CH.winRedock, a),
   winReport: (a) => ipcRenderer.send(CH.winReport, a),
   winReady: () => ipcRenderer.send(CH.winReady),

@@ -76,6 +76,7 @@ export const CH = {
   envSetGlobal: 'env:setGlobal', envRemoveGlobal: 'env:removeGlobal', envSetTerminal: 'env:setTerminal', envRemoveTerminal: 'env:removeTerminal',
   clipboardWrite: 'clipboard:write', clipboardRead: 'clipboard:read',  // renderer -> main
   winDragEnd: 'win:dragEnd',         // renderer -> main
+  winDragGhost: 'win:dragGhost',     // renderer -> main (tear-off ghost: screen-cursor move, null = drag end)
   winRedock: 'win:redock',           // renderer -> main
   winReport: 'win:report',           // renderer -> main (this window's workspace list/active changed)
   winReady: 'win:ready',             // renderer -> main (subscribed; request my assignment)
@@ -104,6 +105,8 @@ export interface PtyWriteArgs { id: string; data: string }
 export interface PtyResizeArgs { id: string; cols: number; rows: number }
 
 export interface WinDragEndArgs { workspaceId: string; cursor: { x: number; y: number } }
+/** Screen-coordinate cursor position + dragged workspace name during a tab tear-off drag. */
+export interface WinDragGhostArgs { x: number; y: number; name: string }
 export interface WinRedockArgs { workspaceId: string; targetWindowId: string }
 export interface WinReportArgs { windowId: string; workspaceIds: string[]; activeId: string | null }
 export interface WinAssignment { windowId: string; isMain: boolean; workspaceIds: string[]; activeId: string | null }
@@ -219,6 +222,7 @@ export interface TermhallaApi {
   clipboardWrite(text: string): void
   clipboardRead(): Promise<string>
   winDragEnd(args: WinDragEndArgs): void
+  winDragGhost(args: WinDragGhostArgs | null): void
   winRedock(args: WinRedockArgs): void
   winReport(args: WinReportArgs): void
   winReady(): void

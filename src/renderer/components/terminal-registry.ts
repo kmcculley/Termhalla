@@ -51,14 +51,49 @@ const g = globalThis as unknown as { requestAnimationFrame?: (cb: () => void) =>
 const rafSchedule: Schedule = (cb) =>
   (typeof g.requestAnimationFrame === 'function' ? g.requestAnimationFrame(cb) : setTimeout(cb, 16))
 
+/** The slice of a DOM element the focus-steal guard reads (kept structural so pure logic stays
+ *  unit-testable without a DOM — the vitest convention for renderer modules). */
+export interface FocusOwnerLike {
+  tagName?: string
+  isContentEditable?: boolean
+  closest?: (selector: string) => unknown
+}
+
+/** True when keyboard focus is in an editable CHROME control — a text field OUTSIDE any pane body
+ *  (the workspace rename input, dialog fields). Programmatic pane refocus must never steal from
+ *  one: the retry loop would yank focus mid-typing, blur the field, and auto-commit it (the
+ *  "cannot rename a workspace" bug). Pane-owned editables (xterm's helper textarea, Monaco's input)
+ *  live under `.ws-mosaic` and do NOT count — switching workspaces away from a focused terminal
+ *  still has to move focus. */
+export function isEditableChromeFocus(el: FocusOwnerLike | null | undefined): boolean {
+  if (!el) return false
+  const tag = (el.tagName ?? '').toUpperCase()
+  const editable = tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || el.isContentEditable === true
+  if (!editable) return false
+  return !(el.closest?.('.ws-mosaic') ?? null)
+}
+
+// Via globalThis (like rafSchedule above): this module is also typechecked/imported under the
+// node-env unit-test config, which has no DOM lib.
+const gd = globalThis as unknown as { document?: { activeElement: FocusOwnerLike | null } }
+const domActiveElement = (): FocusOwnerLike | null => gd.document?.activeElement ?? null
+
 /** Focus a pane that may not be focusable yet: it might still be mounting (a just-created pane
  *  registers its focuser only after React commits the mount) or momentarily hidden (a workspace
  *  switch flips visibility on commit). Try now, and retry across the next frames until focus
- *  actually lands or we give up. */
-export function requestPaneFocus(paneId: string, schedule: Schedule = rafSchedule): void {
+ *  actually lands or we give up — but never steal from an editable chrome control (see
+ *  isEditableChromeFocus), and stop the moment one takes focus mid-loop. */
+export function requestPaneFocus(
+  paneId: string,
+  schedule: Schedule = rafSchedule,
+  getActive: () => FocusOwnerLike | null = domActiveElement
+): void {
   if (!paneId) return
   let tries = 0
-  const attempt = () => { if (!focusPane(paneId) && tries++ < FOCUS_RETRY_FRAMES) schedule(attempt) }
+  const attempt = () => {
+    if (isEditableChromeFocus(getActive())) return
+    if (!focusPane(paneId) && tries++ < FOCUS_RETRY_FRAMES) schedule(attempt)
+  }
   attempt()
 }
 
