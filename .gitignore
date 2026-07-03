@@ -8,3 +8,6 @@ test-results/
 playwright-report/
 # Generated icon candidates (regenerable via design/gen_icons.py; chosen icon kept in build/)
 design/icon-candidates/
+# A `> NUL` redirect under git-bash creates a phantom Windows reserved-device file. If tracked it
+# breaks `git checkout` on Windows CI runners with "invalid path 'NUL'" — never track it.
+NUL
