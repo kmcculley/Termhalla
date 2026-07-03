@@ -75,12 +75,19 @@ export function applyResumeAi(ws: Workspace, aiSessions: Record<string, AiSessio
  *  the setting on. MUST be FALSE for a re-adoption of a still-running PTY — minimize/restore, a
  *  same-window cross-workspace move, or a multi-window handoff — because Claude is still alive there
  *  and the command would land as a prompt into the live agent (the restore-types-`claude --resume`
- *  bug). The caller passes `isReadoption` = "a stashed scrollback snapshot was consumed on this
- *  mount", which is exactly the re-adoption signal (a fresh spawn has no stash). Pure + api-free. */
+ *  bug). Either re-adoption signal alone vetoes the resume:
+ *  - `adoptedLivePty`: main's authoritative answer from the idempotent `pty:spawn` (`pty.has`). The
+ *    ONLY signal present in the destination window of a multi-window undock/re-dock — there the
+ *    scrollback snapshot rides main's transit buffer (delivered as `pty:data`), so the renderer
+ *    stash below is empty. Gating on the stash alone typed `claude --resume` into the live agent
+ *    on every undock of a Claude pane.
+ *  - `consumedSnapshot`: a renderer-stashed scrollback snapshot was consumed on this mount
+ *    (same-window move / minimize-restore; also keeps the historical don't-resume behavior when the
+ *    pty died while stashed). Pure + api-free. */
 export function shouldAutoResumeClaude(
-  o: { resumeAi?: AiTool; autoResumeEnabled: boolean; isReadoption: boolean }
+  o: { resumeAi?: AiTool; autoResumeEnabled: boolean; adoptedLivePty: boolean; consumedSnapshot: boolean }
 ): boolean {
-  return o.resumeAi === 'claude' && o.autoResumeEnabled && !o.isReadoption
+  return o.resumeAi === 'claude' && o.autoResumeEnabled && !o.adoptedLivePty && !o.consumedSnapshot
 }
 
 /** Display state for an AI session pane: 'working' when busy, 'awaiting' when quiet, null if not

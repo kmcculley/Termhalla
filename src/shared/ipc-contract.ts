@@ -122,7 +122,10 @@ export interface TermhallaApi {
   saveWorkspace(ws: Workspace): Promise<void>
   loadAppState(): Promise<AppState | null>
   saveAppState(state: AppState): Promise<void>
-  ptySpawn(args: PtySpawnArgs): Promise<void>
+  /** Resolves TRUE when an already-running PTY was adopted instead of spawned (moved / undocked /
+   *  minimize-restored pane), FALSE on a genuinely fresh spawn. This is the re-adoption signal that
+   *  survives a cross-window handoff — the renderer-side snapshot stash doesn't. */
+  ptySpawn(args: PtySpawnArgs): Promise<boolean>
   ptyWrite(args: PtyWriteArgs): void
   ptyResize(args: PtyResizeArgs): void
   ptyKill(id: string): void

@@ -68,10 +68,11 @@ export function registerPty(
 
   ipcMain.handle(CH.ptySpawn, (e, a: PtySpawnArgs) => {
     deps.claimPane?.(a.id, e.sender)   // record which window owns this pane (also re-affirmed after a move)
-    if (pty.has(a.id)) { deps.replayInto?.(a.id); return }   // moved pane: adopt the live pty, don't respawn
+    if (pty.has(a.id)) { deps.replayInto?.(a.id); return true }   // moved pane: adopt the live pty, don't respawn
     const shell = shells.find(s => s.id === a.shellId) ?? shells[0]
     tracker.register(a.id)   // register BEFORE spawn: a failed spawn calls onExit->unregister synchronously, keeping the registry clean
     pty.spawn(a.id, shell, a.cwd, a.cols, a.rows, a.launch, envVault.envFor(a.envId))
+    return false   // fresh spawn (adopted=true above) — the renderer's auto-resume gate needs this distinction
   })
   ipcMain.on(CH.ptyWrite, (_e, a: PtyWriteArgs) => pty.write(a.id, a.data))
   ipcMain.on(CH.ptyResize, (_e, a: PtyResizeArgs) => { pty.resize(a.id, a.cols, a.rows); recorder.resize(a.id, a.cols, a.rows) })

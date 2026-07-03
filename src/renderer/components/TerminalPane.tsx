@@ -60,7 +60,9 @@ export function TerminalPane({ paneId, wsId, config }: { paneId: string; wsId: s
     if (restored) term.write(restored)
 
     let disposed = false
-    api.ptySpawn({
+    // NOT awaited before the listeners below: main's replayInto sends the handoff snapshot as
+    // pty:data BEFORE this invoke resolves, so onPtyData must already be registered by then.
+    const spawned = api.ptySpawn({
       id: paneId, shellId: config.shellId, cwd: config.cwd,
       cols: term.cols, rows: term.rows, launch: config.launch, envId: config.envId
     })
@@ -73,13 +75,13 @@ export function TerminalPane({ paneId, wsId, config }: { paneId: string; wsId: s
     // prompt appears, not before the shell is ready. Off when the setting is disabled.
     // CRITICAL: only on a genuinely FRESH spawn — NOT when re-adopting a still-running PTY
     // (minimize/restore, cross-workspace move, window handoff), where Claude is already alive and the
-    // command would land as a prompt into the live agent. `restored` (a consumed scrollback snapshot)
-    // is exactly the re-adoption signal; a fresh spawn has none. See shouldAutoResumeClaude.
-    const wantResume = shouldAutoResumeClaude({
-      resumeAi: config.resumeAi,
-      autoResumeEnabled: useStore.getState().quick.autoResumeClaude !== false,
-      isReadoption: !!restored,
-    })
+    // command would land as a prompt into the live agent. The gate needs BOTH re-adoption signals:
+    // `restored` (the renderer stash) covers same-window moves, but in a multi-window undock the
+    // destination renderer has no stash — the snapshot rides main's transit buffer — so only main's
+    // spawn result (`adopted` = pty.has) knows it's a re-adoption there. `wantResume` stays false
+    // until the spawn resolves; data arriving meanwhile just no-ops scheduleResume, and the kick
+    // after resolution (re-armed by each later chunk) starts the quiet timer.
+    let wantResume = false
     let resumeTimer: ReturnType<typeof setTimeout> | undefined
     let resumed = false
     const scheduleResume = () => {
@@ -87,7 +89,16 @@ export function TerminalPane({ paneId, wsId, config }: { paneId: string; wsId: s
       if (resumeTimer) clearTimeout(resumeTimer)
       resumeTimer = setTimeout(() => { resumed = true; api.ptyWrite({ id: paneId, data: 'claude --resume\r' }) }, RESUME_QUIET_MS)
     }
-    scheduleResume()
+    void spawned.then((adopted) => {
+      if (disposed) return
+      wantResume = shouldAutoResumeClaude({
+        resumeAi: config.resumeAi,
+        autoResumeEnabled: useStore.getState().quick.autoResumeClaude !== false,
+        adoptedLivePty: !!adopted,
+        consumedSnapshot: !!restored,
+      })
+      scheduleResume()
+    })
 
     const offData = api.onPtyData((id, data) => { if (id === paneId) { term.write(data); scheduleResume() } })
     const offExit = api.onPtyExit((id) => { if (id === paneId && !disposed) term.write('\r\n[process exited]\r\n') })

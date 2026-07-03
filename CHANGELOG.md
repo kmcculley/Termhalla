@@ -269,6 +269,14 @@ All notable changes to Termhalla are recorded here. The format follows
   failure feedback is never silenced.
 
 ### Fixed
+- **Undocking a workspace no longer types `claude --resume` into a live Claude session.** The
+  auto-resume gate keyed off the renderer-side scrollback stash to recognize "this mount re-adopts
+  a still-running PTY" — but a multi-window tear-off remounts the pane in a *different* renderer,
+  where that stash is empty (the snapshot rides main's transit buffer instead), so a pane stamped
+  `resumeAi: 'claude'` looked like a fresh spawn and fed `claude --resume` to the live agent as a
+  prompt. `pty:spawn` now resolves with main's authoritative adopted-a-live-PTY answer and the
+  gate (`shouldAutoResumeClaude`) requires both signals clear. Guarded by
+  `tests/e2e/undock-resume.spec.ts`.
 - **Opening a dialog now moves keyboard focus into it.** A modal opened over a focused terminal
   (e.g. Settings via Ctrl+,) left focus in the xterm textarea, so typing kept going to the shell
   behind the scrim. The shared `Modal` card now takes focus on open — guarded so dialogs with
@@ -397,6 +405,15 @@ All notable changes to Termhalla are recorded here. The format follows
   node config, producing 47 spurious errors. A dedicated `tsconfig.e2e.json` (the node config plus
   the DOM lib, scoped to `tests/e2e`) restores them while keeping main-process and `tests/main` code
   DOM-free; a few genuine `tests/main` type slips (a QuickStore cast, a mock signature) were fixed too.
+
+## [0.10.1] - 2026-07-03
+
+Tagged release shipping one fix: undocking a workspace no longer types `claude --resume` into a
+live Claude session. The auto-resume gate's re-adoption signal (the renderer scrollback stash)
+doesn't survive a cross-window handoff, so the destination pane treated the adoption as a fresh
+restored spawn; `pty:spawn` now resolves with main's authoritative adopted-a-live-PTY answer and
+the gate requires both signals clear. Guarded by `tests/e2e/undock-resume.spec.ts`. The detailed
+entry stays under [Unreleased] above, per the same convention the 0.9.0/0.10.0 releases recorded.
 
 ## [0.10.0] - 2026-07-03
 

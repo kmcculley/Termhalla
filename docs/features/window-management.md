@@ -60,7 +60,12 @@ is window-agnostic — PTYs are global and must not be duplicated per window. A 
   captured snapshot then flushes every pane-scoped event buffered during the move. Live `pty:data`
   (and status/cwd/exit) arriving mid-move is held in a `transit` buffer so nothing is lost or
   delivered to a not-yet-mounted window; a GC timer (`TRANSIT_GC_MS`) flushes a handoff whose
-  destination never re-attached so a dropped move can't leak or wedge a terminal.
+  destination never re-attached so a dropped move can't leak or wedge a terminal. `pty:spawn`
+  resolves `true` on such an adoption (`false` on a fresh spawn) — the destination renderer needs
+  that answer because none of its local re-adoption signals survive a cross-window move: the
+  Claude auto-resume gate once keyed only off the renderer snapshot stash, which is empty in the
+  new window, so undocking a `resumeAi: 'claude'` pane typed `claude --resume` into the live agent
+  (`tests/e2e/undock-resume.spec.ts`).
 - **Arrangement persistence.** `AppState` is now `windows: WindowLayout[]` (each = workspace ids +
   active tab + bounds + `isMain`). Main is the sole writer; the renderer keeps main in sync by
   sending `win:report` whenever the user adds, closes, reorders, or switches a workspace.
