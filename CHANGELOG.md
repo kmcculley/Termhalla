@@ -6,6 +6,8 @@ All notable changes to Termhalla are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.9.0] - 2026-07-03
+
 ### Added
 - **Per-project Orky cockpit workspace.** One gesture opens a fresh "cockpit" workspace for a
   tracked Orky project: an Orky pane bound to the project plus a **plain terminal at the project
