@@ -1,0 +1,100 @@
+{
+  "REQ-101": {
+    "tasks": ["TASK-101", "TASK-102"],
+    "tests": ["TEST-707"],
+    "files": [
+      "src/main/orky/orky-contract-handshake.ts",
+      "tests/main/orky-cli-contract-handshake.test.ts"
+    ]
+  },
+  "REQ-102": {
+    "tasks": ["TASK-102"],
+    "tests": ["TEST-708"],
+    "files": ["tests/main/orky-cli-contract-handshake.test.ts"]
+  },
+  "REQ-103": {
+    "tasks": ["TASK-102"],
+    "tests": ["TEST-709"],
+    "files": ["tests/main/orky-cli-contract-handshake.test.ts"]
+  },
+  "REQ-104": {
+    "tasks": ["TASK-101", "TASK-102"],
+    "tests": ["TEST-707", "TEST-710"],
+    "files": [
+      "src/main/orky/orky-contract-handshake.ts",
+      "tests/main/orky-cli-contract-handshake.test.ts"
+    ]
+  },
+  "REQ-105": {
+    "tasks": ["TASK-103", "TASK-104", "TASK-105"],
+    "tests": ["TEST-711", "TEST-719", "TEST-691"],
+    "files": [
+      "tests/fixtures/orky-contract/contract.json",
+      "tests/fixtures/orky-contract/state.json",
+      "tests/fixtures/orky-contract/active.json",
+      "tests/fixtures/orky-contract/osc-heartbeat.bin",
+      "CHANGELOG.md",
+      "tests/shared/orky-contract-golden.test.ts",
+      "tests/docs-feature-0015.test.ts"
+    ]
+  },
+  "REQ-106": {
+    "tasks": ["TASK-103", "TASK-105"],
+    "tests": ["TEST-712"],
+    "files": [
+      "src/shared/orky-status.ts",
+      "tests/fixtures/orky-contract/contract.json",
+      "tests/shared/orky-contract-golden.test.ts"
+    ]
+  },
+  "REQ-107": {
+    "tasks": ["TASK-106", "TASK-107", "TASK-108", "TASK-109"],
+    "tests": ["TEST-719"],
+    "files": [
+      "src/shared/orky-status.ts",
+      "docs/features/orky-status.md",
+      "docs/features/orky-action-dispatch.md",
+      "tests/docs-feature-0015.test.ts"
+    ]
+  },
+  "REQ-108": {
+    "tasks": ["TASK-114"],
+    "tests": ["TEST-691"],
+    "files": ["tests/integration/orky-act-loop.test.ts"]
+  },
+  "REQ-109": {
+    "tasks": ["TASK-110", "TASK-111", "TASK-113"],
+    "tests": ["TEST-713", "TEST-714"],
+    "files": [
+      "src/shared/types.ts",
+      "src/main/orky/orky-root-detail.ts",
+      "tests/main/orky-root-detail-resolution.test.ts"
+    ]
+  },
+  "REQ-110": {
+    "tasks": ["TASK-112"],
+    "tests": ["TEST-715", "TEST-716", "TEST-717"],
+    "files": [
+      "src/renderer/components/OrkyPane.tsx",
+      "tests/renderer/orky-pane-resolution-structure.test.ts",
+      "tests/e2e/orky-pane-resolution.spec.ts"
+    ]
+  },
+  "REQ-111": {
+    "tasks": ["TASK-113"],
+    "tests": ["TEST-718"],
+    "files": [
+      "src/shared/orky-status.ts",
+      "tests/shared/orky-status-v2-blocking.test.ts"
+    ]
+  },
+  "REQ-112": {
+    "tasks": ["TASK-113"],
+    "tests": ["TEST-702"],
+    "files": [
+      "src/shared/ipc-contract.ts",
+      "src/shared/types.ts",
+      "src/main/ipc"
+    ]
+  }
+}

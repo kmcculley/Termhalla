@@ -6,6 +6,14 @@
 // mirrors below turns this suite red — closing the gap the provenance caveats in
 // docs/features/orky-status.md ("upstream drift is a manual data-update follow-up") could only warn
 // about. It still cannot catch LIVE drift between regenerations — the fixtures are a snapshot.
+//
+// EXTENDED through the 0015-orky-contract-v2-refresh TESTS phase (REQ-105 / REQ-106): the final
+// describe-block pins the REGENERATED v2 fixture's shape (contract_version 2, phase_order ending
+// 'human-review', the new finding_resolution / producer_tiers blocks, state.gate_fields gaining
+// firstAt) and re-pins that ORKY_PHASES needed NO change. It runs RED against the committed v1
+// fixture until TASK-103 regenerates all four fixtures in ONE run of the generator against plugin
+// 0.30.0 — the fixtures are real producer output and are NEVER hand-edited (binding decision 3).
+// Every pre-existing assertion above it is byte-for-byte unchanged (they are version-agnostic).
 import { describe, it, expect } from 'vitest'
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
@@ -73,5 +81,53 @@ describe('real state.json / active.json normalize through the shared mappers', (
     // shape" regression would be caught against real producer output.
     expect(active.runs).toBeTypeOf('object')
     expect(Object.keys(active.runs as Record<string, unknown>).length).toBeGreaterThanOrEqual(1)
+  })
+})
+
+// ── 0015-orky-contract-v2-refresh additions (REQ-105 / REQ-106) ───────────────────────────────────
+// A tolerant untyped view of the SAME committed contract.json — the v2 keys are absent from the v1
+// snapshot (the RED state), so they are read via Record access, never via the typed interface above.
+const contractRaw = JSON.parse(fixture('contract.json')) as Record<string, unknown>
+
+describe('the committed contract.json is the regenerated v2 producer snapshot (0015 REQ-105 / REQ-106)', () => {
+  it('TEST-711 REQ-105: contract_version 2; phase_order ends \'human-review\' (intake still first); finding_resolution + producer_tiers blocks present; state.gate_fields gained firstAt', () => {
+    // The verified v1→v2 diff, pinned field-by-field against the COMMITTED fixture. Runs RED until
+    // TASK-103 regenerates the fixtures from plugin 0.30.0 — never hand-edit them to satisfy this.
+    expect(contractRaw.contract_version).toBe(2)
+
+    const phaseOrder = contractRaw.phase_order
+    expect(Array.isArray(phaseOrder)).toBe(true)
+    const po = phaseOrder as unknown[]
+    expect(po[po.length - 1]).toBe('human-review') // v2 renamed the trailing 'human'
+    expect(po[0]).toBe('intake')                   // intake remains the still-live intentional difference
+
+    // the two NEW top-level v2 blocks are present in the snapshot (presence pinned here; Termhalla
+    // adopts finding_resolution for display and deliberately adopts NOTHING of producer_tiers —
+    // that non-adoption is a review-time scope check, per REQ-112, not a frozen absence-guard)
+    expect(contractRaw.finding_resolution, 'v2 contract must carry finding_resolution').toBeTypeOf('object')
+    expect(contractRaw.finding_resolution).not.toBeNull()
+    expect(contractRaw, 'v2 contract must carry producer_tiers').toHaveProperty('producer_tiers')
+
+    // state.gate_fields gained firstAt (additive; consumers tolerate it — no consumer change)
+    const state = contractRaw.state as Record<string, unknown>
+    expect(state).toBeTypeOf('object')
+    expect(state.gate_fields).toContain('firstAt')
+  })
+
+  it('TEST-712 REQ-106: v2 did NOT change `phases` — the fixture still deep-equals ORKY_PHASES and the exported constant literal is textually unchanged', () => {
+    // the same deep-equal the version-agnostic drift catcher above pins, re-asserted under the v2
+    // snapshot: 8 entries, ending 'human-review'
+    expect(contractRaw.phases).toEqual([...ORKY_PHASES])
+    expect(ORKY_PHASES).toHaveLength(8)
+    expect(ORKY_PHASES[ORKY_PHASES.length - 1]).toBe('human-review')
+    // and the constant ITSELF must not have been edited (REQ-106's "textually unchanged" half):
+    // the exact literal block is still in src/shared/orky-status.ts, byte-for-byte.
+    // EOL-normalized (the checkout may be CRLF on Windows) — the pin is about the LITERAL, not EOLs
+    const src = readFileSync(resolve(process.cwd(), 'src/shared/orky-status.ts'), 'utf8').replace(/\r\n/g, '\n')
+    expect(src).toContain(
+      "export const ORKY_PHASES: readonly OrkyPhase[] = [\n" +
+      "  'brainstorm', 'spec', 'plan', 'tests', 'implement', 'review', 'doc-sync', 'human-review'\n" +
+      "] as const"
+    )
   })
 })

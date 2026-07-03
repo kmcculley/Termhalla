@@ -1,5 +1,5 @@
 {
-  "contract_version": 1,
+  "contract_version": 2,
   "phases": [
     "brainstorm",
     "spec",
@@ -19,7 +19,7 @@
     "implement",
     "review",
     "doc-sync",
-    "human"
+    "human-review"
   ],
   "human_gates": [
     "brainstorm",
@@ -47,6 +47,38 @@
   "finding_normalization": {
     "status": "compare case-insensitively; canonical form is lowercase (e.g. \"open\")",
     "severity": "compare case-insensitively; canonical form is UPPERCASE (e.g. \"HIGH\")"
+  },
+  "finding_resolution": {
+    "command": "resolve-finding",
+    "fields": [
+      "status",
+      "resolution",
+      "resolvedBy",
+      "resolvedAt"
+    ],
+    "integrity": "findings with lens \"integrity\" require --by (explicit human sign-off) to close"
+  },
+  "producer_tiers": {
+    "tiers": [
+      "low",
+      "medium",
+      "high"
+    ],
+    "profiled_roles": [
+      "implementer",
+      "planner"
+    ],
+    "pinned_roles": [
+      "spec-writer",
+      "test-designer"
+    ],
+    "judge": "inherit (always the active session model)",
+    "ratchet_triggers": [
+      "base",
+      "pinned",
+      "mechanical-failure",
+      "judgment-loopback"
+    ]
   },
   "osc": {
     "code": 9999,
@@ -79,6 +111,7 @@
     "gate_fields": [
       "passed",
       "at",
+      "firstAt",
       "tokens",
       "evidence",
       "external",

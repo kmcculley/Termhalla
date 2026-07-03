@@ -1,0 +1,86 @@
+{
+  "feature": "0015-orky-contract-v2-refresh",
+  "phase": "tests",
+  "gates": {
+    "brainstorm": {
+      "passed": true,
+      "at": "2026-07-03T15:39:26.725Z",
+      "evidence": "human confirmed concept 2026-07-03: strict v2 pin, fixture regen from plugin 0.30.0, phase_order as fixture+provenance-text only, adopt finding_resolution w/ Orky-pane display, skip producer_tiers",
+      "external": true
+    },
+    "spec": {
+      "passed": true,
+      "at": "2026-07-03T15:44:29.254Z",
+      "firstAt": "2026-07-03T15:44:29.254Z",
+      "tokens": [
+        {
+          "token": "findings",
+          "pass": true,
+          "evidence": "no open blocking findings (CRITICAL/HIGH or contract-violation) at or before this gate"
+        }
+      ]
+    },
+    "plan": {
+      "passed": true,
+      "at": "2026-07-03T16:08:32.947Z",
+      "firstAt": "2026-07-03T16:08:32.947Z",
+      "tokens": [
+        {
+          "token": "spec-freeze",
+          "pass": true,
+          "evidence": "spec unchanged since the spec gate"
+        },
+        {
+          "token": "traceability-plan",
+          "pass": true,
+          "evidence": "all 12 REQ(s) trace to TASK"
+        },
+        {
+          "token": "findings",
+          "pass": true,
+          "evidence": "no open blocking findings (CRITICAL/HIGH or contract-violation) at or before this gate"
+        }
+      ]
+    },
+    "tests": {
+      "passed": true,
+      "at": "2026-07-03T16:11:54.958Z",
+      "firstAt": "2026-07-03T16:11:54.958Z",
+      "tokens": [
+        {
+          "token": "spec-freeze",
+          "pass": true,
+          "evidence": "spec unchanged since the spec gate"
+        },
+        {
+          "token": "tests-red",
+          "pass": true,
+          "evidence": "tests are RED (exit 1) — freeze snapshot captured"
+        }
+      ]
+    }
+  },
+  "iterations": {
+    "plan": 1
+  },
+  "escalations": [],
+  "concerns": [
+    "determinism",
+    "doc-drift",
+    "ux",
+    "data-provenance"
+  ],
+  "attempts": {
+    "spec": 0,
+    "plan": 0,
+    "tests": 0
+  },
+  "loopbacks": [
+    {
+      "to": "plan",
+      "from": "implement",
+      "reason": "TASK-103 assigns golden-fixture regeneration to the implement phase, but tests/fixtures/orky-contract/* are inside the test-freeze snapshot (testRoots=[tests]) — an implementer regenerating them would trip the freeze guard as a CRITICAL integrity finding. Fixtures are test assets: reassign regeneration to the tests phase (test-designer actor) so the re-freeze captures the v2 fixtures and the implementer never touches tests/.",
+      "at": "2026-07-03T16:05:38.165Z"
+    }
+  ]
+}

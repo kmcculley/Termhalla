@@ -4,6 +4,17 @@
 // fixture snapshot; `verifyOrkyContract` runs `gatekeeper contract` against the ACTUALLY-INSTALLED
 // plugin at startup and warns (log-only, never a gate) on `contract_version`/`phases` skew.
 //
+// UPDATED through the 0015-orky-contract-v2-refresh TESTS phase (the sanctioned frozen-test edit,
+// REQ-101..REQ-104 / TASK-102): the `goodContract` baseline is now `contract_version: 2` (the v2
+// re-mirror), the former "v2 → mismatch" case is INVERTED to the v1 mixed-fleet case (TEST-708),
+// a dedicated future-version case is pinned (TEST-709), and version literals inside `goodContract`
+// overrides were adjusted in place. Every other assertion in the graceful-degradation and cache
+// describe-blocks is byte-for-byte unchanged (REQ-104).
+//
+// Runs RED today (2026-07-03): EXPECTED_CONTRACT_VERSION is still 1 — the healthy v2 path warns and
+// returns ok:false, and the v1 feed handshakes clean instead of mismatching. TASK-101 (the single
+// constant bump) turns the suite green.
+//
 // Mocking approach mirrors tests/main/orky-action-dispatcher.test.ts: FAKE injected `runCli`/`locate`
 // seams (never a real subprocess here — real-spawn coverage is orky-cli-runner.test.ts's job) plus an
 // injected `warn` spy. The module caches per LOCATED PATH for the process lifetime, so every test
@@ -27,7 +38,7 @@ function uniquePath(): string {
 
 function goodContract(overrides: Record<string, unknown> = {}): string {
   return JSON.stringify({
-    contract_version: 1,
+    contract_version: 2,
     phases: [...ORKY_PHASES],
     osc: { code: 9999, v: 1, terminator: 'BEL', max_payload_bytes: 4096 },
     ...overrides
@@ -49,12 +60,14 @@ function fakeRunCli(result: CliRun): {
 // ---------------------------------------------------------------------------------------------------
 
 describe('verifyOrkyContract — matching contract (the healthy path)', () => {
-  it('a plugin emitting contract_version 1 + the exact ORKY_PHASES list is ok, no mismatches, NO warn', async () => {
+  it('TEST-707 REQ-101: the pin IS 2, and a plugin emitting contract_version 2 + the exact ORKY_PHASES list is ok, no mismatches, NO warn', async () => {
+    // REQ-101's directly-assertable half: the strict pin itself is 2 (the deliberate v2 re-mirror).
+    expect(EXPECTED_CONTRACT_VERSION).toBe(2)
     const path = uniquePath()
     const { run, calls } = fakeRunCli({ exitCode: 0, stdout: goodContract(), timedOut: false })
     const warn = vi.fn()
     const r = await verifyOrkyContract({ locate: () => path, runCli: run, warn })
-    expect(r).toEqual({ ok: true, contractVersion: 1, mismatches: [] })
+    expect(r).toEqual({ ok: true, contractVersion: 2, mismatches: [] })
     expect(warn).not.toHaveBeenCalled()
     // The invocation itself is pinned: the literal `contract` subcommand, the handshake's short timeout.
     expect(calls).toHaveLength(1)
@@ -77,25 +90,42 @@ describe('verifyOrkyContract — matching contract (the healthy path)', () => {
 })
 
 describe('verifyOrkyContract — proven mismatches (the drift catcher)', () => {
-  it('contract_version 2 → ok:false, a mismatch naming BOTH sides, exactly one detailed warn line', async () => {
+  it('TEST-708 REQ-102: contract_version 1 (an OLDER plugin — the mixed-fleet case) → ok:false, a mismatch naming BOTH sides, exactly one detailed warn line', async () => {
     const { run } = fakeRunCli({
       exitCode: 0,
-      stdout: goodContract({ contract_version: 2 }),
+      stdout: goodContract({ contract_version: 1 }),
       timedOut: false
     })
     const warn = vi.fn()
     const r = await verifyOrkyContract({ locate: () => uniquePath(), runCli: run, warn })
     expect(r.ok).toBe(false)
-    expect(r.contractVersion).toBe(2)
+    expect(r.contractVersion).toBe(1)
     expect(r.mismatches).toHaveLength(1)
     expect(r.mismatches[0]).toContain('contract_version')
-    expect(r.mismatches[0]).toContain('2')                               // theirs
-    expect(r.mismatches[0]).toContain(String(EXPECTED_CONTRACT_VERSION)) // ours
+    expect(r.mismatches[0]).toContain('plugin=1')                              // theirs
+    expect(r.mismatches[0]).toContain(`expected=${EXPECTED_CONTRACT_VERSION}`) // ours
     expect(warn).toHaveBeenCalledTimes(1)
     const line = warn.mock.calls[0][0] as string
     expect(line).toContain('contract_version')
-    expect(line).toContain('plugin=2')
-    expect(line).toContain(`expected=${EXPECTED_CONTRACT_VERSION}`)
+    expect(line).toContain('plugin=1')
+    expect(line).toContain('expected=2') // the literal both-sides text a v2-pinned build must emit
+  })
+
+  it('TEST-709 REQ-103: contract_version 3 (a FUTURE plugin) is still drift under the strict pin — ok:false with the same both-sides mismatch shape', async () => {
+    const { run } = fakeRunCli({
+      exitCode: 0,
+      stdout: goodContract({ contract_version: 3 }),
+      timedOut: false
+    })
+    const warn = vi.fn()
+    const r = await verifyOrkyContract({ locate: () => uniquePath(), runCli: run, warn })
+    expect(r.ok).toBe(false)
+    expect(r.contractVersion).toBe(3)
+    expect(r.mismatches).toHaveLength(1)
+    expect(r.mismatches[0]).toContain('contract_version')
+    expect(r.mismatches[0]).toContain('plugin=3')                              // theirs
+    expect(r.mismatches[0]).toContain(`expected=${EXPECTED_CONTRACT_VERSION}`) // ours
+    expect(warn).toHaveBeenCalledTimes(1)
   })
 
   it('phase-list drift (an inserted phase) → ok:false, the mismatch carries both phase lists', async () => {
@@ -108,7 +138,7 @@ describe('verifyOrkyContract — proven mismatches (the drift catcher)', () => {
     const warn = vi.fn()
     const r = await verifyOrkyContract({ locate: () => uniquePath(), runCli: run, warn })
     expect(r.ok).toBe(false)
-    expect(r.contractVersion).toBe(1) // version still matches; ONLY phases drifted
+    expect(r.contractVersion).toBe(2) // version still matches; ONLY phases drifted
     expect(r.mismatches).toHaveLength(1)
     expect(r.mismatches[0]).toContain('phases')
     expect(r.mismatches[0]).toContain('security-review')  // theirs
@@ -116,7 +146,7 @@ describe('verifyOrkyContract — proven mismatches (the drift catcher)', () => {
     expect(warn).toHaveBeenCalledTimes(1)
   })
 
-  it('a same-length phase RENAME (human-review → human) is still drift, not a length-only check', async () => {
+  it('TEST-710 REQ-104: a same-length phase RENAME (human-review → human) is still drift, not a length-only check — v2 did NOT change `phases`, so this case survives the re-mirror verbatim', async () => {
     const renamed = [...ORKY_PHASES.slice(0, -1), 'human']
     const { run } = fakeRunCli({
       exitCode: 0,
@@ -131,7 +161,7 @@ describe('verifyOrkyContract — proven mismatches (the drift catcher)', () => {
   it('version AND phase drift together → both mismatches reported in ONE result / ONE warn line', async () => {
     const { run } = fakeRunCli({
       exitCode: 0,
-      stdout: goodContract({ contract_version: 2, phases: ['brainstorm'] }),
+      stdout: goodContract({ contract_version: 1, phases: ['brainstorm'] }),
       timedOut: false
     })
     const warn = vi.fn()

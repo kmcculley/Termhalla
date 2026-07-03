@@ -1,13 +1,13 @@
 {
-  "projectRoot": "C:\\Users\\kevin\\AppData\\Local\\Temp\\orky-contract-fixture-NEjVWG",
+  "projectRoot": "C:\\Users\\kevin\\AppData\\Local\\Temp\\orky-contract-fixture-K6jAZC",
   "feature": ".orky\\features\\0001-golden",
   "phase": "implement",
-  "lastTickAt": "2026-07-02T00:24:47.124Z",
+  "lastTickAt": "2026-07-03T16:09:14.192Z",
   "lastAction": "golden",
   "runs": {
     ".orky\\features\\0001-golden": {
       "phase": "implement",
-      "lastTickAt": "2026-07-02T00:24:47.124Z",
+      "lastTickAt": "2026-07-03T16:09:14.192Z",
       "lastAction": "golden"
     }
   }

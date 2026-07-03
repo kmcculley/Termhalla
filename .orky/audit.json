@@ -1,0 +1,99 @@
+[
+  {
+    "action": "gate.check",
+    "feature": "0015-orky-contract-v2-refresh",
+    "phase": "spec",
+    "pass": true,
+    "attempts": 0,
+    "totalFailures": 0,
+    "wallClockMs": 2,
+    "at": "2026-07-03T15:44:29.257Z"
+  },
+  {
+    "action": "producer.select",
+    "feature": "0015-orky-contract-v2-refresh",
+    "role": "planner",
+    "phase": "plan",
+    "tier": "low",
+    "model": "sonnet",
+    "effort": "medium",
+    "trigger": "base",
+    "attempts": 0,
+    "at": "2026-07-03T15:44:45.541Z"
+  },
+  {
+    "action": "gate.check",
+    "feature": "0015-orky-contract-v2-refresh",
+    "phase": "plan",
+    "pass": true,
+    "attempts": 0,
+    "totalFailures": 0,
+    "wallClockMs": 4,
+    "at": "2026-07-03T15:46:50.709Z"
+  },
+  {
+    "action": "gate.check",
+    "feature": "0015-orky-contract-v2-refresh",
+    "phase": "tests",
+    "pass": true,
+    "attempts": 0,
+    "totalFailures": 0,
+    "wallClockMs": 20671,
+    "at": "2026-07-03T16:03:32.075Z"
+  },
+  {
+    "action": "producer.select",
+    "feature": "0015-orky-contract-v2-refresh",
+    "role": "implementer",
+    "phase": "implement",
+    "tier": "low",
+    "model": "sonnet",
+    "effort": "medium",
+    "trigger": "base",
+    "attempts": 0,
+    "at": "2026-07-03T16:03:42.322Z"
+  },
+  {
+    "action": "producer.select",
+    "feature": "0015-orky-contract-v2-refresh",
+    "role": "planner",
+    "phase": "plan",
+    "tier": "high",
+    "model": "fable",
+    "effort": "xhigh",
+    "trigger": "judgment-loopback",
+    "attempts": 0,
+    "at": "2026-07-03T16:05:49.244Z"
+  },
+  {
+    "action": "tier.ratchet",
+    "feature": "0015-orky-contract-v2-refresh",
+    "role": "planner",
+    "phase": "plan",
+    "fromTier": "low",
+    "toTier": "high",
+    "trigger": "judgment-loopback",
+    "attempts": 0,
+    "at": "2026-07-03T16:05:49.258Z"
+  },
+  {
+    "action": "gate.check",
+    "feature": "0015-orky-contract-v2-refresh",
+    "phase": "plan",
+    "pass": true,
+    "attempts": 0,
+    "totalFailures": 0,
+    "wallClockMs": 4,
+    "at": "2026-07-03T16:08:32.950Z"
+  },
+  {
+    "action": "gate.check",
+    "feature": "0015-orky-contract-v2-refresh",
+    "phase": "tests",
+    "pass": true,
+    "attempts": 0,
+    "totalFailures": 0,
+    "wallClockMs": 20020,
+    "at": "2026-07-03T16:11:54.960Z"
+  }
+]
