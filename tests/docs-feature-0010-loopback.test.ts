@@ -97,7 +97,12 @@ describe('FINDING-012 — the REQ-009 frozen-guard inventory is mechanical (REQ-
       'docs-feature-0010-loopback.test.ts',
       'e2e/orky-pane-actions-loopback.spec.ts',
       'renderer/orky-entry-actions-modeflip-loopback.test.ts',
-      'renderer/orky-pane-actions-loopback.test.ts'
+      'renderer/orky-pane-actions-loopback.test.ts',
+      // ── the 1 app-level INTEGRATION file (dispositioned per this test's own rule — the
+      //    read→decide→act e2e suite REALLY drives orky-entry-actions-core (bind/verify/build/
+      //    settle) through F7 against the real CLIs, so the pattern hit is the point, not an
+      //    un-dispositioned frozen guard; see tests/integration/README.md)
+      'integration/orky-act-loop.test.ts'
     ].sort()
 
     expect(hits).toEqual(dispositioned)

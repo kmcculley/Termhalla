@@ -1,14 +1,8 @@
 {
-  "feature": ".orky/features/0011-orky-workspace-template",
+  "feature": null,
   "projectRoot": "C:/dev/Termhalla",
-  "phase": "implement",
-  "lastTickAt": "2026-07-03T04:54:47.352Z",
-  "lastAction": "tests loopback gate passed; dispatching focus-fix implementer",
-  "runs": {
-    ".orky/features/0011-orky-workspace-template": {
-      "phase": "implement",
-      "lastTickAt": "2026-07-03T04:54:47.352Z",
-      "lastAction": "tests loopback gate passed; dispatching focus-fix implementer"
-    }
-  }
+  "phase": null,
+  "lastTickAt": "2026-07-03T05:13:25.308Z",
+  "lastAction": "F11 done; ALL roadmap features complete",
+  "runs": {}
 }
