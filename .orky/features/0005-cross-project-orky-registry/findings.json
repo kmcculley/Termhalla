@@ -8,8 +8,11 @@
     "claim": "Frozen test files were modified during implementation: frozen tests changed: tests/main/orky-registry-service.test.ts (modified), tests/main/orky-root-engine.test.ts (modified)",
     "fix": "Revert the test changes. Tests are frozen after phase 4. If a test is genuinely wrong, route the issue back to phase 4 (Tests) instead of editing tests during implementation.",
     "phase_of_origin": "implement",
-    "status": "open",
-    "verified_by": "gatekeeper"
+    "status": "resolved",
+    "verified_by": "gatekeeper",
+    "resolution": "Remediated per ESC-001 (human decision 2026-06-30): hand-edited frozen tests rejected; TEST-106/TEST-127 redone via clean test-designer-only dispatch on a tests loopback; freeze recaptured and feature re-gated green through review/doc-sync/human-review. Left open only because no sanctioned close path existed before v0.29.0's resolve-finding.",
+    "resolvedBy": "kevin",
+    "resolvedAt": "2026-07-03T14:40:26.821Z"
   },
   {
     "id": "FINDING-SEC-007",
