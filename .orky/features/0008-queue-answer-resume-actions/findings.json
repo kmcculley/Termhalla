@@ -304,6 +304,8 @@
     "phase_of_origin": "implement",
     "verified_by": "devils-advocate",
     "id": "FINDING-022",
-    "status": "open"
+    "status": "resolved",
+    "resolvedAt": "2026-07-03T04:12:00.000Z",
+    "resolution": "Resolved by feature 0010-orky-pane-inline-actions (F10 REQ-006 / TASK-001 — the CONV-046 fix, landing in the SHARED component so both the F8 queue mount and the F10 pane mount get it). The prescribed mode-keyed disarm now exists in orky-entry-actions.tsx: a useEffect keyed on the target's answer mode resets answerOpen and clears the typed decision/evidence when target.reason flips while the form is open (the mode-keyed twin of the FINDING-020 disarm), and each form additionally renders only while the LIVE mode still equals the armedMode captured by the explicit toggle gesture — so the EscalationAnswerForm/HumanReviewForm swap can never remount a focus-on-mount (useOpenFocusRestore) surface without a gesture, and an open form is never silently re-purposed from decision-entry to verdict-entry. The disarm effect is a pure state reset (no dispatch, no pane commit, no launch, no toast, no focus call). Pinned by F10's TEST-630 (structural: tests/renderer/orky-entry-actions-modeflip.test.ts) and TEST-637 (e2e: the fixture flip escalation->human-review disarms BOTH mounts, moves focus into no field, dispatches nothing; only an explicit re-open mounts the fresh empty verdict form and moves focus). Every F8 frozen pin stays byte-green (TEST-598/599/601/604/605/615)."
   }
 ]

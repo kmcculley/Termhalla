@@ -1,0 +1,177 @@
+{
+  "feature": "0010-orky-pane-inline-actions",
+  "phase": "doc-sync",
+  "gates": {
+    "brainstorm": {
+      "passed": true,
+      "at": "2026-07-02T23:18:53.797Z",
+      "evidence": "delegated-human brainstorm: D1 mount F8's shared action layer in F9's reserved slot (cross-instance single-flight), D2 inject via F12 openOrkyCapture(root) pre-targeted (F10 is F12's inherited caller), D3 read-only-except-via-F7/F12 composition only, D4 escalation-id from F9's already-fetched detail, D5 honor F8 CONVs + fix the FINDING-022 mode-flip residual here + work in a tile",
+      "external": true
+    },
+    "spec": {
+      "passed": true,
+      "at": "2026-07-02T23:58:35.788Z",
+      "tokens": [
+        {
+          "token": "findings",
+          "pass": true,
+          "evidence": "no open blocking findings (CRITICAL/HIGH or contract-violation) for this gate"
+        }
+      ]
+    },
+    "plan": {
+      "passed": true,
+      "at": "2026-07-03T00:01:38.141Z",
+      "tokens": [
+        {
+          "token": "spec-freeze",
+          "pass": true,
+          "evidence": "spec unchanged since the spec gate"
+        },
+        {
+          "token": "traceability-plan",
+          "pass": true,
+          "evidence": "all 9 REQ(s) trace to TASK"
+        },
+        {
+          "token": "findings",
+          "pass": true,
+          "evidence": "no open blocking findings (CRITICAL/HIGH or contract-violation) for this gate"
+        }
+      ]
+    },
+    "tests": {
+      "passed": true,
+      "at": "2026-07-03T02:03:04.104Z",
+      "tokens": [
+        {
+          "token": "spec-freeze",
+          "pass": true,
+          "evidence": "spec unchanged since the spec gate"
+        },
+        {
+          "token": "tests-red",
+          "pass": true,
+          "evidence": "tests are RED (exit 1) — freeze snapshot captured"
+        }
+      ]
+    },
+    "implement": {
+      "passed": true,
+      "at": "2026-07-03T02:28:39.794Z",
+      "tokens": [
+        {
+          "token": "spec-freeze",
+          "pass": true,
+          "evidence": "spec unchanged since the spec gate"
+        },
+        {
+          "token": "build",
+          "pass": true,
+          "evidence": "build exited 0"
+        },
+        {
+          "token": "test",
+          "pass": true,
+          "evidence": "test exited 0"
+        },
+        {
+          "token": "test-freeze",
+          "pass": true,
+          "evidence": "test files unchanged since freeze"
+        }
+      ]
+    },
+    "review": {
+      "passed": true,
+      "at": "2026-07-03T02:46:08.301Z",
+      "tokens": [
+        {
+          "token": "spec-freeze",
+          "pass": true,
+          "evidence": "spec unchanged since the spec gate"
+        },
+        {
+          "token": "findings",
+          "pass": true,
+          "evidence": "no open blocking findings (CRITICAL/HIGH or contract-violation) for this gate"
+        }
+      ]
+    },
+    "doc-sync": {
+      "passed": true,
+      "at": "2026-07-03T02:51:56.664Z",
+      "tokens": [
+        {
+          "token": "spec-freeze",
+          "pass": true,
+          "evidence": "spec unchanged since the spec gate"
+        },
+        {
+          "token": "traceability",
+          "pass": true,
+          "evidence": "all 9 REQ(s) trace to TASK+TEST"
+        },
+        {
+          "token": "findings",
+          "pass": true,
+          "evidence": "no open blocking findings (CRITICAL/HIGH or contract-violation) for this gate"
+        }
+      ]
+    },
+    "human-review": {
+      "passed": true,
+      "at": "2026-07-03T02:51:56.746Z",
+      "evidence": "Delegated autonomous drive. Reviewed: 9-REQ composition spec (REQ-005 restated to the honest testable model + 2 revisions), F8-action-layer + F12-inject mounted in F9's pane, 7-lens review (18 findings — a blocker where my own v0.28.0 startup contract handshake contaminated the frozen e2e gatekeeper-log assertions across F10 + latently-broken F8) all resolved except 3 documented residuals, the CONV-046 fix also resolving F8's FINDING-022, TEST-624..648 + frozen e2e handshake amendments, CONV-047..053. Suite 1416 green. RESIDUAL/PREREQUISITE: FINDING-017 — the Playwright terminal-spawn e2e can't be witnessed green until node-pty's conpty.node is rebuilt (needs VS Spectre libs); resume-launch code is correct, env-only.",
+      "external": true
+    }
+  },
+  "iterations": {
+    "tests": 1
+  },
+  "escalations": [
+    {
+      "id": "ESC-001",
+      "phase": "review",
+      "reason": "7-lens review: 1 blocker + MEDIUMs/LOWs. FINDING-016 (HIGH, tests-origin): the startup contract handshake (verifyOrkyContract, services.ts:62, my v0.28.0 addition) invokes 'gatekeeper contract' at boot, so the frozen e2e's gatekeeperLog===[] assertions (F10 TEST-632/635/636/637 AND co-owned F8 TEST-608/612 — F8's e2e was already latently broken) can't pass. Also 017 (.cmd resume-spawn maybe a real Windows defect), 018 (hidden-host detached outcome), 007/008/009 (tile layout: slot can't shrink, inject clipped, silent draft loss), LOWs 010/011/012/013/014/015. Human decision on the loopback.",
+      "kind": "judgment",
+      "finding": "FINDING-016",
+      "status": "resolved",
+      "at": "2026-07-03T01:14:17.366Z",
+      "decision": "Loop back to tests (delegated). Fixes: FINDING-016 — amend the frozen e2e gatekeeperLog assertions (F10's + the co-owned F8 TEST-608/612, CONV-012/019) to assert NO gatekeeper invocation OTHER than the startup ['contract'] handshake (filter it out); the handshake is legitimate shipped behavior the tests must account for. FINDING-011 — pin the load-bearing armedMode===mode render guard (deleting it must fail a test, so FINDING-022 can't silently regress). FINDING-007 — the orky-pane-row-actions slot must be able to shrink (drop flex:none / allow wrap in the tile), tile-relative pin. FINDING-008 — the inject button must stay reachable in a narrow header (wrap/overflow, not clipped). FINDING-009 — the mode-flip disarm routes a draft-lost notice through the store toast chokepoint (CONV-034) + a focus fallback; amend TEST-630's toast-free ban accordingly. FINDING-017 — INVESTIGATE the .cmd resume spawn: if direct pty.spawn of claude.cmd genuinely fails on Windows, fix the launch (resolve .cmd via the shipped spawn path — this affects F8's REQ-014 too); if it's a test-stub artifact, document + pin the real path. FINDING-018 — the pane mount already has F9's hidden prop; gate the detached-outcome toast so a hidden-at-settle outcome still surfaces (reuse F9's host-hidden signal) — if not cheap, document as residual with 010/012/013/014/015. LOWs 010 (disarm resets binding), 012 (grep count now 18), 013 (resolvedAt), 015 (stale drawer read-only claims) — fold cheap ones into implement/doc-sync; 014 (NUL file) stays the standing backlog item.",
+      "resolvedAt": "2026-07-03T01:14:17.618Z"
+    }
+  ],
+  "concerns": [
+    "security",
+    "ux",
+    "quality",
+    "networking"
+  ],
+  "attempts": {
+    "spec": 0,
+    "plan": 0,
+    "tests": 0,
+    "implement": 0,
+    "review": 0,
+    "doc-sync": 0
+  },
+  "implementer": {
+    "mode": "ab",
+    "agents": [
+      "orky:implementer",
+      "codex:codex-rescue"
+    ],
+    "winner": "orky:implementer",
+    "reason": "Loopback fix cycle; A-B degraded to single (codex worktree env failure). Networking compensated by frozen vectors + lens.",
+    "at": "2026-07-03T02:03:04.188Z"
+  },
+  "loopbacks": [
+    {
+      "to": "tests",
+      "from": "review",
+      "reason": "1 blocker (016 handshake-contaminated e2e) + tile-UX MEDIUMs + LOWs; per ESC-001",
+      "at": "2026-07-03T01:14:17.855Z"
+    }
+  ]
+}

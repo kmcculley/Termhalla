@@ -64,7 +64,8 @@
         "F9",
         "F7"
       ],
-      "status": "pending"
+      "status": "done",
+      "completedAt": "2026-07-03T02:51:56.976Z"
     },
     {
       "id": "F11",

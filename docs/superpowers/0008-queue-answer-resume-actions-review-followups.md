@@ -210,6 +210,35 @@ cycle. **Recommendation unchanged: a dedicated cleanup commit** — `git rm NUL`
 guard rejecting Windows-reserved path components (`CON`, `PRN`, `AUX`, `NUL`, `COM1-9`, `LPT1-9`) —
 filed as standing repo-hygiene debt, not assigned to any feature.
 
+## Retroactive corrections landed by feature 0010
+
+Two things about THIS feature's shipped artifacts were corrected after the fact by feature
+`0010-orky-pane-inline-actions` (F10), F8's designed reuse consumer, per `CONV-012` co-ownership.
+Recorded here so a reader of this doc sees the full picture without cross-referencing F10's own
+follow-ups doc:
+
+- **`FINDING-022` (this feature's own residual, above) is now RESOLVED, fixed by F10.** F10's
+  REQ-006/TASK-001 landed the mode-keyed disarm fix directly in the SHARED
+  `orky-entry-actions.tsx` component (both this feature's queue mount and F10's pane mount get
+  it) — see `findings.json`'s `FINDING-022` entry for the resolution detail and F10's `TEST-630`/
+  `TEST-637` for the pins. The `resolvedAt` stamp on that entry was itself corrected at F10's
+  doc-sync pass (2026-07-03) from a hand-synthesized round instant to a real clock reading — an
+  instance of the CONV-049 lesson F10 promoted.
+- **This feature's frozen e2e (`tests/e2e/orky-queue-actions.spec.ts` and its loopback) was
+  latently broken since a v0.28.0 startup-handshake change, and F10 fixed the read sites.** F10's
+  review (FINDING-016) discovered — by actually RUNNING this feature's frozen e2e against the
+  built app for the first time since v0.28.0 shipped `verifyOrkyContract` — that every raw
+  `expect(readLog(gatekeeperLog)).toEqual([])` assertion in this suite (TEST-608/609/611/612) had
+  been unsatisfiable by construction against a behaviorally correct implementation: the startup
+  contract handshake unconditionally invokes the stub gatekeeper before any test gesture fires.
+  F10's tests-phase loopback amended the READ SITES in `orky-queue-actions.spec.ts` and
+  `orky-queue-actions-loopback.spec.ts` to a handshake-aware `readActionLog` helper (filtering out
+  only an exactly-`['contract']` entry; any other unexpected entry still fails loudly) — the
+  assertion INTENT (zero dispatch until a gesture) is unchanged, byte-identical otherwise. Run
+  evidence (2026-07-03): TEST-608/612 witnessed green for the first time; TEST-609/610 remain red
+  on an unrelated build-environment gap (F10's `FINDING-017` — node-pty's native binding absent on
+  the verifying checkout), not the handshake.
+
 ## Resolved in-feature (not deferred)
 
 FINDING-001…007 (spec gate, all seven, including the pointer-isolation gap, the identity-binding

@@ -7,6 +7,22 @@ All notable changes to Termhalla are recorded here. The format follows
 ## [Unreleased]
 
 ### Added
+- **Inline Orky actions in the native Orky pane.** Every feature row of the Orky pane now mounts
+  the SAME shared actions region the decision-queue drawer uses (feature 0008's
+  `OrkyEntryActions`, composed — never forked): answer an open escalation inline (the escalation
+  id binds from the row's already-held `registry:detail` payload — the first open escalation,
+  never free text — with zero display-time pulls, and is still re-verified against a fresh pull
+  at submit), record a human-review verdict, the read-only next-action preview, and
+  resume-in-terminal at the pane's root. A pane-header **inject** button (bound member panes
+  only) opens the quick-capture form pre-targeted to the pane's project via
+  `openOrkyCapture(root)` — the root byte-verbatim, no picker step, nothing dispatched by the
+  gesture itself. The pane and queue mounts share the module-scope single-flight gate, so the
+  same target dispatches at most once across both, with shared pending and shared busy refusal.
+  The CONV-046 mode-flip fix lands in the shared component for both mounts: a data-driven reason
+  flip (e.g. escalation → human-review) while the answer form is open now disarms the form
+  (closes it and clears the typed draft) instead of swapping in a focus-stealing form — keyboard
+  focus moves only on the explicit open gesture. No new IPC/preload/main surface; every
+  write-capable action is gesture-tied. See `docs/features/orky-pane.md`.
 - **Answer + resume actions on decision-queue entries.** Every entry in the Orky decision-queue
   drawer now carries a write-capable actions region: **answer** the entry inline (an escalation
   gets a decision-text input; a human-review entry gets a pass/fail verdict with optional
@@ -214,6 +230,30 @@ All notable changes to Termhalla are recorded here. The format follows
   failure feedback is never silenced.
 
 ### Fixed
+- **Orky pane inline actions stay reachable in a narrow tile.** The `orky-pane-row-actions` slot
+  was `flex: none` (unshrinkable at the region's max-content width), forcing the features list
+  into horizontal overflow-scroll in a split tile; it is now shrinkable (`minWidth: 0`) so the
+  shared region's own wrapping rows engage. The pane header now wraps too, so the **+ work**
+  inject button moves to a second header line instead of being pushed off a narrow tile with no
+  scroll access.
+- **A mode-flip disarm no longer destroys a typed draft in silence, strands focus, or leaves a
+  stale alert.** When a data-driven reason flip disarms an open answer form (both the queue and
+  pane mounts), a NON-EMPTY typed draft now surfaces a draft-lost notice through the store toast
+  chokepoint on the never-suppressed error kind; if the flip collapsed keyboard focus to `<body>`
+  (the escalation-resolved vector unmounts the answer toggle with the form), focus re-anchors onto
+  the still-mounted actions region; and a failed escalation binding can no longer resurface as a
+  stale `escalation-unbound` alert beside a later re-opened verdict form of the other mode (the
+  alert is escalation-mode-gated).
+- **An Orky action outcome settling while its pane is hidden now surfaces as a toast.** The pane
+  mount lives inside keep-mounted-hidden hosts (inactive workspace, maximized-over, minimized), so
+  an answer dispatched from the pane could settle invisibly after a workspace switch — inviting a
+  blind duplicate re-dispatch. OrkyPane now threads its own `hidden` prop into the shared region,
+  and a hidden-at-settle outcome rides the same store toast chokepoint a detached (unmounted)
+  settle already uses, while the hidden pane still records the settled state for its return.
+- **Stale "read-only drawer" docs corrected.** `CLAUDE.md`'s decision-queue drawer row and
+  `docs/features/decision-queue.md` no longer claim a read-only/never-invokes-CLI drawer — both
+  now describe the composed write-capable `OrkyEntryActions` region the rows have mounted since
+  feature 0008 (F6's own files still own no dispatch).
 - **Idle Orky roll-up no longer masks the pane's real border/failure treatment.** `orkyPaneStatus([])`
   returns a non-null idle roll-up (`chipFeature: null`) whenever a project has no popover-eligible
   features, and PaneTile keyed the border precedence on the roll-up merely being **present** — so a

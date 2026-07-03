@@ -5,8 +5,10 @@
 > decision-queue drawer deliberately omit), its per-gate records, findings, and escalations —
 > as a permanent, tiling-layout citizen. Tier T3 of the Termhalla × Orky integration: F6's drawer
 > answers "what needs me across ALL projects"; this pane answers "show me everything about THIS
-> project". Strictly READ-only: no `.orky/` write, no CLI, no `orkyAction:*` call, no registry
-> mutation.
+> project". Since feature 0010 the pane also composes the write-capable surfaces built for it —
+> the shared `OrkyEntryActions` region (feature 0008's action layer) in every feature row and the
+> rooted quick-capture opener `openOrkyCapture(root)` (feature 0012) behind a header inject
+> button — while owning no dispatch/capture/CLI/mutation logic of its own.
 
 ## The pane kind + persistence (SCHEMA_VERSION 7 → 8)
 
@@ -150,14 +152,42 @@ unique — a copied feature dir or two malformed `state.json` files can collide 
 order falls through a stable sort to a slug codepoint tiebreak, so duplicate `feature` values stay
 deterministic end-to-end even under that collision.
 
-## Forward compatibility (F10)
+## The composed write surface (feature 0010)
 
 Every feature row carries the stable `(data-project-root, data-feature)` identity (F7's request
-pair, `data-feature` = the unique `slug`), escalation rows carry `data-escalation-id`, and each row
-ends in a reserved, deliberately EMPTY `orky-pane-row-actions` slot — F10 attaches answer/resume/
-record-gate affordances there without restructuring row layout, identity, or ordering. F10 also
-inherits the post-action currency path for free: its writes land on disk → the engine re-reads →
-`registry:rootChanged` refreshes the pane.
+pair, `data-feature` = the unique `slug`), escalation rows carry `data-escalation-id`, and each
+row's trailing `orky-pane-row-actions` slot now mounts the shared `<OrkyEntryActions>` region
+(feature 0008), keyed on the pane's own row identity
+`{ projectRoot: root, featureSlug: slug, reason: status.reason }`: answer an open escalation
+inline, record a human-review verdict, the read-only next-action preview, and resume-in-terminal
+at the pane's root. The escalation id is sourced from the row's ALREADY-HELD detail — the first
+`status === 'open'` escalation in payload array order, supplied iff it carries a non-empty string
+id (zero display-time pulls); a row without a usable id omits it and rides the shared
+honest-refusal bind path, and every submit is still re-verified against one fresh
+`registry:detail` pull (the F8 race guard). The pane header offers an inject button
+(`orky-pane-inject`, bound member panes only) whose gesture opens the quick-capture form
+pre-targeted via `openOrkyCapture(root)` — the pane's root byte-verbatim, no picker step, nothing
+dispatched by the gesture itself. The pane owns no dispatch/capture/CLI/mutation logic of its own
+(`orky-entry-actions.tsx` stays the one renderer home of the three action bridges; the app-hosted
+capture modal owns the capture flow), every write is gesture-tied, and the pane inherits the
+post-action currency path for free: writes land on disk → the engine re-reads →
+`registry:rootChanged` refreshes the pane. A data-driven reason flip while an answer form is open
+disarms the form in the shared component (the CONV-046 fix, landed by feature 0010 for both the
+queue and pane mounts); a disarm that discards a NON-EMPTY typed draft reports a draft-lost
+notice through the store toast chokepoint on the never-suppressed error kind, and focus
+re-anchors onto the still-mounted actions region ONLY when the flip collapsed it to `<body>` (the
+escalation-resolved vector unmounts the answer toggle with the form) — otherwise keyboard focus
+moves only on the explicit open gesture.
+
+The composition is tile-honest: the `orky-pane-row-actions` slot is shrinkable (`minWidth: 0`,
+never `flex: none`) so the shared region's own wrapping rows engage inside a narrow split tile
+instead of forcing the features list into horizontal scroll, and the pane header wraps so the
+inject button stays reachable rather than clipping off-tile. The pane also threads its own
+`hidden` prop (the same signal both keep-mounted-hidden hosts drive) into the shared region as
+`hostHidden`, so an action outcome that settles while the pane is hidden — a workspace switch
+mid-flight, maximize-over, minimize — still surfaces through the store toast chokepoint instead
+of rendering only into the invisible surface; the hidden pane keeps the settled state for when it
+is displayed again.
 
 ## Where things live
 

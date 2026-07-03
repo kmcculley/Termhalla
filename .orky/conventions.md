@@ -229,6 +229,39 @@ to it when a review surfaces a lesson general enough to outlive its feature.
 - **CONV-046** — A focus-on-mount substrate may only be mounted by an explicit user open gesture — a
   data-driven remount or surface swap MUST NOT move keyboard focus.
   *(from FINDING-022 in 0008-queue-answer-resume-actions)*
+- **CONV-047** — A narrow-layout acceptance for a control region inside a user-resizable tile MUST
+  assert clipping against the TILE's own bounding box at a genuinely narrow tile width — never
+  against `window.innerWidth` — because Playwright's visibility/boundingBox checks ignore ancestor
+  overflow clipping and will pass even when a control is clipped by its tile.
+  *(from FINDING-007 in 0010-orky-pane-inline-actions)*
+- **CONV-048** — A data-driven disarm/close that discards user-typed input MUST surface a
+  user-visible notice through a never-silently-dropped signal (the toast chokepoint, never a new
+  silent-drop path) and MUST NOT strand keyboard focus on `<body>`.
+  *(from FINDING-009 in 0010-orky-pane-inline-actions)*
+- **CONV-049** — A findings-ledger status/resolution edit MUST stamp its timestamp fields from the
+  real clock at edit time — never a hand-typed or estimated instant — so the audit trail records no
+  event that never happened.
+  *(from FINDING-013 in 0010-orky-pane-inline-actions)*
+- **CONV-050** — No tracked path may use a Windows-reserved device name (`NUL`, `CON`, `PRN`, `AUX`,
+  `COM1`-`COM9`, `LPT1`-`LPT9`) — treat such a path as a scope/hygiene check failure, since Windows
+  cannot stat it and every Windows worktree sees it as a phantom deletion.
+  *(from FINDING-014 in 0010-orky-pane-inline-actions)*
+- **CONV-051** — An assertion that a shared stub/spy saw ZERO invocations MUST be scoped to the
+  actions under test (e.g. filter out unconditional startup/handshake traffic to the same stub)
+  rather than asserting raw emptiness, so a new legitimate startup side-effect cannot silently
+  contaminate every frozen zero-invocation pin that shares the stub.
+  *(from FINDING-016 in 0010-orky-pane-inline-actions)*
+- **CONV-052** — A frozen acceptance suite that no gate command executes (e.g. e2e outside the unit
+  test gate) MUST be run green at least once against the built implementation before its feature's
+  review gate may close — RED state must never be attributed to "missing UI" without ever having
+  been witnessed passing against real code.
+  *(from FINDING-016 in 0010-orky-pane-inline-actions)*
+- **CONV-053** — An outcome-delivery path that uses component mount-aliveness as its user-visibility
+  proxy MUST be re-audited whenever that component becomes mountable inside a keep-mounted-hidden
+  host (the CONV-028 class): an outcome settling while the owning surface is effectively hidden
+  MUST be reported like a detached outcome (e.g. through the same never-silently-dropped toast
+  chokepoint), never rendered only into the invisible surface.
+  *(from FINDING-018 in 0010-orky-pane-inline-actions)*
 
 ## Principles
 Higher-level stances that inform specs and reviews but are too broad to gate mechanically.

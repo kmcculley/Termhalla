@@ -45,6 +45,17 @@
 // carries (gatekeeper.js:850: {next:'await-human', reason:'open escalation', escalations:[…]}).
 // The stub now answers the REAL shape and TEST-608's preview assertions additionally require the
 // carried reason to render. Every other assertion and TEST id is byte-unchanged.
+//
+// [AMENDED at feature 0010's ESC-001 tests LOOPBACK (review → tests), 2026-07-02 — FINDING-016
+// supersession (CONV-019, applied cross-feature per CONV-012 co-ownership: this frozen F8 suite
+// was latently broken by the SAME defect F10's review witnessed)]: every raw
+// expect(readLog(gatekeeperLog)).toEqual([]) / gatekeeper-argv-count assertion in
+// TEST-608/609/611/612 was unsatisfiable by construction — the v0.28.0 startup contract handshake
+// invokes `gatekeeper contract` at every boot with ORKY_PLUGIN_DIR set. All gatekeeper-log reads
+// now go through readActionLog (below), which filters ONLY the exact ['contract'] handshake argv
+// and asserts nothing else was excluded. Every assertion's intent (an escalation answer never
+// touches the gatekeeper; the preview/fallback dispatch exactly once; the changed-world refusal
+// dispatches nothing) is preserved verbatim. TEST-610 reads no stub log and is byte-unchanged.
 import { test, expect, _electron as electron, ElectronApplication } from '@playwright/test'
 import { execSync } from 'child_process'
 import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, existsSync } from 'node:fs'
@@ -106,6 +117,23 @@ function readLog(logPath: string): string[][] {
   if (!existsSync(logPath)) return []
   return readFileSync(logPath, 'utf8').split('\n').filter(Boolean).map((l) => JSON.parse(l))
 }
+/** [AMENDED at feature 0010's ESC-001 tests LOOPBACK, 2026-07-02 — FINDING-016 supersession
+ *  (CONV-019; CONV-012 co-ownership where this file is F8's)]: the v0.28.0 startup contract
+ *  handshake (src/main/services.ts → verifyOrkyContract, commit 0dc4c54) invokes
+ *  `gatekeeper contract` unconditionally at boot whenever ORKY_PLUGIN_DIR is set, so a RAW
+ *  emptiness assertion over the gatekeeper argv log was unsatisfiable by construction — against a
+ *  behaviorally CORRECT implementation. This reader asserts every handshake entry IS exactly
+ *  ['contract'] (anything else is real traffic and is never dropped) and returns the log WITHOUT
+ *  them. Every gatekeeper-log assertion in this file now reads through it: the pinned intent — no
+ *  user-gesture dispatch until a gesture — is preserved verbatim; only the unconditional startup
+ *  handshake is accounted for. */
+function readActionLog(logPath: string): string[][] {
+  const entries = readLog(logPath)
+  for (const argv of entries.filter((a) => a[0] === 'contract')) {
+    expect(argv, 'startup handshake traffic is exactly ["contract"]').toEqual(['contract'])
+  }
+  return entries.filter((a) => a[0] !== 'contract')
+}
 
 /** A synthetic `.orky/` project whose feature carries a RESOLVED escalation FIRST and the open
  *  ESC-007 second — the binding must pick the first OPEN one, never the first array entry
@@ -165,7 +193,7 @@ async function openTerminalAt(win: Win, dir: string): Promise<void> {
   await expect(win.locator(`[data-testid^="tile-"][data-cwd="${dir.replace(/\\/g, '\\\\')}"]`)).toHaveCount(1, { timeout: 15_000 })
 }
 
-test('TEST-608 REQ-001/002/003/004/005/006/007/008/012 answer-an-escalation end-to-end: zero dispatch on open, the bound ESC-007 shown BEFORE dispatch, whitespace can\'t submit, double-Enter is single-flight, ONE pinned emit argv with the byte-verbatim payload, honest success; the preview renders the next action with no mutation claim [AMENDED — FINDING-013: the REAL drive shape; the carried reason renders]', async () => {
+test('TEST-608 REQ-001/002/003/004/005/006/007/008/012 answer-an-escalation end-to-end: zero dispatch on open, the bound ESC-007 shown BEFORE dispatch, whitespace can\'t submit, double-Enter is single-flight, ONE pinned emit argv with the byte-verbatim payload, honest success; the preview renders the next action with no mutation claim [AMENDED — FINDING-013: the REAL drive shape; the carried reason renders] [AMENDED — FINDING-016: gatekeeper log read handshake-aware via readActionLog]', async () => {
   test.setTimeout(120_000)
   const { proj } = seedEscalatedProject()
   const userData = seedUserData([proj])
@@ -182,7 +210,7 @@ test('TEST-608 REQ-001/002/003/004/005/006/007/008/012 answer-an-escalation end-
   await expect(win.getByTestId('dq-action-verdict-pass')).toHaveCount(0)
   // REQ-006: opening the drawer / mounting the region dispatched NOTHING.
   expect(readLog(feedbackLog)).toEqual([])
-  expect(readLog(gatekeeperLog)).toEqual([])
+  expect(readActionLog(gatekeeperLog)).toEqual([])
 
   // REQ-003: opening the answer binds the FIRST OPEN escalation (ESC-007 — not the resolved
   // ESC-001) off the REAL registry:detail channel and shows it BEFORE any dispatch.
@@ -227,7 +255,7 @@ test('TEST-608 REQ-001/002/003/004/005/006/007/008/012 answer-an-escalation end-
   expect(JSON.parse(fLog[0][8])).toEqual({ escalationId: 'ESC-007', decision })
   expect(fLog[0]).toHaveLength(9)
   // REQ-002 routing: an escalation answer never touches recordHumanGate/driveStatus.
-  expect(readLog(gatekeeperLog)).toEqual([])
+  expect(readActionLog(gatekeeperLog)).toEqual([])
 
   // ── REQ-005 part 1: the read-only next-action preview off `gatekeeper drive`.
   await win.getByTestId('dq-action-preview').click()
@@ -235,7 +263,7 @@ test('TEST-608 REQ-001/002/003/004/005/006/007/008/012 answer-an-escalation end-
   await expect(result).toContainText(/next/i)
   await expect(result).toContainText('open escalation') // [AMENDED — FINDING-013] the carried reason renders — the load-bearing datum on every queued row
   await expect(result).not.toContainText(/resumed|advanced|dispatched|continued|unblock/i)
-  const gLog = readLog(gatekeeperLog)
+  const gLog = readActionLog(gatekeeperLog)
   expect(gLog).toHaveLength(1)
   expect(gLog[0][0]).toBe('drive')
   expect(gLog[0][1]).toBe('--feature')
@@ -244,7 +272,7 @@ test('TEST-608 REQ-001/002/003/004/005/006/007/008/012 answer-an-escalation end-
   const pid = app.process().pid; await app.close().catch(() => {}); killTree(pid)
 })
 
-test('TEST-609 REQ-014 REQ-005 resume-in-terminal: one gesture commits exactly ONE terminal pane running claude /orky:resume AT the project root (PATH-stubbed claude.cmd proves cwd + argv), zero api.orky* dispatches, a second gesture commits a second pane, and the control copy never claims an auto-run', async () => {
+test('TEST-609 REQ-014 REQ-005 resume-in-terminal: one gesture commits exactly ONE terminal pane running claude /orky:resume AT the project root (PATH-stubbed claude.cmd proves cwd + argv), zero api.orky* dispatches, a second gesture commits a second pane, and the control copy never claims an auto-run [AMENDED — FINDING-016: gatekeeper log read handshake-aware via readActionLog]', async () => {
   test.setTimeout(120_000)
   const { proj } = seedEscalatedProject()
   const userData = seedUserData([proj])
@@ -288,7 +316,7 @@ test('TEST-609 REQ-014 REQ-005 resume-in-terminal: one gesture commits exactly O
 
   // resume is a pane commit, never an Orky action (REQ-005 part 2): no CLI dispatch happened.
   expect(readLog(feedbackLog)).toEqual([])
-  expect(readLog(gatekeeperLog)).toEqual([])
+  expect(readActionLog(gatekeeperLog)).toEqual([])
 
   // a second gesture commits a SECOND pane (no dedupe — launchDir parity), still one per gesture.
   await resume.click()
@@ -331,7 +359,7 @@ test('TEST-610 REQ-015 pointer isolation on a hasPane row: clicking the answer c
   const pid = app.process().pid; await app.close().catch(() => {}); killTree(pid)
 })
 
-test('TEST-611 REQ-002 REQ-004 REQ-008 the disabled-feedback path: emit answers mode:noop, the dispatcher falls back to gatekeeper resolve-escalation carrying the BOUND id and the decision byte-verbatim as discrete argv elements; the rendered success stays honest', async () => {
+test('TEST-611 REQ-002 REQ-004 REQ-008 the disabled-feedback path: emit answers mode:noop, the dispatcher falls back to gatekeeper resolve-escalation carrying the BOUND id and the decision byte-verbatim as discrete argv elements; the rendered success stays honest [AMENDED — FINDING-016: gatekeeper log read handshake-aware via readActionLog]', async () => {
   test.setTimeout(120_000)
   const { proj } = seedEscalatedProject()
   const userData = seedUserData([proj])
@@ -354,7 +382,7 @@ test('TEST-611 REQ-002 REQ-004 REQ-008 the disabled-feedback path: emit answers 
   // the fallback chain: ONE emit (refused as disabled), then ONE gatekeeper resolve-escalation
   // whose argv carries the bound id + the decision VERBATIM (REQ-003/REQ-004 on the fallback path).
   expect(readLog(feedbackLog)).toHaveLength(1)
-  const gLog = readLog(gatekeeperLog)
+  const gLog = readActionLog(gatekeeperLog)
   expect(gLog).toHaveLength(1)
   expect(gLog[0][0]).toBe('resolve-escalation')
   expect(gLog[0][1]).toBe('--feature')
@@ -364,7 +392,7 @@ test('TEST-611 REQ-002 REQ-004 REQ-008 the disabled-feedback path: emit answers 
   const pid = app.process().pid; await app.close().catch(() => {}); killTree(pid)
 })
 
-test('TEST-612 REQ-003 the display→submit race: the bound ESC-007 is resolved (ESC-009 opens) after the answer UI bound it — the submit-time re-verification refuses, NOTHING dispatches, the honest changed/re-open message renders, and ESC-009 is never silently substituted', async () => {
+test('TEST-612 REQ-003 the display→submit race: the bound ESC-007 is resolved (ESC-009 opens) after the answer UI bound it — the submit-time re-verification refuses, NOTHING dispatches, the honest changed/re-open message renders, and ESC-009 is never silently substituted [AMENDED — FINDING-016: gatekeeper log read handshake-aware via readActionLog]', async () => {
   test.setTimeout(120_000)
   const { proj, statePath } = seedEscalatedProject()
   const userData = seedUserData([proj])
@@ -400,7 +428,7 @@ test('TEST-612 REQ-003 the display→submit race: the bound ESC-007 is resolved 
   await expect(err).not.toContainText('ESC-009')
   await expect(win.getByTestId('dq-action-result')).toHaveCount(0)
   expect(readLog(feedbackLog)).toEqual([])
-  expect(readLog(gatekeeperLog)).toEqual([])
+  expect(readActionLog(gatekeeperLog)).toEqual([])
 
   const pid = app.process().pid; await app.close().catch(() => {}); killTree(pid)
 })

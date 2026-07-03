@@ -7,6 +7,11 @@
 //
 // Runs RED today: src/renderer/components/OrkyPane.tsx, OrkyRootPicker.tsx,
 // src/renderer/store/orky-pane-slice.ts and src/shared/orky-pane.ts do not exist yet.
+//
+// [AMENDED at feature 0010-orky-pane-inline-actions' tests phase, 2026-07-02 — CONV-019
+// supersession, per 0010 REQ-009/TASK-005 (the TEST-353 precedent)]: TEST-433's describe-level
+// READ-ONLY intent is superseded (see its supersession note below) and TEST-429's slot comment is
+// updated to name F10's population. EVERY assertion in this file is byte-unchanged.
 import { describe, it, expect } from 'vitest'
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
@@ -49,7 +54,7 @@ describe('OrkyPane — explicit pane states (REQ-009 / REQ-011)', () => {
     expect(src).toContain('data-project-root')
     expect(src).toContain('data-feature')
     expect(src).toContain('orky-pane-feature-unreadable') // a skipped slug NEVER vanishes (FINDING-004)
-    expect(src).toContain('orky-pane-row-actions')        // the reserved, F9-EMPTY trailing slot (D4/F10)
+    expect(src).toContain('orky-pane-row-actions')        // the reserved trailing slot (D4) — POPULATED by feature 0010's OrkyEntryActions mount
     expect(src).toContain('orky-pane-gates')
     expect(src).toContain('orky-pane-finding')
     expect(src).toContain('data-finding-id')
@@ -101,7 +106,25 @@ describe('fold-mode call path — the test-green/runtime-broken trap (REQ-005 / 
   })
 })
 
-describe('read-only scope guard (REQ-013)', () => {
+describe('scope guard — the F9 files own no raw CLI/mutation/dispatch call; the READ-ONLY intent is SUPERSEDED by feature 0010 (REQ-013; CONV-019)', () => {
+  // SUPERSESSION NOTE (CONV-019 — a recorded retirement, executed by feature
+  // 0010-orky-pane-inline-actions' TEST-DESIGNER at ITS tests phase, per 0010 REQ-009/TASK-005 —
+  // the TEST-353 precedent, honoring the named handoff in orky-capture-structure.test.ts:264-265:
+  // "its eventual supersession belongs to F10, not F12"):
+  //   F9 shipped OrkyPane STRICTLY read-only and this guard's describe originally pinned that
+  //   intent over every F9 file. Feature 0010 is the DESIGNED write-capable composition: OrkyPane
+  //   now composes the shared <OrkyEntryActions> region (whose api.orky* dispatch lives in
+  //   orky-entry-actions.tsx — never here) and F12's rooted capture opener openOrkyCapture(root).
+  //   Still-true intent, re-expressed:
+  //     - every F9 file below keeps EVERY original banned literal BYTE-UNCHANGED (neither
+  //       OrkyEntryActions, orky-entry-actions, nor openOrkyCapture contains a banned substring —
+  //       verified in 0010's spec): no registry-mutation surface, no orkyAction, no
+  //       CLI/child_process, no pane-scoped orky watch — no raw write call OF ITS OWN;
+  //     - nothing bypasses the existing persistence paths (the save-scheduling ban stays);
+  //     - OrkyPane's composed write discipline (mount, id sourcing, inject, gesture-tying) is
+  //       pinned by 0010's own suite, tests/renderer/orky-pane-actions-structure.test.ts
+  //       (TEST-624…TEST-629).
+  //   Every assertion below is byte-unchanged; only this describe/comment header was re-expressed.
   it('TEST-433 REQ-013 no F9 file references the registry mutation surface, orkyAction, a CLI/child_process, or a pane-scoped orky watch — and the slice/component persist nothing directly', () => {
     for (const rel of F9_FILES) {
       const src = read(rel) // throws (RED) until every F9 file exists

@@ -31,9 +31,12 @@
   verbatim (the needsHuman prefix); across groups, projects order by their top item's rank via the
   exported shared comparator `compareOrkyFeatures` (the same one `selectChipFeature` uses), ties by
   root codepoint — never `localeCompare`, no clock, no randomness.
-- **Read-only, chrome-only.** The feature never writes under any `.orky/` tree, never invokes an
-  Orky CLI or `orkyAction:*` method, never calls the registry mutation surface
-  (`registry:addRoot`/`removeRoot`), and persists nothing.
+- **Composed write surface (since feature 0008), chrome-only.** Each drawer row mounts the shared,
+  write-capable `OrkyEntryActions` region — answer an escalation, record a human-review verdict,
+  the read-only next-action preview, resume-in-terminal — whose dispatch lives in
+  `orky-entry-actions.tsx` alone and rides F7's `orkyAction:*` bridges. F6's OWN files still write
+  nothing of their own: no `.orky/` write, no Orky CLI invocation, no registry mutation call
+  (`registry:addRoot`/`removeRoot`), and nothing persisted.
 
 ## Data path (renderer-only)
 
@@ -133,7 +136,9 @@ order.
 
 Each row exposes its stable identity as `data-project-root` + `data-feature` (and
 `DecisionQueueItem.projectRoot`/`featureSlug`) — the `(projectRoot, feature)` pair F8's one-click
-actions (via F7's `orkyAction:*` dispatch) will attach to. F6 itself renders no action buttons.
+actions (via F7's `orkyAction:*` dispatch) attach to, mounted per row since feature 0008. F6
+itself still contributes no action buttons of its own — they belong to the mounted shared region
+(see [queue-answer-resume-actions](./queue-answer-resume-actions.md)).
 
 ## Related
 

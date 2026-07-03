@@ -5,14 +5,19 @@ import { compareOrkyFeatures } from '@shared/orky-status'
 import { caseFoldFromPlatform } from '@shared/decision-queue'
 import { sameProjectRoot, formatOrkyInstant } from '@shared/orky-pane'
 import { useStore } from '../store'
+import { OrkyEntryActions } from './orky-entry-actions'
 import { OrkyRootPicker } from './OrkyRootPicker'
 
 /**
  * The native Orky pane body (feature 0009, TASK-016) — a first-class mosaic pane kind bound to ONE
  * tracked project, rendering its FULL pipeline status (every feature, per-gate records, findings,
- * escalations) off the `registry:detail` payload. Strictly READ-only (REQ-013): no action
- * affordance, no mutation call, nothing persisted beyond `config.root` (via updatePaneConfig's own
- * autosave path on re-bind).
+ * escalations) off the `registry:detail` payload. Write scope (feature 0010 superseded F9's
+ * REQ-013 read-only intent — CONV-019, TEST-433's amended guard): the pane COMPOSES the shared
+ * `OrkyEntryActions` region per feature row (whose Orky action-bridge dispatch lives in
+ * orky-entry-actions.tsx — never here) and F12's rooted capture opener `openOrkyCapture(root)`
+ * behind the header inject button; this file owns no dispatch/capture/CLI/mutation logic of its
+ * own, every composed write is gesture-tied, and nothing is persisted beyond `config.root` (via
+ * updatePaneConfig's own autosave path on re-bind).
  *
  * Single source + single clock (REQ-009): once a detail payload is held, header accents AND rows
  * derive from THAT payload's carried statuses (computed under its one `computedAt` instant) — the
@@ -56,6 +61,10 @@ export function OrkyPane(
   const fetchOrkyDetail = useStore(s => s.fetchOrkyDetail)
   const setOrkyPaneHidden = useStore(s => s.setOrkyPaneHidden)
   const rebindOrkyPane = useStore(s => s.rebindOrkyPane)
+  // F12's rooted capture opener (feature 0010 REQ-003): called ONLY from the inject gesture below,
+  // with the pane's bound root byte-verbatim — the slice holds it unrewritten and no-ops while
+  // capture is already open; the capture form/submit flow stays the app-hosted modal's alone.
+  const openOrkyCapture = useStore(s => s.openOrkyCapture)
 
   const [pickerOpen, setPickerOpen] = useState(false)
   const [expandedRows, setExpandedRows] = useState<Record<string, boolean>>({})
@@ -138,11 +147,21 @@ export function OrkyPane(
     // never the collidable status.feature (REQ-012 / FINDING-021): a copied feature dir must not
     // collapse rows, share disclosure state, or duplicate React keys.
     const isOpen = expandedRows[f.slug] === true
+    // Escalation identity for the actions mount (feature 0010 REQ-002): the FIRST escalation with
+    // status 'open' in the held payload's array order — the SAME array the disclosure below
+    // renders, and the same selection rule the aggregate used to mark the row (orky-status.ts) and
+    // the shared bind path applies. Supplied iff its id is a non-empty string; otherwise the key
+    // is OMITTED and the shared honest-refusal bind path runs. Never a fetch, never free text.
+    const firstOpenEscalation = f.escalations.find(e => e.status === 'open')
+    const openEscalationId =
+      typeof firstOpenEscalation?.id === 'string' && firstOpenEscalation.id !== ''
+        ? firstOpenEscalation.id
+        : null
     return (
       <div key={f.slug} data-testid="orky-pane-feature"
         data-project-root={root} data-feature={f.slug}
         style={{ borderBottom: '1px solid var(--border, #333)', padding: '4px 8px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0, flexWrap: 'wrap' }}>
           <button type="button" aria-expanded={isOpen}
             aria-label={`Toggle details for ${f.slug}`}
             onClick={() => toggleRow(f.slug)}
@@ -162,9 +181,25 @@ export function OrkyPane(
             <span style={{ color: 'var(--status-needs, #ff8f00)', whiteSpace: 'nowrap' }}>●{s.openBlocking} open</span>
           )}
           <span style={{ flex: 1 }} />
-          {/* Reserved trailing actions slot (REQ-012): deliberately EMPTY in this feature — F10
-              injects answer/resume/record-gate affordances here without reflowing row identity. */}
-          <span data-testid="orky-pane-row-actions" style={{ flex: 'none' }} />
+          {/* The trailing actions slot (F9 REQ-012, populated by feature 0010): the SHARED F8
+              action region, mounted verbatim and keyed on the pane's own row identity — its mode
+              routing decides per-row affordances, its stopPropagation boundary keeps every action
+              gesture off the row's disclosure, and it may wrap within the tile (never a fixed
+              drawer dimension). The slot is SHRINKABLE (FINDING-007): minWidth 0 — the flex
+              min-width:auto floor would otherwise pin it at the region's max-content width and
+              force the features list into overflow-scroll instead of letting the region's own
+              flexWrap rows engage in a narrow tile. hostHidden threads the pane's OWN hidden prop
+              (F9's host-hidden signal, both keep-mounted-hidden hosts drive it) into the shared
+              region so a hidden-at-settle outcome still surfaces via the store toast chokepoint
+              (FINDING-018). */}
+          <span data-testid="orky-pane-row-actions" style={{ minWidth: 0 }}>
+            <OrkyEntryActions hostHidden={hidden} target={{
+              projectRoot: root,
+              featureSlug: f.slug,
+              reason: f.status.reason,
+              ...(openEscalationId !== null ? { escalationId: openEscalationId } : {})
+            }} />
+          </span>
         </div>
         <div title={s.detail} style={{ fontSize: 11, color: 'var(--fg-dim, #aaa)',
           whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
@@ -236,8 +271,12 @@ export function OrkyPane(
         </div>
       ) : (
         <>
-          <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, padding: '5px 8px',
-            borderBottom: '1px solid var(--border, #333)', minWidth: 0 }}>
+          {/* The header row WRAPS (FINDING-008): its informational spans are rigid nowrap flex
+              items with the inject affordance LAST, and the header has no scroll container — in a
+              narrow split tile the inject button moves to a second header line instead of being
+              pushed clean off the tile with no scroll access. */}
+          <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'baseline', gap: 8,
+            padding: '5px 8px', borderBottom: '1px solid var(--border, #333)', minWidth: 0 }}>
             <span title={root} style={{ fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
               {projectName}
             </span>
@@ -255,6 +294,17 @@ export function OrkyPane(
               <span style={{ fontSize: 11, color: 'var(--fg-dim, #aaa)', whiteSpace: 'nowrap' }}>
                 active: {okDetail.activeFeature}
               </span>
+            )}
+            {/* Inject (feature 0010 REQ-003, pane-scoped): bound MEMBER panes only — the gesture
+                opens F12's quick-capture form pre-targeted at this pane's root and does nothing
+                else (no picker step, no draft seed, no dispatch of its own). */}
+            {isMember && (
+              <button type="button" data-testid="orky-pane-inject"
+                title="Capture new work for this project — opens the quick-capture form pre-targeted at this root"
+                onClick={() => openOrkyCapture(root)}
+                style={{ flex: 'none', marginLeft: 'auto', fontSize: 11 }}>
+                + work
+              </button>
             )}
           </div>
           {loading && (

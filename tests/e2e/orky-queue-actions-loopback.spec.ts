@@ -30,6 +30,13 @@
 // toggleAnswer moves no focus (620), dq-action-answer-input has no Enter path (620), the form
 // stays armed after success (621), `phase` is never reset when the form opens (622), and
 // deliver() drops a detached success outright — "only failures must never be swallowed" (623).
+//
+// [AMENDED at feature 0010's ESC-001 tests LOOPBACK (review → tests), 2026-07-02 — FINDING-016
+// supersession (CONV-019/CONV-012, the same cross-feature accounting as orky-queue-actions.spec.ts):
+// TEST-620's raw expect(readLog(gatekeeperLog)).toEqual([]) was unsatisfiable against the v0.28.0
+// startup contract handshake (`gatekeeper contract` at boot). The gatekeeper log now reads
+// through readActionLog (below); the whitespace-Enter-dispatches-NOTHING intent is preserved
+// verbatim.]
 import { test, expect, _electron as electron, ElectronApplication } from '@playwright/test'
 import { execSync } from 'child_process'
 import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, existsSync } from 'node:fs'
@@ -91,6 +98,23 @@ function readLog(logPath: string): string[][] {
   if (!existsSync(logPath)) return []
   return readFileSync(logPath, 'utf8').split('\n').filter(Boolean).map((l) => JSON.parse(l))
 }
+/** [AMENDED at feature 0010's ESC-001 tests LOOPBACK, 2026-07-02 — FINDING-016 supersession
+ *  (CONV-019; CONV-012 co-ownership where this file is F8's)]: the v0.28.0 startup contract
+ *  handshake (src/main/services.ts → verifyOrkyContract, commit 0dc4c54) invokes
+ *  `gatekeeper contract` unconditionally at boot whenever ORKY_PLUGIN_DIR is set, so a RAW
+ *  emptiness assertion over the gatekeeper argv log was unsatisfiable by construction — against a
+ *  behaviorally CORRECT implementation. This reader asserts every handshake entry IS exactly
+ *  ['contract'] (anything else is real traffic and is never dropped) and returns the log WITHOUT
+ *  them. Every gatekeeper-log assertion in this file now reads through it: the pinned intent — no
+ *  user-gesture dispatch until a gesture — is preserved verbatim; only the unconditional startup
+ *  handshake is accounted for. */
+function readActionLog(logPath: string): string[][] {
+  const entries = readLog(logPath)
+  for (const argv of entries.filter((a) => a[0] === 'contract')) {
+    expect(argv, 'startup handshake traffic is exactly ["contract"]').toEqual(['contract'])
+  }
+  return entries.filter((a) => a[0] !== 'contract')
+}
 
 /** The frozen suite's fixture: a RESOLVED escalation FIRST, the open ESC-007 second. */
 function seedEscalatedProject(prefix = 'termh-dqal-proj-'): { proj: string; statePath: string } {
@@ -139,7 +163,7 @@ async function openQueue(win: Win): Promise<void> {
   await expect(win.locator('[data-testid="decision-queue-item"]')).toHaveCount(1, { timeout: 20_000 })
 }
 
-test('TEST-620 REQ-012 REQ-006 REQ-004 (FINDING-016/017) open-focus + Enter-submit: opening the answer flow focuses the decision input; Enter on whitespace dispatches NOTHING; Enter on the typed decision dispatches exactly ONE byte-verbatim emit and renders the honest success', async () => {
+test('TEST-620 REQ-012 REQ-006 REQ-004 (FINDING-016/017) open-focus + Enter-submit: opening the answer flow focuses the decision input; Enter on whitespace dispatches NOTHING; Enter on the typed decision dispatches exactly ONE byte-verbatim emit and renders the honest success [AMENDED — FINDING-016: gatekeeper log read handshake-aware via readActionLog]', async () => {
   test.setTimeout(120_000)
   const { proj } = seedEscalatedProject()
   const userData = seedUserData([proj])
@@ -161,7 +185,7 @@ test('TEST-620 REQ-012 REQ-006 REQ-004 (FINDING-016/017) open-focus + Enter-subm
   await input.press('Enter')
   await win.waitForTimeout(800)
   expect(readLog(feedbackLog)).toEqual([])
-  expect(readLog(gatekeeperLog)).toEqual([])
+  expect(readActionLog(gatekeeperLog)).toEqual([])
   await expect(win.getByTestId('dq-action-pending')).toHaveCount(0)
 
   // FINDING-017: typing the decision and pressing Enter IN THE INPUT completes the flow.
