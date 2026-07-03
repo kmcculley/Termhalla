@@ -10,8 +10,12 @@
 
 Every workspace is a tab in the main window. Drag a tab **off** the strip and it tears out into a
 genuine second Electron window (its own title bar, movable onto a second monitor, minimisable
-independently). While dragging, a lightweight ghost of the tab follows the cursor; the real window
-is created when you release outside the strip. An undocked window shows a slim header (workspace
+independently). While dragging, a lightweight ghost of the tab follows the cursor: inside the app
+window it is a DOM element; once the cursor leaves every app window (where a DOM element clips at
+the window edge) main shows a frameless, click-through, always-on-top ghost chip window
+(`src/main/drag-ghost.ts`, fed by the throttled fire-and-forget `win:dragGhost` channel) that
+follows the screen cursor, hides again inside any app window, and is destroyed on drop, window
+close, and quit. The real window is created when you release outside the strip. An undocked window shows a slim header (workspace
 name + **Dock** button) instead of the full tab strip.
 
 Re-dock three ways: drag the tab from the floating window back onto the main strip, click the
@@ -75,7 +79,8 @@ loads `@xterm/addon-serialize` and registers a per-pane snapshot function in `te
 
 | File | Responsibility |
 |---|---|
-| `src/main/window-manager-core.ts` | Pure ownership model: `undock`/`redock`/`decideDrop`/`windowOf` |
+| `src/main/window-manager-core.ts` | Pure ownership model: `undock`/`redock`/`decideDrop`/`windowOf`/`ghostVisibleAt` |
+| `src/main/drag-ghost.ts` | OS-level tear-off ghost chip window (outside-the-window drag feedback) |
 | `src/main/window-manager.ts` | Electron shell: window lifecycle, event routing, the live handoff |
 | `src/main/services.ts` | `buildServices()` — the build-once privileged layer |
 | `src/main/ipc/register.ts` | Registers handlers once; the routing `send` seam |
@@ -106,7 +111,7 @@ loads `@xterm/addon-serialize` and registers a per-pane snapshot function in `te
 
 Vitest:
 - `tests/shared/app-state-model.test.ts` — legacy→`windows[]` migration, passthrough, junk/future-version rejection.
-- `tests/main/window-manager-core.test.ts` — `undock`/`redock` ownership transfers (incl. empty-window close, never-empty-main) and `decideDrop` hit-testing.
+- `tests/main/window-manager-core.test.ts` — `undock`/`redock` ownership transfers (incl. empty-window close, never-empty-main), `decideDrop` hit-testing, and `ghostVisibleAt` (OS ghost only outside every app window).
 - `tests/main/store.test.ts` — `loadAppState` migrates a legacy app-state on load.
 - `tests/main/pty-manager-has.test.ts` — `PtyManager.has` detects an already-running pane.
 
@@ -114,6 +119,11 @@ Playwright-for-Electron (`tests/e2e/undock.spec.ts`):
 - Tear a workspace off → a second window appears owning it, showing preserved scrollback; typing in
   it echoes (the PTY survived); Dock re-docks and the floating window closes.
 - Relaunch with the same user-data-dir restores both windows.
+- The OS-level drag ghost: an out-of-window `win:dragGhost` position creates+shows the ghost window,
+  an in-window one hides it, `null` (drag end) destroys it. (Playwright can't move the OS cursor
+  outside the Electron window, so the e2e drives the channel directly; the show/hide decision is
+  unit-tested.) Specs that tear off select the floating window **by its `floating-header`**, never
+  "any window ≠ main" — the transient ghost window also appears in `app.windows()` mid-drag.
 
 The `workers: 1` e2e pin is about a single Electron *instance*, not a single window — Playwright
 observes all `BrowserWindow`s in the one instance, so multi-window tests are unaffected.

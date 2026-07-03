@@ -99,8 +99,11 @@ Two native addons must be compiled against Electron's ABI:
 
 **`node-pty`** (terminal layer):
 
-- `npm install` runs `patch-package`, applying `patches/node-pty+1.1.0-beta34.patch`
-  (disables the Spectre mitigation, which needs MSVC Spectre libs we don't require).
+- `npm install` runs `patch-package`, applying `patches/node-pty+1.1.0-beta34.patch`. It does two
+  things: disables the Spectre mitigation (which needs MSVC Spectre libs we don't require), and
+  defines `NDEBUG` for the Windows targets — node-gyp Release builds leave raw `assert()` calls
+  live, and node-pty's ConPTY teardown race (`conpty.cc` `remove_pty_baton`) otherwise pops a
+  blocking MSVC "Assertion failed" dialog when the app is force-closed with a live PTY.
 - Then run **`npm run rebuild:native`** to rebuild it for the installed Electron version. It wraps
   `electron-rebuild` and handles two Windows gotchas automatically: it points node-gyp at a real
   Python via the `py` launcher (working around a Microsoft Store `python.exe` alias stub that

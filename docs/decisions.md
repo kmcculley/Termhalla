@@ -7,6 +7,85 @@ design specs live in [`superpowers/specs/`](superpowers/); this log captures the
 
 ---
 
+### [2026-07-03] Programmatic pane refocus never steals from editable chrome
+
+**Context:** Workspace rename was broken: activating a workspace starts a
+`requestPaneFocus` retry loop (up to ~20 frames) that keeps calling `term.focus()`
+until the terminal owns focus. A rename input mounting inside that window was
+focus-yanked → blurred → auto-committed before the user could type. The same class
+of steal threatens any chrome text field near a workspace switch.
+**Decision:** The focus machinery (`terminal-registry.ts`) checks
+`isEditableChromeFocus` before every attempt: if `document.activeElement` is an
+editable control (input/textarea/select/contenteditable) **outside** any pane body
+(`.ws-mosaic` is the boundary), the request aborts — including mid-loop. Pane-owned
+editables (xterm's helper textarea, Monaco's input) are inside `.ws-mosaic`, so
+workspace switches still move focus off them normally.
+**Rationale:** The alternative (each chrome input cancelling pending requests) puts
+the burden on every future dialog/input; a single invariant at the focus chokepoint
+protects them all, and "never yank focus from a field the user is typing in" is the
+right UX rule regardless of caller.
+**Consequences:** New pane kinds whose bodies live outside `.ws-mosaic` would
+wrongly suppress refocus — keep pane bodies under the `WorkspaceView` root. The
+guard is pure and injectable (`getActive` param), unit-tested in
+`tests/renderer/terminal-registry-focus.test.ts`.
+
+### [2026-07-03] Tear-off drag ghost: DOM element inside, OS window outside
+
+**Context:** The undock drag's ghost is a DOM element, which is clipped at the
+window edge — exactly where a tear-off drag goes — so users reported the ghost as
+"not spawning." A DOM element can never provide out-of-window feedback.
+**Decision:** Keep the DOM ghost inside the window; add a main-process
+`DragGhost` — a frameless, transparent, click-through, always-on-top, non-focusable
+mini `BrowserWindow` (no preload, inline `data:` URL, HTML-escaped name) shown only
+while the cursor is outside **every** app window (`ghostVisibleAt` in the pure
+`window-manager-core.ts`), fed by a rAF-throttled fire-and-forget `win:dragGhost`
+channel, and destroyed on drop/window-close/quit.
+**Rationale:** Showing the OS chip only outside app windows avoids doubling the
+visual with the DOM ghost; putting the show/hide predicate in the pure core makes
+the policy unit-testable (Playwright cannot move the OS cursor outside the Electron
+window). Strict cosmetic-only constraints (ignores mouse, never focusable, no
+preload) keep it out of the security and lifecycle surface.
+**Consequences:** The ghost window transiently appears in `app.windows()` — e2e
+specs must select the floating window by its `floating-header`, never "any window ≠
+main" (undock/minimize-undock specs updated). Cleanup is wired to three paths so it
+can never keep the app alive.
+
+### [2026-07-03] node-pty patch also defines NDEBUG (no CRT assert dialogs in Release)
+
+**Context:** Force-closing the app with a live PTY intermittently popped a blocking
+MSVC "Assertion failed" dialog from `conpty.node` (`conpty.cc` `remove_pty_baton` —
+a known upstream ConPTY teardown race) and wedged app exit. node-gyp Release builds
+do **not** define `NDEBUG`, so node-pty's raw `assert()` calls ship live.
+**Decision:** Extend the existing patch-package diff (`patches/node-pty+…patch`) to
+add `defines: ['NDEBUG']` to `binding.gyp`'s Windows `target_defaults`, compiling
+the asserts out; regenerated with `npx patch-package node-pty --include '\.gyp$'`
+per the hand-edit gotcha.
+**Rationale:** A blocking modal in a terminal app's exit path is strictly worse
+than the assert's silent-failure mode; `NDEBUG` in release is the industry default
+the gyp toolchain just happens not to set. Fixing the upstream race is out of scope.
+**Consequences:** node-pty asserts are inert in our builds (verified: the assert
+expression string is absent from the rebuilt binary). If the patch is ever
+regenerated, run `npx patch-package` FIRST — a later `npm install` can leave
+`node_modules` silently unpatched while stale built binaries keep working, and
+regenerating from that state drops the existing hunks.
+
+### [2026-07-03] Transient menus dismiss when a modal opens over them
+
+**Context:** Frozen TEST-018 (settings round-trip then reopen the templates menu)
+and `workspace-templates.spec.ts` ("menu stays open after save") pinned conflicting
+behaviors: the templates menu's invisible full-viewport click-catcher survived a
+Settings open/close cycle and swallowed the next tab-strip click.
+**Decision:** The templates menu closes when the Settings modal opens
+(`WorkspaceTabs` watches `settings !== null`); saving a template still leaves the
+menu open. The shared `Modal` also takes focus on open, guarded to never yank a
+child `autoFocus`.
+**Rationale:** A dropdown is transient chrome; a modal opening over it is a context
+switch that should dismiss it (standard menu behavior). This satisfies both frozen
+specs without weakening either.
+**Consequences:** Other backdrop-based menus (ws-menu, proc/cwd menus) still rely
+on click-away only; if one is ever reachable while a modal opens, apply the same
+rule rather than z-index tricks.
+
 ### [2026-06-20] Atomic persistence writes + flush-before-quit
 
 **Context:** A user lost SSH connections (`quick.json` wiped to defaults) and some

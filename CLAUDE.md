@@ -128,7 +128,10 @@ related area:
   tile with a `data-max` attribute (imperatively, so react-mosaic re-renders don't strip it) and CSS fills
   it with `!important` while siblings get `visibility: hidden` (the keep-mounted pattern — `display:none`
   would thrash xterm). Swapping `ws.layout` to maximize would unmount siblings and dispose their
-  scrollback/TUIs — don't.
+  scrollback/TUIs — don't. The maximized tile's `visibility: visible` punch-through MUST stay scoped to
+  `[data-testid="workspace-host"][data-active="true"]`: a descendant's `visible` overrides `hidden` on ANY
+  ancestor, so unscoped it bleeds an inactive workspace's maximized pane through a transparent active one
+  (workspace hosts also carry an opaque `var(--bg)` background as a mask — keep both).
 - **Pane minimize prunes the *visible* tree but keeps the body mounted off-layout.** Unlike maximize (CSS
   hides siblings in place), minimize must let the survivors **reflow**: `WorkspaceView` feeds `<Mosaic>`
   `computeVisibleLayout(ws)` (`workspace-model.ts`) — `ws.layout` with every `minimized` leaf removed — so

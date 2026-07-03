@@ -242,6 +242,54 @@ All notable changes to Termhalla are recorded here. The format follows
   failure feedback is never silenced.
 
 ### Fixed
+- **Opening a dialog now moves keyboard focus into it.** A modal opened over a focused terminal
+  (e.g. Settings via Ctrl+,) left focus in the xterm textarea, so typing kept going to the shell
+  behind the scrim. The shared `Modal` card now takes focus on open — guarded so dialogs with
+  their own `autoFocus` field (palette, broadcast, env passphrase, SSH form) keep it. Re-greens
+  the frozen `focus.spec.ts` dialog test.
+- **The templates menu no longer wedges the tab strip after a Settings round-trip.** The menu's
+  invisible full-viewport click-catcher survived Settings opening over it, silently swallowing
+  the next click on the tab strip (frozen TEST-018). The menu now dismisses when a modal opens
+  over it; saving a template still keeps it open (`workspace-templates.spec.ts`).
+- **No more blocking MSVC "Assertion failed" dialog from ConPTY on forced shutdown.** node-gyp
+  Release builds leave raw `assert()` calls live, so node-pty's ConPTY teardown race
+  (`conpty.cc` `remove_pty_baton`) could pop a modal CRT dialog — and block app exit — when the
+  process was force-closed with a live PTY. The node-pty patch now also defines `NDEBUG` for the
+  Windows targets, compiling the asserts out (verified: the assert string is gone from the
+  rebuilt `conpty.node`).
+- **A maximized pane no longer bleeds through other workspaces.** The maximize CSS punched
+  `visibility: visible` through the sibling-hiding rule — but a descendant's `visible` also
+  overrides the *inactive workspace host's* `visibility: hidden`, so an inactive workspace's
+  maximized tile kept painting under any transparent active workspace (most visibly a brand-new
+  empty one, whose +Terminal/+Editor/+Explorer buttons floated over the phantom pane). The
+  punch-through is now scoped to the active host, and workspace hosts carry an opaque themed
+  background as a mask. Guarded by `tests/e2e/pane-actions.spec.ts`.
+- **Workspace rename can no longer have its focus stolen by the terminal.** Activating a
+  workspace kicks off a pane-refocus retry loop (`requestPaneFocus`) that kept pulling keyboard
+  focus into the terminal for ~20 frames; a rename opened inside that window (e.g. double-click
+  on an inactive terminal-holding tab) was focus-yanked → blurred → auto-committed before you
+  could type. The focus machinery now never steals from an editable chrome control (a text field
+  outside any pane body) and stops retrying the moment one takes focus — pane-owned editables
+  (xterm/Monaco) still refocus normally. Unit-tested (`isEditableChromeFocus`) + e2e
+  (`workspace-mgmt.spec.ts`).
+- **Crowded workspace tab strip keeps a constant single-line height (no more badge-driven
+  resize oscillation).** When many tabs squeezed the strip, tab text wrapped to a second line
+  *inside* the buttons, growing the strip; a status badge ("Waiting") appearing could then
+  toggle the wrap, resizing the terminal area each time — which forced a ConPTY repaint the
+  status tracker read as fresh output, flipping the badge again in a visible appear/disappear
+  loop. Tabs now shrink with an ellipsis (`nowrap`, capped width) and the right-side controls
+  never shrink, so a badge change can never change the strip height. Guarded by
+  `tests/e2e/tab-strip.spec.ts`.
+- **Status-bar buttons no longer shift when the rotating hotkey tip changes.** The tip now sits
+  to the *left* of the search/notes/queue buttons (the flex spacer absorbs its width changes),
+  so the buttons stay pinned to the right edge.
+- **Tearing off a workspace now shows a drag ghost beyond the window edge.** The in-window DOM
+  ghost is clipped at the window boundary, so an undock drag (off the window / toward another
+  monitor) had no visual feedback at all. Main now shows a frameless, click-through, always-on-top
+  ghost chip window that follows the screen cursor once it leaves every app window (and hides
+  again inside one, where the DOM ghost takes over); it is destroyed on drop, window close, and
+  quit. New fire-and-forget `win:dragGhost` channel; show/hide decision unit-tested
+  (`ghostVisibleAt`), lifecycle e2e-tested (`undock.spec.ts`).
 - **Template-instantiated workspaces are now durable (they survive window reloads and
   quit→relaunch).** The shipped "new workspace from template" menu path
   (`newWorkspaceFromTemplate`) registered the workspace but never reported it into main's
