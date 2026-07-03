@@ -15,6 +15,11 @@ test('sets a global env var and a new terminal sees it', async () => {
     args: ['out/main/index.js', '--no-sandbox', '--disable-gpu', `--user-data-dir=${userData}`]
   })
   const win = await app.firstWindow()
+  // Wait for the app shell to finish booting before driving keyboard shortcuts — the renderer's
+  // Ctrl+, handler isn't live until the workspace chrome mounts (the canonical readiness gate used
+  // by settings.spec.ts / edit-menu-settings.spec.ts). Without it the keypress races app boot and
+  // is dropped, so Settings never opens.
+  await expect(win.getByTestId('workspace-tabs')).toBeVisible({ timeout: 15_000 })
 
   // Open the env settings section and create a fresh encrypted vault (unlocked in-session).
   await win.keyboard.press('Control+Comma')
