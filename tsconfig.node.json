@@ -12,5 +12,5 @@
     "paths": { "@shared/*": ["src/shared/*"] }
   },
   "include": ["src/main", "src/shared", "tests"],
-  "exclude": ["tests/renderer"]
+  "exclude": ["tests/renderer", "tests/e2e"]
 }

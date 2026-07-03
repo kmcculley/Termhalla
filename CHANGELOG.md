@@ -306,6 +306,22 @@ All notable changes to Termhalla are recorded here. The format follows
   landed as a prompt instead of a command. Auto-resume now fires **only on a genuinely fresh shell
   spawn** (app start, or a newly opened pane restoring a persisted Claude session), never when
   re-adopting a live PTY — detected by the consumed scrollback snapshot that marks a re-adoption.
+- **Windows `node-pty` rebuild is now one command (`npm run rebuild:native`).** The native terminal
+  binding failed to compile in two Windows-local situations the manual `electron-rebuild` path
+  didn't handle: a Microsoft Store `python.exe` alias stub that node-gyp can't use, and
+  `NoDefaultCurrentDirectoryInExePath=1` (a security-hardening env var) that stops cmd.exe finding
+  winpty's `GetCommitHash.bat`. A new `scripts/rebuild-native.mjs` resolves a real interpreter via
+  the `py` launcher and strips the env var from the build subprocess only (OS hardening untouched),
+  so the rebuild "just works". Cross-platform-safe — the Windows guards no-op elsewhere.
+- **The env-vault e2e no longer race app boot.** `env-per-terminal` and `env-vars` pressed `Ctrl+,`
+  immediately after the window opened — before the renderer's shortcut handler was live — so
+  Settings never opened. They now wait for the workspace chrome (`workspace-tabs`) first, the same
+  readiness gate the other settings specs already use.
+- **`npm run typecheck` is green again.** The e2e specs' `page.evaluate` callbacks reference DOM
+  globals (`document`, `window`, `HTMLElement.dataset`, …) but were type-checked under the DOM-less
+  node config, producing 47 spurious errors. A dedicated `tsconfig.e2e.json` (the node config plus
+  the DOM lib, scoped to `tests/e2e`) restores them while keeping main-process and `tests/main` code
+  DOM-free; a few genuine `tests/main` type slips (a QuickStore cast, a mock signature) were fixed too.
 
 ## [0.8.0] - 2026-06-30
 

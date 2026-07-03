@@ -1,0 +1,13 @@
+{
+  // The Playwright e2e specs run in Node, but their page.evaluate / win.evaluate callbacks
+  // execute in the RENDERER (browser) context and legitimately reference DOM globals
+  // (document, window, HTMLElement.dataset, …). They therefore need the DOM lib, which the
+  // Node config deliberately omits. Kept as a separate project so main-process code and the
+  // tests/main Node suites stay DOM-free (a stray document/window there stays a real error).
+  "extends": "./tsconfig.node.json",
+  "compilerOptions": {
+    "lib": ["ES2022", "DOM", "DOM.Iterable"]
+  },
+  "include": ["tests/e2e"],
+  "exclude": []
+}

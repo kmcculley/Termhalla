@@ -42,7 +42,7 @@ function entry(root: string, features: unknown[]): unknown {
 
 const fakeDeps = () => ({
   store: {} as never,
-  quick: { save: vi.fn(async () => {}), load: vi.fn(async () => ({})) } as never,
+  quick: { save: vi.fn(async () => {}), load: vi.fn(async () => ({})) },
   shells: [] as never
 })
 

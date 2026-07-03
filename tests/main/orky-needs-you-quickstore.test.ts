@@ -31,15 +31,15 @@ describe('QuickStore — orkyNeedsYouNotifications (additive optional, default E
   it('TEST-556 REQ-005 round-trips orkyNeedsYouNotifications === false AND === true through save/load', async () => {
     const store = new QuickStore(dir)
     await store.save({ ...base, orkyNeedsYouNotifications: false } as never)
-    expect((await store.load() as Record<string, unknown>).orkyNeedsYouNotifications).toBe(false)
+    expect((await store.load() as unknown as Record<string, unknown>).orkyNeedsYouNotifications).toBe(false)
     await store.save({ ...base, orkyNeedsYouNotifications: true } as never)
-    expect((await store.load() as Record<string, unknown>).orkyNeedsYouNotifications).toBe(true)
+    expect((await store.load() as unknown as Record<string, unknown>).orkyNeedsYouNotifications).toBe(true)
   })
 
   it('TEST-557 REQ-005 a legacy quick.json lacking the field loads clean and the ENABLED default reads via `!== false`', () => {
     writeFileSync(join(dir, 'quick.json'), JSON.stringify(base), 'utf8')
     return (async () => {
-      const loaded = await new QuickStore(dir).load() as Record<string, unknown>
+      const loaded = await new QuickStore(dir).load() as unknown as Record<string, unknown>
       expect(loaded.orkyNeedsYouNotifications).toBeUndefined()   // no throw, no migration, absent stays absent
       expect(loaded.orkyNeedsYouNotifications !== false).toBe(true)  // the shipped default-on idiom
     })()
@@ -48,7 +48,7 @@ describe('QuickStore — orkyNeedsYouNotifications (additive optional, default E
   it('TEST-558 REQ-005 a non-boolean value normalizes to undefined (the toastsEnabled pattern — never coerced-to-true)', async () => {
     const store = new QuickStore(dir)
     await store.save({ ...base, orkyNeedsYouNotifications: 'yes' } as never)
-    expect((await store.load() as Record<string, unknown>).orkyNeedsYouNotifications).toBeUndefined()
+    expect((await store.load() as unknown as Record<string, unknown>).orkyNeedsYouNotifications).toBeUndefined()
   })
 
   it('TEST-559 REQ-008 REQ-013 SCHEMA_VERSION is unchanged (=8) — the opt-in adds no persisted file and bumps no schema', () => {

@@ -365,7 +365,10 @@ describe('OrkyActionDispatcher — timeout/abort never hangs the action promise 
     const root = seedProject()
     seedFeature(root, 'f1')
     let capturedSignal: AbortSignal | undefined
-    const run = (_cliPath: string, _args: string[], opts?: { signal?: AbortSignal }): Promise<CliRun> => {
+    // Match runCli's declared param type (o?: unknown) — under strict function types a narrower
+    // `{ signal?: AbortSignal }` param isn't assignable — then narrow to read the signal.
+    const run = (_cliPath: string, _args: string[], o?: unknown): Promise<CliRun> => {
+      const opts = o as { signal?: AbortSignal } | undefined
       capturedSignal = opts?.signal
       return new Promise((resolve) => {
         const onAbort = (): void => resolve({ exitCode: null, stdout: '', timedOut: true })

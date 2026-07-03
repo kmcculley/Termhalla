@@ -73,7 +73,7 @@ build tools (for the native `node-pty` module).
 
 ```bash
 npm install                 # also runs patch-package (node-pty Spectre patch)
-npx electron-rebuild         # rebuild node-pty against Electron's ABI (see Native modules)
+npm run rebuild:native       # rebuild node-pty against Electron's ABI (see Native modules)
 npm run dev                  # launch the app with hot reload
 ```
 
@@ -84,10 +84,11 @@ npm run dev                  # launch the app with hot reload
 | `npm run dev` | Run the app in development (electron-vite, hot reload). |
 | `npm run build` | Production build to `out/`. |
 | `npm start` | Preview a production build (`electron-vite preview`). |
-| `npm run typecheck` | Type-check both the renderer and the node (main/preload) configs. |
+| `npm run typecheck` | Type-check the renderer, the node (main/preload), and the e2e configs. |
 | `npm test` | Run the unit test suite (vitest, headless). |
 | `npm run test:watch` | Vitest in watch mode. |
 | `npm run e2e` | Run the Playwright-for-Electron end-to-end suite. |
+| `npm run rebuild:native` | Rebuild `node-pty` against Electron's ABI, auto-handling the Windows Python/env gotchas (see Native modules). Add `-- --force` to force. |
 | `npm run package` | Build and pack a Windows NSIS installer + `latest.yml` into `dist/` (no publish). |
 
 Releasing is done by CI on a tag push, not a local script: bump the `package.json` version, commit, tag `vX.Y.Z`, and push the tag. The `release.yml` workflow runs `npm run package` and uploads the installer + `latest.yml` to a single GitHub Release.
@@ -100,9 +101,13 @@ Two native addons must be compiled against Electron's ABI:
 
 - `npm install` runs `patch-package`, applying `patches/node-pty+1.1.0-beta34.patch`
   (disables the Spectre mitigation, which needs MSVC Spectre libs we don't require).
-- Then run `npx electron-rebuild` to rebuild it for the installed Electron version.
-- If the rebuild fails invoking a `.bat`, clear the `NoDefaultCurrentDirectoryInExePath`
-  environment variable first — a sandbox can set it and break `.bat`-invoking builds.
+- Then run **`npm run rebuild:native`** to rebuild it for the installed Electron version. It wraps
+  `electron-rebuild` and handles two Windows gotchas automatically: it points node-gyp at a real
+  Python via the `py` launcher (working around a Microsoft Store `python.exe` alias stub that
+  reports "Python was not found"), and strips `NoDefaultCurrentDirectoryInExePath` from the build
+  subprocess only (a security-hardening env var — a sandbox can set it — that otherwise stops
+  cmd.exe finding winpty's `GetCommitHash.bat`). Add `-- --force` to force a rebuild.
+- Plain `npx electron-rebuild` still works when your environment has neither gotcha.
 
 **`better-sqlite3`** (output search index):
 
