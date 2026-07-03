@@ -221,6 +221,33 @@ All notable changes to Termhalla are recorded here. The format follows
   reflowed terminal beneath it.
 
 ### Changed
+- **Orky contract mirror re-synced to v2.** `EXPECTED_CONTRACT_VERSION`
+  (`src/main/orky/orky-contract-handshake.ts`) bumps `1` → `2` — the strict (`!==`, no
+  range/minimum-version tolerance) startup handshake now treats a v1 plugin as the drift case and a
+  v2 plugin as clean; every other handshake invariant (log-only, never a gate, never throws, absent/
+  pre-`contract` CLI tolerated, per-path caching) is unchanged. The golden fixtures under
+  `tests/fixtures/orky-contract/` were regenerated in one run of
+  `node tools/generate-orky-contract-fixtures.mjs`, regenerated against plugin **0.32.0** (commit
+  `1c59d74`) — the producer's version and commit as read at generation time. (The concept-phase
+  target was 0.30.0, a spec-time historical mention only; the two builds' `gatekeeper/` trees are
+  byte-identical, so the emitted contract is the same.) The regenerated fixtures show an
+  identical v2 shape (`contract_version: 2`, the unchanged 8-entry `ORKY_PHASES` list, `phase_order`
+  ending `human-review`, new top-level `finding_resolution`/`producer_tiers` keys,
+  `state.gate_fields.firstAt`), so every golden assertion holds against either version. `ORKY_PHASES`
+  itself is untouched — v2 did not change `phases`. The provenance comments in
+  `src/shared/orky-status.ts` and `docs/features/orky-status.md` now record Orky's historical
+  `PHASE_ORDER` `human`→`human-review` rename as resolved as of contract v2 (the `intake`-excluded
+  difference stays live); `docs/features/orky-action-dispatch.md`'s handshake description now states
+  the v2 pin. `OrkyFindingDetail` gains read-only `resolution`/`resolvedBy`/`resolvedAt` fields
+  (mapped in `orky-root-detail.ts#mapFinding` with the module's existing total-mapping + tz-safe
+  timestamp discipline, riding the EXISTING `registry:detail` payload — no new IPC channel, no
+  `SCHEMA_VERSION` bump). The native Orky pane's finding rows now show a dim `— resolution: …` affix
+  on a resolved finding (status compared case-insensitively) that carries a non-empty resolution,
+  with `resolvedBy` and a formatted `resolvedAt` alongside on the same row, and — whenever the affix
+  renders — the row's `title` tooltip mirrors the full claim + affix so a clipped row's details stay
+  reachable via hover; open findings and resolution-less (`null` or `''`) resolved findings render
+  byte-identical to before. `producer_tiers` is explicitly **not** adopted (no type, no rendering, no
+  new surface anywhere).
 - **Pane toolbar cleanup + unified split-direction control.** The per-pane Record toggle (the ⏺
   button) was removed from the pane toolbar and moved into the pane title-bar **context menu**
   (right-click menu) as a terminal-only **Start recording / Stop recording** item that reflects the

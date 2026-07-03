@@ -95,5 +95,145 @@
     "totalFailures": 0,
     "wallClockMs": 20020,
     "at": "2026-07-03T16:11:54.960Z"
+  },
+  {
+    "action": "producer.select",
+    "feature": "0015-orky-contract-v2-refresh",
+    "role": "implementer",
+    "phase": "implement",
+    "tier": "low",
+    "model": "sonnet",
+    "effort": "medium",
+    "trigger": "base",
+    "attempts": 0,
+    "at": "2026-07-03T16:26:54.194Z"
+  },
+  {
+    "action": "gate.check",
+    "feature": "0015-orky-contract-v2-refresh",
+    "phase": "tests",
+    "pass": true,
+    "attempts": 0,
+    "totalFailures": 0,
+    "wallClockMs": 19162,
+    "at": "2026-07-03T16:43:33.951Z"
+  },
+  {
+    "action": "gate.check",
+    "feature": "0015-orky-contract-v2-refresh",
+    "phase": "implement",
+    "pass": true,
+    "attempts": 0,
+    "totalFailures": 0,
+    "wallClockMs": 40820,
+    "at": "2026-07-03T16:46:17.395Z"
+  },
+  {
+    "action": "gate.check",
+    "feature": "0015-orky-contract-v2-refresh",
+    "phase": "review",
+    "pass": false,
+    "attempts": 1,
+    "totalFailures": 1,
+    "wallClockMs": 4,
+    "failed": [
+      "findings"
+    ],
+    "at": "2026-07-03T16:57:06.145Z"
+  },
+  {
+    "action": "gate.check",
+    "feature": "0015-orky-contract-v2-refresh",
+    "phase": "spec",
+    "pass": true,
+    "attempts": 0,
+    "totalFailures": 1,
+    "wallClockMs": 2,
+    "at": "2026-07-03T17:17:41.986Z"
+  },
+  {
+    "action": "producer.select",
+    "feature": "0015-orky-contract-v2-refresh",
+    "role": "planner",
+    "phase": "plan",
+    "tier": "high",
+    "model": "fable",
+    "effort": "xhigh",
+    "trigger": "judgment-loopback",
+    "attempts": 0,
+    "at": "2026-07-03T17:17:42.127Z"
+  },
+  {
+    "action": "tier.ratchet",
+    "feature": "0015-orky-contract-v2-refresh",
+    "role": "planner",
+    "phase": "plan",
+    "fromTier": "low",
+    "toTier": "high",
+    "trigger": "judgment-loopback",
+    "attempts": 0,
+    "at": "2026-07-03T17:17:42.137Z"
+  },
+  {
+    "action": "gate.check",
+    "feature": "0015-orky-contract-v2-refresh",
+    "phase": "plan",
+    "pass": true,
+    "attempts": 0,
+    "totalFailures": 1,
+    "wallClockMs": 4,
+    "at": "2026-07-03T17:22:27.837Z"
+  },
+  {
+    "action": "gate.check",
+    "feature": "0015-orky-contract-v2-refresh",
+    "phase": "tests",
+    "pass": true,
+    "attempts": 0,
+    "totalFailures": 1,
+    "wallClockMs": 25980,
+    "at": "2026-07-03T17:35:20.689Z"
+  },
+  {
+    "action": "producer.select",
+    "feature": "0015-orky-contract-v2-refresh",
+    "role": "implementer",
+    "phase": "implement",
+    "tier": "low",
+    "model": "sonnet",
+    "effort": "medium",
+    "trigger": "base",
+    "attempts": 0,
+    "at": "2026-07-03T17:35:21.056Z"
+  },
+  {
+    "action": "gate.check",
+    "feature": "0015-orky-contract-v2-refresh",
+    "phase": "implement",
+    "pass": true,
+    "attempts": 0,
+    "totalFailures": 1,
+    "wallClockMs": 51058,
+    "at": "2026-07-03T17:43:27.658Z"
+  },
+  {
+    "action": "gate.check",
+    "feature": "0015-orky-contract-v2-refresh",
+    "phase": "review",
+    "pass": true,
+    "attempts": 0,
+    "totalFailures": 1,
+    "wallClockMs": 3,
+    "at": "2026-07-03T17:52:27.851Z"
+  },
+  {
+    "action": "gate.check",
+    "feature": "0015-orky-contract-v2-refresh",
+    "phase": "doc-sync",
+    "pass": true,
+    "attempts": 0,
+    "totalFailures": 1,
+    "wallClockMs": 24,
+    "at": "2026-07-03T17:56:42.612Z"
   }
 ]

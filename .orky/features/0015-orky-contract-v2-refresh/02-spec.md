@@ -3,6 +3,21 @@
 **Phase:** 2 (spec). **Inputs:** `00-intake.md`, `01-concept.md` (human-confirmed decisions are
 BINDING), `.orky/conventions.md`, `.orky/baseline/` (adopted brownfield repo).
 
+> **AMENDED 2026-07-03 — ESC-001 (human decision, Kevin; spec loopback from review).** Targeted
+> amendment, not a rewrite; all REQ IDs stable. Changes: REQ-105/REQ-108 re-pin fixture provenance
+> by **observable contract** (contract_version 2 + byte-equality against the live producer), with
+> the producer version **read at generation time** recorded as fact — never a spec-time version
+> literal, and no acceptance criterion may require a hardcoded version numeral in CHANGELOG/tests
+> (FINDING-004/006/008/010/013). REQ-107 extended to cover **prose phrasings** of the old
+> `phase_order` tail, naming `CLAUDE.md:179`'s "(intake…human)" parenthetical as an explicit
+> must-fix site (FINDING-005/012). REQ-110 amended: clipped-affix full text must be reachable via
+> the row title, affix only for a **non-empty** resolution, resolvedBy labeling downgraded to a MAY
+> (FINDING-001/011/003/002). **REQ-113 added**: `docs/features/orky-pane.md` must document the new
+> display + fields (FINDING-007). Explicitly unchanged: REQ-101..103 (strict v2 pin), REQ-106
+> (`ORKY_PHASES`), REQ-111 (predicates), REQ-112 (scope guards). FINDING-014 (TEST-691
+> live-equality fragility / re-mirror playbook) and FINDING-015/016 (LOWs) are out of this
+> amendment's scope — they go to the followups doc at doc-sync.
+
 ## Concerns
 
 `["determinism", "doc-drift", "ux", "data-provenance"]`
@@ -10,18 +25,20 @@ BINDING), `.orky/conventions.md`, `.orky/baseline/` (adopted brownfield repo).
 (`data-provenance` added over the concept's proposed set: the committed golden fixtures under
 `tests/fixtures/orky-contract/`, the `EXPECTED_CONTRACT_VERSION` constant, and the quoted
 `PHASE_ORDER` provenance comments are all data *claimed to match an external source* — the installed
-Orky plugin 0.30.0. Orky's tests verify the code agrees with that committed data; only TEST-691 and
-the human regeneration step verify the data against reality. Always-on lenses per config: security,
-quality, devils-advocate.)
+Orky plugin's live `contract` output (contract_version 2; producer version at generation time is a
+recorded fact, see REQ-105). Orky's tests verify the code agrees with that committed data; only
+TEST-691 and the human regeneration step verify the data against reality. Always-on lenses per
+config: security, quality, devils-advocate.)
 
 ## Scope summary
 
-Re-sync Termhalla's Orky contract mirror from v1 to v2 (plugin 0.30.0): bump the strict handshake
-pin, regenerate the golden fixtures from the live producer, invert the version-mismatch unit cases,
-reconcile the `phase_order` provenance *text* (no code constant mirrors it — `ORKY_PHASES` is
-untouched), and adopt the new `finding_resolution` fields for read-only display in the Orky pane.
-`producer_tiers` is explicitly not adopted. No new IPC channels, no `SCHEMA_VERSION` bump, no
-`.orky/` writes; the handshake stays log-only, never a gate.
+Re-sync Termhalla's Orky contract mirror from v1 to v2 (the installed plugin's `contract` output
+reporting `contract_version: 2`): bump the strict handshake pin, regenerate the golden fixtures
+from the live producer, invert the version-mismatch unit cases, reconcile the `phase_order`
+provenance *text* (no code constant mirrors it — `ORKY_PHASES` is untouched), and adopt the new
+`finding_resolution` fields for read-only display in the Orky pane. `producer_tiers` is explicitly
+not adopted. No new IPC channels, no `SCHEMA_VERSION` bump, no `.orky/` writes; the handshake stays
+log-only, never a gate.
 
 Verified v1→v2 diff (ground truth, live plugin): `contract_version` 1→2; `phases` (the 8-entry list
 `ORKY_PHASES` mirrors) **unchanged**; `phase_order` last entry `'human'`→`'human-review'`; new
@@ -88,23 +105,37 @@ assertion changes other than version literals inside `goodContract` overrides; t
 cases (inserted phase; same-length rename `[...ORKY_PHASES.slice(0, -1), 'human']`) pass unchanged —
 the rename case stays valid because v2 did not change `phases`.
 
-## REQ-105 — Golden fixtures regenerated from the live plugin, never hand-edited
+## REQ-105 — Golden fixtures regenerated from the live plugin, never hand-edited *(amended, ESC-001)*
 
 All four fixtures in `tests/fixtures/orky-contract/` (`contract.json`, `state.json`, `active.json`,
 `osc-heartbeat.bin`) MUST be regenerated in one run of the existing
-`tools/generate-orky-contract-fixtures.mjs` against the installed plugin 0.30.0, and committed
-verbatim (binding decision 3: fixtures remain real producer output; hand-editing any fixture is a
-violation). The regenerated `contract.json` MUST show: `contract_version === 2`; `phases`
-deep-equal to the current 8-entry list; `phase_order` ending in `'human-review'`; top-level
-`finding_resolution` and `producer_tiers` keys present; `state.gate_fields` containing `firstAt`.
+`tools/generate-orky-contract-fixtures.mjs` against the installed plugin, and committed verbatim
+(binding decision 3: fixtures remain real producer output; hand-editing any fixture is a
+violation). The producer is identified by its **observable contract**, never a release numeral: the
+producer used MUST be one whose `contract` output reports `contract_version: 2`, and the committed
+`contract.json` MUST be **byte-equal** to that live producer's `contract` output. The producer's
+release version and commit MUST be **read at generation time** and recorded as provenance — a
+recorded fact, not a spec-time pin. (Recorded fact for this feature's regeneration run, per the
+04-tests.md TASK-103 execution record: plugin **0.32.0**, commit `1c59d74`, 2026-07-03. The
+concept-phase target "0.30.0" is a historical spec-time mention only; the two builds' `gatekeeper/`
+trees are byte-identical, so the emitted contract is the same.) The regenerated `contract.json`
+MUST show: `contract_version === 2`; `phases` deep-equal to the current 8-entry list; `phase_order`
+ending in `'human-review'`; top-level `finding_resolution` and `producer_tiers` keys present;
+`state.gate_fields` containing `firstAt`.
 
 **Acceptance:** (a) the committed `contract.json` satisfies every field assertion above (directly
 checkable by a test or review read); (b) `tests/shared/orky-contract-golden.test.ts` passes
 unmodified against the regenerated fixtures (its `phases`/OSC/state/active assertions are all
-version-agnostic); (c) provenance is auditable — the regeneration command and plugin version
-(0.30.0) are recorded in the commit/changelog, and when the plugin is present,
-`node <plugin>/gatekeeper/cli.js contract` output deep-equals the committed `contract.json`
-(TEST-691's live handshake covers the version+phases subset on every plugin-present run).
+version-agnostic); (c) provenance is auditable — the regeneration command and the producer version
+**actually read at generation time** (with its commit, when available) are recorded in the
+commit/changelog, and when the plugin is present, `node <plugin>/gatekeeper/cli.js contract` output
+deep-equals the committed `contract.json` (TEST-691's live handshake covers the version+phases
+subset on every plugin-present run). No acceptance criterion — and no test asserting this REQ —
+may require a **hardcoded version numeral** in CHANGELOG or test files: a CHANGELOG/provenance
+assertion MUST check for the generation-time recorded version or a version-agnostic shape (e.g.
+`regenerated against plugin <semver> (commit <sha>)`), never a spec-time literal. (This authorizes
+the tests phase to fix TEST-719's `toContain('0.30.0')` pin, and implement to reword the CHANGELOG
+entry so the actual producer version leads the provenance record.)
 
 ## REQ-106 — `ORKY_PHASES` MUST NOT change
 
@@ -118,39 +149,51 @@ regenerated fixture with the `ORKY_PHASES` literal in `src/shared/orky-status.ts
 unchanged (git diff shows no change to the exported constant); all existing `orky-status` unit and
 characterization tests pass unmodified.
 
-## REQ-107 — `phase_order` provenance text reconciled everywhere (CONV-008 / CONV-023)
+## REQ-107 — `phase_order` provenance text reconciled everywhere (CONV-008 / CONV-023) *(amended, ESC-001)*
 
 Every prose mirror of the old v1 `phase_order` (the quoted 9-entry list ending `'human'`) and every
 stale "expected `1`" contract-version claim MUST be updated to v2 reality, with the whole-tree grep
-discipline of CONV-008. Known sites (not an exhaustive claim — the greps below are the authority):
-the provenance comment in `src/shared/orky-status.ts` (~lines 14–20, the quoted `PHASE_ORDER`
-literal and the "trailing `human`" bullet), the matching caveat in `docs/features/orky-status.md`
-(§ provenance, ~lines 174–189), and `docs/features/orky-action-dispatch.md` line ~179 ("expected
-`1`"). The rewritten provenance note MUST preserve both intentional-difference warnings in
-version-aware form: `intake` remains excluded (still a live difference), and the historical
-`human`→`human-review` rename MUST be recorded as resolved-at-contract-v2 rather than deleted — the
-"do not re-sync `ORKY_PHASES` against `PHASE_ORDER`" instruction stays load-bearing.
+discipline of CONV-008. This covers **prose phrasings and shorthand**, not only quoted literal
+arrays: an ellipsis/parenthetical compression of the list tail (e.g. "(intake…human)") is a prose
+mirror and MUST be reconciled. Known sites (not an exhaustive claim — the greps below are the
+authority): the provenance comment in `src/shared/orky-status.ts` (~lines 14–20, the quoted
+`PHASE_ORDER` literal and the "trailing `human`" bullet), the matching caveat in
+`docs/features/orky-status.md` (§ provenance, ~lines 174–189), `docs/features/orky-action-dispatch.md`
+line ~179 ("expected `1`"), and — explicit must-fix site (FINDING-005/012) — **`CLAUDE.md:179`'s
+"(intake…human)" parenthetical**, which MUST read "(intake…human-review)" (or equivalent
+version-aware phrasing consistent with the reconciled provenance notes). The rewritten provenance
+note MUST preserve both intentional-difference warnings in version-aware form: `intake` remains
+excluded (still a live difference), and the historical `human`→`human-review` rename MUST be
+recorded as resolved-at-contract-v2 rather than deleted — the "do not re-sync `ORKY_PHASES` against
+`PHASE_ORDER`" instruction stays load-bearing.
 
 **Acceptance:** per CONV-023, the exact scans: (1)
 `rg "'doc-sync','human'\]" src docs CLAUDE.md .orky/baseline` and
 `rg "'doc-sync', ?'human'\]" src docs CLAUDE.md .orky/baseline` return zero hits; (2)
 `rg -i "expected .?1.?" docs/features/orky-action-dispatch.md` returns zero hits describing the
 contract version; (3) `rg "trailing .?human.?" src docs CLAUDE.md .orky/baseline` hits only text
-that names the rename as historical/pre-v2. Historical artifacts (`CHANGELOG.md` past entries,
+that names the rename as historical/pre-v2; (4) **prose-phrasing scan**:
+`rg "intake.{1,5}human" src docs CLAUDE.md .orky/baseline` — every hit either continues with
+`-review` or names the pre-v2 tail explicitly as historical (in particular, `CLAUDE.md:179` no
+longer reads "(intake…human)"). Historical artifacts (`CHANGELOG.md` past entries,
 `.orky/features/*` archives, `docs/superpowers/*`) are exempt. Both intentional-difference warnings
 still appear in `src/shared/orky-status.ts` and `docs/features/orky-status.md`.
 
-## REQ-108 — TEST-691 green on a pristine tree; startup handshake silent against 0.30.0
+## REQ-108 — TEST-691 green on a pristine tree; startup handshake silent against the installed v2 producer *(amended, ESC-001)*
 
-With plugin 0.30.0 installed at `ORKY_PLUGIN_DIR`, `tests/integration/orky-act-loop.test.ts`
-TEST-691 MUST pass with its assertion body UNCHANGED (`ok === true`,
-`contractVersion === EXPECTED_CONTRACT_VERSION`, `mismatches === []`, `note` undefined,
-`warns === []`) — the headline success criterion. Consequently the real startup handshake logs no
-warn line against 0.30.0. The full node-app gate (`npm run build` + `npm test`) MUST be green.
+With a plugin whose `contract` output reports `contract_version: 2` installed at `ORKY_PLUGIN_DIR`
+(the producer actually present at run time — a recorded fact, never a spec-time version numeral;
+at this feature's acceptance run: 0.32.0, commit `1c59d74`),
+`tests/integration/orky-act-loop.test.ts` TEST-691 MUST pass with its assertion body UNCHANGED
+(`ok === true`, `contractVersion === EXPECTED_CONTRACT_VERSION`, `mismatches === []`, `note`
+undefined, `warns === []`) — the headline success criterion. Consequently the real startup
+handshake logs no warn line against the installed v2 producer. The full node-app gate
+(`npm run build` + `npm test`) MUST be green.
 
-**Acceptance:** `npm test` on a pristine tree with the plugin installed shows TEST-691 passing and
-zero failures suite-wide; `git diff` shows no edit to TEST-691's assertions. (Without the plugin the
-suite self-skips, per its existing header — the plugin-present run is the acceptance run.)
+**Acceptance:** `npm test` on a pristine tree with the v2-contract plugin installed shows TEST-691
+passing and zero failures suite-wide; `git diff` shows no edit to TEST-691's assertions. No
+acceptance run is conditioned on a specific plugin release numeral. (Without the plugin the suite
+self-skips, per its existing header — the plugin-present run is the acceptance run.)
 
 ## REQ-109 — `OrkyFindingDetail` carries the v2 `finding_resolution` fields
 
@@ -173,27 +216,38 @@ mistyped (number resolution, object resolvedBy, junk resolvedAt) map all three t
 throw; every pre-existing `OrkyFindingDetail` field maps exactly as before. `git diff` shows no
 change to `src/shared/ipc-contract.ts` channel names and no change to the `SCHEMA_VERSION` value.
 
-## REQ-110 — Orky pane displays resolution details on resolved findings only
+## REQ-110 — Orky pane displays resolution details on resolved findings only *(amended, ESC-001)*
 
 In the Orky pane's finding rows (`OrkyPane.tsx`), a finding whose `status` is `resolved` —
 compared case-insensitively, matching the producer's `finding_normalization` contract and the
 existing `isBlockingFinding` discipline, NOT the escalation row's strict `===` — and whose
-`resolution` is non-null MUST render its resolution text appended to the row following the
-resolved-escalation precedent (`— decision: …` at OrkyPane.tsx ~243–245), i.e. a dim-styled
-`— resolution: <resolution>` affix. When `resolvedBy` and/or `resolvedAt` are non-null they MUST be
-surfaced on the same row (inline in the affix or via the row's `title` tooltip — implementation's
-choice, but observable). A resolved finding with `resolution === null` and every non-resolved
-finding MUST render its row exactly as today (no affix, no `— resolution: null`, no layout change).
-Open findings render unchanged (success criterion).
+`resolution` is a **non-empty string** (`resolution !== null && resolution !== ''` at the display
+guard; the REQ-109 mapper stays verbatim) MUST render its resolution text appended to the row
+following the resolved-escalation precedent (`— decision: …` at OrkyPane.tsx ~243–245), i.e. a
+dim-styled `— resolution: <resolution>` affix. A dangling label (`— resolution:` followed by
+nothing, or directly by the resolvedBy/resolvedAt parts) MUST never render. When `resolvedBy`
+and/or `resolvedAt` are non-null they MUST be surfaced on the same row's affix (resolvedAt via the
+existing instant formatting). Because the row is styled to truncate (nowrap/ellipsis), the **full
+affix text MUST remain reachable when clipped**: whenever the affix renders, the row's `title`
+tooltip MUST include the resolution details in addition to the claim (i.e. mirror the full rendered
+row text — claim + affix — following the row's existing `title` idiom). The implementation MAY
+label the resolvedBy attribution (e.g. `by <resolvedBy>`, mirroring the labeled `at <ts>` pattern)
+— optional polish, not required. A resolved finding with a `null` **or empty-string** `resolution`
+and every non-resolved finding MUST render its row exactly as today (no affix, no
+`— resolution: null`, no layout change). Open findings render unchanged (success criterion).
 
 **Acceptance:** renderer/e2e tests assert: (a) a detail payload with a finding
 `{ status: 'resolved', resolution: 'rewrote the guard', resolvedBy: 'kevin', resolvedAt: <ts> }`
-renders an `orky-pane-finding` row containing `— resolution: rewrote the guard`, and `resolvedBy`
-plus a formatted `resolvedAt` are present in the row's text or `title`; (b) the same with
-`status: 'Resolved'` (mixed case) also shows the affix; (c) a finding with `status: 'open'` and a
-resolved finding with `resolution: null` render row text containing NO `resolution:` substring and
-identical in content to the pre-change rendering. Locators per CONV-056 (testid/exact-regex, no
-substring `hasText`); any structural source pin anchored per CONV-032.
+renders an `orky-pane-finding` row containing `— resolution: rewrote the guard`, `resolvedBy` plus
+a formatted `resolvedAt` present in the affix, AND the row's `title` attribute contains the
+resolution text (and the resolvedBy/resolvedAt details) alongside the claim — the non-clipped
+surface; (b) the same with `status: 'Resolved'` (mixed case) also shows the affix; (c) a finding
+with `status: 'open'` and a resolved finding with `resolution: null` render row text containing NO
+`resolution:` substring and identical in content to the pre-change rendering; (d) a resolved
+finding with `resolution: ''` (even with non-null `resolvedBy`/`resolvedAt`) renders NO
+`resolution:` substring — no dangling label — identical to (c)'s no-affix rendering. Locators per
+CONV-056 (testid/exact-regex, no substring `hasText`); any structural source pin anchored per
+CONV-032.
 
 ## REQ-111 — Blocking predicates untouched
 
@@ -222,6 +276,22 @@ spec names plus tests/docs — no changes under `src/main/ipc/` channel registra
 `SCHEMA_VERSION` change; the existing read-only-invariant integration coverage (TEST-702) passes
 unmodified.
 
+## REQ-113 — Owning feature doc documents the resolution display *(added, ESC-001)*
+
+`docs/features/orky-pane.md` — the doc that owns OrkyPane rendering and the `registry:detail`
+payload — MUST document the v2 resolution display: (a) the three additive `OrkyFindingDetail`
+fields (`resolution`, `resolvedBy`, `resolvedAt`) riding the `registry:detail` payload, including
+their null-default total mapping (REQ-109); (b) the finding-row `— resolution:` affix and its
+guards — case-insensitive `resolved` status check, non-empty-resolution display guard, the
+resolvedBy/resolvedAt surfacing, and the row-`title` full-text mirror for clipped rows (REQ-110).
+(Addresses FINDING-007.)
+
+**Acceptance:** `docs/features/orky-pane.md` contains all three field names (`resolution`,
+`resolvedBy`, `resolvedAt`) in its `registry:detail` payload description and a passage describing
+the resolution affix naming both guards (case-insensitive resolved; non-empty resolution) and the
+tooltip mirror — checkable by a docs test or review read; the doc is added to the feature's
+traceability files.
+
 ---
 
 ## Public interface
@@ -239,4 +309,5 @@ unmodified.
 
 None. The concept's two open questions were resolved by the human (strict pin at 2, warn-only;
 adopt `finding_resolution` display / skip `producer_tiers`); decision-queue resolution display is
-explicitly deferred out of scope.
+explicitly deferred out of scope. ESC-001's judgment call was resolved by the human on 2026-07-03
+(Option A — spec loopback; see the amendment banner above).

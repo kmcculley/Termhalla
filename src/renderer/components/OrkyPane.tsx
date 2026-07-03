@@ -222,17 +222,39 @@ export function OrkyPane(
                 findings.json could not be read for this feature — its findings are unavailable until the next refresh.
               </div>
             )}
-            {f.findings.map((fd, i) => (
-              <div key={fd.id ?? `finding-${i}`} data-testid="orky-pane-finding"
-                data-finding-id={fd.id ?? ''} title={fd.claim}
-                style={{ fontSize: 11, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                <span style={{ fontWeight: 600 }}>{fd.id ?? '(no id)'}</span>{' '}
-                <span>{fd.severity ?? ''}</span>{' '}
-                <span style={{ color: 'var(--fg-dim, #aaa)' }}>{fd.status ?? ''}</span>
-                {fd.blocking && <span style={{ color: 'var(--status-needs, #ff8f00)' }}> blocking</span>}{' '}
-                <span style={{ color: 'var(--fg-dim, #aaa)' }}>{fd.claim}</span>
-              </div>
-            ))}
+            {f.findings.map((fd, i) => {
+              // v2 finding_resolution display (feature 0015, REQ-110 amended by spec loopback,
+              // TASK-120): case-insensitive resolved check (the producer's finding_normalization contract — NOT
+              // the escalation row's strict `===`), guarded on a NON-EMPTY resolution
+              // (`!== null && !== ''`) so an open row, a bare-resolved row, and a resolved row with an
+              // empty-string resolution all render byte-identical to today (no affix, never
+              // `— resolution: null`, no dangling `— resolution:` label). The affix text is composed
+              // ONCE so it can feed both the row and, when it renders, the row's `title` — mirroring
+              // claim + full affix so a clipped (nowrap/ellipsis) row stays fully reachable;
+              // non-affixed rows keep the bare `title={fd.claim}` idiom.
+              const findingResolved = fd.status !== null && fd.status.toLowerCase() === 'resolved'
+              const showResolution = findingResolved && fd.resolution !== null && fd.resolution !== ''
+              const resolutionAffix = showResolution
+                ? ` — resolution: ${fd.resolution}` +
+                  (fd.resolvedBy !== null ? ` (${fd.resolvedBy})` : '') +
+                  (fd.resolvedAt !== null ? ` at ${formatOrkyInstant(fd.resolvedAt)}` : '')
+                : ''
+              const rowTitle = showResolution ? `${fd.claim}${resolutionAffix}` : fd.claim
+              return (
+                <div key={fd.id ?? `finding-${i}`} data-testid="orky-pane-finding"
+                  data-finding-id={fd.id ?? ''} title={rowTitle}
+                  style={{ fontSize: 11, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  <span style={{ fontWeight: 600 }}>{fd.id ?? '(no id)'}</span>{' '}
+                  <span>{fd.severity ?? ''}</span>{' '}
+                  <span style={{ color: 'var(--fg-dim, #aaa)' }}>{fd.status ?? ''}</span>
+                  {fd.blocking && <span style={{ color: 'var(--status-needs, #ff8f00)' }}> blocking</span>}{' '}
+                  <span style={{ color: 'var(--fg-dim, #aaa)' }}>{fd.claim}</span>
+                  {showResolution && (
+                    <span style={{ color: 'var(--fg-dim, #aaa)' }}>{resolutionAffix}</span>
+                  )}
+                </div>
+              )
+            })}
             {f.escalations.map((esc, i) => (
               <div key={esc.id ?? `escalation-${i}`} data-testid="orky-pane-escalation"
                 data-escalation-id={esc.id ?? ''} title={esc.reason}

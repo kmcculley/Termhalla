@@ -1,6 +1,6 @@
 {
   "feature": "0015-orky-contract-v2-refresh",
-  "phase": "tests",
+  "phase": "doc-sync",
   "gates": {
     "brainstorm": {
       "passed": true,
@@ -10,8 +10,8 @@
     },
     "spec": {
       "passed": true,
-      "at": "2026-07-03T15:44:29.254Z",
-      "firstAt": "2026-07-03T15:44:29.254Z",
+      "at": "2026-07-03T17:17:41.983Z",
+      "firstAt": "2026-07-03T17:17:41.983Z",
       "tokens": [
         {
           "token": "findings",
@@ -22,8 +22,8 @@
     },
     "plan": {
       "passed": true,
-      "at": "2026-07-03T16:08:32.947Z",
-      "firstAt": "2026-07-03T16:08:32.947Z",
+      "at": "2026-07-03T17:22:27.835Z",
+      "firstAt": "2026-07-03T17:22:27.835Z",
       "tokens": [
         {
           "token": "spec-freeze",
@@ -33,7 +33,7 @@
         {
           "token": "traceability-plan",
           "pass": true,
-          "evidence": "all 12 REQ(s) trace to TASK"
+          "evidence": "all 13 REQ(s) trace to TASK"
         },
         {
           "token": "findings",
@@ -44,8 +44,8 @@
     },
     "tests": {
       "passed": true,
-      "at": "2026-07-03T16:11:54.958Z",
-      "firstAt": "2026-07-03T16:11:54.958Z",
+      "at": "2026-07-03T17:35:20.683Z",
+      "firstAt": "2026-07-03T17:35:20.683Z",
       "tokens": [
         {
           "token": "spec-freeze",
@@ -58,12 +58,92 @@
           "evidence": "tests are RED (exit 1) — freeze snapshot captured"
         }
       ]
+    },
+    "implement": {
+      "passed": true,
+      "at": "2026-07-03T17:43:27.652Z",
+      "firstAt": "2026-07-03T17:43:27.652Z",
+      "tokens": [
+        {
+          "token": "spec-freeze",
+          "pass": true,
+          "evidence": "spec unchanged since the spec gate"
+        },
+        {
+          "token": "build",
+          "pass": true,
+          "evidence": "build exited 0"
+        },
+        {
+          "token": "test",
+          "pass": true,
+          "evidence": "test exited 0"
+        },
+        {
+          "token": "test-freeze",
+          "pass": true,
+          "evidence": "test files unchanged since freeze"
+        }
+      ]
+    },
+    "review": {
+      "passed": true,
+      "at": "2026-07-03T17:52:27.848Z",
+      "firstAt": "2026-07-03T17:52:27.848Z",
+      "tokens": [
+        {
+          "token": "spec-freeze",
+          "pass": true,
+          "evidence": "spec unchanged since the spec gate"
+        },
+        {
+          "token": "findings",
+          "pass": true,
+          "evidence": "no open blocking findings (CRITICAL/HIGH or contract-violation) at or before this gate"
+        }
+      ]
+    },
+    "doc-sync": {
+      "passed": true,
+      "at": "2026-07-03T17:56:42.610Z",
+      "firstAt": "2026-07-03T17:56:42.610Z",
+      "tokens": [
+        {
+          "token": "spec-freeze",
+          "pass": true,
+          "evidence": "spec unchanged since the spec gate"
+        },
+        {
+          "token": "traceability",
+          "pass": true,
+          "evidence": "all 13 REQ(s) trace to TASK+TEST"
+        },
+        {
+          "token": "findings",
+          "pass": true,
+          "evidence": "no open blocking findings (CRITICAL/HIGH or contract-violation) at or before this gate"
+        }
+      ]
     }
   },
   "iterations": {
-    "plan": 1
+    "plan": 1,
+    "tests": 1,
+    "spec": 1
   },
-  "escalations": [],
+  "escalations": [
+    {
+      "id": "ESC-001",
+      "phase": "review",
+      "reason": "Review found 4 blocking contract-violations clustering on one root cause: the frozen spec (REQ-105/REQ-108) pins fixture provenance to plugin 0.30.0, but the actually-installed plugin at regeneration time was 0.32.0 (gatekeeper dir verified byte-identical between the two; fixtures verified byte-equal to live output — no data drift, purely a provenance-pin defect). Frozen TEST-719 pins the wrong version string; CLAUDE.md:179 also retains a stale pre-v2 PHASE_ORDER phrasing (FINDING-005/012). Any spec amendment requires a loopback to spec per the freeze rule. Decision needed: (A) loop back to spec and re-propagate (amend provenance wording to pin by observable contract, fix TEST-719 in tests, fix CLAUDE.md/CHANGELOG in implement), or (B) human-authorized closure of the version-pin findings as accepted-with-disclosure plus a narrower implement/tests descent for the CLAUDE.md text and TEST-719.",
+      "kind": "judgment",
+      "finding": "FINDING-008",
+      "status": "resolved",
+      "at": "2026-07-03T16:57:43.181Z",
+      "decision": "Option A (Kevin, 2026-07-03): loop back to spec. Amend REQ-105/108 to pin fixture provenance by observable contract (contract_version 2 + byte-equality vs live producer output) recording the producer version READ AT GENERATION TIME, not a spec-time literal; tests phase amends TEST-719 accordingly; implement fixes CLAUDE.md:179 and CHANGELOG wording. Fold the MEDIUM cluster into the same descent: resolution-affix full-text reachability (FINDING-001/011), non-empty resolution guard (FINDING-003 root), orky-pane.md documentation (FINDING-007).",
+      "resolvedAt": "2026-07-03T17:14:11.265Z"
+    }
+  ],
   "concerns": [
     "determinism",
     "doc-drift",
@@ -73,7 +153,10 @@
   "attempts": {
     "spec": 0,
     "plan": 0,
-    "tests": 0
+    "tests": 0,
+    "implement": 0,
+    "review": 0,
+    "doc-sync": 0
   },
   "loopbacks": [
     {
@@ -81,6 +164,28 @@
       "from": "implement",
       "reason": "TASK-103 assigns golden-fixture regeneration to the implement phase, but tests/fixtures/orky-contract/* are inside the test-freeze snapshot (testRoots=[tests]) — an implementer regenerating them would trip the freeze guard as a CRITICAL integrity finding. Fixtures are test assets: reassign regeneration to the tests phase (test-designer actor) so the re-freeze captures the v2 fixtures and the implementer never touches tests/.",
       "at": "2026-07-03T16:05:38.165Z"
+    },
+    {
+      "to": "tests",
+      "from": "implement",
+      "reason": "Frozen-tree mechanical failure surfaced by the A/B implement self-verify: TEST-645 (tests/docs-feature-0010-loopback.test.ts, feature 0010's frozen cross-feature inventory sweep, pattern /...|F10/i) fails because the 0015 test file tests/renderer/orky-pane-resolution-structure.test.ts line 15 comment says 'the shipped F9/F10 OrkyPane' — an undispositioned pattern hit baked into the tests-phase checkpoint. Phase of origin: tests. Fix: reword the comment to '0009/0010' (no pattern token); no assertion changes.",
+      "at": "2026-07-03T16:42:04.014Z"
+    },
+    {
+      "to": "spec",
+      "from": "review",
+      "reason": "ESC-001 resolved: human chose spec loopback to fix the provenance-pin contract violations (FINDING-005/008/012/013) and fold in the MEDIUM cluster (FINDING-001/011/003/007).",
+      "at": "2026-07-03T17:14:11.332Z"
     }
-  ]
+  ],
+  "implementer": {
+    "mode": "claude",
+    "agents": [
+      "orky:implementer"
+    ],
+    "winner": "orky:implementer",
+    "reason": "ESC-001 descent delta (TASK-118..122). Router requested ab (determinism concern) but the Codex runtime was unavailable — 2/2 background Codex tasks earlier today wedged in queue and vanished (implementer arm + cross-check, both recorded); dispatched claude solo rather than stage a third wedge. Gate remains the arbiter.",
+    "at": "2026-07-03T17:42:36.512Z"
+  },
+  "totalFailures": 1
 }

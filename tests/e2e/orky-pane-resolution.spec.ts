@@ -11,10 +11,23 @@
 //              exactly as today — NO 'resolution:' substring in text or title, content identical to
 //              the pre-change rendering (id severity status claim).
 //
+// AMENDED 2026-07-03 — ESC-001 descent, tests-phase re-entry (TASK-116), amended REQ-110:
+//   TEST-723 — amended acceptance (a): whenever the affix renders, the row's `title` attribute
+//              MIRRORS the full row text — the claim PLUS the resolution details (resolution text,
+//              resolvedBy, formatted resolvedAt where carried) — so a clipped (nowrap/ellipsis) row
+//              stays reachable. The `by <resolvedBy>` LABEL is a MAY and is deliberately NOT pinned.
+//   TEST-724 — new acceptance (d): a resolved finding with resolution '' (EMPTY string), even with
+//              non-null resolvedBy/resolvedAt, renders NO 'resolution:' substring anywhere — no
+//              dangling `— resolution:` label, no orphaned resolvedBy/resolvedAt parts — identical
+//              to the null-resolution no-affix rendering.
+//
 // Locators per CONV-056: testid + attribute filters (data-finding-id), exact toHaveText pins for the
 // unchanged rows — no substring hasText locators.
 //
-// Runs RED against the shipped OrkyPane (no affix is rendered on any finding row).
+// Runs RED against the shipped OrkyPane (no affix is rendered on any finding row). Descent RED
+// (against the first-pass TASK-112 code): TEST-716/717 are GREEN, but TEST-723 fails (the row title
+// is still the bare claim) and TEST-724 fails (the guard is only `!== null`, so the '' vector
+// renders a dangling `— resolution:` + the resolvedBy/resolvedAt parts).
 import { test, expect, _electron as electron, ElectronApplication } from '@playwright/test'
 import { execSync } from 'child_process'
 import { mkdtempSync, mkdirSync, writeFileSync } from 'node:fs'
@@ -34,7 +47,7 @@ function launch(userData: string): Promise<ElectronApplication> {
 const RESOLVED_AT_ISO = '2026-07-01T00:00:00.000Z'
 const RESOLVED_AT_FORMATTED = '2026-07-01 00:00:00 UTC'
 
-/** A synthetic .orky/ project whose ONE feature carries the four REQ-110 finding vectors. */
+/** A synthetic .orky/ project whose ONE feature carries the five REQ-110 finding vectors. */
 function seedResolutionProject(): string {
   const proj = mkdtempSync(join(tmpdir(), 'termh-orkyres-'))
   const dir = join(proj, '.orky', 'features', 'res-feature')
@@ -54,7 +67,12 @@ function seedResolutionProject(): string {
     // (c1) open finding — must render exactly as today
     { id: 'F-OPEN', lens: 'quality', claim: 'a medium note', severity: 'MEDIUM', status: 'open' },
     // (c2) resolved but resolution null-equivalent (absent) — no affix, never '— resolution: null'
-    { id: 'F-BARE', lens: 'quality', claim: 'resolved but bare', severity: 'LOW', status: 'resolved' }
+    { id: 'F-BARE', lens: 'quality', claim: 'resolved but bare', severity: 'LOW', status: 'resolved' },
+    // (d) resolved with resolution EMPTY STRING but non-null resolvedBy/resolvedAt (amended
+    //     REQ-110, ESC-001): the mapper keeps '' verbatim — the DISPLAY guard must exclude it, so
+    //     no affix, no dangling label, no orphaned resolvedBy/resolvedAt parts
+    { id: 'F-EMPTY', lens: 'quality', claim: 'resolved but empty', severity: 'LOW', status: 'resolved',
+      resolution: '', resolvedBy: 'kevin', resolvedAt: RESOLVED_AT_ISO }
   ]), 'utf8')
   return proj
 }
@@ -79,7 +97,7 @@ async function openExpandedPane(win: Win, proj: string) {
   const row = pane.locator('[data-testid="orky-pane-feature"][data-feature="res-feature"]')
   await expect(row).toBeVisible({ timeout: 20_000 })
   await row.locator('button[aria-label="Toggle details for res-feature"]').click()
-  await expect(pane.locator('[data-testid="orky-pane-finding"]')).toHaveCount(4, { timeout: 10_000 })
+  await expect(pane.locator('[data-testid="orky-pane-finding"]')).toHaveCount(5, { timeout: 10_000 })
   return pane
 }
 
@@ -140,6 +158,59 @@ test('TEST-717 REQ-110 an OPEN finding and a resolved finding WITHOUT a resoluti
     expect(text, `${id}'s row text must carry no resolution affix`).not.toContain('resolution:')
     expect(title, `${id}'s row title must carry no resolution affix`).not.toContain('resolution:')
   }
+
+  const pid = app.process().pid; await app.close().catch(() => {}); killTree(pid)
+})
+
+test("TEST-723 REQ-110 (amended, ESC-001) whenever the affix renders, the row's TITLE mirrors the full row text — the claim PLUS the resolution details — so a clipped row stays reachable", async () => {
+  test.setTimeout(90_000)
+  const userData = mkdtempSync(join(tmpdir(), 'termh-or3-'))
+  const proj = seedResolutionProject()
+  seedRegistry(userData, [proj])
+  const app = await launch(userData)
+  const win = await app.firstWindow()
+  await expect(win.getByTestId('add-first-terminal')).toBeVisible({ timeout: 20_000 })
+  const pane = await openExpandedPane(win, proj)
+
+  // full vector: the title carries the claim AND the resolution text AND resolvedBy AND the
+  // formatted resolvedAt (amended acceptance (a) — the non-clipped surface). The `by <resolvedBy>`
+  // LABEL is a MAY and is deliberately not pinned; only the details' PRESENCE in the title is.
+  const lower = await rowSurface(pane, 'F-LOWER')
+  expect(lower.title, "the title must still carry the claim (the row's existing idiom)").toContain('guard was wrong')
+  expect(lower.title, 'the title must carry the resolution text').toContain('rewrote the guard')
+  expect(lower.title, 'the title must carry resolvedBy').toContain('kevin')
+  expect(lower.title, 'the title must carry the formatted resolvedAt').toContain(RESOLVED_AT_FORMATTED)
+
+  // affixed row WITHOUT resolvedBy/resolvedAt: the title still mirrors claim + its (shorter) affix
+  const mixed = await rowSurface(pane, 'F-MIXED')
+  expect(mixed.title, "the title must still carry the claim (the row's existing idiom)").toContain('mixed case entry')
+  expect(mixed.title, 'the title must carry the resolution text').toContain('case-folded fix')
+
+  const pid = app.process().pid; await app.close().catch(() => {}); killTree(pid)
+})
+
+test("TEST-724 REQ-110 (amended, ESC-001) a resolved finding with resolution '' — even with non-null resolvedBy/resolvedAt — renders NO resolution affix and no dangling parts, identical to the null-resolution rendering", async () => {
+  test.setTimeout(90_000)
+  const userData = mkdtempSync(join(tmpdir(), 'termh-or4-'))
+  const proj = seedResolutionProject()
+  seedRegistry(userData, [proj])
+  const app = await launch(userData)
+  const win = await app.firstWindow()
+  await expect(win.getByTestId('add-first-terminal')).toBeVisible({ timeout: 20_000 })
+  const pane = await openExpandedPane(win, proj)
+
+  // exact content pin — byte-identical to the no-affix rendering (id severity status claim),
+  // matching TEST-717's F-BARE precedent
+  const empty = pane.locator('[data-testid="orky-pane-finding"][data-finding-id="F-EMPTY"]')
+  await expect(empty).toHaveText('F-EMPTY LOW resolved resolved but empty')
+  const { text, title } = await rowSurface(pane, 'F-EMPTY')
+  // no dangling `— resolution:` label anywhere on the row's observable surface…
+  expect(text, "F-EMPTY's row text must carry no resolution affix").not.toContain('resolution:')
+  expect(title, "F-EMPTY's row title must carry no resolution affix").not.toContain('resolution:')
+  // …and no orphaned resolvedBy/resolvedAt parts rendered without their resolution
+  const combined = `${text} ${title}`
+  expect(combined, 'the resolvedBy value must not leak onto a no-affix row').not.toContain('kevin')
+  expect(combined, 'the formatted resolvedAt must not leak onto a no-affix row').not.toContain(RESOLVED_AT_FORMATTED)
 
   const pid = app.process().pid; await app.close().catch(() => {}); killTree(pid)
 })

@@ -174,14 +174,17 @@ renderer consumer.
 `ORKY_PHASES = ['brainstorm','spec','plan','tests','implement','review','doc-sync','human-review']` in
 `src/shared/orky-status.ts` is a **hardcoded mirror** of the EXACT recorded `state.json.gates` keys and
 the gatekeeper's `DRIVER_WORK_PHASES` (its driver/work phase list). It is deliberately **NOT** Orky's
-*separate* 9-entry constant literally named "Canonical phase order" — `PHASE_ORDER =
-['intake','brainstorm','spec','plan','tests','implement','review','doc-sync','human']`. Two intentional
-differences a future maintainer re-syncing the mirror MUST NOT undo:
+*separate* 9-entry constant literally named "Canonical phase order" — `PHASE_ORDER`, which **as of
+contract v2** (feature 0015-orky-contract-v2-refresh) reads `['intake','brainstorm','spec','plan',
+'tests','implement','review','doc-sync','human-review']`. One intentional difference a future
+maintainer re-syncing the mirror MUST NOT undo, plus one historical difference now resolved:
 
 - Orky's leading **`intake`** (a pre-pipeline artifact step that records **no** gate) is **excluded** —
-  prepending it would wrongly make `M = 9`.
-- Orky's trailing **`human`** is recorded on disk as the **`human-review`** gate key, so it is renamed to
-  `human-review` here — renaming it back to `human` would zero `gateN`'s match on the recorded key.
+  a **still-live** difference; prepending it would wrongly make `M = 9`.
+- **Historical, resolved as of contract v2:** pre-v2, `PHASE_ORDER`'s trailing entry was `human` while
+  the on-disk gate key was already `human-review`, so `ORKY_PHASES` renamed it to `human-review` to
+  match the recorded key. Contract v2 renamed `PHASE_ORDER`'s own tail to `human-review` too, so the
+  two vocabularies now agree on the last entry — this does **not** merge them into one list.
 
 So a re-sync MUST be against `DRIVER_WORK_PHASES` + the recorded gate keys, **not** `PHASE_ORDER`. The
 unit tests verify only that the code matches this embedded list — they cannot detect *live* drift from

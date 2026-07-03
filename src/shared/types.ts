@@ -128,6 +128,11 @@ export interface OrkyFindingDetail {
   gate: string | null
   claim: string                  // verbatim; '' when absent/mistyped (never rendered mistyped)
   blocking: boolean              // the SHARED isBlockingFinding(f) verdict (@shared/orky-status)
+  // v2 `finding_resolution` fields (feature 0015-orky-contract-v2-refresh, REQ-109) — additive,
+  // derived runtime display data riding the EXISTING `registry:detail` payload; no persistence.
+  resolution: string | null      // f.resolution when a string, verbatim (no trimming), else null
+  resolvedBy: string | null      // f.resolvedBy when a string, verbatim, else null
+  resolvedAt: number | null      // parseOrkyTimestamp(f.resolvedAt) — epoch ms, tz-safe; string-only
 }
 
 export interface OrkyEscalationDetail {

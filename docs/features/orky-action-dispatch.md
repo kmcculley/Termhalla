@@ -176,7 +176,7 @@ returned result. There is no cap, rotation, or truncation of the file.
   the composition root (`services.ts`, right where the dispatcher is constructed): it locates the
   gatekeeper cli.js via the same shared `locateOrkyCli`, invokes the literal `contract` subcommand
   through the same safe runner (`runOrkyCli`, 10s timeout), and compares the emitted
-  `contract_version` (expected `1`) and `phases` (must deep-equal `ORKY_PHASES`) against Termhalla's
+  `contract_version` (expected `2`) and `phases` (must deep-equal `ORKY_PHASES`) against Termhalla's
   mirrored constants — the RUNTIME complement to the committed golden fixtures
   (`tests/shared/orky-contract-golden.test.ts`), catching an in-place Orky upgrade the snapshot
   cannot. A proven mismatch emits ONE detailed `console.warn` line carrying both sides' values; an

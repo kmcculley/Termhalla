@@ -9,15 +9,22 @@
 // derived from GATES (every autonomous gate through `doc-sync` passed AND `human-review` not yet
 // passed), never from a `state.json.phase === 'human-review'` string the real pipeline never sets.
 //
-// PROVENANCE of the phase list (REQ-029 / FINDING-PROV-001): `ORKY_PHASES` mirrors the EXACT recorded
-// `state.json.gates` keys and the gatekeeper's `DRIVER_WORK_PHASES` (the driver/work phase list) — it is
-// deliberately NOT Orky's separate 9-entry constant `PHASE_ORDER` (which Orky's own source labels its
-// canonical ordering) = ['intake','brainstorm','spec','plan','tests','implement','review','doc-sync','human'].
-// Two intentional differences a future maintainer MUST NOT "re-sync" away:
-//   • `intake` (a pre-pipeline artifact step that records NO gate) is excluded — prepending it would
-//     wrongly make M = 9.
-//   • Orky's trailing `human` is recorded on disk as the `human-review` gate key, so it is renamed to
-//     `human-review` here — renaming it back to `human` would zero `gateN`'s match on the recorded key.
+// PROVENANCE of the phase list (REQ-029 / FINDING-PROV-001; reconciled to contract v2 by feature
+// 0015-orky-contract-v2-refresh, REQ-107): `ORKY_PHASES` mirrors the EXACT recorded `state.json.gates`
+// keys and the gatekeeper's `DRIVER_WORK_PHASES` (the driver/work phase list) — it is deliberately NOT
+// Orky's separate 9-entry constant `PHASE_ORDER` (which Orky's own source labels its canonical
+// ordering), which AS OF CONTRACT V2 reads
+// = ['intake','brainstorm','spec','plan','tests','implement','review','doc-sync','human-review'].
+// One intentional difference a future maintainer MUST NOT "re-sync" away, plus one historical
+// difference now resolved:
+//   • `intake` (a pre-pipeline artifact step that records NO gate) remains excluded — a STILL-LIVE
+//     difference; prepending it would wrongly make M = 9.
+//   • HISTORICAL, RESOLVED as of contract v2: pre-v2, Orky's trailing `PHASE_ORDER` entry was `human`
+//     while the on-disk gate key was already `human-review`, so this file's list renamed it to
+//     `human-review` to match the recorded key. Contract v2 renamed Orky's own `PHASE_ORDER` tail to
+//     `human-review` too, so the two vocabularies now agree on the last entry — this does NOT merge
+//     them into one list; `ORKY_PHASES` still excludes `intake` and any future re-sync MUST be against
+//     `DRIVER_WORK_PHASES` + the recorded gate keys, never against `PHASE_ORDER` directly.
 // The tests verify only that the code matches THIS embedded list; upstream drift is a manual data-update
 // follow-up (see docs/features/orky-status.md), never something a test can catch.
 import type { OrkyPhase, OrkyKind, OrkyReason, OrkyFeatureStatus, OrkyPaneStatus, OrkyHeartbeat } from './types'

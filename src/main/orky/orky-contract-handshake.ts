@@ -19,7 +19,7 @@ import { runOrkyCli } from './orky-cli-runner'
 
 /** The contract major version Termhalla's mirrored constants (`ORKY_PHASES`, the OSC parser, the
  *  shared mappers) were written against. Bump ONLY together with a deliberate re-mirror. */
-export const EXPECTED_CONTRACT_VERSION = 1
+export const EXPECTED_CONTRACT_VERSION = 2
 
 /** Handshake-specific timeout — shorter than `DEFAULT_CLI_TIMEOUT_MS` (15s): `contract` is a pure
  *  constant dump, so 10s is already generous, and this runs at startup where hanging longer buys

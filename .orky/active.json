@@ -1,8 +1,14 @@
 {
-  "feature": null,
+  "feature": ".orky/features/0015-orky-contract-v2-refresh",
   "projectRoot": "C:/dev/Termhalla",
-  "phase": null,
-  "lastTickAt": "2026-07-03T05:13:25.308Z",
-  "lastAction": "F11 done; ALL roadmap features complete",
-  "runs": {}
+  "phase": "doc-sync",
+  "lastTickAt": "2026-07-03T17:52:35.846Z",
+  "lastAction": "dispatch: orky:doc-sync",
+  "runs": {
+    ".orky/features/0015-orky-contract-v2-refresh": {
+      "phase": "doc-sync",
+      "lastTickAt": "2026-07-03T17:52:35.846Z",
+      "lastAction": "dispatch: orky:doc-sync"
+    }
+  }
 }

@@ -276,6 +276,19 @@ to it when a review surfaces a lesson general enough to outlive its feature.
   `hasText` filter (case-insensitive substring matching), which can spuriously match inside a
   sibling row's own label — use an exact-text regex or a unique testid instead.
   *(from FINDING-008 in 0011-orky-workspace-template)*
+- **CONV-057** — A single-line row styled to truncate (`nowrap`/`overflow:hidden`/ellipsis) MUST
+  mirror every field it renders inline into a non-clipped surface (e.g. the row's `title`/tooltip)
+  whenever those fields render, and its test MUST NOT rely on DOM-containment assertions
+  (`toContainText`/`textContent`) alone to prove the data is observable — those ignore CSS clipping
+  and can pass on a technicality the sighted user never sees.
+  *(from FINDING-001 and its FINDING-011 devils-advocate confirmation in
+  0015-orky-contract-v2-refresh)*
+- **CONV-058** — A spec/test pinning the provenance of an external producer's regenerated or
+  bundled artifact MUST pin the producer's observable output contract (a version/shape field the
+  producer itself reports) and record the producer's actual release/commit as a fact read at
+  generation time — never a version literal fixed at spec-authoring time — so drift between spec
+  freeze and the regeneration run cannot leave a stale or false version pinned as "the" provenance.
+  *(from FINDING-004/FINDING-008/FINDING-010 in 0015-orky-contract-v2-refresh)*
 
 ## Principles
 Higher-level stances that inform specs and reviews but are too broad to gate mechanically.

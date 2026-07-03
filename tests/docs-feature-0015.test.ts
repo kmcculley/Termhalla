@@ -11,11 +11,23 @@
 //   • docs/features/orky-status.md § Data provenance — the same v2-reconciled text.
 //   • docs/features/orky-action-dispatch.md — the stale "expected `1`" contract-version claim is
 //     gone; the handshake pin reads 2.
-//   • CHANGELOG [Unreleased] — the regeneration provenance: plugin version 0.30.0 recorded
-//     alongside the generator command (REQ-105(c)).
+//   • CHANGELOG [Unreleased] — the regeneration provenance in the version-agnostic shape (the
+//     generation-time recorded producer leads as fact — REQ-105(c), amended).
 //
-// Runs RED today (2026-07-03): the quoted PHASE_ORDER in both provenance sites still ends 'human',
-// orky-action-dispatch.md still says expected `1`, and no 0.30.0 provenance is in [Unreleased].
+// AMENDED 2026-07-03 — ESC-001 descent, tests-phase re-entry (TASK-115 + TASK-117):
+//   • TEST-719's CHANGELOG pin no longer requires the spec-time literal 0.30.0 — amended REQ-105
+//     forbids any assertion requiring a hardcoded version numeral. It now requires the
+//     version-agnostic provenance shape `regenerated against plugin <semver> (commit <sha>)`,
+//     which the generation-time recorded producer (0.32.0 / commit 1c59d74, per the 04-tests.md
+//     TASK-103 execution record) satisfies and every future re-mirror will too. RED until
+//     TASK-119 rewords the [Unreleased] entry so that shape leads.
+//   • TEST-720 encodes amended REQ-107's prose-phrasing scan (4) as a frozen assertion (the
+//     descent's RED signal for CLAUDE.md:179): every /intake.{1,5}human/ hit in CLAUDE.md and the
+//     two provenance sites must continue "-review" or be explicitly labeled historical/pre-v2.
+//     RED until TASK-118 fixes CLAUDE.md:179's "(intake…human)" parenthetical.
+//   • TEST-721 pins new REQ-113: docs/features/orky-pane.md documents the resolution display
+//     (three field names in the registry:detail payload description + the affix passage naming
+//     both guards and the title mirror). RED until TASK-121 writes the section.
 import { describe, it, expect } from 'vitest'
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
@@ -81,9 +93,59 @@ describe('TEST-719 REQ-107 REQ-105 provenance text reconciled to contract v2 (th
     expect(doc, 'the handshake description must state the v2 pin').toMatch(/expected\s*`2`/i)
   })
 
-  it('CHANGELOG [Unreleased] records the regeneration provenance: plugin 0.30.0 + the generator command (REQ-105c)', () => {
+  it('CHANGELOG [Unreleased] records the regeneration provenance version-agnostically — the generation-time recorded producer leads: `regenerated against plugin <semver> (commit <sha>)` + the generator command (REQ-105c, amended ESC-001; NO spec-time version numeral is required)', () => {
     const section = unreleasedSection()
-    expect(section, 'the plugin version the fixtures were regenerated against must be recorded').toContain('0.30.0')
+    // Amended REQ-105(c): the provenance record must name the producer version READ AT GENERATION
+    // TIME (0.32.0 / commit 1c59d74 per the 04-tests.md TASK-103 execution record) — encoded as
+    // the version-agnostic shape so the next re-mirror never needs a test edit. Markdown bold /
+    // backtick decorations around the semver and the sha are tolerated. 0.30.0 may survive only
+    // as a historical spec-time mention; this test deliberately does NOT require (or forbid) it.
+    expect(section,
+      'the [Unreleased] provenance must lead with the generation-time recorded producer, shaped "regenerated against plugin <semver> (commit <sha>)"')
+      .toMatch(/regenerated against (?:the )?(?:installed )?plugin\s+\*{0,2}v?\d+\.\d+\.\d+\*{0,2}\s+\(commit\s+`?[0-9a-f]{7,40}`?\)/i)
     expect(section, 'the regeneration command must be auditable').toContain('generate-orky-contract-fixtures')
+  })
+})
+
+describe('ESC-001 descent — amended REQ-107 prose-phrasing scan + new REQ-113 doc pin', () => {
+  it("TEST-720 REQ-107 (amended, scan 4): every 'intake…human' prose compression of the pre-v2 phase_order tail in CLAUDE.md and the two provenance sites either continues '-review' or is explicitly labeled historical — in particular CLAUDE.md's line ~179 parenthetical no longer reads '(intake…human)'", () => {
+    // TASK-117's scope: CLAUDE.md (the FINDING-005/012 must-fix site) plus the REQ-107 provenance
+    // sites. Historical artifacts (CHANGELOG past entries, .orky/features/*, docs/superpowers/*)
+    // stay exempt per the spec — never read here. Scans (1)–(3) remain review-time greps
+    // (TASK-109/TASK-122); this frozen assertion is scan (4) only.
+    const files = ['CLAUDE.md', 'src/shared/orky-status.ts', 'docs/features/orky-status.md']
+    const historical = /historical|pre-?v2|resolved (?:as of|at|by) (?:contract )?v2|contract v2/i
+    for (const rel of files) {
+      const src = fileRaw(rel)
+      const scan = /intake.{1,5}human/g // `.` never crosses a newline — single-line compressions only
+      let m: RegExpExecArray | null
+      while ((m = scan.exec(src)) !== null) {
+        const end = m.index + m[0].length
+        const continuesReview = src.slice(end, end + '-review'.length) === '-review'
+        // ±200 chars of context: an explicitly-historical label must sit in the same passage
+        const context = src.slice(Math.max(0, m.index - 200), Math.min(src.length, end + 200))
+        const line = src.slice(0, m.index).split('\n').length
+        expect(continuesReview || historical.test(context),
+          `${rel}:${line} — prose mirror ${JSON.stringify(m[0])} of the pre-v2 phase_order tail must continue "-review" or be explicitly labeled historical/pre-v2 (amended REQ-107 scan 4)`)
+          .toBe(true)
+      }
+    }
+  })
+
+  it('TEST-721 REQ-113: docs/features/orky-pane.md documents the v2 resolution display — all three OrkyFindingDetail field names in the registry:detail payload description, plus a passage naming the affix, BOTH display guards, and the row-title mirror', () => {
+    const doc = fileRaw('docs/features/orky-pane.md')
+    for (const field of ['`resolution`', '`resolvedBy`', '`resolvedAt`']) {
+      expect(doc, `the registry:detail payload description must name ${field}`).toContain(field)
+    }
+    // the affix passage — anchored on the affix label itself (CONV-032 anchor: TASK-121 writes one
+    // contiguous section; both guards and the tooltip mirror must be described within ±2000 chars
+    // of the `— resolution:` mention, so unrelated "non-empty" prose elsewhere in the doc — e.g.
+    // the escalation-answer passage — never satisfies these pins by accident)
+    const at = doc.search(/—\s?resolution:/)
+    expect(at, 'the doc must describe the `— resolution:` finding-row affix').toBeGreaterThanOrEqual(0)
+    const passage = doc.slice(Math.max(0, at - 2000), at + 2000)
+    expect(passage, 'guard 1: the case-insensitive resolved-status check must be named').toMatch(/case-?insensitiv/i)
+    expect(passage, 'guard 2: the non-empty-resolution display guard must be named').toMatch(/non-?empty/i)
+    expect(passage, 'the clipped-row full-text mirror via the row title/tooltip must be described').toMatch(/title|tooltip/i)
   })
 })

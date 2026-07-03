@@ -189,6 +189,39 @@ mid-flight, maximize-over, minimize — still surfaces through the store toast c
 of rendering only into the invisible surface; the hidden pane keeps the settled state for when it
 is displayed again.
 
+## v2 resolution display (feature 0015, REQ-109/REQ-110/REQ-113)
+
+The `registry:detail` payload's `OrkyFindingDetail` carries three additive, nullable fields riding
+the EXISTING `registry:detail` wire shape (no new IPC channel, no `SCHEMA_VERSION` bump — derived,
+runtime-only display data, nothing persisted): `resolution` (`string | null`), `resolvedBy`
+(`string | null`), and `resolvedAt` (`number | null`, epoch ms). `orky-root-detail.ts#mapFinding`
+maps them with the module's existing total-mapping discipline (CONV-002 — never a throw): `resolution`
+and `resolvedBy` are the producer's raw string verbatim when `typeof === 'string'`, else `null` (no
+trimming — an empty string survives the mapper as `''`, not `null`); `resolvedAt` goes through the
+same tz-safe `parseOrkyTimestamp`/`epochOrNull` helper `OrkyEscalationDetail.resolvedAt` already uses,
+else `null`. Every pre-existing `OrkyFindingDetail` field maps exactly as before.
+
+`OrkyPane.tsx`'s finding row renders these fields as a dim `— resolution: <resolution>` affix
+(the resolved-escalation `— decision: …` precedent), gated behind TWO guards that must BOTH hold:
+
+1. **Case-insensitive resolved check** — `fd.status !== null && fd.status.toLowerCase() === 'resolved'`
+   (matching the producer's `finding_normalization` contract and the existing `isBlockingFinding`
+   discipline — deliberately NOT the escalation row's strict `===`, so a mixed-case `'Resolved'`
+   status still shows the affix).
+2. **Non-empty-resolution display guard** — `fd.resolution !== null && fd.resolution !== ''` (the
+   REQ-109 mapper stays verbatim; the DISPLAY layer is what excludes the empty string). A resolved
+   finding with a `null` OR empty-string resolution, and every non-resolved finding, renders its row
+   byte-identical to the pre-0015 rendering — no affix, no `— resolution: null`, no dangling
+   `— resolution:` label, no orphaned `resolvedBy`/`resolvedAt` parts.
+
+When both guards hold, `resolvedBy` and/or `resolvedAt` (via the existing `formatOrkyInstant`
+formatter — never a renderer clock) are surfaced on the same row's affix alongside the resolution
+text. Because the row is styled to truncate (`nowrap`/`overflow: hidden`/`textOverflow: ellipsis`),
+the affix text is composed once and, whenever it renders, the row's `title` tooltip is set to mirror
+the FULL row text — the claim plus the complete affix (resolution + resolvedBy + formatted
+resolvedAt) — so a clipped row's details stay reachable via hover. Non-affixed rows keep the row's
+existing bare-claim `title` idiom unchanged.
+
 ## Where things live
 
 | Piece | Path |

@@ -176,7 +176,7 @@ related area:
   other; needs-human = autonomous gates through `doc-sync` all passed AND `human-review` gate not yet
   passed (NOT a phase-string equality — that bug, FINDING-DA-001, meant a run blocked on a human never
   lit). `ORKY_PHASES` is the 8-phase mirror of Orky's recorded gate keys / `DRIVER_WORK_PHASES`, NOT
-  Orky's *separate* 9-entry `PHASE_ORDER` (intake…human) — see the provenance caveat in
+  Orky's *separate* 9-entry `PHASE_ORDER` (intake…human-review) — see the provenance caveat in
   `docs/features/orky-status.md` before re-syncing it. The tracker is **strictly read-only** (clones the
   `UsageTracker` session-identity race pattern; one debounced chokidar watcher + read per resolved
   `.orky/` root, `.json`-filtered, IPC args validated + known-window sender-scoped); it never writes under

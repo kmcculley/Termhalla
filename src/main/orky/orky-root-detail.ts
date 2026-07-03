@@ -134,7 +134,13 @@ function mapFinding(f: unknown): OrkyFindingDetail {
     status: strOrNull(rec.status),
     gate: strOrNull(rec.gate),
     claim: typeof rec.claim === 'string' ? rec.claim : '',
-    blocking: isBlockingFinding(f) // the SHARED predicate — never re-derived here (REQ-013/REQ-015)
+    blocking: isBlockingFinding(f), // the SHARED predicate — never re-derived here (REQ-013/REQ-015)
+    // v2 `finding_resolution` fields (feature 0015, REQ-109) — same total-mapping discipline as
+    // OrkyEscalationDetail's decision/resolvedAt: verbatim-or-null for strings, tz-safe epoch parse
+    // (string-only, per epochOrNull) for the timestamp.
+    resolution: strOrNull(rec.resolution),
+    resolvedBy: strOrNull(rec.resolvedBy),
+    resolvedAt: epochOrNull(rec.resolvedAt)
   }
 }
 

@@ -26,7 +26,7 @@
     ]
   },
   "REQ-105": {
-    "tasks": ["TASK-103", "TASK-104", "TASK-105"],
+    "tasks": ["TASK-103", "TASK-104", "TASK-105", "TASK-115", "TASK-119", "TASK-122"],
     "tests": ["TEST-711", "TEST-719", "TEST-691"],
     "files": [
       "tests/fixtures/orky-contract/contract.json",
@@ -48,17 +48,18 @@
     ]
   },
   "REQ-107": {
-    "tasks": ["TASK-106", "TASK-107", "TASK-108", "TASK-109"],
-    "tests": ["TEST-719"],
+    "tasks": ["TASK-106", "TASK-107", "TASK-108", "TASK-109", "TASK-117", "TASK-118", "TASK-122"],
+    "tests": ["TEST-719", "TEST-720"],
     "files": [
       "src/shared/orky-status.ts",
       "docs/features/orky-status.md",
       "docs/features/orky-action-dispatch.md",
+      "CLAUDE.md",
       "tests/docs-feature-0015.test.ts"
     ]
   },
   "REQ-108": {
-    "tasks": ["TASK-114"],
+    "tasks": ["TASK-114", "TASK-122"],
     "tests": ["TEST-691"],
     "files": ["tests/integration/orky-act-loop.test.ts"]
   },
@@ -72,8 +73,8 @@
     ]
   },
   "REQ-110": {
-    "tasks": ["TASK-112"],
-    "tests": ["TEST-715", "TEST-716", "TEST-717"],
+    "tasks": ["TASK-112", "TASK-116", "TASK-120", "TASK-122"],
+    "tests": ["TEST-715", "TEST-716", "TEST-717", "TEST-722", "TEST-723", "TEST-724"],
     "files": [
       "src/renderer/components/OrkyPane.tsx",
       "tests/renderer/orky-pane-resolution-structure.test.ts",
@@ -81,7 +82,7 @@
     ]
   },
   "REQ-111": {
-    "tasks": ["TASK-113"],
+    "tasks": ["TASK-113", "TASK-122"],
     "tests": ["TEST-718"],
     "files": [
       "src/shared/orky-status.ts",
@@ -89,12 +90,20 @@
     ]
   },
   "REQ-112": {
-    "tasks": ["TASK-113"],
+    "tasks": ["TASK-113", "TASK-122"],
     "tests": ["TEST-702"],
     "files": [
       "src/shared/ipc-contract.ts",
       "src/shared/types.ts",
       "src/main/ipc"
+    ]
+  },
+  "REQ-113": {
+    "tasks": ["TASK-117", "TASK-121"],
+    "tests": ["TEST-721"],
+    "files": [
+      "docs/features/orky-pane.md",
+      "tests/docs-feature-0015.test.ts"
     ]
   }
 }
