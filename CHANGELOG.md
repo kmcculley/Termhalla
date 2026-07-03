@@ -398,6 +398,17 @@ All notable changes to Termhalla are recorded here. The format follows
   the DOM lib, scoped to `tests/e2e`) restores them while keeping main-process and `tests/main` code
   DOM-free; a few genuine `tests/main` type slips (a QuickStore cast, a mock signature) were fixed too.
 
+## [0.10.0] - 2026-07-03
+
+Tagged release shipping the Orky gatekeeper contract v2 re-mirror (0015) — strict
+`EXPECTED_CONTRACT_VERSION` pin at 2, golden fixtures regenerated from the generation-time producer,
+`phase_order` provenance reconciled, and the new resolved-finding resolution display in the Orky pane
+(`resolution`/`resolvedBy`/`resolvedAt` with the non-empty guard + full-text title mirror) — plus the
+seven-bugfix UI/PTY batch (workspace bleed-through, rename focus steal, tab-strip oscillation, OS drag
+ghost, status-bar shift, modal focus, ConPTY assert dialog). The per-feature detail stays under
+[Unreleased] above, pinned there by the frozen per-feature doc-drift guards (the same known gap the
+0.9.0 release recorded).
+
 ## [0.9.0] - 2026-07-03
 
 Tagged release shipping the Orky integration tier (F5–F14) — cross-project registry, decision-queue
