@@ -6,8 +6,6 @@ All notable changes to Termhalla are recorded here. The format follows
 
 ## [Unreleased]
 
-## [0.9.0] - 2026-07-03
-
 ### Added
 - **Per-project Orky cockpit workspace.** One gesture opens a fresh "cockpit" workspace for a
   tracked Orky project: an Orky pane bound to the project plus a **plain terminal at the project
@@ -324,6 +322,15 @@ All notable changes to Termhalla are recorded here. The format follows
   node config, producing 47 spurious errors. A dedicated `tsconfig.e2e.json` (the node config plus
   the DOM lib, scoped to `tests/e2e`) restores them while keeping main-process and `tests/main` code
   DOM-free; a few genuine `tests/main` type slips (a QuickStore cast, a mock signature) were fixed too.
+
+## [0.9.0] - 2026-07-03
+
+Tagged release shipping the Orky integration tier (F5–F14) — cross-project registry, decision-queue
+drawer, action-dispatch substrate, one-click answer/resume, native OrkyPane + inline actions,
+per-project cockpit workspace, quick-capture inbox, OS needs-you notifications, and OSC-heartbeat
+consumption — plus the Windows `node-pty` durable rebuild and the restored green typecheck gate. The
+per-feature detail stays under [Unreleased] above, pinned there by the frozen per-feature doc-drift
+guards pending a dedicated changelog doc-sync pass (a known Termhalla-side gap).
 
 ## [0.8.0] - 2026-06-30
 
