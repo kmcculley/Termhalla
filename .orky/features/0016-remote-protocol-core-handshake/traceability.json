@@ -1,0 +1,19 @@
+{
+  "REQ-001": { "tasks": ["TASK-001", "TASK-002", "TASK-003", "TASK-004", "TASK-005", "TASK-006", "TASK-007"], "tests": ["TEST-745"], "files": ["src/shared/remote/errors.ts", "src/shared/remote/capabilities.ts", "src/shared/remote/messages.ts", "src/shared/remote/framing.ts", "src/shared/remote/handshake.ts", "src/shared/remote/correlation.ts", "src/shared/remote/protocol.ts"] },
+  "REQ-002": { "tasks": ["TASK-009"], "tests": ["TEST-746"], "files": [] },
+  "REQ-003": { "tasks": ["TASK-004"], "tests": ["TEST-725", "TEST-726"], "files": ["src/shared/remote/framing.ts"] },
+  "REQ-004": { "tasks": ["TASK-004"], "tests": ["TEST-727", "TEST-728"], "files": ["src/shared/remote/framing.ts", "src/shared/remote/errors.ts"] },
+  "REQ-005": { "tasks": ["TASK-004"], "tests": ["TEST-729"], "files": ["src/shared/remote/framing.ts"] },
+  "REQ-006": { "tasks": ["TASK-004", "TASK-001"], "tests": ["TEST-730", "TEST-731"], "files": ["src/shared/remote/framing.ts", "src/shared/remote/errors.ts"] },
+  "REQ-007": { "tasks": ["TASK-003"], "tests": ["TEST-733", "TEST-734", "TEST-735"], "files": ["src/shared/remote/messages.ts"] },
+  "REQ-008": { "tasks": ["TASK-005"], "tests": ["TEST-738", "TEST-739"], "files": ["src/shared/remote/handshake.ts"] },
+  "REQ-009": { "tasks": ["TASK-005"], "tests": ["TEST-740"], "files": ["src/shared/remote/handshake.ts"] },
+  "REQ-010": { "tasks": ["TASK-002"], "tests": ["TEST-741"], "files": ["src/shared/remote/capabilities.ts"] },
+  "REQ-011": { "tasks": ["TASK-002"], "tests": ["TEST-742"], "files": ["src/shared/remote/capabilities.ts"] },
+  "REQ-012": { "tasks": ["TASK-006"], "tests": ["TEST-743", "TEST-744"], "files": ["src/shared/remote/correlation.ts"] },
+  "REQ-013": { "tasks": ["TASK-003", "TASK-007"], "tests": ["TEST-735", "TEST-739", "TEST-747"], "files": ["src/shared/remote/messages.ts", "src/shared/remote/protocol.ts"] },
+  "REQ-014": { "tasks": ["TASK-003", "TASK-004"], "tests": ["TEST-736"], "files": ["src/shared/remote/messages.ts", "src/shared/remote/framing.ts"] },
+  "REQ-015": { "tasks": ["TASK-001"], "tests": ["TEST-725", "TEST-727", "TEST-737", "TEST-744"], "files": ["src/shared/remote/errors.ts"] },
+  "REQ-016": { "tasks": ["TASK-004", "TASK-003"], "tests": ["TEST-732"], "files": ["src/shared/remote/framing.ts", "src/shared/remote/messages.ts"] },
+  "REQ-017": { "tasks": ["TASK-008"], "tests": ["TEST-748"], "files": ["docs/features/remote-protocol.md"] }
+}

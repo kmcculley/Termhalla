@@ -1,8 +1,14 @@
 {
-  "feature": null,
+  "feature": ".orky/features/0016-remote-protocol-core-handshake",
   "projectRoot": "C:/dev/Termhalla",
-  "phase": null,
-  "lastTickAt": "2026-07-04T15:28:43.607Z",
-  "lastAction": "app-loop",
-  "runs": {}
+  "phase": "human-review",
+  "lastTickAt": "2026-07-04T17:49:11.638Z",
+  "lastAction": "build complete; awaiting human review at batch boundary",
+  "runs": {
+    ".orky/features/0016-remote-protocol-core-handshake": {
+      "phase": "human-review",
+      "lastTickAt": "2026-07-04T17:49:11.638Z",
+      "lastAction": "build complete; awaiting human review at batch boundary"
+    }
+  }
 }

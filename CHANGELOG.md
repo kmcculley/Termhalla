@@ -7,6 +7,23 @@ All notable changes to Termhalla are recorded here. The format follows
 ## [Unreleased]
 
 ### Added
+- **Remote wire protocol core + version/capability handshake (Remote Agent v1, batch 1).** A pure
+  protocol layer under `src/shared/remote/` (barrel: `@shared/remote/protocol`) with **zero
+  Node/Electron imports and zero behavior change to the running app** — in v1 nothing outside the
+  vitest suite consumes it (guarded by a scope test until F16/F21 land). Framing over a byte
+  stream (4-byte big-endian length + UTF-8 JSON, 8 MiB cap enforced both directions, incremental
+  chunking-invariant decoder with a fatal-vs-per-frame error taxonomy), the closed strict v1
+  message vocabulary (`hello`/`req`/`res`/`evt` + reserved F17 `ack`/`window` shapes) with **deep
+  JSON-representability validation of the any-JSON positions** (`req.params`, `res.result`,
+  `evt.args` — `undefined`/functions/symbols/`BigInt`/non-finite numbers/non-plain objects/`toJSON`
+  carriers (own or inherited)/cycles/array expandos are rejected with structured errors naming the
+  offending path instead of failing remotely or throwing raw; wire-decoded input never pays a
+  rejection), the connect handshake (agent speaks first; **EXACT-version check — a version check,
+  NOT a compatibility matrix** — with capability advertisement partitioned by the per-domain IPC
+  registrar names; v1 agent advertises `pty` + `status`), and monotonic request/response
+  correlation with an exactly-once connection-closed drain. Stdio is the only assumed transport,
+  so the identical path will run over system ssh in production and a plain child process in
+  CI/e2e. See `docs/features/remote-protocol.md`.
 - **Per-project Orky cockpit workspace.** One gesture opens a fresh "cockpit" workspace for a
   tracked Orky project: an Orky pane bound to the project plus a **plain terminal at the project
   root** (no auto-run — no command is auto-typed, no launch override, no injected env) in a 50/50
