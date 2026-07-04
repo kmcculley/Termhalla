@@ -128,5 +128,20 @@
     "resolution": "Fixed in src/agent/session-store.ts attach(): the barrier capture is wrapped in try/catch - a synchronous snapshot()/serialize throw undoes the hold (holds = max(0, holds-1)) and resolves an internal outcome with the bounded cause, so subscribed data can never black-hole into held.",
     "resolvedBy": "orky:implementer (driver-inline); cross-checked by codex verifier",
     "resolvedAt": "2026-07-04T20:34:29.734Z"
+  },
+  {
+    "id": "FINDING-010",
+    "lens": "integrity",
+    "severity": "CRITICAL",
+    "gate": "implement",
+    "location": "tests",
+    "claim": "Frozen test files were modified during implementation: frozen tests changed: tests/agent-session.test.ts (modified), tests/remote-protocol-capabilities.test.ts (modified)",
+    "fix": "Revert the test changes. Tests are frozen after phase 4. If a test is genuinely wrong, route the issue back to phase 4 (Tests) instead of editing tests during implementation.",
+    "phase_of_origin": "implement",
+    "status": "resolved",
+    "verified_by": "gatekeeper",
+    "resolution": "Adjudicated as a batch-merge freeze-manifest artifact, not an integrity violation: the two 'modified' frozen files (tests/agent-session.test.ts, tests/remote-protocol-capabilities.test.ts) are F17's OWN tests-phase-sanctioned versions arriving via the 'merge main into orky/F18' weld commit 76a298f; F18's freeze manifest simply predates F17's merge. Mechanical evidence: git diff --diff-filter=M main..HEAD -- tests/ is EMPTY (merged tests/ is exactly main's tests/ plus F18's 7 new files); full combined suite green 249 files / 1767 tests / build exit 0. Expected ADR-031 post-merge re-gate condition.",
+    "resolvedBy": "Kevin (delegated: full-auto app-run mandate; adjudicated by orchestrator on mechanical evidence, surfaced at batch boundary for veto)",
+    "resolvedAt": "2026-07-04T21:23:06.817Z"
   }
 ]

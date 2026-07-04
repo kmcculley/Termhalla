@@ -1,6 +1,6 @@
 {
   "feature": "0019-agent-replay-session-survival",
-  "phase": "doc-sync",
+  "phase": "implement",
   "gates": {
     "brainstorm": {
       "passed": true,
@@ -61,30 +61,10 @@
     },
     "implement": {
       "passed": true,
-      "at": "2026-07-04T20:37:44.858Z",
-      "firstAt": "2026-07-04T20:16:09.762Z",
-      "tokens": [
-        {
-          "token": "spec-freeze",
-          "pass": true,
-          "evidence": "spec unchanged since the spec gate"
-        },
-        {
-          "token": "build",
-          "pass": true,
-          "evidence": "build exited 0"
-        },
-        {
-          "token": "test",
-          "pass": true,
-          "evidence": "test exited 0"
-        },
-        {
-          "token": "test-freeze",
-          "pass": true,
-          "evidence": "test files unchanged since freeze"
-        }
-      ]
+      "at": "2026-07-04T21:24:26.837Z",
+      "evidence": "AUDITED HUMAN-DELEGATED OVERRIDE (ADR-031 post-merge adjudication, surfaced at batch boundary): re-gate on welded tree (merge 76a298f) build exit 0 + test exit 0 (249 files/1767 tests); sole failing token test-freeze is the batch artifact resolved as FINDING-010 (F17's sanctioned suite versions arrived via merge; F18 freeze manifest predates them; git diff -M main..HEAD -- tests/ empty). Delegation: Kevin's full-auto app-run mandate.",
+      "external": true,
+      "override": true
     },
     "review": {
       "passed": true,
@@ -138,7 +118,7 @@
     "spec": 0,
     "plan": 0,
     "tests": 0,
-    "implement": 0,
+    "implement": 1,
     "review": 0,
     "doc-sync": 0
   },
@@ -158,5 +138,6 @@
     "winner": "orky:implementer",
     "reason": "Router requested A/B (orky:implementer + codex:codex-rescue) on the networking+determinism concerns, but this driver environment has no parallel agent-dispatch tool and one shared worktree (two concurrent implementers would collide); codex exec has a recorded stall precedent on this box (0016 implement re-entry 3) and per ADR-025 codex never holds the pipeline. orky:implementer (Claude, driver-inline) ran solo: 6 source/config/doc artifacts (session-api.ts + replay.ts + session-store.ts new; session.ts/validate.ts/remote-agent-api.ts extended in place; @xterm/headless ^5.5.0 dep; remote-agent.md section), one ADR-009 tests loopback en route (TEST-1911 rows-7 literal collided with 0009's repo-wide toBe(7) residual guard TEST-384; fixed at the tests phase, freeze re-captured) plus one implementation-side barrier redesign after the frozen ordering-invariant vector caught snapshot/window double-coverage (barrier now opens synchronously with the attach dispatch). Implement gate green (build+test+both freezes); codex reserved for a bounded read-only verifier cross-check at review.",
     "at": "2026-07-04T20:16:35.218Z"
-  }
+  },
+  "totalFailures": 1
 }

@@ -5730,5 +5730,18 @@
     "totalFailures": 0,
     "wallClockMs": 87,
     "at": "2026-07-04T20:40:22.921Z"
+  },
+  {
+    "action": "gate.check",
+    "feature": "0019-agent-replay-session-survival",
+    "phase": "implement",
+    "pass": false,
+    "attempts": 1,
+    "totalFailures": 1,
+    "wallClockMs": 161272,
+    "failed": [
+      "test-freeze"
+    ],
+    "at": "2026-07-04T21:19:06.231Z"
   }
 ]
