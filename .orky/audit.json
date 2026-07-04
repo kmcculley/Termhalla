@@ -4917,5 +4917,263 @@
     "downgraded": false,
     "servedFraction": 1,
     "at": "2026-07-03T21:49:47.031Z"
+  },
+  {
+    "action": "gate.check",
+    "feature": "0016-remote-protocol-core-handshake",
+    "phase": "spec",
+    "pass": true,
+    "attempts": 0,
+    "totalFailures": 0,
+    "wallClockMs": 2,
+    "at": "2026-07-04T15:48:58.562Z"
+  },
+  {
+    "action": "producer.select",
+    "feature": "0016-remote-protocol-core-handshake",
+    "role": "planner",
+    "phase": "plan",
+    "tier": "low",
+    "model": "sonnet",
+    "effort": "medium",
+    "trigger": "base",
+    "attempts": 0,
+    "at": "2026-07-04T15:50:11.187Z"
+  },
+  {
+    "action": "gate.check",
+    "feature": "0016-remote-protocol-core-handshake",
+    "phase": "plan",
+    "pass": true,
+    "attempts": 0,
+    "totalFailures": 0,
+    "wallClockMs": 3,
+    "at": "2026-07-04T15:52:33.630Z"
+  },
+  {
+    "action": "gate.check",
+    "feature": "0016-remote-protocol-core-handshake",
+    "phase": "tests",
+    "pass": true,
+    "attempts": 0,
+    "totalFailures": 0,
+    "wallClockMs": 29759,
+    "at": "2026-07-04T16:04:41.457Z"
+  },
+  {
+    "action": "producer.select",
+    "feature": "0016-remote-protocol-core-handshake",
+    "role": "implementer",
+    "phase": "implement",
+    "tier": "low",
+    "model": "sonnet",
+    "effort": "medium",
+    "trigger": "base",
+    "attempts": 0,
+    "at": "2026-07-04T16:07:40.119Z"
+  },
+  {
+    "action": "gate.check",
+    "feature": "0016-remote-protocol-core-handshake",
+    "phase": "implement",
+    "pass": true,
+    "attempts": 0,
+    "totalFailures": 0,
+    "wallClockMs": 57657,
+    "at": "2026-07-04T16:12:08.736Z"
+  },
+  {
+    "action": "gate.check",
+    "feature": "0016-remote-protocol-core-handshake",
+    "phase": "implement",
+    "pass": true,
+    "attempts": 0,
+    "totalFailures": 0,
+    "wallClockMs": 45117,
+    "at": "2026-07-04T16:23:24.207Z"
+  },
+  {
+    "action": "gate.check",
+    "feature": "0016-remote-protocol-core-handshake",
+    "phase": "implement",
+    "pass": true,
+    "attempts": 0,
+    "totalFailures": 0,
+    "wallClockMs": 43430,
+    "at": "2026-07-04T16:25:52.268Z"
+  },
+  {
+    "action": "gate.check",
+    "feature": "0016-remote-protocol-core-handshake",
+    "phase": "tests",
+    "pass": true,
+    "attempts": 0,
+    "totalFailures": 0,
+    "wallClockMs": 24190,
+    "at": "2026-07-04T16:29:14.275Z"
+  },
+  {
+    "action": "producer.select",
+    "feature": "0016-remote-protocol-core-handshake",
+    "role": "implementer",
+    "phase": "implement",
+    "tier": "low",
+    "model": "sonnet",
+    "effort": "medium",
+    "trigger": "base",
+    "attempts": 0,
+    "at": "2026-07-04T16:29:47.013Z"
+  },
+  {
+    "action": "gate.check",
+    "feature": "0016-remote-protocol-core-handshake",
+    "phase": "implement",
+    "pass": true,
+    "attempts": 0,
+    "totalFailures": 0,
+    "wallClockMs": 52370,
+    "at": "2026-07-04T16:30:58.171Z"
+  },
+  {
+    "action": "gate.check",
+    "feature": "0016-remote-protocol-core-handshake",
+    "phase": "review",
+    "pass": false,
+    "attempts": 1,
+    "totalFailures": 1,
+    "wallClockMs": 3,
+    "failed": [
+      "findings"
+    ],
+    "at": "2026-07-04T16:40:49.711Z"
+  },
+  {
+    "action": "producer.select",
+    "feature": "0016-remote-protocol-core-handshake",
+    "role": "implementer",
+    "phase": "implement",
+    "tier": "high",
+    "model": "fable",
+    "effort": "xhigh",
+    "trigger": "judgment-loopback",
+    "attempts": 0,
+    "at": "2026-07-04T16:50:06.740Z"
+  },
+  {
+    "action": "tier.ratchet",
+    "feature": "0016-remote-protocol-core-handshake",
+    "role": "implementer",
+    "phase": "implement",
+    "fromTier": "low",
+    "toTier": "high",
+    "trigger": "judgment-loopback",
+    "attempts": 0,
+    "at": "2026-07-04T16:50:06.760Z"
+  },
+  {
+    "action": "gate.check",
+    "feature": "0016-remote-protocol-core-handshake",
+    "phase": "implement",
+    "pass": true,
+    "attempts": 0,
+    "totalFailures": 1,
+    "wallClockMs": 62751,
+    "at": "2026-07-04T17:00:43.209Z"
+  },
+  {
+    "action": "gate.check",
+    "feature": "0016-remote-protocol-core-handshake",
+    "phase": "implement",
+    "pass": true,
+    "attempts": 0,
+    "totalFailures": 1,
+    "wallClockMs": 53684,
+    "at": "2026-07-04T17:11:03.957Z"
+  },
+  {
+    "action": "gate.check",
+    "feature": "0016-remote-protocol-core-handshake",
+    "phase": "implement",
+    "pass": true,
+    "attempts": 0,
+    "totalFailures": 1,
+    "wallClockMs": 55774,
+    "at": "2026-07-04T17:14:53.598Z"
+  },
+  {
+    "action": "gate.check",
+    "feature": "0016-remote-protocol-core-handshake",
+    "phase": "review",
+    "pass": false,
+    "attempts": 2,
+    "totalFailures": 2,
+    "wallClockMs": 3,
+    "failed": [
+      "findings"
+    ],
+    "at": "2026-07-04T17:21:07.277Z"
+  },
+  {
+    "action": "producer.select",
+    "feature": "0016-remote-protocol-core-handshake",
+    "role": "implementer",
+    "phase": "implement",
+    "tier": "high",
+    "model": "fable",
+    "effort": "xhigh",
+    "trigger": "judgment-loopback",
+    "attempts": 0,
+    "at": "2026-07-04T17:21:45.675Z"
+  },
+  {
+    "action": "tier.ratchet",
+    "feature": "0016-remote-protocol-core-handshake",
+    "role": "implementer",
+    "phase": "implement",
+    "fromTier": "low",
+    "toTier": "high",
+    "trigger": "judgment-loopback",
+    "attempts": 0,
+    "at": "2026-07-04T17:21:45.694Z"
+  },
+  {
+    "action": "gate.check",
+    "feature": "0016-remote-protocol-core-handshake",
+    "phase": "implement",
+    "pass": true,
+    "attempts": 0,
+    "totalFailures": 2,
+    "wallClockMs": 49526,
+    "at": "2026-07-04T17:40:10.651Z"
+  },
+  {
+    "action": "gate.check",
+    "feature": "0016-remote-protocol-core-handshake",
+    "phase": "implement",
+    "pass": true,
+    "attempts": 0,
+    "totalFailures": 2,
+    "wallClockMs": 49656,
+    "at": "2026-07-04T17:41:30.481Z"
+  },
+  {
+    "action": "gate.check",
+    "feature": "0016-remote-protocol-core-handshake",
+    "phase": "review",
+    "pass": true,
+    "attempts": 0,
+    "totalFailures": 2,
+    "wallClockMs": 3,
+    "at": "2026-07-04T17:44:50.716Z"
+  },
+  {
+    "action": "gate.check",
+    "feature": "0016-remote-protocol-core-handshake",
+    "phase": "doc-sync",
+    "pass": true,
+    "attempts": 0,
+    "totalFailures": 2,
+    "wallClockMs": 32,
+    "at": "2026-07-04T17:48:41.716Z"
   }
 ]

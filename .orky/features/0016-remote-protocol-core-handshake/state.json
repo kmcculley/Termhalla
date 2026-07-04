@@ -1,0 +1,188 @@
+{
+  "feature": "0016-remote-protocol-core-handshake",
+  "phase": "doc-sync",
+  "gates": {
+    "brainstorm": {
+      "passed": true,
+      "at": "2026-07-04T15:38:35.252Z",
+      "evidence": "app-run: concept fixed by roadmap entry F15",
+      "external": true
+    },
+    "spec": {
+      "passed": true,
+      "at": "2026-07-04T15:48:58.547Z",
+      "firstAt": "2026-07-04T15:48:58.547Z",
+      "tokens": [
+        {
+          "token": "findings",
+          "pass": true,
+          "evidence": "no open blocking findings (CRITICAL/HIGH or contract-violation) at or before this gate"
+        }
+      ]
+    },
+    "plan": {
+      "passed": true,
+      "at": "2026-07-04T15:52:33.626Z",
+      "firstAt": "2026-07-04T15:52:33.626Z",
+      "tokens": [
+        {
+          "token": "spec-freeze",
+          "pass": true,
+          "evidence": "spec unchanged since the spec gate"
+        },
+        {
+          "token": "traceability-plan",
+          "pass": true,
+          "evidence": "all 17 REQ(s) trace to TASK"
+        },
+        {
+          "token": "findings",
+          "pass": true,
+          "evidence": "no open blocking findings (CRITICAL/HIGH or contract-violation) at or before this gate"
+        }
+      ]
+    },
+    "tests": {
+      "passed": true,
+      "at": "2026-07-04T16:29:14.271Z",
+      "firstAt": "2026-07-04T16:29:14.271Z",
+      "tokens": [
+        {
+          "token": "spec-freeze",
+          "pass": true,
+          "evidence": "spec unchanged since the spec gate"
+        },
+        {
+          "token": "tests-red",
+          "pass": true,
+          "evidence": "tests are GREEN on a tests loopback (coverage augmentation; implementation already exists) — freeze re-captured"
+        }
+      ]
+    },
+    "implement": {
+      "passed": true,
+      "at": "2026-07-04T17:41:30.478Z",
+      "firstAt": "2026-07-04T17:40:10.648Z",
+      "tokens": [
+        {
+          "token": "spec-freeze",
+          "pass": true,
+          "evidence": "spec unchanged since the spec gate"
+        },
+        {
+          "token": "build",
+          "pass": true,
+          "evidence": "build exited 0"
+        },
+        {
+          "token": "test",
+          "pass": true,
+          "evidence": "test exited 0"
+        },
+        {
+          "token": "test-freeze",
+          "pass": true,
+          "evidence": "test files unchanged since freeze"
+        }
+      ]
+    },
+    "review": {
+      "passed": true,
+      "at": "2026-07-04T17:44:50.712Z",
+      "firstAt": "2026-07-04T17:44:50.712Z",
+      "tokens": [
+        {
+          "token": "spec-freeze",
+          "pass": true,
+          "evidence": "spec unchanged since the spec gate"
+        },
+        {
+          "token": "findings",
+          "pass": true,
+          "evidence": "no open blocking findings (CRITICAL/HIGH or contract-violation) at or before this gate"
+        }
+      ]
+    },
+    "doc-sync": {
+      "passed": true,
+      "at": "2026-07-04T17:48:41.712Z",
+      "firstAt": "2026-07-04T17:48:41.712Z",
+      "tokens": [
+        {
+          "token": "spec-freeze",
+          "pass": true,
+          "evidence": "spec unchanged since the spec gate"
+        },
+        {
+          "token": "traceability",
+          "pass": true,
+          "evidence": "all 17 REQ(s) trace to TASK+TEST"
+        },
+        {
+          "token": "findings",
+          "pass": true,
+          "evidence": "no open blocking findings (CRITICAL/HIGH or contract-violation) at or before this gate"
+        }
+      ]
+    }
+  },
+  "iterations": {
+    "tests": 1,
+    "implement": 2
+  },
+  "escalations": [
+    {
+      "id": "ESC-001",
+      "phase": "review",
+      "reason": "Contract-violation finding FINDING-009 (codex cross-check, verified in code): parseWireMessage/encodeFrame accept non-JSON JS values in the any-JSON positions (req.params / res.result / evt args) - {params: undefined} validates yet encodes to bytes the peer decoder rejects (silent remote failure on the core send path), and BigInt/cyclic payloads escape as a raw TypeError instead of a structured ProtocolError, contradicting REQ-007/REQ-003/REQ-015 MUSTs; wire-decoded input is unaffected (JSON.parse cannot produce these values). DECIDE ONE: (a) loop back to implement and add deep JSON-representability validation in parseWireMessage (reject undefined/function/symbol/bigint/non-finite numbers/non-plain objects/cycles with structured bad-message naming the path - zero wire-behavior change, frozen suite verified compatible), or (b) declare non-JSON JS inputs out of the validator's specified domain and amend the spec accordingly (spec loopback so the amendment re-propagates). Recommendation on file: (a).",
+      "kind": "judgment",
+      "finding": "FINDING-009",
+      "status": "resolved",
+      "at": "2026-07-04T16:41:24.603Z",
+      "decision": "Option (a) (Kevin, 2026-07-04): loop back to implement. Add deep JSON-representability validation in parseWireMessage — reject undefined/function/symbol/bigint/non-finite numbers/non-plain objects/cycles in the any-JSON positions (req.params / res.result / evt args) with a structured bad-message ProtocolError naming the offending path. Zero wire-behavior change; review verified the frozen suite is compatible. Rationale: undefined is trivially reachable from TS optional params, so the protocol boundary owns this check — not every future call site (F16 and the registrar ports would otherwise each inherit the burden).",
+      "resolvedAt": "2026-07-04T16:45:39.477Z"
+    }
+  ],
+  "concerns": [
+    "networking",
+    "determinism"
+  ],
+  "attempts": {
+    "spec": 0,
+    "plan": 0,
+    "tests": 0,
+    "implement": 0,
+    "review": 0,
+    "doc-sync": 0
+  },
+  "implementer": {
+    "mode": "claude",
+    "agents": [
+      "orky:implementer"
+    ],
+    "winner": "orky:implementer",
+    "reason": "Implement re-entry 3 (residual completion loopback; same ESC-001 decided scope): winner-stays dispatch to codex:codex-rescue (the standing A/B winner) STALLED - backgrounded codex exec sat on 'Reading additional input from stdin' and wrote nothing; killed at the config.codex 600s bound per ADR-008/ADR-025 (codex never holds the pipeline). Fallback: orky:implementer (router tier high/fable/xhigh) patched the winner's own walker inline - [[Get]]-based toJSON rejection on arrays AND plain objects (mirrors JSON.stringify's exact lookup; closes the inherited-toJSON residual on FINDING-009), own non-index array expando rejection naming the key (FINDING-012), try/catch totalization converting accessor/Proxy trap throws into structured bad-message at the best-known path with bounded cause (FINDING-010), and constructor-named non-plain diagnostics, bounded (FINDING-011). Scratch verifier 18/18 (incl. 200k-deep no-throw, DAG + null-proto + plain-JSON acceptance, round-trip intact), typecheck green after one cast fix, implement gate re-derived green (build+test+both freezes) on the final tree.",
+    "at": "2026-07-04T17:41:52.439Z"
+  },
+  "loopbacks": [
+    {
+      "to": "tests",
+      "from": "implement",
+      "reason": "Implementer-reported frozen-test defect (ADR-009 route, shift-left before review): the res() helper in tests/remote-protocol-correlation.test.ts is annotated to return WireFrame but is passed to RequestTracker.settle(ResFrame), so 'npm run typecheck' fails with TS2345 at line 83 while all gates stay green (no gate runs typecheck; vitest transforms without typechecking). Runtime behavior of the suite is unaffected; the fix is the helper's return type annotation (WireFrame -> ResFrame) in the tests phase. Implementation is NOT condemned - no production code change expected.",
+      "at": "2026-07-04T16:27:30.617Z"
+    },
+    {
+      "to": "implement",
+      "from": "review",
+      "reason": "ESC-001 resolved by human (Kevin): option (a) - add deep JSON-representability validation in parseWireMessage for the any-JSON positions (req.params / res.result / evt args): reject undefined/function/symbol/bigint/non-finite numbers/non-plain objects/cycles with a structured bad-message ProtocolError naming the offending path. Fixes FINDING-009 (contract-violation, phase_of_origin implement). Zero wire-behavior change; frozen suite verified compatible.",
+      "at": "2026-07-04T16:49:40.469Z"
+    },
+    {
+      "to": "implement",
+      "from": "review",
+      "reason": "Re-review verdict (codex cross-check, probe-confirmed by the lens reviewers): the FINDING-009 fix is INCOMPLETE for arrays - Array.isArray short-circuits before any prototype/toJSON consideration and the toJSON probe checks own properties only, so an array with an INHERITED callable toJSON (Object.setPrototypeOf([1],{toJSON:()=>5})) validates yet JSON.stringify serializes 5 (probe showed wire args[0]=5 where [1] was validated) - still inside ESC-001's decided scope ('non-plain objects incl. toJSON carriers'), so no new escalation: completing the SAME human-approved fix. Completion also closes the co-located re-review LOWs in the same function: FINDING-010 (throwing accessors/Proxy traps escape raw - wrap the walk, convert to structured bad-message), FINDING-011 (non-plain rejection must name the constructor, bounded), FINDING-012 (array own non-index expando keys are silently dropped by JSON.stringify - reject naming the key). All wire-unreachable (JSON.parse produces none); frozen suite expected to stay green.",
+      "at": "2026-07-04T17:21:31.966Z"
+    }
+  ],
+  "totalFailures": 2
+}
