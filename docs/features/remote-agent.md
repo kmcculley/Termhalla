@@ -89,10 +89,58 @@ The core depends on an injected backend interface (`src/agent/pty-backend.ts`):
   **lazily, only when this backend is selected** — dev checkouts carry an Electron-ABI binary
   a plain-Node process cannot load, so `--pty=fake` must never touch it.
 - **`fake`** — a deterministic scripted pseudo-shell (`echo` / `cwd` / `pwd` / `size` /
-  `exit <code>`; OSC 133 + OSC 9;9 emission; no tty echo; no time/RNG). This is what CI and
-  the vitest suite drive: no real ssh and no real node-pty anywhere in CI, over the IDENTICAL
-  protocol path (locked decision 1). It ships inside the artifact deliberately so CI exercises
-  the exact bytes `npm run build` produces.
+  `exit <code>` / `flood <chunks> <chunkBytes>`; OSC 133 + OSC 9;9 emission; no tty echo; no
+  time/RNG). This is what CI and the vitest suite drive: no real ssh and no real node-pty
+  anywhere in CI, over the IDENTICAL protocol path (locked decision 1). It ships inside the
+  artifact deliberately so CI exercises the exact bytes `npm run build` produces. `flood`
+  (added by 0018) emits exactly `<chunks>` separate emissions of exactly `<chunkBytes>`
+  deterministic filler units — the scripted cat-a-huge-file that drives the flow-control
+  proofs; malformed or oversized args (total capped at 16,777,216 units) fail loud with one
+  actionable line + `D;1` and leave the pane alive.
+
+Both backends implement `pause()`/`resume()` (added by 0018 — see Flow control below): the real
+backend maps them DIRECTLY onto node-pty's own socket-level flow control; the fake models them
+deterministically — while paused it delivers nothing (output queues in order), `resume()`
+flushes synchronously (a consumer callback may re-pause mid-flush; the remainder stays queued),
+a SCRIPTED `exit` while paused defers until the queue has flushed (exit-last preserved), and
+`kill()` is never deferred. Both are idempotent.
+
+## Flow control (F17 / 0018-windowed-flow-control — protocol-level backpressure, day-one)
+
+The cat-a-huge-file problem is solved at the protocol level (locked decision 4), over F15's
+reserved `ack`/`window` frame shapes, with the semantics in ONE pure shared module —
+`src/shared/remote/flow-control.ts`, exported only via `@shared/remote/protocol` — so both
+endpoints share the measure by construction:
+
+- **The measure** is UTF-16 code units of the `pty:data` payload string
+  (`flowPayloadSize(data) === data.length`). The wire field name `bytes` is F15's frozen shape;
+  proportionality, not byte-exactness, is what bounds memory.
+- **Agent side** (`createAgentFlowGate`, wired in `session.ts`): every emitted `pty:data`
+  payload is counted per pane; when unacked units EXCEED the pane's window the pane's backend
+  is `pause()`d synchronously within that very delivery, and it `resume()`s when acks drain the
+  count to the **low watermark** `floor(window / 2)` ("drained" — resume-at-zero would deadlock
+  a quantized acker; resume-at-window would thrash). Per-pane decisions strictly alternate
+  pause → resume. Under the deterministic fake backend the bound is exact: once paused, a pane
+  emits nothing further, so unacked ≤ window + the crossing chunk.
+- **Window** (`window` frame): with `id`, a per-pane override (live panes only — windows for
+  unknown panes are diagnosed and NEVER stored, so a client cannot grow agent memory with
+  speculative windows); without `id`, the connection-wide default for panes without an explicit
+  override and for future panes. Defaults: `DEFAULT_FLOW_WINDOW_BYTES` = 1 MiB.
+- **Ack** (`ack` frame): decrements the pane's count. Over-acks clamp to zero with ONE stderr
+  diagnostic (never a silent cap); acks for unknown panes are silently tolerated — an ack
+  racing a pane's exit is a normal interleaving. Flow frames are fire-and-forget: never
+  answered with a `res`.
+- **Client side** (`createClientAckPolicy`): acknowledges the FULL per-pane accumulation every
+  `DEFAULT_ACK_EVERY_BYTES` = 64 KiB (16:1 vs the window); sub-quantum residue is flushed by
+  the CONSUMER (`flush()`, sorted by pane id) — the policy holds no timers. Its production
+  consumer arrives with F21 (client routing); today the vitest suites drive it.
+- **Lifecycle:** a pane's exit prunes ALL its flow state (a reused id starts fresh under the
+  connection default); session end clears everything.
+
+Proven by a scripted flood against a deliberately stalled consumer (zero acks → bounded
+emission, the session keeps serving other panes) and a recovery pass (policy-driven acks drain
+the flood to completion byte-for-byte), both in-process and over the real stdio artifact
+(`tests/agent-session-flow.test.ts`, `tests/agent-stdio-flow.test.ts`).
 
 ## Lifecycle taxonomy
 
@@ -101,9 +149,10 @@ The core depends on an injected backend interface (`src/agent/pty-backend.ts`):
   (F15's taxonomy: the framing is intact).
 - Fatal framing (`frame-too-large`) → stderr, panes killed, exit 1 (the decoder is dead).
 - Post-handshake `hello`/`res`/`evt` (wrong direction in v1) → stderr diagnostic, ignored.
-- Inbound `ack`/`window` → **inert by design**: accepted, no state change, no error. These are
-  the reserved flow-control frames; **F17** (0018-windowed-flow-control) gives them semantics
-  and retires the inertness pin (TEST-773) through its own tests phase.
+- Inbound `ack`/`window` → **flow-control semantics** (since 0018 — see Flow control above; the
+  0017-era inertness pin in TEST-773 was retired through 0018's tests phase exactly as its
+  retirement path prescribed): fire-and-forget, never answered with a frame, applied to the
+  pane's flow gate.
 
 ## Non-goals here
 

@@ -1,8 +1,13 @@
 /**
- * The agent session core (REQ-004..REQ-010, REQ-013): handshake-first, exactly-one-res
+ * The agent session core (0017 REQ-004..REQ-010, REQ-013): handshake-first, exactly-one-res
  * dispatch over the pty methods, status detection at the source, push mirroring, and the
  * lifecycle taxonomy. ALL IO is injected (`send`/`diag`/`shutdown` + the pty backend), so the
  * entire core runs in-process under vitest; `main.ts` is the only stdio wiring.
+ *
+ * Since 0018 (windowed flow control) the once-inert ack/window frames HAVE semantics here:
+ * every emitted pty:data payload is counted through the shared flow gate, which pauses the
+ * pane's backend past the unacked window and resumes it when the client's acks drain to the
+ * low watermark — see src/shared/remote/flow-control.ts for the measure and hysteresis.
  *
  * Protocol comes exclusively from the F15 barrel (REQ-002). Status detection REUSES the
  * existing src/main/status/ stack (REQ-008): one StatusEngine, panes registered BEFORE the
@@ -15,9 +20,9 @@
  * turn the very first pty:status push into a fatal encode error.
  */
 import {
-  createAgentHandshake, AGENT_V1_CAPABILITIES
+  createAgentHandshake, AGENT_V1_CAPABILITIES, createAgentFlowGate
 } from '@shared/remote/protocol'
-import type { DecodedItem, WireFrame, ReqFrame, ResFrame } from '@shared/remote/protocol'
+import type { DecodedItem, WireFrame, ReqFrame, ResFrame, FlowDecision } from '@shared/remote/protocol'
 import { CH } from '@shared/ipc-contract'
 import type { TerminalStatus } from '@shared/types'
 import { StatusEngine } from '../main/status/status-engine'
@@ -55,6 +60,25 @@ export const createAgentSession = (init: AgentSessionInit): AgentSession => {
   let established = false
   let ended = false
 
+  // Windowed flow control (0018, REQ-013): ONE gate per session; its diagnostics ride the
+  // session's stderr channel. Decisions are applied to the pane's backend handle synchronously
+  // inside whatever event produced them (data emission, ack, window).
+  const gate = createAgentFlowGate({ onDiagnostic: init.diag })
+  const applyDecisions = (decisions: FlowDecision[]): void => {
+    for (const d of decisions) {
+      const pane = panes.get(d.id)
+      if (!pane) continue // the pane raced away; its flow state is pruned on the exit funnel
+      // Containment parity with the dispatch path (FINDING-001): a throwing backend
+      // pause()/resume() degrades to a diagnostic, never crashes the agent.
+      try {
+        if (d.action === 'pause') pane.pause()
+        else pane.resume()
+      } catch (e) {
+        init.diag(`flow: ${d.action} on pane "${d.id}" failed: ${bounded(e)} - the session continues`)
+      }
+    }
+  }
+
   /** Drop an absent lastExit KEY (see module header) and clone to inert JSON data. */
   const statusPayload = (s: TerminalStatus): Record<string, unknown> =>
     s.lastExit === undefined ? { state: s.state, since: s.since } : { state: s.state, lastExit: s.lastExit, since: s.since }
@@ -72,6 +96,7 @@ export const createAgentSession = (init: AgentSessionInit): AgentSession => {
       try { handle.kill() } catch (e) { init.diag(`shutdown: killing pane "${id}" failed: ${bounded(e)}`) }
       engine.unregister(id)
     }
+    gate.dispose() // session end clears ALL flow state (REQ-009)
     engine.dispose()
     init.shutdown(code)
   }
@@ -79,6 +104,7 @@ export const createAgentSession = (init: AgentSessionInit): AgentSession => {
   const paneExited = (id: string, code: number): void => {
     if (!panes.has(id)) return // exactly-once: kill-initiated and self-exit funnel here
     panes.delete(id)
+    gate.paneExited(id) // prune flow state (REQ-009); late acks/windows hit the untracked paths
     engine.markExit(id, code) // final status (lastExit) flows out BEFORE the exit event
     engine.unregister(id)
     if (!ended) init.send({ type: 'evt', channel: CH.ptyExit, args: [id, code] })
@@ -120,6 +146,10 @@ export const createAgentSession = (init: AgentSessionInit): AgentSession => {
             if (!panes.has(a.id)) return
             engine.feed(a.id, data)
             if (!ended) init.send({ type: 'evt', channel: CH.ptyData, args: [a.id, data] })
+            // Flow control (0018 REQ-005): count the SAME payload string just emitted; a
+            // crossing pauses the backend synchronously, within this very delivery — the
+            // fake backend queues (and node-pty stops reading) from the next chunk on.
+            applyDecisions(gate.onDataEmitted(a.id, data))
           })
           return ok(false) // fresh spawn
         }
@@ -193,8 +223,13 @@ export const createAgentSession = (init: AgentSessionInit): AgentSession => {
         case 'req':
           return dispatch(frame)
         case 'ack':
+          // Flow control (0018, REQ-006/REQ-013 — F16's inertness superseded per TEST-773's
+          // retirement path): fire-and-forget, never answered with a frame.
+          applyDecisions(gate.onAck(frame.id, frame.bytes))
+          return
         case 'window':
-          // RESERVED (F17 gives these semantics and retires this inertness — TEST-773).
+          // Per-pane with `id`, connection-wide default without (REQ-007). Fire-and-forget.
+          applyDecisions(gate.onWindow(frame.size, frame.id))
           return
         case 'hello':
         case 'res':

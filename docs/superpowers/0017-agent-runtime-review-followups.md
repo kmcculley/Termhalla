@@ -26,7 +26,10 @@ deferral recorded below. Ledger of record: `.orky/features/0017-agent-runtime-sk
   proves user-visible.
 - **No agent-side resource caps / backpressure** — deliberate: F17 (windowed flow control) owns
   output-volume bounding; the client owns liveness/timeouts (F19/F21). Inbound `ack`/`window`
-  inertness is pinned by TEST-773 and named for retirement by F17's tests phase (CONV-019).
+  inertness was pinned by TEST-773 and named for retirement by F17's tests phase (CONV-019).
+  *(Resolved 2026-07-04: F17 / 0018-windowed-flow-control landed the semantics and superseded
+  the TEST-773 inertness vector through its tests phase exactly as prescribed — see
+  `docs/features/remote-agent.md` § Flow control.)*
 - **Real-backend spawn path untested in CI** — locked decisions 1 + 9 (Linux-only v1; no real
   node-pty/ssh in CI). The integration suite proves the identical protocol path through the real
   artifact with the fake backend; the `node-pty` load/spawn path needs a one-time smoke on a

@@ -7,6 +7,29 @@ All notable changes to Termhalla are recorded here. The format follows
 ## [Unreleased]
 
 ### Added
+- **Windowed flow control — protocol-level backpressure (Remote Agent v1, batch 3; feature
+  0018).** F15's reserved `ack`/`window` frames got their semantics on BOTH sides of the wire,
+  in one pure shared module (`src/shared/remote/flow-control.ts`, exported via
+  `@shared/remote/protocol`) so the endpoints can never disagree on the measure
+  (`flowPayloadSize` = UTF-16 code units of the `pty:data` payload). The agent session counts
+  every emitted payload per pane and `pause()`s the pty backend when unacked units exceed the
+  window (default 1 MiB; `window` frames set a per-pane override — live panes only, never
+  stored speculatively — or the connection-wide default), resuming at the `floor(window/2)`
+  low watermark (hysteresis: no resume-at-zero deadlock against a quantized acker, no
+  boundary thrash); over-acks clamp to zero with one loud stderr diagnostic, acks racing a
+  pane's exit are silently tolerated, and flow frames are fire-and-forget (never answered).
+  The client half (`createClientAckPolicy`) acks the full accumulation every 64 KiB with
+  consumer-driven residue `flush()` — its production consumer arrives with F21. Both backends
+  implement `pause()`/`resume()`: node-pty maps them onto its own socket-level flow control
+  (where `cat` blocks against the kernel buffer); the deterministic fake queues while paused,
+  flushes in order on resume (re-pause mid-flush honored), defers a SCRIPTED exit behind
+  queued data, never defers `kill()`, and gained a `flood <chunks> <chunkBytes>` command (the
+  scripted cat-a-huge-file, capped + fail-loud on bad args). Proven by an in-process and a
+  real-stdio-artifact flood against a deliberately stalled consumer — bounded emission
+  (≤ window + one chunk under the fake), the session keeps serving other panes, and
+  policy-driven acks drain the flood byte-for-byte. The 0016/0017 scope pins this feature was
+  named to retire (TEST-747's exact barrel-export list, TEST-773's inertness vector) were
+  superseded through its tests phase exactly as their retirement paths prescribed.
 - **Agent runtime skeleton — pty + status domains over stdio (Remote Agent v1, batch 2).** The
   epic's walking skeleton: a **headless Node agent** in a new `src/agent/` tree that speaks F15's
   protocol over stdio (stdout = frames ONLY, diagnostics on stderr) and implements exactly the
