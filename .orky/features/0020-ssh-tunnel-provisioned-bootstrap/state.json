@@ -1,0 +1,177 @@
+{
+  "feature": "0020-ssh-tunnel-provisioned-bootstrap",
+  "phase": "doc-sync",
+  "gates": {
+    "brainstorm": {
+      "passed": true,
+      "at": "2026-07-04T19:14:28.344Z",
+      "evidence": "app-run: concept fixed by roadmap entry",
+      "external": true
+    },
+    "spec": {
+      "passed": true,
+      "at": "2026-07-04T19:29:14.689Z",
+      "firstAt": "2026-07-04T19:29:14.689Z",
+      "tokens": [
+        {
+          "token": "findings",
+          "pass": true,
+          "evidence": "no open blocking findings (CRITICAL/HIGH or contract-violation) at or before this gate"
+        }
+      ]
+    },
+    "plan": {
+      "passed": true,
+      "at": "2026-07-04T19:29:31.735Z",
+      "firstAt": "2026-07-04T19:29:31.735Z",
+      "tokens": [
+        {
+          "token": "spec-freeze",
+          "pass": true,
+          "evidence": "spec unchanged since the spec gate"
+        },
+        {
+          "token": "traceability-plan",
+          "pass": true,
+          "evidence": "all 18 REQ(s) trace to TASK"
+        },
+        {
+          "token": "findings",
+          "pass": true,
+          "evidence": "no open blocking findings (CRITICAL/HIGH or contract-violation) at or before this gate"
+        }
+      ]
+    },
+    "tests": {
+      "passed": true,
+      "at": "2026-07-04T20:27:25.694Z",
+      "firstAt": "2026-07-04T20:27:25.694Z",
+      "tokens": [
+        {
+          "token": "spec-freeze",
+          "pass": true,
+          "evidence": "spec unchanged since the spec gate"
+        },
+        {
+          "token": "tests-red",
+          "pass": true,
+          "evidence": "tests are GREEN on a tests loopback (coverage augmentation; implementation already exists) — freeze re-captured"
+        }
+      ]
+    },
+    "implement": {
+      "passed": true,
+      "at": "2026-07-04T20:30:32.134Z",
+      "firstAt": "2026-07-04T20:30:32.134Z",
+      "tokens": [
+        {
+          "token": "spec-freeze",
+          "pass": true,
+          "evidence": "spec unchanged since the spec gate"
+        },
+        {
+          "token": "build",
+          "pass": true,
+          "evidence": "build exited 0"
+        },
+        {
+          "token": "test",
+          "pass": true,
+          "evidence": "test exited 0"
+        },
+        {
+          "token": "test-freeze",
+          "pass": true,
+          "evidence": "test files unchanged since freeze"
+        }
+      ]
+    },
+    "review": {
+      "passed": true,
+      "at": "2026-07-04T20:30:52.547Z",
+      "firstAt": "2026-07-04T20:30:52.547Z",
+      "tokens": [
+        {
+          "token": "spec-freeze",
+          "pass": true,
+          "evidence": "spec unchanged since the spec gate"
+        },
+        {
+          "token": "findings",
+          "pass": true,
+          "evidence": "no open blocking findings (CRITICAL/HIGH or contract-violation) at or before this gate"
+        }
+      ]
+    },
+    "doc-sync": {
+      "passed": true,
+      "at": "2026-07-04T20:30:56.586Z",
+      "firstAt": "2026-07-04T20:30:56.586Z",
+      "tokens": [
+        {
+          "token": "spec-freeze",
+          "pass": true,
+          "evidence": "spec unchanged since the spec gate"
+        },
+        {
+          "token": "traceability",
+          "pass": true,
+          "evidence": "all 18 REQ(s) trace to TASK+TEST"
+        },
+        {
+          "token": "findings",
+          "pass": true,
+          "evidence": "no open blocking findings (CRITICAL/HIGH or contract-violation) at or before this gate"
+        }
+      ]
+    }
+  },
+  "iterations": {
+    "spec": 1,
+    "implement": 1,
+    "tests": 1
+  },
+  "escalations": [],
+  "concerns": [
+    "networking",
+    "determinism"
+  ],
+  "attempts": {
+    "spec": 0,
+    "plan": 0,
+    "tests": 0,
+    "implement": 0,
+    "review": 0,
+    "doc-sync": 0
+  },
+  "loopbacks": [
+    {
+      "to": "spec",
+      "from": "tests",
+      "reason": "Test-design found a CONV-022 trap in REQ-007's acceptance: it demands a frozen structural test pinning package.json dependencies/devDependencies as an equality baseline ('no new entries vs the F16 set'). Parallel batch-3 sibling F18 (agent replay) will legitimately add @xterm/headless (+ serialize addon) — at the post-merge batch re-gate that equality pin false-positives an unrelated frozen suite, exactly the CONV-022/CONV-012 class. Fix: scope the acceptance to F19's own invariant — deps must contain NO ssh-implementation package (ssh2/node-ssh/simple-ssh/ssh2-*/libssh*) and src/remote-client import specifiers must not reference one — which is the actual locked-decision-1 requirement and immune to sibling drift. Spec-only wording change to REQ-007 acceptance; no requirement semantics change.",
+      "at": "2026-07-04T19:28:38.157Z"
+    },
+    {
+      "to": "implement",
+      "from": "review",
+      "reason": "Review filed 4 code-addressable findings (none blocking, fixed eagerly in thorough mode): FINDING-001 sanitize control chars out of stderr excerpts before they enter diagnostics; FINDING-002 reject '..' traversal segments in remote paths; FINDING-003 unique per-call temp suffix for saveNamedAgents (concurrent-save torn-file race); diagnostic halves of FINDING-004 (name the node-missing possibility in the provision-ineffective/absent diagnostics) and FINDING-006 (hint shell-rc stdout noise on pre-hello decode failures). All are production-code-only; the frozen suite is untouched (no pinned string changes — diagnostics under test only via loose toMatch patterns). Implement gate will re-derive build+test+freezes on the fixed tree.",
+      "at": "2026-07-04T20:13:08.763Z"
+    },
+    {
+      "to": "tests",
+      "from": "doc-sync",
+      "reason": "Traceability gate: TEST-2027/TEST-2028 (REQ-014) are real tests in tests/remote-client-bootstrap.test.ts but their describe label used a range form 'TEST-2026..TEST-2029' that elides the two inner id literals, so the mechanical marker check cannot find them. Label-only tests-phase fix: put each test's own TEST-id in its it() title (no assertion/semantic change; suite stays green — freeze re-capture per the 0017 precedent).",
+      "at": "2026-07-04T20:25:13.254Z"
+    }
+  ],
+  "implementer": {
+    "mode": "claude",
+    "agents": [
+      "orky:implementer"
+    ],
+    "winner": "orky:implementer",
+    "reason": "Re-entry after the doc-sync-driven tests loopback (TEST-2027/2028 label literals): no production-code change; implement gate re-derived green (build+test+freezes) on the identical tree with the re-captured test freeze.",
+    "at": "2026-07-04T20:30:52.335Z"
+  },
+  "totalFailures": 1
+}

@@ -5279,5 +5279,162 @@
     "totalFailures": 0,
     "wallClockMs": 21,
     "at": "2026-07-04T18:56:09.646Z"
+  },
+  {
+    "action": "gate.check",
+    "feature": "0020-ssh-tunnel-provisioned-bootstrap",
+    "phase": "spec",
+    "pass": true,
+    "attempts": 0,
+    "totalFailures": 0,
+    "wallClockMs": 5,
+    "at": "2026-07-04T19:20:33.153Z"
+  },
+  {
+    "action": "producer.select",
+    "feature": "0020-ssh-tunnel-provisioned-bootstrap",
+    "role": "planner",
+    "phase": "plan",
+    "tier": "low",
+    "model": "sonnet",
+    "effort": "medium",
+    "trigger": "base",
+    "attempts": 0,
+    "at": "2026-07-04T19:21:05.687Z"
+  },
+  {
+    "action": "gate.check",
+    "feature": "0020-ssh-tunnel-provisioned-bootstrap",
+    "phase": "plan",
+    "pass": true,
+    "attempts": 0,
+    "totalFailures": 0,
+    "wallClockMs": 14,
+    "at": "2026-07-04T19:23:03.819Z"
+  },
+  {
+    "action": "gate.check",
+    "feature": "0020-ssh-tunnel-provisioned-bootstrap",
+    "phase": "spec",
+    "pass": true,
+    "attempts": 0,
+    "totalFailures": 0,
+    "wallClockMs": 6,
+    "at": "2026-07-04T19:29:14.697Z"
+  },
+  {
+    "action": "gate.check",
+    "feature": "0020-ssh-tunnel-provisioned-bootstrap",
+    "phase": "plan",
+    "pass": true,
+    "attempts": 0,
+    "totalFailures": 0,
+    "wallClockMs": 11,
+    "at": "2026-07-04T19:29:31.746Z"
+  },
+  {
+    "action": "gate.check",
+    "feature": "0020-ssh-tunnel-provisioned-bootstrap",
+    "phase": "tests",
+    "pass": true,
+    "attempts": 0,
+    "totalFailures": 0,
+    "wallClockMs": 76018,
+    "at": "2026-07-04T19:43:41.626Z"
+  },
+  {
+    "action": "producer.select",
+    "feature": "0020-ssh-tunnel-provisioned-bootstrap",
+    "role": "implementer",
+    "phase": "implement",
+    "tier": "low",
+    "model": "sonnet",
+    "effort": "medium",
+    "trigger": "base",
+    "attempts": 0,
+    "at": "2026-07-04T19:44:04.676Z"
+  },
+  {
+    "action": "gate.check",
+    "feature": "0020-ssh-tunnel-provisioned-bootstrap",
+    "phase": "implement",
+    "pass": true,
+    "attempts": 0,
+    "totalFailures": 0,
+    "wallClockMs": 167594,
+    "at": "2026-07-04T20:08:57.323Z"
+  },
+  {
+    "action": "gate.check",
+    "feature": "0020-ssh-tunnel-provisioned-bootstrap",
+    "phase": "implement",
+    "pass": true,
+    "attempts": 0,
+    "totalFailures": 0,
+    "wallClockMs": 138236,
+    "at": "2026-07-04T20:19:39.416Z"
+  },
+  {
+    "action": "gate.check",
+    "feature": "0020-ssh-tunnel-provisioned-bootstrap",
+    "phase": "review",
+    "pass": true,
+    "attempts": 0,
+    "totalFailures": 0,
+    "wallClockMs": 10,
+    "at": "2026-07-04T20:20:52.638Z"
+  },
+  {
+    "action": "gate.check",
+    "feature": "0020-ssh-tunnel-provisioned-bootstrap",
+    "phase": "doc-sync",
+    "pass": false,
+    "attempts": 1,
+    "totalFailures": 1,
+    "wallClockMs": 146,
+    "failed": [
+      "traceability"
+    ],
+    "at": "2026-07-04T20:24:39.423Z"
+  },
+  {
+    "action": "gate.check",
+    "feature": "0020-ssh-tunnel-provisioned-bootstrap",
+    "phase": "tests",
+    "pass": true,
+    "attempts": 0,
+    "totalFailures": 1,
+    "wallClockMs": 86439,
+    "at": "2026-07-04T20:27:25.703Z"
+  },
+  {
+    "action": "gate.check",
+    "feature": "0020-ssh-tunnel-provisioned-bootstrap",
+    "phase": "implement",
+    "pass": true,
+    "attempts": 0,
+    "totalFailures": 1,
+    "wallClockMs": 163788,
+    "at": "2026-07-04T20:30:32.142Z"
+  },
+  {
+    "action": "gate.check",
+    "feature": "0020-ssh-tunnel-provisioned-bootstrap",
+    "phase": "review",
+    "pass": true,
+    "attempts": 0,
+    "totalFailures": 1,
+    "wallClockMs": 11,
+    "at": "2026-07-04T20:30:52.557Z"
+  },
+  {
+    "action": "gate.check",
+    "feature": "0020-ssh-tunnel-provisioned-bootstrap",
+    "phase": "doc-sync",
+    "pass": true,
+    "attempts": 0,
+    "totalFailures": 1,
+    "wallClockMs": 131,
+    "at": "2026-07-04T20:30:56.598Z"
   }
 ]

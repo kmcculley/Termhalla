@@ -1,0 +1,20 @@
+{
+  "REQ-001": { "tasks": ["TASK-007"], "tests": ["TEST-2001"], "files": ["tsconfig.node.json", "src/remote-client/"] },
+  "REQ-002": { "tasks": ["TASK-009", "TASK-001"], "tests": ["TEST-2002"], "files": ["src/shared/remote-agents.ts"] },
+  "REQ-003": { "tasks": ["TASK-001"], "tests": ["TEST-2002", "TEST-2010", "TEST-2011"], "files": ["src/shared/remote-agents.ts"] },
+  "REQ-004": { "tasks": ["TASK-003"], "tests": ["TEST-2019"], "files": ["src/remote-client/agents-store.ts"] },
+  "REQ-005": { "tasks": ["TASK-002"], "tests": ["TEST-2012"], "files": ["src/remote-client/ssh-command.ts"] },
+  "REQ-006": { "tasks": ["TASK-002"], "tests": ["TEST-2013"], "files": ["src/remote-client/ssh-command.ts"] },
+  "REQ-007": { "tasks": ["TASK-004"], "tests": ["TEST-2003"], "files": ["src/remote-client/ssh-spawn.ts"] },
+  "REQ-008": { "tasks": ["TASK-002"], "tests": ["TEST-2014"], "files": ["src/remote-client/ssh-command.ts"] },
+  "REQ-009": { "tasks": ["TASK-002"], "tests": ["TEST-2015"], "files": ["src/remote-client/ssh-command.ts"] },
+  "REQ-010": { "tasks": ["TASK-006"], "tests": ["TEST-2005", "TEST-2020"], "files": ["src/remote-client/bootstrap.ts"] },
+  "REQ-011": { "tasks": ["TASK-005", "TASK-006"], "tests": ["TEST-2018", "TEST-2021", "TEST-2022", "TEST-2023"], "files": ["src/remote-client/classify.ts", "src/remote-client/bootstrap.ts"] },
+  "REQ-012": { "tasks": ["TASK-002", "TASK-006"], "tests": ["TEST-2016", "TEST-2024", "TEST-2025"], "files": ["src/remote-client/ssh-command.ts", "src/remote-client/bootstrap.ts"] },
+  "REQ-013": { "tasks": ["TASK-002", "TASK-006"], "tests": ["TEST-2017"], "files": ["src/remote-client/ssh-command.ts", "src/remote-client/bootstrap.ts"] },
+  "REQ-014": { "tasks": ["TASK-006"], "tests": ["TEST-2026", "TEST-2027", "TEST-2028", "TEST-2029"], "files": ["src/remote-client/bootstrap.ts"] },
+  "REQ-015": { "tasks": ["TASK-006"], "tests": ["TEST-2004", "TEST-2032"], "files": ["src/remote-client/bootstrap.ts"] },
+  "REQ-016": { "tasks": ["TASK-006"], "tests": ["TEST-2030", "TEST-2031"], "files": ["src/remote-client/bootstrap.ts", "src/remote-client/ssh-spawn.ts"] },
+  "REQ-017": { "tasks": ["TASK-008"], "tests": ["TEST-2033"], "files": ["tests/fixtures/fake-ssh.mjs"] },
+  "REQ-018": { "tasks": ["TASK-008"], "tests": ["TEST-2006", "TEST-2026", "TEST-2033"], "files": ["tests/fixtures/fake-ssh.mjs"] }
+}
