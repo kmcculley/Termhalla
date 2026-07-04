@@ -29,7 +29,8 @@
       "deps": [
         "F16"
       ],
-      "status": "in-progress"
+      "status": "done",
+      "completedAt": "2026-07-04T20:49:44.270Z"
     },
     {
       "id": "F18",
@@ -49,7 +50,8 @@
       "deps": [
         "F16"
       ],
-      "status": "in-progress"
+      "status": "done",
+      "completedAt": "2026-07-04T20:51:36.397Z"
     },
     {
       "id": "F20",
