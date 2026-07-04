@@ -30,6 +30,30 @@ All notable changes to Termhalla are recorded here. The format follows
   policy-driven acks drain the flood byte-for-byte. The 0016/0017 scope pins this feature was
   named to retire (TEST-747's exact barrel-export list, TEST-773's inertness vector) were
   superseded through its tests phase exactly as their retirement paths prescribed.
+- **SSH tunnel + client-provisioned agent bootstrap (Remote Agent v1, batch 3 — F19).** The
+  epic's CONNECTION layer as a headless library in a new `src/remote-client/` tree (no
+  renderer/main/preload wiring — F21 consumes it; the TEST-746 scope guard survives, and F19 adds
+  its own `remote-client` scope guard with the same F21 retirement path). Transport = a **stdio
+  exec channel over the SYSTEM `ssh` binary** (spawned argv-array, no shell, never an SSH library —
+  inherits `~/.ssh/config`, jump hosts, hardware keys, 2FA), seeded from SSH favorites with
+  option-injection guards on every field. **Named agents** become the connection registry: a pure
+  `src/shared/remote-agents.ts` model (host/user/port + identity-file PATH only — no secrets, the
+  `quick.json` posture) seeded via `seedNamedAgentFromConnection`, plus a path-injected atomic JSON
+  store. On connect the client runs **F15's handshake** through the pinned probe
+  (`test -f … && exec node … || exit 127`) and classifies failures with a pure truth table:
+  exactly `absent` and `version-mismatch` are provisionable; everything else (auth/transport 255,
+  framing corruption, other handshake kinds) is fatal and NEVER uploads. Provisioning streams the
+  bundled `out/agent/termhalla-agent.cjs` over a second exec channel — byte-count-verified,
+  atomically promoted (a truncated stream never occupies the install path), version-embedded
+  filename (`termhalla-agent-<version>.cjs`, ONE canonical version for handshake + path) — then
+  retries exactly once (`provision-ineffective`, never a loop). Aborts kill the children;
+  a mid-upload abort reports an honest INDETERMINATE outcome. Tests (TEST-2001..TEST-2033) run
+  against a **fake ssh shim** spawning the agent as a local child process — no network, no real
+  ssh; the gold test provisions the REAL bundle built through `vite.agent.config.ts` and
+  handshakes it. Diagnostics are CONV-001-specific with control-char-sanitized stderr excerpts.
+  See `docs/features/remote-bootstrap.md` (contract notes: caller-owned cancellation, remote
+  `node` on PATH, shell-rc stdout noise) and
+  `docs/superpowers/0020-ssh-tunnel-provisioned-bootstrap-review-followups.md`.
 - **Agent runtime skeleton — pty + status domains over stdio (Remote Agent v1, batch 2).** The
   epic's walking skeleton: a **headless Node agent** in a new `src/agent/` tree that speaks F15's
   protocol over stdio (stdout = frames ONLY, diagnostics on stderr) and implements exactly the
