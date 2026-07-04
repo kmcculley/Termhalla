@@ -1,0 +1,80 @@
+[
+  {
+    "lens": "quality",
+    "claim": "Flow-decision application is not failure-contained: pane.pause()/pane.resume() run bare inside handle.onData and the ack/window frame paths, while the req dispatch path catches ALL handler throws and degrades to a coded res. A throwing backend pause()/resume() (real node-pty socket edge) would propagate out of session.onItem/the backend emit stack and crash the agent process instead of producing a stderr diagnostic and continuing.",
+    "severity": "MEDIUM",
+    "gate": "review",
+    "fix": "Wrap the pause/resume application (or applyDecisions body) in try/catch, routing failures to init.diag with the pane id and action - parity with the dispatch path's containment.",
+    "location": "src/agent/session.ts:applyDecisions",
+    "phase_of_origin": "implement",
+    "verified_by": "quality",
+    "id": "FINDING-001",
+    "status": "resolved",
+    "resolution": "Verified fixed in src/agent/session.ts: applyDecisions now wraps each pane.pause()/pane.resume() in try/catch routed to init.diag with the pane id, action, and bounded error text ('the session continues') - containment parity with the dispatch path. Full suite green (1658/1658) at the re-derived implement gate.",
+    "resolvedBy": "quality",
+    "resolvedAt": "2026-07-04T20:24:01.703Z"
+  },
+  {
+    "lens": "quality",
+    "claim": "A SCRIPTED exit processed while paused defers the exit callback (correct per REQ-010) but leaves dead=false with no terminal flag, so write() keeps processing later buffered newline commands: 'exit 3\\necho after\\n' written to a paused pane executes 'echo after' and queues its output AFTER the D;3 marker - a real pty's shell is gone after exit and later input is inert. Regression vs F16's immediate dead=true semantics; no frozen vector covers the sequence, but the fake is load-bearing for F18 replay tests. (Verified from the codex cross-check's report, re-rated: no spec MUST or frozen test breaks; bounded to fake fidelity.)",
+    "severity": "MEDIUM",
+    "gate": "review",
+    "fix": "Add a closing flag set when a scripted exit is deferred by a pause: write() stops processing further lines (and run() stops executing) once closing, while the queued output + deferred exit delivery stay as they are.",
+    "location": "src/agent/fake-backend.ts:exit/write",
+    "phase_of_origin": "implement",
+    "verified_by": "codex-cross-check",
+    "id": "FINDING-002",
+    "status": "resolved",
+    "resolution": "Verified fixed in src/agent/fake-backend.ts: exit() while paused now also sets a closing flag; write() returns immediately (and the line loop re-checks) when closing, so a deferred scripted exit leaves NO shell for later buffered input - post-exit commands are inert, matching a real pty, while queued data + the deferred exit callback delivery are byte-unchanged (TEST-788's exit-deferral vector still passes; full suite green).",
+    "resolvedBy": "codex-cross-check",
+    "resolvedAt": "2026-07-04T20:24:01.962Z"
+  },
+  {
+    "lens": "devils-advocate",
+    "claim": "Under the REAL backend, flow control widens the exit-vs-data race: a pane paused at its window whose child process exits fires onExit immediately (node-pty signals exit independent of the paused socket), the exit funnel prunes the pane, and F16's liveness guard then drops ALL post-pause tail data on the floor - the fake models the friendlier defer-exit-behind-queued-data ordering instead. Inherent to F16's exit-last contract, but the divergence between backends is now larger and unrecorded for F18 (replay), which owns scrollback durability.",
+    "severity": "LOW",
+    "gate": "review",
+    "fix": "No v1 code change: record for F18's spec that a stalled client + child exit truncates tail output under the real backend, so replay must not assume the paused tail survives.",
+    "location": "src/agent/session.ts:onData liveness guard / REQ-010",
+    "phase_of_origin": "spec",
+    "verified_by": "devils-advocate",
+    "id": "FINDING-003",
+    "status": "open"
+  },
+  {
+    "lens": "devils-advocate",
+    "claim": "Delta acks are keyed only by pane id, so a client that reuses a pane id and acks OLD-incarnation data after issuing the new spawn (lazy acker) decrements the NEW incarnation's counter: worst case one window's worth of premature resume (or a clamp+diagnostic on over-ack). Memory stays bounded and the stream is ordered, so this needs a client that both reuses ids and acks lazily - but the spec's ack-after-exit rationale (D4) does not name the reuse sub-case.",
+    "severity": "LOW",
+    "gate": "review",
+    "fix": "No v1 code change: id reuse with in-flight acks is a client-contract edge; note it beside D4/REQ-009 in the feature docs or let F21's client (which generates fresh UUIDs per pane) render it unreachable.",
+    "location": "src/shared/remote/flow-control.ts:onAck / REQ-009",
+    "phase_of_origin": "spec",
+    "verified_by": "devils-advocate",
+    "id": "FINDING-004",
+    "status": "open"
+  },
+  {
+    "lens": "quality",
+    "claim": "The spec's frozen-test collision enumeration (CONV-023 greps for ack/window/pause/Object.keys) could not see 0009's TEST-384 residual sweep, whose needle is ASSEMBLED ('toBe(' + '7)') precisely so no file textually matches it - the collision WAS visible as a pre-existing suite failing in the very first tests-phase RED run, but the red set was not diffed against the expected new-test set, so it surfaced two gates later at implement.",
+    "severity": "LOW",
+    "gate": "review",
+    "fix": "propose CONV: A tests-phase RED verification MUST enumerate the failing test files and assert the set is exactly the feature's own new + superseded suites - any pre-existing suite newly failing at the red gate is a collision to resolve before the freeze, never noise.",
+    "location": "tests phase process / REQ-014 enumeration",
+    "phase_of_origin": "tests",
+    "verified_by": "quality",
+    "id": "FINDING-005",
+    "status": "open"
+  },
+  {
+    "lens": "networking",
+    "claim": "The client ack cadence and the declared window are independently configurable with no cross-check: a client that declares a window smaller than its ackEveryBytes (e.g. window 1000, cadence 65536) pauses the agent and then never crosses its own ack threshold, stalling until its consumer calls flush(). Deliberate v1 design (flush is the consumer's job, CONV-036; defaults are a safe 16:1) - but F21's transport wiring must derive cadence from the declared window (or flush on quiet) or it can self-stall. (Verified from the codex cross-check's report, re-scoped to the F21 integration contract.)",
+    "severity": "LOW",
+    "gate": "review",
+    "fix": "No v1 code change: record for F21 that ackEveryBytes must be derived from (kept well below half of) any window it declares, or its transport must flush residue when the stream goes quiet.",
+    "location": "src/shared/remote/flow-control.ts:createClientAckPolicy / F21 wiring",
+    "phase_of_origin": "spec",
+    "verified_by": "codex-cross-check",
+    "id": "FINDING-006",
+    "status": "open"
+  }
+]

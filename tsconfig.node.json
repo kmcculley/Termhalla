@@ -12,6 +12,6 @@
     "baseUrl": ".",
     "paths": { "@shared/*": ["src/shared/*"] }
   },
-  "include": ["src/main", "src/shared", "src/agent", "tests"],
+  "include": ["src/main", "src/shared", "src/agent", "src/remote-client", "tests"],
   "exclude": ["tests/renderer", "tests/e2e"]
 }

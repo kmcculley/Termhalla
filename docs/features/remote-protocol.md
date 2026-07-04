@@ -101,13 +101,17 @@ connection-closed drain that reports every still-pending request exactly once, i
 closes the tracker (`open` afterwards throws `tracker-closed`; late responses settle as
 `closed`). No timers, no promises — the F16 transport wraps it.
 
-## Flow-control frames — reserved for F17
+## Flow-control frames — semantics landed with F17 (0018-windowed-flow-control)
 
-`ack` (`{ id, bytes }` — the client acknowledges pty output bytes for a pane) and `window`
-(`{ size, id? }` — the unacked-byte window; `id` absent = connection default) are **shape-only**
-in this feature: validated, round-tripped, and attached to NO semantics. Windowed flow control —
-cumulative-vs-delta accounting, node-pty `pause()`/`resume()` — lands in F17 over these exact
-shapes.
+`ack` (`{ id, bytes }` — the client acknowledges pty output for a pane; delta, not cumulative)
+and `window` (`{ size, id? }` — the unacked-byte window; `id` absent = connection default) were
+shape-only in THIS feature (validated and round-tripped, deliberately inert). F17 gave them
+their semantics over these exact, unchanged shapes in `src/shared/remote/flow-control.ts`
+(exported via this barrel: `flowPayloadSize`, `createAgentFlowGate`, `createClientAckPolicy`,
+`DEFAULT_FLOW_WINDOW_BYTES`, `DEFAULT_ACK_EVERY_BYTES`) — windowed backpressure with watermark
+hysteresis, applied to the backend's `pause()`/`resume()` by the agent session. The TEST-747
+export pin was extended accordingly through 0018's tests phase; details live in
+[remote-agent.md](remote-agent.md) § Flow control.
 
 ## Zero-consumer guarantee
 

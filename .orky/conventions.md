@@ -289,6 +289,12 @@ to it when a review surfaces a lesson general enough to outlive its feature.
   generation time — never a version literal fixed at spec-authoring time — so drift between spec
   freeze and the regeneration run cannot leave a stale or false version pinned as "the" provenance.
   *(from FINDING-004/FINDING-008/FINDING-010 in 0015-orky-contract-v2-refresh)*
+- **CONV-059** — A tests-phase RED verification MUST enumerate the failing test files and assert
+  the set is exactly the feature's own new + superseded suites; a PRE-EXISTING suite newly failing
+  at the red gate is a collision to resolve before the freeze, never noise — grep-based collision
+  enumeration cannot see assembled/self-match-proof needles (e.g. `'toBe(' + '7)'`), but the red
+  run itself always can.
+  *(from FINDING-005 in 0018-windowed-flow-control)*
 
 ## Principles
 Higher-level stances that inform specs and reviews but are too broad to gate mechanically.

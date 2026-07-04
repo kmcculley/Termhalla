@@ -2,11 +2,13 @@
  * The remote wire protocol — public barrel (REQ-001, REQ-013).
  *
  * The ONE sanctioned import surface: `@shared/remote/protocol`. TEST-747 pins the
- * runtime export list to exactly the spec's Public interface, so scope creep (e.g. a
- * premature flow-control semantics API — that is F17's) is mechanically visible.
+ * runtime export list to exactly the spec'd Public interface, so scope creep is
+ * mechanically visible. F17 (0018-windowed-flow-control) extended that pinned list
+ * with the flow-control semantics API through its own tests phase — the once-"premature"
+ * API this header used to name is now the sanctioned surface (see flow-control.ts).
  *
- * Consumers in v1: vitest only. F16 (agent runtime) and later F21 (client routing)
- * are the sanctioned production consumers — see TEST-746's retirement path.
+ * Consumers: the agent runtime (F16+) and vitest; later F21 (client routing) —
+ * see TEST-746's retirement path.
  */
 export { ProtocolError } from './errors'
 export type { ProtocolFailure, ProtocolReason } from './errors'
@@ -41,3 +43,18 @@ export type {
 
 export { createRequestTracker } from './correlation'
 export type { RequestTracker, SettleResult, FailedRequest, OpenedRequest } from './correlation'
+
+export {
+  flowPayloadSize,
+  DEFAULT_FLOW_WINDOW_BYTES,
+  DEFAULT_ACK_EVERY_BYTES,
+  createAgentFlowGate,
+  createClientAckPolicy
+} from './flow-control'
+export type {
+  FlowDecision,
+  AgentFlowGateInit,
+  AgentFlowGate,
+  ClientAckPolicyInit,
+  ClientAckPolicy
+} from './flow-control'

@@ -1,6 +1,6 @@
 {
   "feature": "0016-remote-protocol-core-handshake",
-  "phase": "doc-sync",
+  "phase": "implement",
   "gates": {
     "brainstorm": {
       "passed": true,
@@ -61,7 +61,7 @@
     },
     "implement": {
       "passed": true,
-      "at": "2026-07-04T17:41:30.478Z",
+      "at": "2026-07-04T17:55:19.267Z",
       "firstAt": "2026-07-04T17:40:10.648Z",
       "tokens": [
         {

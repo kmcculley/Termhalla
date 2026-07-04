@@ -1,0 +1,17 @@
+{
+  "REQ-001": { "tasks": ["TASK-001", "TASK-002"], "tests": ["TEST-781", "TEST-747"], "files": ["src/shared/remote/flow-control.ts", "src/shared/remote/protocol.ts"] },
+  "REQ-002": { "tasks": ["TASK-001"], "tests": ["TEST-779"], "files": ["src/shared/remote/flow-control.ts"] },
+  "REQ-003": { "tasks": ["TASK-001"], "tests": ["TEST-780"], "files": ["src/shared/remote/flow-control.ts"] },
+  "REQ-004": { "tasks": ["TASK-001"], "tests": ["TEST-781"], "files": ["src/shared/remote/flow-control.ts"] },
+  "REQ-005": { "tasks": ["TASK-001", "TASK-006"], "tests": ["TEST-782", "TEST-791"], "files": ["src/shared/remote/flow-control.ts", "src/agent/session.ts"] },
+  "REQ-006": { "tasks": ["TASK-001", "TASK-006"], "tests": ["TEST-783", "TEST-792"], "files": ["src/shared/remote/flow-control.ts", "src/agent/session.ts"] },
+  "REQ-007": { "tasks": ["TASK-001", "TASK-006"], "tests": ["TEST-784", "TEST-792"], "files": ["src/shared/remote/flow-control.ts", "src/agent/session.ts"] },
+  "REQ-008": { "tasks": ["TASK-001", "TASK-006"], "tests": ["TEST-785", "TEST-794"], "files": ["src/shared/remote/flow-control.ts", "src/agent/session.ts"] },
+  "REQ-009": { "tasks": ["TASK-001", "TASK-006"], "tests": ["TEST-786", "TEST-793"], "files": ["src/shared/remote/flow-control.ts", "src/agent/session.ts"] },
+  "REQ-010": { "tasks": ["TASK-003", "TASK-004", "TASK-005"], "tests": ["TEST-788", "TEST-790"], "files": ["src/agent/pty-backend.ts", "src/agent/node-pty-backend.ts", "src/agent/fake-backend.ts"] },
+  "REQ-011": { "tasks": ["TASK-005"], "tests": ["TEST-789"], "files": ["src/agent/fake-backend.ts"] },
+  "REQ-012": { "tasks": ["TASK-001"], "tests": ["TEST-787"], "files": ["src/shared/remote/flow-control.ts"] },
+  "REQ-013": { "tasks": ["TASK-006"], "tests": ["TEST-791", "TEST-792", "TEST-793", "TEST-794", "TEST-795"], "files": ["src/agent/session.ts"] },
+  "REQ-014": { "tasks": ["TASK-007"], "tests": ["TEST-747", "TEST-773"], "files": ["tests/agent-session.test.ts", "tests/remote-protocol-capabilities.test.ts"] },
+  "REQ-015": { "tasks": ["TASK-008"], "tests": ["TEST-796"], "files": ["docs/features/remote-agent.md", "docs/features/remote-protocol.md", "CHANGELOG.md"] }
+}

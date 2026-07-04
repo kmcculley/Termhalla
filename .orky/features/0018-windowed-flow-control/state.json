@@ -1,0 +1,177 @@
+{
+  "feature": "0018-windowed-flow-control",
+  "phase": "doc-sync",
+  "gates": {
+    "brainstorm": {
+      "passed": true,
+      "at": "2026-07-04T19:14:03.749Z",
+      "evidence": "app-run: concept fixed by roadmap entry F17",
+      "external": true
+    },
+    "spec": {
+      "passed": true,
+      "at": "2026-07-04T19:22:32.321Z",
+      "firstAt": "2026-07-04T19:22:32.321Z",
+      "tokens": [
+        {
+          "token": "findings",
+          "pass": true,
+          "evidence": "no open blocking findings (CRITICAL/HIGH or contract-violation) at or before this gate"
+        }
+      ]
+    },
+    "plan": {
+      "passed": true,
+      "at": "2026-07-04T19:24:50.999Z",
+      "firstAt": "2026-07-04T19:24:50.999Z",
+      "tokens": [
+        {
+          "token": "spec-freeze",
+          "pass": true,
+          "evidence": "spec unchanged since the spec gate"
+        },
+        {
+          "token": "traceability-plan",
+          "pass": true,
+          "evidence": "all 15 REQ(s) trace to TASK"
+        },
+        {
+          "token": "findings",
+          "pass": true,
+          "evidence": "no open blocking findings (CRITICAL/HIGH or contract-violation) at or before this gate"
+        }
+      ]
+    },
+    "tests": {
+      "passed": true,
+      "at": "2026-07-04T20:01:06.534Z",
+      "firstAt": "2026-07-04T20:01:06.534Z",
+      "tokens": [
+        {
+          "token": "spec-freeze",
+          "pass": true,
+          "evidence": "spec unchanged since the spec gate"
+        },
+        {
+          "token": "tests-red",
+          "pass": true,
+          "evidence": "tests are RED (exit 1) — freeze snapshot captured"
+        }
+      ]
+    },
+    "implement": {
+      "passed": true,
+      "at": "2026-07-04T20:23:40.592Z",
+      "firstAt": "2026-07-04T20:16:46.480Z",
+      "tokens": [
+        {
+          "token": "spec-freeze",
+          "pass": true,
+          "evidence": "spec unchanged since the spec gate"
+        },
+        {
+          "token": "build",
+          "pass": true,
+          "evidence": "build exited 0"
+        },
+        {
+          "token": "test",
+          "pass": true,
+          "evidence": "test exited 0"
+        },
+        {
+          "token": "test-freeze",
+          "pass": true,
+          "evidence": "test files unchanged since freeze"
+        }
+      ]
+    },
+    "review": {
+      "passed": true,
+      "at": "2026-07-04T20:24:13.919Z",
+      "firstAt": "2026-07-04T20:24:13.919Z",
+      "tokens": [
+        {
+          "token": "spec-freeze",
+          "pass": true,
+          "evidence": "spec unchanged since the spec gate"
+        },
+        {
+          "token": "findings",
+          "pass": true,
+          "evidence": "no open blocking findings (CRITICAL/HIGH or contract-violation) at or before this gate"
+        }
+      ]
+    },
+    "doc-sync": {
+      "passed": true,
+      "at": "2026-07-04T20:25:52.989Z",
+      "firstAt": "2026-07-04T20:25:52.989Z",
+      "tokens": [
+        {
+          "token": "spec-freeze",
+          "pass": true,
+          "evidence": "spec unchanged since the spec gate"
+        },
+        {
+          "token": "traceability",
+          "pass": true,
+          "evidence": "all 15 REQ(s) trace to TASK+TEST"
+        },
+        {
+          "token": "findings",
+          "pass": true,
+          "evidence": "no open blocking findings (CRITICAL/HIGH or contract-violation) at or before this gate"
+        }
+      ]
+    }
+  },
+  "iterations": {
+    "tests": 2,
+    "implement": 1
+  },
+  "escalations": [],
+  "concerns": [
+    "networking",
+    "determinism",
+    "performance"
+  ],
+  "attempts": {
+    "spec": 0,
+    "plan": 0,
+    "tests": 0,
+    "implement": 0,
+    "review": 0,
+    "doc-sync": 0
+  },
+  "loopbacks": [
+    {
+      "to": "tests",
+      "from": "implement",
+      "reason": "Implementer-reported frozen-test defect (ADR-009 route, shift-left before review): TEST-793 and TEST-794 in tests/agent-session-flow.test.ts call pty:kill with object params { id: 'x' }, but F16's frozen wire contract (validateKillParams in src/agent/validate.ts, pinned by 0017's frozen agent-session vectors, mirroring TermhallaApi.ptyKill) takes the bare pane-id STRING - the kill req answers bad-params, no exit evt ever arrives, and the assertions fail against correct production behavior. TEST-795 in tests/agent-stdio-flow.test.ts has the same wrong call shape (unasserted, so it passes today but silently never kills pane b). Fix: the three call sites become req(h, CH.ptyKill, 'a'/'b') / ask(CH.ptyKill, 'b'); no production code change implied - the implementation is NOT condemned (TEST-795 already proves the full flood/stall/recovery path over real stdio).",
+      "at": "2026-07-04T19:49:04.285Z"
+    },
+    {
+      "to": "tests",
+      "from": "implement",
+      "reason": "Implementer-reported frozen-test collision (ADR-009 route): TEST-781 in tests/remote-flow-control.test.ts uses the vector fill(7)/toBe(7), which trips 0009's repo-wide residual sweep TEST-384 (tests/shared/orky-pane-migration.test.ts) whose assembled needle is the literal string 'toBe(7)' with a closed two-file allow-list - exactly the CONV-022 value-pin collision class; the spec-time enumeration greps (ack/window/pause/Object.keys) could not see it. Fix: change the pane-b accounting vector from 7 to 9 units (semantically identical). No production code change implied.",
+      "at": "2026-07-04T19:59:08.299Z"
+    },
+    {
+      "to": "implement",
+      "from": "review",
+      "reason": "Apply the two verified MEDIUM review findings now rather than deferring (both are 5-line containment/lifecycle fixes in code F18 builds on; no frozen test is touched): FINDING-001 - wrap flow-decision pause/resume application in try/catch routed to stderr diag (parity with the dispatch path's containment); FINDING-002 - a scripted exit deferred by a pause must also stop the fake shell from processing later buffered command lines (closing flag), matching a real pty's post-exit inertness while keeping the queued-data + deferred-exit delivery unchanged.",
+      "at": "2026-07-04T20:12:37.611Z"
+    }
+  ],
+  "implementer": {
+    "mode": "claude",
+    "agents": [
+      "orky:implementer"
+    ],
+    "winner": "orky:implementer",
+    "reason": "Router requested A/B (orky:implementer + codex:codex-rescue) on the networking+determinism concerns, but this driver environment has no parallel agent-dispatch tool and one shared worktree (two concurrent implementers would collide); codex exec has a recorded stall precedent on this box (0016 implement re-entry 3: backgrounded codex sat on stdin and wrote nothing, killed at the 600s bound) and per ADR-025 codex never holds the pipeline. orky:implementer (Claude, driver-inline) ran solo: 8 source/doc artifacts (flow-control.ts module, barrel, 3 backend files, session wiring, 2 feature docs + changelog), one ADR-009 tests loopback en route (TEST-793/794/795 called pty:kill with object params where F16's frozen wire contract takes the bare pane-id string; fixed at the tests phase, freeze re-captured). Codex is reserved for a bounded read-only verifier cross-check at review.",
+    "at": "2026-07-04T19:55:06.820Z"
+  },
+  "totalFailures": 2
+}

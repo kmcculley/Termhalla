@@ -15,13 +15,26 @@
  * snapshot is being produced for a CONNECTED client is held and drained right after that
  * attach's res, so the snapshot ⊕ subsequent data reconstruct the stream exactly-once.
  *
+ * Windowed flow control (F17 / 0018) rides HERE since the emit path moved here: ONE shared
+ * flow gate per store counts every DELIVERED `pty:data` payload (live route, attach-window
+ * drain, exit-time final flush — never the replay feed) and pauses/resumes the pane's backend
+ * handle synchronously inside whatever event produced the decision (data emission, ack,
+ * window). Flow pressure is pressure from the BOUND client, so the gate's accounting is
+ * connection-scoped even though the gate object rides the store: `unbind()` resumes anything
+ * the departed client's stall had paused (detached mode's only consumer is the replay
+ * terminal, which applies no backpressure — output must keep feeding it, REQ-011) and resets
+ * the accounting to zero, matching the client side, whose ack policy is per-connection. A
+ * persisted residue could never be acked away by a fresh client and would ratchet toward a
+ * permanent pause — see docs/features/remote-agent.md § Flow control.
+ *
  * v1 is single-connection: `bind()` while bound throws (F20 / 0021-exclusive-attach-lease
  * retires this guard with lease/steal semantics through its own tests phase — CONV-019).
  */
 import { CH } from '@shared/ipc-contract'
 import type { PtySpawnArgs } from '@shared/ipc-contract'
 import type { TerminalStatus } from '@shared/types'
-import type { WireFrame } from '@shared/remote/protocol'
+import type { WireFrame, FlowDecision } from '@shared/remote/protocol'
+import { createAgentFlowGate } from '@shared/remote/protocol'
 import { StatusEngine } from '../main/status/status-engine'
 import type { AgentPtyBackend, AgentPtyHandle } from './pty-backend'
 import { createPaneReplay, HISTORY_LIMIT_DEFAULT, type PaneReplay, type ReplayFactory } from './replay'
@@ -64,6 +77,12 @@ export interface AgentSessionStore {
   kill(id: string): boolean
   attach(id: string): Promise<AttachOutcome>
   list(): AgentSessionInfo[]
+  /** Inbound `ack` frame (F17 REQ-006): fire-and-forget — a resume decision is applied to the
+   *  pane's backend synchronously; unknown-pane acks (an ack racing the exit) stay silent. */
+  flowAck(id: string, bytes: number): void
+  /** Inbound `window` frame (F17 REQ-007): per-pane override with `id` (live panes only,
+   *  diagnosed otherwise), connection-wide default without. Fire-and-forget. */
+  flowWindow(size: number, id?: string): void
   /** Kill every pane, dispose replays + engine. Idempotent. Detach must NOT call this. */
   destroy(): void
 }
@@ -98,6 +117,26 @@ export const createSessionStore = (init: AgentSessionStoreInit): AgentSessionSto
    *  after its connection died can never corrupt the NEXT connection's hold bookkeeping. */
   let bindGen = 0
 
+  // Windowed flow control (F17 / 0018 welded into the 0019 store split): ONE gate per
+  // connection-life; its diagnostics ride the store's diag channel (= the session's stderr in
+  // the owned composition). Recreated on every unbind — see unbindInternal.
+  let gate = createAgentFlowGate({ onDiagnostic: diag })
+
+  const applyFlowDecisions = (decisions: FlowDecision[]): void => {
+    for (const d of decisions) {
+      const rec = panes.get(d.id)
+      if (!rec?.handle) continue // the pane raced away; its flow state is pruned on the exit funnel
+      // Containment parity with the dispatch path (F17 FINDING-001): a throwing backend
+      // pause()/resume() degrades to a diagnostic, never crashes the agent.
+      try {
+        if (d.action === 'pause') rec.handle.pause()
+        else rec.handle.resume()
+      } catch (e) {
+        diag(`flow: ${d.action} on pane "${d.id}" failed: ${bounded(e)} - the session continues`)
+      }
+    }
+  }
+
   const deliver = (frame: WireFrame): void => {
     if (!bound) return
     const client = bound
@@ -111,13 +150,24 @@ export const createSessionStore = (init: AgentSessionStoreInit): AgentSessionSto
     }
   }
 
+  /** Deliver one pty:data frame AND count it through the flow gate (F17 REQ-005: count the
+   *  SAME payload just emitted; a window crossing pauses the backend synchronously, within
+   *  this very delivery). Every pty:data delivery path funnels here — live route, attach
+   *  drain, exit-time final flush — so agent-side accounting stays symmetric with a client
+   *  policy counting every received payload. If the send itself killed the connection, the
+   *  unbind already reset the gate and the count is skipped (pressure needs a live consumer). */
+  const deliverData = (id: string, data: string): void => {
+    deliver({ type: 'evt', channel: CH.ptyData, args: [id, data] })
+    if (bound !== null) applyFlowDecisions(gate.onDataEmitted(id, data))
+  }
+
   const routeData = (id: string, rec: PaneRec, data: string): void => {
     if (destroyed || !bound || !rec.subscribed) return
     if (rec.holds > 0) {
       rec.held.push(data) // the bounded per-attach ordering window (REQ-006d) — NOT a queue
       return
     }
-    deliver({ type: 'evt', channel: CH.ptyData, args: [id, data] })
+    deliverData(id, data)
   }
 
   const engine = new StatusEngine(
@@ -160,10 +210,11 @@ export const createSessionStore = (init: AgentSessionStoreInit): AgentSessionSto
       const finalHeld = rec.held
       rec.held = []
       for (const chunk of finalHeld) {
-        deliver({ type: 'evt', channel: CH.ptyData, args: [id, chunk] })
+        deliverData(id, chunk)
       }
     }
     rec.held = []
+    gate.paneExited(id) // prune flow state (F17 REQ-009); late acks/windows hit the untracked paths
     engine.markExit(id, code) // final status (lastExit) flows out BEFORE the exit event
     engine.unregister(id)
     panes.delete(id)
@@ -177,6 +228,23 @@ export const createSessionStore = (init: AgentSessionStoreInit): AgentSessionSto
   const unbindInternal = (): void => {
     bound = null
     bindGen++
+    // Flow-control weld (F17 ⊗ F18): the unacked accounting measured pressure from the
+    // now-departed client, and a fresh client's ack policy starts at zero — so the agent
+    // side resets to zero too (a persisted residue could never be acked away and would
+    // ratchet toward a pause that no resume watermark can clear). Anything the departed
+    // client's stall had paused is resumed FIRST, with bound already null: the flushed
+    // backlog lands in the replay terminal (detached mode's only consumer, which applies
+    // no backpressure) instead of going silent — REQ-011's "output continues while away".
+    for (const [id, rec] of panes) {
+      if (rec.handle === null || gate.stats(id)?.paused !== true) continue
+      try {
+        rec.handle.resume()
+      } catch (e) {
+        diag(`flow: resume on pane "${id}" at detach failed: ${bounded(e)} - the pane continues`)
+      }
+    }
+    gate.dispose()
+    gate = createAgentFlowGate({ onDiagnostic: diag })
     for (const rec of panes.values()) {
       rec.subscribed = false
       rec.holds = 0 // open windows belonged to the dead connection — their releases no-op
@@ -356,7 +424,7 @@ export const createSessionStore = (init: AgentSessionStoreInit): AgentSessionSto
           const heldNow = rec.held
           rec.held = []
           for (const chunk of heldNow) {
-            deliver({ type: 'evt', channel: CH.ptyData, args: [id, chunk] })
+            deliverData(id, chunk) // drained held bytes are emissions too — the gate counts them
           }
         }
       }
@@ -398,6 +466,16 @@ export const createSessionStore = (init: AgentSessionStoreInit): AgentSessionSto
           message: `pty:attach "${id}" failed: ${bounded(e)} - the session continues`
         }
       })
+    },
+
+    flowAck(id: string, bytes: number): void {
+      if (destroyed) return
+      applyFlowDecisions(gate.onAck(id, bytes))
+    },
+
+    flowWindow(size: number, id?: string): void {
+      if (destroyed) return
+      applyFlowDecisions(gate.onWindow(size, id))
     },
 
     list(): AgentSessionInfo[] {

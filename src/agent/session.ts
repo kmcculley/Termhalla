@@ -14,6 +14,13 @@
  *    replay + status keep consuming, and a later connection reattaches via `pty:attach` /
  *    `pty:sessions`. F19/F21 wire this seam to a reattachable transport.
  *
+ * Since 0018 (windowed flow control) the once-inert ack/window frames HAVE semantics: every
+ * emitted pty:data payload is counted through the shared flow gate, which pauses the pane's
+ * backend past the unacked window and resumes it when the client's acks drain to the low
+ * watermark — see src/shared/remote/flow-control.ts for the measure and hysteresis. The gate
+ * itself lives in the session store (the emit path moved there with 0019); this connection
+ * merely forwards inbound ack/window frames, fire-and-forget (never answered with a frame).
+ *
  * Protocol comes exclusively from the F15 barrel (REQ-002). Outbound TerminalStatus objects
  * are re-shaped to drop an absent `lastExit` KEY (see `session-api.ts` — F15's strict validator
  * rejects `undefined` inside JSON positions).
@@ -224,8 +231,14 @@ export const createAgentSession = (init: AgentSessionInit): AgentSession => {
         case 'req':
           return dispatch(frame)
         case 'ack':
+          // Flow control (0018, REQ-006/REQ-013 — F16's inertness superseded per TEST-773's
+          // retirement path): fire-and-forget, never answered with a frame. The gate rides
+          // the store (where the emit path lives since 0019).
+          store.flowAck(frame.id, frame.bytes)
+          return
         case 'window':
-          // RESERVED (F17 gives these semantics and retires this inertness — TEST-773).
+          // Per-pane with `id`, connection-wide default without (REQ-007). Fire-and-forget.
+          store.flowWindow(frame.size, frame.id)
           return
         case 'hello':
         case 'res':
