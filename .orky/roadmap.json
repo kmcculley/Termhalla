@@ -1,118 +1,65 @@
 {
-  "app": "Termhalla — Orky integration T1–T4",
+  "app": "Termhalla — Remote Agent v1 (tmux-style remote sessions)",
   "features": [
     {
-      "id": "F5",
-      "slug": "0005-cross-project-orky-registry",
-      "title": "Cross-project Orky registry + multi-root aggregation",
-      "summary": "Track every project with an .orky/ dir (open panes' resolved roots + a persisted explicit list) and roll their status up into one cross-project, pane-independent aggregate over a new IPC channel — generalizing 0004's single-root OrkyTracker to a set of roots.",
+      "id": "F15",
+      "slug": "0016-remote-protocol-core-handshake",
+      "title": "Remote wire protocol core + version/capability handshake",
+      "summary": "Pure protocol layer in src/shared/ (zero Node/Electron imports, vitest-only, zero behavior change to the running app) derived from the typed ipc-contract.ts: framing over a byte stream, request/response correlation, agent→client push events, and the connect handshake — an EXACT-version check (locked: client and agent are version-locked because the client provisions the agent; the handshake is a version check, NOT a compatibility matrix) plus capability advertisement where the capability partition IS the set of per-domain IPC registrar names (v1 agent advertises only pty + status). Includes the flow-control ack/window frame types (semantics land in F17). Stdio is the only assumed transport, so the identical protocol path runs over system ssh in production and over a plain local child process in CI/e2e.",
       "deps": [],
-      "status": "done",
-      "completedAt": "2026-07-01T02:52:59.278Z"
+      "status": "pending"
     },
     {
-      "id": "F6",
-      "slug": "0006-decision-queue-panel",
-      "title": "Decision-queue panel (read)",
-      "summary": "A renderer panel that renders F5's cross-project aggregate as a queue of what needs a human now (open escalations, awaiting human-review, stalled), grouped by project and ranked by the existing selectChipFeature ordering, with empty/loading/error states and click-to-focus.",
-      "deps": [
-        "F5"
-      ],
-      "status": "done",
-      "completedAt": "2026-07-02T04:32:38.934Z"
+      "id": "F16",
+      "slug": "0017-agent-runtime-skeleton",
+      "title": "Agent runtime skeleton — pty + status domains over stdio",
+      "summary": "The walking skeleton: a headless Node agent living in THIS repo (sharing src/shared/ protocol types — that is the point of the epic's architecture) that speaks F15's protocol over stdio and implements ONLY the pty + status domains (locked: that is tmux parity; the 17 per-domain registrars are the capability partition). Agent-side node-pty spawn/write/resize/data/exit round-trips through the real protocol against a plain locally-spawned agent child process (no real ssh anywhere in CI — identical protocol path, locked decision 1). Status detection (OSC 133 / needs-input / cwd, reusing the existing pure src/main/status/ modules) consumes the byte stream AT THE SOURCE on the agent, so status chips work identically for remote panes. Agent platform v1 = Linux only; design POSIX-portable (macOS nearly free later) but no macOS/Windows-remote REQs or tests in v1. MUST fold the agent build + tests into npm run build and npm test so the verified gate profile (.orky/profiles/node-app.json) actually builds and tests the agent without the profile file itself changing.",
+      "deps": ["F15"],
+      "status": "pending"
     },
     {
-      "id": "F7",
-      "slug": "0007-orky-action-dispatch",
-      "title": "Orky action-dispatch substrate (first write capability)",
-      "summary": "A privileged main-process layer that invokes Orky's feedback CLI (emit/pull/ack, file mode) and Gatekeeper CLI (record/resolve-escalation/drive) safely — request/response IPC, project-root allowlist (from F5), the feedback.enabled precondition, arg validation, exit-code/JSON result mapping, audit. Never decides a gate; only submits human verdicts/decisions/work.",
-      "deps": [
-        "F5"
-      ],
-      "status": "done",
-      "completedAt": "2026-07-02T01:16:49.071Z"
+      "id": "F17",
+      "slug": "0018-windowed-flow-control",
+      "title": "Windowed flow control (protocol-level backpressure)",
+      "summary": "Day-one, protocol-level backpressure (locked decision 4 — the cat-a-huge-file problem, not an afterthought): the client acks pty output every N KB; the agent calls node-pty pause() when unacked bytes exceed the window and resume() when drained, so agent memory stays bounded under an output flood even with a slow or stalled client. Implements the semantics over F15's ack/window frames in F16's agent + client; tested with a scripted flood and a deliberately stalled consumer.",
+      "deps": ["F16"],
+      "status": "pending"
     },
     {
-      "id": "F8",
-      "slug": "0008-queue-answer-resume-actions",
-      "title": "One-click answer-escalation + resume on queue entries (write)",
-      "summary": "Wire one-click answer-an-escalation (resolve-escalation / feedback decision) and resume (drive) onto F6's queue entries through F7's dispatch, each gated on an explicit user gesture, with pending/result states and a clear disabled-feedback message.",
-      "deps": [
-        "F6",
-        "F7"
-      ],
-      "status": "done",
-      "completedAt": "2026-07-02T23:17:46.803Z"
+      "id": "F18",
+      "slug": "0019-agent-replay-session-survival",
+      "title": "Agent-side replay + session survival",
+      "summary": "Sessions survive client disconnect/death (locked decision 3): the agent keeps PTYs alive with one @xterm/headless terminal per PTY running AGENT-side, bounded scrollback (tmux history-limit analog), and a serialize-addon snapshot sent to the client on (re)attach so the pane repaints exactly. Adds the agent-side session inventory (list/identify surviving sessions for reattach). Explicitly NOT the window-manager transit buffer — that is a 1024-event/10s-GC same-machine handoff primitive and the wrong tool here; no code in this feature may reuse it. Surviving DISCONNECT is v1; surviving host reboot is not promised (supervision is a recorded open question).",
+      "deps": ["F16"],
+      "status": "pending"
     },
     {
-      "id": "F9",
-      "slug": "0009-native-orky-pane",
-      "title": "Native OrkyPane pane type (read)",
-      "summary": "A first-class pane KIND in the workspace/pane model (schema-bumped, persisted) that binds to an explicitly-chosen Orky project root and renders its full status — features, live phases, gate N/M, findings, escalations — reusing the orky-status mappers and F5's data rather than a terminal chip.",
-      "deps": [
-        "F5"
-      ],
-      "status": "done",
-      "completedAt": "2026-07-02T08:51:02.198Z"
+      "id": "F19",
+      "slug": "0020-ssh-tunnel-provisioned-bootstrap",
+      "title": "SSH tunnel + client-provisioned agent bootstrap",
+      "summary": "Transport = a stdio exec channel over the SYSTEM ssh binary — spawn the user's ssh, NEVER an SSH library (locked decision 1) — inheriting ~/.ssh/config, jump hosts, hardware keys, and 2FA. Seeds connection config from SSH favorites (host/user/port + identity-file PATH; buildSshArgs in src/shared/quick.ts + quick-store.ts) and introduces named agents as the connection registry (no secrets persisted, per baseline posture). On connect the client version-checks the remote agent through F15's handshake and uploads its own bundled matching agent build if absent or mismatched (locked decision 2 — client-provisioned, version-locked). e2e runs against a fake/local 'ssh' shim spawning the agent as a local child process — never a real network.",
+      "deps": ["F16"],
+      "status": "pending"
     },
     {
-      "id": "F10",
-      "slug": "0010-orky-pane-inline-actions",
-      "title": "Inline actions in OrkyPane (write)",
-      "summary": "Surface answer/resume (and inject via F12's quick-capture) directly inside the OrkyPane through F7's dispatch, so a project can be worked end-to-end from its own pane, each action tied to an explicit gesture.",
-      "deps": [
-        "F9",
-        "F7"
-      ],
-      "status": "done",
-      "completedAt": "2026-07-03T02:51:56.976Z"
+      "id": "F20",
+      "slug": "0021-exclusive-attach-lease",
+      "title": "Exclusive attach via agent-side lease",
+      "summary": "tmux attach -d semantics (locked decision 5): attaching a session STEALS it via an agent-side lease; the agent notifies the previously-attached client, which drops that workspace to a disconnected state (F21 renders the banner). No mirrored/shared attach in v1. Lease grant/steal/release rides F18's session inventory and reattach/replay path; the concurrent-attach steal race must resolve deterministically (exactly one holder).",
+      "deps": ["F18"],
+      "status": "pending"
     },
     {
-      "id": "F11",
-      "slug": "0011-orky-workspace-template",
-      "title": "Per-project Orky workspace template",
-      "summary": "A workspace preset that sets up an OrkyPane (plus a terminal pane in the project root) for a chosen tracked project, so opening 'work this Orky project' is one gesture.",
-      "deps": [
-        "F9"
-      ],
-      "status": "done",
-      "completedAt": "2026-07-03T05:13:07.248Z"
-    },
-    {
-      "id": "F12",
-      "slug": "0012-quick-capture-inbox",
-      "title": "Quick-capture new-work inbox (write)",
-      "summary": "A fast global entry point (command palette / shortcut) to capture new work or an idea from anywhere in Termhalla, pick a target project from F5's registry, and submit it as a new-work feedback item via F7. This is the single new-work injection surface the queue and OrkyPane also reuse.",
-      "deps": [
-        "F7"
-      ],
-      "status": "done",
-      "completedAt": "2026-07-02T12:55:57.609Z"
-    },
-    {
-      "id": "F13",
-      "slug": "0013-os-needs-you-notifications",
-      "title": "OS-level needs-you notifications (read)",
-      "summary": "Extend 0004's tab-badge mechanism to fire OS-level notifications on needs-you transitions across ALL tracked projects (from F5) — even ones with no open pane — respecting the existing tab-badge opt-in, with dedupe/throttle and click-to-focus.",
-      "deps": [
-        "F5"
-      ],
-      "status": "done",
-      "completedAt": "2026-07-02T15:28:16.102Z"
-    },
-    {
-      "id": "F14",
-      "slug": "0014-orky-osc-heartbeat",
-      "title": "Orky OSC heartbeat parse + render (read)",
-      "summary": "Parse Orky's OSC 9999 heartbeat marker (ESC ] 9999 ; <JSON> BEL — wire format + payload schema now specified in the Orky repo's docs/osc-heartbeat.md, ADR-026) out of the PTY byte stream (extending the existing osc-scanner / osc133 infra), so an Orky run's status is visible over a bare SSH/remote pane where the .orky/ tree is not filesystem-reachable, rendered through the same orky-status presentation as 0004. The emitter is confirmed Orky-side (resolves roadmap open question #2) — this feature is the parser/renderer ONLY; it never spawns the emitter or writes anything under .orky/.",
-      "deps": [],
-      "status": "done",
-      "completedAt": "2026-07-01T00:30:30.767Z"
+      "id": "F21",
+      "slug": "0022-client-routing-remote-workspace-ux",
+      "title": "Client routing + remote-workspace UX (per-workspace home)",
+      "summary": "Granularity = per-workspace home (locked decision 7): a workspace has a home — local, or a named agent — every pane in it lives at its home, one connection per workspace, and cross-workspace pane moves between different homes are out of scope (a running PTY cannot teleport machines). Persists home on the workspace record (SCHEMA_VERSION bump + migration; the constant is currently 8). Routes pty/status IPC for remote-home workspaces through the ssh-tunneled agent client transparently to the renderer; remote panes get identical status chips (agent-sourced, from F16); disconnect/lease-steal shows a disconnected/reconnecting banner riding the keep-mounted discipline — a disconnected pane freezes with a banner, NEVER unmounts (no xterm disposal); unsupported IPC domains (fs/editor, git, usage, orky, …) are greyed out per remote workspace from F15's capability handshake (locked decision 6). Hard invariants: renderer keeps ZERO Node/Electron imports; existing local-workspace behavior is byte-identical when no remote workspace exists; characterization tests stay green.",
+      "deps": ["F18", "F19", "F20"],
+      "status": "pending"
     }
   ],
   "integration": {
-    "status": "done",
-    "summary": "Against a synthetic multi-project .orky/ fixture, prove the read -> decide -> act loop end-to-end across features and over 0004's existing plumbing: (1) F5 surfaces a needs-you entry from a project with NO open pane; (2) F6 ranks/groups it; (3) a one-click F8/F10 action dispatches through F7 to the REAL feedback/gatekeeper CLI and the resulting state change is re-derived from ground truth (state.json mutated by the Gatekeeper, never written by Termhalla); (4) the F9 OrkyPane reflects the same project; (5) F12 quick-capture lands a new-work item in the file-mode inbox; (6) the read/write boundary holds — 0004's watcher and every read path (F5/F6/F9/F13/F14) make zero writes under .orky/, only F7 writes and only via the sanctioned feedback/gatekeeper contract on an explicit gesture; (7) every write feature no-ops or flags cleanly when feedback.enabled is false. Also exercise the brownfield seams with 0004's OrkyTracker / src/shared/orky-status.ts / orky:* IPC, which are real dependencies the DAG cannot encode.",
-    "completedAt": "2026-07-03T05:42:19.097Z"
+    "status": "pending",
+    "summary": "End-to-end client↔agent proof over the stdio loopback — the agent spawned as a plain local child process, the IDENTICAL protocol path as ssh: (1) full pty round-trip (spawn/write/resize/data/exit) through the real protocol; (2) disconnect → agent-side output continues → reattach → the replayed serialize snapshot matches an independent headless reference terminal; (3) flow control holds under an output flood — agent memory stays bounded and node-pty pause()/resume() is observed; (4) a lease steal drops the losing client's workspace to disconnected (tmux attach -d semantics); (5) the provisioning version-check/upload path is exercised against the fake ssh shim (absent agent, version-mismatched agent, matching agent); (6) the renderer still has zero Node imports; (7) the full CHAR suite (tests/characterization-*.test.ts) stays green; (8) local-only behavior is byte-identical when no remote workspace exists."
   }
 }

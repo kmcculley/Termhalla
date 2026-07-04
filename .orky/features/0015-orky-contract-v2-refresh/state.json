@@ -124,6 +124,12 @@
           "evidence": "no open blocking findings (CRITICAL/HIGH or contract-violation) at or before this gate"
         }
       ]
+    },
+    "human-review": {
+      "passed": true,
+      "at": "2026-07-03T18:12:27.783Z",
+      "evidence": "looks good",
+      "external": true
     }
   },
   "iterations": {

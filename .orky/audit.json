@@ -235,5 +235,4687 @@
     "totalFailures": 1,
     "wallClockMs": 24,
     "at": "2026-07-03T17:56:42.612Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0012-quick-capture-inbox",
+    "role": "planner",
+    "agentType": "orky:planner",
+    "transcript": "agent-a01ca6e4acaf24036",
+    "dir": "C--dev-Orky/2a49ed92-3b01-4ae3-a3af-6d6a7d229a6e/subagents",
+    "served": [
+      "claude-sonnet-5"
+    ],
+    "firstModel": "claude-sonnet-5",
+    "lastModel": "claude-sonnet-5",
+    "messages": 20,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.028Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0009-native-orky-pane",
+    "role": "reviewer",
+    "agentType": "orky:reviewer",
+    "transcript": "agent-a04b7bc1257840468",
+    "dir": "C--dev-Orky/2a49ed92-3b01-4ae3-a3af-6d6a7d229a6e/subagents",
+    "served": [
+      "claude-fable-5"
+    ],
+    "firstModel": "claude-fable-5",
+    "lastModel": "claude-fable-5",
+    "messages": 81,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.029Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0008-queue-answer-resume-actions",
+    "role": "reviewer",
+    "agentType": "orky:reviewer",
+    "transcript": "agent-a07c382c385c9f5c0",
+    "dir": "C--dev-Orky/2a49ed92-3b01-4ae3-a3af-6d6a7d229a6e/subagents",
+    "served": [
+      "claude-fable-5"
+    ],
+    "firstModel": "claude-fable-5",
+    "lastModel": "claude-fable-5",
+    "messages": 124,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.029Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0006-decision-queue-panel",
+    "role": "implementer",
+    "agentType": "orky:implementer",
+    "transcript": "agent-a09a42c86ba2e89c6",
+    "dir": "C--dev-Orky/2a49ed92-3b01-4ae3-a3af-6d6a7d229a6e/subagents",
+    "served": [
+      "claude-fable-5"
+    ],
+    "firstModel": "claude-fable-5",
+    "lastModel": "claude-fable-5",
+    "messages": 144,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.029Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0010-orky-pane-inline-actions",
+    "role": "implementer",
+    "agentType": "orky:implementer",
+    "transcript": "agent-a0ae4180fb11d8372",
+    "dir": "C--dev-Orky/2a49ed92-3b01-4ae3-a3af-6d6a7d229a6e/subagents",
+    "served": [
+      "claude-fable-5"
+    ],
+    "firstModel": "claude-fable-5",
+    "lastModel": "claude-fable-5",
+    "messages": 114,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.029Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0012-quick-capture-inbox",
+    "role": "spec-writer",
+    "agentType": "orky:spec-writer",
+    "transcript": "agent-a0aee280c7935ba0b",
+    "dir": "C--dev-Orky/2a49ed92-3b01-4ae3-a3af-6d6a7d229a6e/subagents",
+    "served": [
+      "claude-fable-5"
+    ],
+    "firstModel": "claude-fable-5",
+    "lastModel": "claude-fable-5",
+    "messages": 46,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.029Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0011-orky-workspace-template",
+    "role": "spec-writer",
+    "agentType": "orky:spec-writer",
+    "transcript": "agent-a0de64d5d3c77f47c",
+    "dir": "C--dev-Orky/2a49ed92-3b01-4ae3-a3af-6d6a7d229a6e/subagents",
+    "served": [
+      "claude-fable-5"
+    ],
+    "firstModel": "claude-fable-5",
+    "lastModel": "claude-fable-5",
+    "messages": 79,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.029Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0009-native-orky-pane",
+    "role": "reviewer",
+    "agentType": "orky:reviewer",
+    "transcript": "agent-a10d893a840536f98",
+    "dir": "C--dev-Orky/2a49ed92-3b01-4ae3-a3af-6d6a7d229a6e/subagents",
+    "served": [
+      "claude-fable-5"
+    ],
+    "firstModel": "claude-fable-5",
+    "lastModel": "claude-fable-5",
+    "messages": 67,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.029Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0010-orky-pane-inline-actions",
+    "role": "reviewer",
+    "agentType": "orky:reviewer",
+    "transcript": "agent-a16815791796e5e58",
+    "dir": "C--dev-Orky/2a49ed92-3b01-4ae3-a3af-6d6a7d229a6e/subagents",
+    "served": [
+      "claude-fable-5"
+    ],
+    "firstModel": "claude-fable-5",
+    "lastModel": "claude-fable-5",
+    "messages": 76,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.029Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0013-os-needs-you-notifications",
+    "role": "reviewer",
+    "agentType": "orky:reviewer",
+    "transcript": "agent-a1a499bcfa8c01777",
+    "dir": "C--dev-Orky/2a49ed92-3b01-4ae3-a3af-6d6a7d229a6e/subagents",
+    "served": [
+      "claude-opus-4-8"
+    ],
+    "firstModel": "claude-opus-4-8",
+    "lastModel": "claude-opus-4-8",
+    "messages": 90,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.029Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0010-orky-pane-inline-actions",
+    "role": "planner",
+    "agentType": "orky:planner",
+    "transcript": "agent-a1d018ef4855a5824",
+    "dir": "C--dev-Orky/2a49ed92-3b01-4ae3-a3af-6d6a7d229a6e/subagents",
+    "served": [
+      "claude-sonnet-5"
+    ],
+    "firstModel": "claude-sonnet-5",
+    "lastModel": "claude-sonnet-5",
+    "messages": 34,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.029Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0009-native-orky-pane",
+    "role": "reviewer",
+    "agentType": "orky:reviewer",
+    "transcript": "agent-a22088e124174ab1c",
+    "dir": "C--dev-Orky/2a49ed92-3b01-4ae3-a3af-6d6a7d229a6e/subagents",
+    "served": [
+      "claude-fable-5"
+    ],
+    "firstModel": "claude-fable-5",
+    "lastModel": "claude-fable-5",
+    "messages": 58,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.029Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0010-orky-pane-inline-actions",
+    "role": "spec-writer",
+    "agentType": "orky:spec-writer",
+    "transcript": "agent-a29829c5c2f1a8fa0",
+    "dir": "C--dev-Orky/2a49ed92-3b01-4ae3-a3af-6d6a7d229a6e/subagents",
+    "served": [
+      "claude-fable-5"
+    ],
+    "firstModel": "claude-fable-5",
+    "lastModel": "claude-fable-5",
+    "messages": 43,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.029Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0007-orky-action-dispatch",
+    "role": "doc-sync",
+    "agentType": "orky:doc-sync",
+    "transcript": "agent-a2c5c421fcbb206f6",
+    "dir": "C--dev-Orky/2a49ed92-3b01-4ae3-a3af-6d6a7d229a6e/subagents",
+    "served": [
+      "claude-sonnet-5"
+    ],
+    "firstModel": "claude-sonnet-5",
+    "lastModel": "claude-sonnet-5",
+    "messages": 102,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.029Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0010-orky-pane-inline-actions",
+    "role": "implementer",
+    "agentType": "orky:implementer",
+    "transcript": "agent-a340a831c4ba5ec9b",
+    "dir": "C--dev-Orky/2a49ed92-3b01-4ae3-a3af-6d6a7d229a6e/subagents",
+    "served": [
+      "claude-fable-5"
+    ],
+    "firstModel": "claude-fable-5",
+    "lastModel": "claude-fable-5",
+    "messages": 142,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.029Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0012-quick-capture-inbox",
+    "role": "test-designer",
+    "agentType": "orky:test-designer",
+    "transcript": "agent-a384847db63ba5ed5",
+    "dir": "C--dev-Orky/2a49ed92-3b01-4ae3-a3af-6d6a7d229a6e/subagents",
+    "served": [
+      "claude-fable-5"
+    ],
+    "firstModel": "claude-fable-5",
+    "lastModel": "claude-fable-5",
+    "messages": 150,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.029Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0006-decision-queue-panel",
+    "role": "test-designer",
+    "agentType": "orky:test-designer",
+    "transcript": "agent-a3a0b2473a5ada23d",
+    "dir": "C--dev-Orky/2a49ed92-3b01-4ae3-a3af-6d6a7d229a6e/subagents",
+    "served": [
+      "claude-fable-5"
+    ],
+    "firstModel": "claude-fable-5",
+    "lastModel": "claude-fable-5",
+    "messages": 64,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.029Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0006-decision-queue-panel",
+    "role": "spec-writer",
+    "agentType": "orky:spec-writer",
+    "transcript": "agent-a3aad50bb92887c8a",
+    "dir": "C--dev-Orky/2a49ed92-3b01-4ae3-a3af-6d6a7d229a6e/subagents",
+    "served": [
+      "claude-fable-5"
+    ],
+    "firstModel": "claude-fable-5",
+    "lastModel": "claude-fable-5",
+    "messages": 64,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.029Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0008-queue-answer-resume-actions",
+    "role": "reviewer",
+    "agentType": "orky:reviewer",
+    "transcript": "agent-a3cae21b175649992",
+    "dir": "C--dev-Orky/2a49ed92-3b01-4ae3-a3af-6d6a7d229a6e/subagents",
+    "served": [
+      "claude-fable-5"
+    ],
+    "firstModel": "claude-fable-5",
+    "lastModel": "claude-fable-5",
+    "messages": 81,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.029Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0009-native-orky-pane",
+    "role": "test-designer",
+    "agentType": "orky:test-designer",
+    "transcript": "agent-a3cf8d8a11a96be55",
+    "dir": "C--dev-Orky/2a49ed92-3b01-4ae3-a3af-6d6a7d229a6e/subagents",
+    "served": [
+      "claude-fable-5"
+    ],
+    "firstModel": "claude-fable-5",
+    "lastModel": "claude-fable-5",
+    "messages": 140,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.029Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0013-os-needs-you-notifications",
+    "role": "doc-sync",
+    "agentType": "orky:doc-sync",
+    "transcript": "agent-a3d69c188f5fba681",
+    "dir": "C--dev-Orky/2a49ed92-3b01-4ae3-a3af-6d6a7d229a6e/subagents",
+    "served": [
+      "claude-sonnet-5"
+    ],
+    "firstModel": "claude-sonnet-5",
+    "lastModel": "claude-sonnet-5",
+    "messages": 71,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.029Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0013-os-needs-you-notifications",
+    "role": "planner",
+    "agentType": "orky:planner",
+    "transcript": "agent-a3e5940ba6f224efb",
+    "dir": "C--dev-Orky/2a49ed92-3b01-4ae3-a3af-6d6a7d229a6e/subagents",
+    "served": [
+      "claude-sonnet-5"
+    ],
+    "firstModel": "claude-sonnet-5",
+    "lastModel": "claude-sonnet-5",
+    "messages": 26,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.029Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0010-orky-pane-inline-actions",
+    "role": "spec-writer",
+    "agentType": "orky:spec-writer",
+    "transcript": "agent-a3ed0f46eb0122aaf",
+    "dir": "C--dev-Orky/2a49ed92-3b01-4ae3-a3af-6d6a7d229a6e/subagents",
+    "served": [
+      "claude-fable-5"
+    ],
+    "firstModel": "claude-fable-5",
+    "lastModel": "claude-fable-5",
+    "messages": 52,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.029Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0013-os-needs-you-notifications",
+    "role": "spec-writer",
+    "agentType": "orky:spec-writer",
+    "transcript": "agent-a404f4e1a16d42d13",
+    "dir": "C--dev-Orky/2a49ed92-3b01-4ae3-a3af-6d6a7d229a6e/subagents",
+    "served": [
+      "claude-opus-4-8"
+    ],
+    "firstModel": "claude-opus-4-8",
+    "lastModel": "claude-opus-4-8",
+    "messages": 76,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.029Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0010-orky-pane-inline-actions",
+    "role": "reviewer",
+    "agentType": "orky:reviewer",
+    "transcript": "agent-a4290ce19eaeca633",
+    "dir": "C--dev-Orky/2a49ed92-3b01-4ae3-a3af-6d6a7d229a6e/subagents",
+    "served": [
+      "claude-fable-5"
+    ],
+    "firstModel": "claude-fable-5",
+    "lastModel": "claude-fable-5",
+    "messages": 52,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.029Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0008-queue-answer-resume-actions",
+    "role": "reviewer",
+    "agentType": "orky:reviewer",
+    "transcript": "agent-a42eac8ef60ba0e69",
+    "dir": "C--dev-Orky/2a49ed92-3b01-4ae3-a3af-6d6a7d229a6e/subagents",
+    "served": [
+      "claude-fable-5"
+    ],
+    "firstModel": "claude-fable-5",
+    "lastModel": "claude-fable-5",
+    "messages": 41,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.029Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0010-orky-pane-inline-actions",
+    "role": "doc-sync",
+    "agentType": "orky:doc-sync",
+    "transcript": "agent-a4341e10e5b46766a",
+    "dir": "C--dev-Orky/2a49ed92-3b01-4ae3-a3af-6d6a7d229a6e/subagents",
+    "served": [
+      "claude-sonnet-5"
+    ],
+    "firstModel": "claude-sonnet-5",
+    "lastModel": "claude-sonnet-5",
+    "messages": 62,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.029Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0006-decision-queue-panel",
+    "role": "reviewer",
+    "agentType": "orky:reviewer",
+    "transcript": "agent-a45ac8d1a1ecb0d9a",
+    "dir": "C--dev-Orky/2a49ed92-3b01-4ae3-a3af-6d6a7d229a6e/subagents",
+    "served": [
+      "claude-fable-5"
+    ],
+    "firstModel": "claude-fable-5",
+    "lastModel": "claude-fable-5",
+    "messages": 37,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.029Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0008-queue-answer-resume-actions",
+    "role": "implementer",
+    "agentType": "orky:implementer",
+    "transcript": "agent-a4a0bc5a909738e45",
+    "dir": "C--dev-Orky/2a49ed92-3b01-4ae3-a3af-6d6a7d229a6e/subagents",
+    "served": [
+      "claude-fable-5"
+    ],
+    "firstModel": "claude-fable-5",
+    "lastModel": "claude-fable-5",
+    "messages": 84,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.029Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0010-orky-pane-inline-actions",
+    "role": "reviewer",
+    "agentType": "orky:reviewer",
+    "transcript": "agent-a4b0e41931832d853",
+    "dir": "C--dev-Orky/2a49ed92-3b01-4ae3-a3af-6d6a7d229a6e/subagents",
+    "served": [
+      "claude-fable-5"
+    ],
+    "firstModel": "claude-fable-5",
+    "lastModel": "claude-fable-5",
+    "messages": 125,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.029Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0008-queue-answer-resume-actions",
+    "role": "spec-writer",
+    "agentType": "orky:spec-writer",
+    "transcript": "agent-a5058a8a5eb53ecd3",
+    "dir": "C--dev-Orky/2a49ed92-3b01-4ae3-a3af-6d6a7d229a6e/subagents",
+    "served": [
+      "claude-fable-5"
+    ],
+    "firstModel": "claude-fable-5",
+    "lastModel": "claude-fable-5",
+    "messages": 47,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.029Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0012-quick-capture-inbox",
+    "role": "implementer",
+    "agentType": "orky:implementer",
+    "transcript": "agent-a58118cf54e656934",
+    "dir": "C--dev-Orky/2a49ed92-3b01-4ae3-a3af-6d6a7d229a6e/subagents",
+    "served": [
+      "claude-fable-5"
+    ],
+    "firstModel": "claude-fable-5",
+    "lastModel": "claude-fable-5",
+    "messages": 187,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.029Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0006-decision-queue-panel",
+    "role": "reviewer",
+    "agentType": "orky:reviewer",
+    "transcript": "agent-a5b96140c770a832d",
+    "dir": "C--dev-Orky/2a49ed92-3b01-4ae3-a3af-6d6a7d229a6e/subagents",
+    "served": [
+      "claude-fable-5"
+    ],
+    "firstModel": "claude-fable-5",
+    "lastModel": "claude-fable-5",
+    "messages": 73,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.029Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0008-queue-answer-resume-actions",
+    "role": "test-designer",
+    "agentType": "orky:test-designer",
+    "transcript": "agent-a5c29db57065e9b50",
+    "dir": "C--dev-Orky/2a49ed92-3b01-4ae3-a3af-6d6a7d229a6e/subagents",
+    "served": [
+      "claude-fable-5"
+    ],
+    "firstModel": "claude-fable-5",
+    "lastModel": "claude-fable-5",
+    "messages": 107,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.029Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0013-os-needs-you-notifications",
+    "role": "test-designer",
+    "agentType": "orky:test-designer",
+    "transcript": "agent-a5c33c92310d72336",
+    "dir": "C--dev-Orky/2a49ed92-3b01-4ae3-a3af-6d6a7d229a6e/subagents",
+    "served": [
+      "claude-opus-4-8"
+    ],
+    "firstModel": "claude-opus-4-8",
+    "lastModel": "claude-opus-4-8",
+    "messages": 92,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.029Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0010-orky-pane-inline-actions",
+    "role": "reviewer",
+    "agentType": "orky:reviewer",
+    "transcript": "agent-a5f7c2edcb34873da",
+    "dir": "C--dev-Orky/2a49ed92-3b01-4ae3-a3af-6d6a7d229a6e/subagents",
+    "served": [
+      "claude-fable-5"
+    ],
+    "firstModel": "claude-fable-5",
+    "lastModel": "claude-fable-5",
+    "messages": 60,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.029Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0013-os-needs-you-notifications",
+    "role": "test-designer",
+    "agentType": "orky:test-designer",
+    "transcript": "agent-a5ff76ebae7ac765f",
+    "dir": "C--dev-Orky/2a49ed92-3b01-4ae3-a3af-6d6a7d229a6e/subagents",
+    "served": [
+      "claude-opus-4-8"
+    ],
+    "firstModel": "claude-opus-4-8",
+    "lastModel": "claude-opus-4-8",
+    "messages": 92,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.029Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0012-quick-capture-inbox",
+    "role": "implementer",
+    "agentType": "orky:implementer",
+    "transcript": "agent-a65950e103ff7196f",
+    "dir": "C--dev-Orky/2a49ed92-3b01-4ae3-a3af-6d6a7d229a6e/subagents",
+    "served": [
+      "claude-opus-4-8"
+    ],
+    "firstModel": "claude-opus-4-8",
+    "lastModel": "claude-opus-4-8",
+    "messages": 101,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.029Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0013-os-needs-you-notifications",
+    "role": "reviewer",
+    "agentType": "orky:reviewer",
+    "transcript": "agent-a65b8a72419f475e3",
+    "dir": "C--dev-Orky/2a49ed92-3b01-4ae3-a3af-6d6a7d229a6e/subagents",
+    "served": [
+      "claude-opus-4-8"
+    ],
+    "firstModel": "claude-opus-4-8",
+    "lastModel": "claude-opus-4-8",
+    "messages": 47,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.029Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0008-queue-answer-resume-actions",
+    "role": "reviewer",
+    "agentType": "orky:reviewer",
+    "transcript": "agent-a6827b89bd73e7277",
+    "dir": "C--dev-Orky/2a49ed92-3b01-4ae3-a3af-6d6a7d229a6e/subagents",
+    "served": [
+      "claude-fable-5"
+    ],
+    "firstModel": "claude-fable-5",
+    "lastModel": "claude-fable-5",
+    "messages": 71,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.029Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0009-native-orky-pane",
+    "role": "reviewer",
+    "agentType": "orky:reviewer",
+    "transcript": "agent-a68feb32b757fb8e2",
+    "dir": "C--dev-Orky/2a49ed92-3b01-4ae3-a3af-6d6a7d229a6e/subagents",
+    "served": [
+      "claude-fable-5"
+    ],
+    "firstModel": "claude-fable-5",
+    "lastModel": "claude-fable-5",
+    "messages": 84,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.029Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0013-os-needs-you-notifications",
+    "role": "reviewer",
+    "agentType": "orky:reviewer",
+    "transcript": "agent-a6b0a849d3784bf1b",
+    "dir": "C--dev-Orky/2a49ed92-3b01-4ae3-a3af-6d6a7d229a6e/subagents",
+    "served": [
+      "claude-opus-4-8"
+    ],
+    "firstModel": "claude-opus-4-8",
+    "lastModel": "claude-opus-4-8",
+    "messages": 66,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.029Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0009-native-orky-pane",
+    "role": "reviewer",
+    "agentType": "orky:reviewer",
+    "transcript": "agent-a73233a93f7cf4efe",
+    "dir": "C--dev-Orky/2a49ed92-3b01-4ae3-a3af-6d6a7d229a6e/subagents",
+    "served": [
+      "claude-fable-5"
+    ],
+    "firstModel": "claude-fable-5",
+    "lastModel": "claude-fable-5",
+    "messages": 78,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.029Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0009-native-orky-pane",
+    "role": "spec-writer",
+    "agentType": "orky:spec-writer",
+    "transcript": "agent-a76b534d36b4cceda",
+    "dir": "C--dev-Orky/2a49ed92-3b01-4ae3-a3af-6d6a7d229a6e/subagents",
+    "served": [
+      "claude-fable-5"
+    ],
+    "firstModel": "claude-fable-5",
+    "lastModel": "claude-fable-5",
+    "messages": 57,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.029Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0006-decision-queue-panel",
+    "role": "reviewer",
+    "agentType": "orky:reviewer",
+    "transcript": "agent-a77fa3345247840c9",
+    "dir": "C--dev-Orky/2a49ed92-3b01-4ae3-a3af-6d6a7d229a6e/subagents",
+    "served": [
+      "claude-fable-5"
+    ],
+    "firstModel": "claude-fable-5",
+    "lastModel": "claude-fable-5",
+    "messages": 52,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.029Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0011-orky-workspace-template",
+    "role": "planner",
+    "agentType": "orky:planner",
+    "transcript": "agent-a7d02d40a580a89ef",
+    "dir": "C--dev-Orky/2a49ed92-3b01-4ae3-a3af-6d6a7d229a6e/subagents",
+    "served": [
+      "claude-sonnet-5"
+    ],
+    "firstModel": "claude-sonnet-5",
+    "lastModel": "claude-sonnet-5",
+    "messages": 20,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.029Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0012-quick-capture-inbox",
+    "role": "spec-writer",
+    "agentType": "orky:spec-writer",
+    "transcript": "agent-a7d645d5375ec3a30",
+    "dir": "C--dev-Orky/2a49ed92-3b01-4ae3-a3af-6d6a7d229a6e/subagents",
+    "served": [
+      "claude-fable-5"
+    ],
+    "firstModel": "claude-fable-5",
+    "lastModel": "claude-fable-5",
+    "messages": 35,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.029Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0012-quick-capture-inbox",
+    "role": "reviewer",
+    "agentType": "orky:reviewer",
+    "transcript": "agent-a7d77d49babd65041",
+    "dir": "C--dev-Orky/2a49ed92-3b01-4ae3-a3af-6d6a7d229a6e/subagents",
+    "served": [
+      "claude-fable-5"
+    ],
+    "firstModel": "claude-fable-5",
+    "lastModel": "claude-fable-5",
+    "messages": 57,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.029Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0013-os-needs-you-notifications",
+    "role": "implementer",
+    "agentType": "orky:implementer",
+    "transcript": "agent-a81f6e32da0e95681",
+    "dir": "C--dev-Orky/2a49ed92-3b01-4ae3-a3af-6d6a7d229a6e/subagents",
+    "served": [
+      "claude-opus-4-8"
+    ],
+    "firstModel": "claude-opus-4-8",
+    "lastModel": "claude-opus-4-8",
+    "messages": 203,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.029Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0006-decision-queue-panel",
+    "role": "test-designer",
+    "agentType": "orky:test-designer",
+    "transcript": "agent-a8622f1d2800aed16",
+    "dir": "C--dev-Orky/2a49ed92-3b01-4ae3-a3af-6d6a7d229a6e/subagents",
+    "served": [
+      "claude-fable-5"
+    ],
+    "firstModel": "claude-fable-5",
+    "lastModel": "claude-fable-5",
+    "messages": 103,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.029Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0007-orky-action-dispatch",
+    "role": "reviewer",
+    "agentType": "orky:reviewer",
+    "transcript": "agent-a8704775deeb9b5c1",
+    "dir": "C--dev-Orky/2a49ed92-3b01-4ae3-a3af-6d6a7d229a6e/subagents",
+    "served": [
+      "claude-fable-5"
+    ],
+    "firstModel": "claude-fable-5",
+    "lastModel": "claude-fable-5",
+    "messages": 27,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.029Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0011-orky-workspace-template",
+    "role": "implementer",
+    "agentType": "orky:implementer",
+    "transcript": "agent-a884aa268448c19e6",
+    "dir": "C--dev-Orky/2a49ed92-3b01-4ae3-a3af-6d6a7d229a6e/subagents",
+    "served": [
+      "claude-fable-5"
+    ],
+    "firstModel": "claude-fable-5",
+    "lastModel": "claude-fable-5",
+    "messages": 87,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.029Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0010-orky-pane-inline-actions",
+    "role": "reviewer",
+    "agentType": "orky:reviewer",
+    "transcript": "agent-a8c22441e0e6aacf6",
+    "dir": "C--dev-Orky/2a49ed92-3b01-4ae3-a3af-6d6a7d229a6e/subagents",
+    "served": [
+      "claude-fable-5"
+    ],
+    "firstModel": "claude-fable-5",
+    "lastModel": "claude-fable-5",
+    "messages": 42,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.029Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0006-decision-queue-panel",
+    "role": "implementer",
+    "agentType": "orky:implementer",
+    "transcript": "agent-a8e0fb388a03635ee",
+    "dir": "C--dev-Orky/2a49ed92-3b01-4ae3-a3af-6d6a7d229a6e/subagents",
+    "served": [
+      "claude-fable-5"
+    ],
+    "firstModel": "claude-fable-5",
+    "lastModel": "claude-fable-5",
+    "messages": 168,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.029Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0009-native-orky-pane",
+    "role": "implementer",
+    "agentType": "orky:implementer",
+    "transcript": "agent-a8f09cda28940a70d",
+    "dir": "C--dev-Orky/2a49ed92-3b01-4ae3-a3af-6d6a7d229a6e/subagents",
+    "served": [
+      "claude-fable-5"
+    ],
+    "firstModel": "claude-fable-5",
+    "lastModel": "claude-fable-5",
+    "messages": 155,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.029Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0012-quick-capture-inbox",
+    "role": "reviewer",
+    "agentType": "orky:reviewer",
+    "transcript": "agent-a917e0b9bfe5e4a5f",
+    "dir": "C--dev-Orky/2a49ed92-3b01-4ae3-a3af-6d6a7d229a6e/subagents",
+    "served": [
+      "claude-fable-5"
+    ],
+    "firstModel": "claude-fable-5",
+    "lastModel": "claude-fable-5",
+    "messages": 114,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.029Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0011-orky-workspace-template",
+    "role": "test-designer",
+    "agentType": "orky:test-designer",
+    "transcript": "agent-a9a3957dcdb0305bb",
+    "dir": "C--dev-Orky/2a49ed92-3b01-4ae3-a3af-6d6a7d229a6e/subagents",
+    "served": [
+      "claude-fable-5"
+    ],
+    "firstModel": "claude-fable-5",
+    "lastModel": "claude-fable-5",
+    "messages": 84,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.029Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0009-native-orky-pane",
+    "role": "test-designer",
+    "agentType": "orky:test-designer",
+    "transcript": "agent-a9a77595ea0aa5cba",
+    "dir": "C--dev-Orky/2a49ed92-3b01-4ae3-a3af-6d6a7d229a6e/subagents",
+    "served": [
+      "claude-fable-5"
+    ],
+    "firstModel": "claude-fable-5",
+    "lastModel": "claude-fable-5",
+    "messages": 121,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.029Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0012-quick-capture-inbox",
+    "role": "reviewer",
+    "agentType": "orky:reviewer",
+    "transcript": "agent-a9a989a7a8c3fe6cd",
+    "dir": "C--dev-Orky/2a49ed92-3b01-4ae3-a3af-6d6a7d229a6e/subagents",
+    "served": [
+      "claude-fable-5"
+    ],
+    "firstModel": "claude-fable-5",
+    "lastModel": "claude-fable-5",
+    "messages": 85,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.029Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0011-orky-workspace-template",
+    "role": "spec-writer",
+    "agentType": "orky:spec-writer",
+    "transcript": "agent-a9b8e4f81cd8d9912",
+    "dir": "C--dev-Orky/2a49ed92-3b01-4ae3-a3af-6d6a7d229a6e/subagents",
+    "served": [
+      "claude-fable-5"
+    ],
+    "firstModel": "claude-fable-5",
+    "lastModel": "claude-fable-5",
+    "messages": 37,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.029Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0012-quick-capture-inbox",
+    "role": "spec-writer",
+    "agentType": "orky:spec-writer",
+    "transcript": "agent-a9cd744f4d69c9bf3",
+    "dir": "C--dev-Orky/2a49ed92-3b01-4ae3-a3af-6d6a7d229a6e/subagents",
+    "served": [
+      "claude-fable-5"
+    ],
+    "firstModel": "claude-fable-5",
+    "lastModel": "claude-fable-5",
+    "messages": 73,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.029Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0006-decision-queue-panel",
+    "role": "doc-sync",
+    "agentType": "orky:doc-sync",
+    "transcript": "agent-a9cf736224b47e0ab",
+    "dir": "C--dev-Orky/2a49ed92-3b01-4ae3-a3af-6d6a7d229a6e/subagents",
+    "served": [
+      "claude-sonnet-5"
+    ],
+    "firstModel": "claude-sonnet-5",
+    "lastModel": "claude-sonnet-5",
+    "messages": 72,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.029Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0009-native-orky-pane",
+    "role": "doc-sync",
+    "agentType": "orky:doc-sync",
+    "transcript": "agent-aa3bfc2ebb6322592",
+    "dir": "C--dev-Orky/2a49ed92-3b01-4ae3-a3af-6d6a7d229a6e/subagents",
+    "served": [
+      "claude-sonnet-5"
+    ],
+    "firstModel": "claude-sonnet-5",
+    "lastModel": "claude-sonnet-5",
+    "messages": 114,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.029Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0007-orky-action-dispatch",
+    "role": "test-designer",
+    "agentType": "orky:test-designer",
+    "transcript": "agent-aa541f2ad974abb50",
+    "dir": "C--dev-Orky/2a49ed92-3b01-4ae3-a3af-6d6a7d229a6e/subagents",
+    "served": [
+      "claude-sonnet-5"
+    ],
+    "firstModel": "claude-sonnet-5",
+    "lastModel": "claude-sonnet-5",
+    "messages": 32,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.029Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0008-queue-answer-resume-actions",
+    "role": "spec-writer",
+    "agentType": "orky:spec-writer",
+    "transcript": "agent-aad406a4c82d4f165",
+    "dir": "C--dev-Orky/2a49ed92-3b01-4ae3-a3af-6d6a7d229a6e/subagents",
+    "served": [
+      "claude-fable-5"
+    ],
+    "firstModel": "claude-fable-5",
+    "lastModel": "claude-fable-5",
+    "messages": 31,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.029Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0013-os-needs-you-notifications",
+    "role": "spec-writer",
+    "agentType": "orky:spec-writer",
+    "transcript": "agent-aaeeaeaec566cb269",
+    "dir": "C--dev-Orky/2a49ed92-3b01-4ae3-a3af-6d6a7d229a6e/subagents",
+    "served": [
+      "claude-opus-4-8"
+    ],
+    "firstModel": "claude-opus-4-8",
+    "lastModel": "claude-opus-4-8",
+    "messages": 46,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.029Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0010-orky-pane-inline-actions",
+    "role": "reviewer",
+    "agentType": "orky:reviewer",
+    "transcript": "agent-aaf53b5716e6a042e",
+    "dir": "C--dev-Orky/2a49ed92-3b01-4ae3-a3af-6d6a7d229a6e/subagents",
+    "served": [
+      "claude-fable-5"
+    ],
+    "firstModel": "claude-fable-5",
+    "lastModel": "claude-fable-5",
+    "messages": 86,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.029Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0007-orky-action-dispatch",
+    "role": "spec-writer",
+    "agentType": "orky:spec-writer",
+    "transcript": "agent-aaf55080a51f54aa9",
+    "dir": "C--dev-Orky/2a49ed92-3b01-4ae3-a3af-6d6a7d229a6e/subagents",
+    "served": [
+      "claude-fable-5"
+    ],
+    "firstModel": "claude-fable-5",
+    "lastModel": "claude-fable-5",
+    "messages": 32,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.029Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0009-native-orky-pane",
+    "role": "reviewer",
+    "agentType": "orky:reviewer",
+    "transcript": "agent-ab3079a670a31cff2",
+    "dir": "C--dev-Orky/2a49ed92-3b01-4ae3-a3af-6d6a7d229a6e/subagents",
+    "served": [
+      "claude-fable-5"
+    ],
+    "firstModel": "claude-fable-5",
+    "lastModel": "claude-fable-5",
+    "messages": 117,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.029Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0013-os-needs-you-notifications",
+    "role": "reviewer",
+    "agentType": "orky:reviewer",
+    "transcript": "agent-ab3866a92b9b088f1",
+    "dir": "C--dev-Orky/2a49ed92-3b01-4ae3-a3af-6d6a7d229a6e/subagents",
+    "served": [
+      "claude-opus-4-8"
+    ],
+    "firstModel": "claude-opus-4-8",
+    "lastModel": "claude-opus-4-8",
+    "messages": 67,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.029Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0011-orky-workspace-template",
+    "role": "reviewer",
+    "agentType": "orky:reviewer",
+    "transcript": "agent-ab392b633414dba53",
+    "dir": "C--dev-Orky/2a49ed92-3b01-4ae3-a3af-6d6a7d229a6e/subagents",
+    "served": [
+      "claude-fable-5"
+    ],
+    "firstModel": "claude-fable-5",
+    "lastModel": "claude-fable-5",
+    "messages": 98,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.029Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0011-orky-workspace-template",
+    "role": "reviewer",
+    "agentType": "orky:reviewer",
+    "transcript": "agent-ab3c2b88769c5f874",
+    "dir": "C--dev-Orky/2a49ed92-3b01-4ae3-a3af-6d6a7d229a6e/subagents",
+    "served": [
+      "claude-fable-5"
+    ],
+    "firstModel": "claude-fable-5",
+    "lastModel": "claude-fable-5",
+    "messages": 95,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.029Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0006-decision-queue-panel",
+    "role": "reviewer",
+    "agentType": "orky:reviewer",
+    "transcript": "agent-ab4c18f973e61104c",
+    "dir": "C--dev-Orky/2a49ed92-3b01-4ae3-a3af-6d6a7d229a6e/subagents",
+    "served": [
+      "claude-fable-5"
+    ],
+    "firstModel": "claude-fable-5",
+    "lastModel": "claude-fable-5",
+    "messages": 49,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.029Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0012-quick-capture-inbox",
+    "role": "test-designer",
+    "agentType": "orky:test-designer",
+    "transcript": "agent-ab6512f0dae25067f",
+    "dir": "C--dev-Orky/2a49ed92-3b01-4ae3-a3af-6d6a7d229a6e/subagents",
+    "served": [
+      "claude-fable-5",
+      "claude-opus-4-8"
+    ],
+    "firstModel": "claude-fable-5",
+    "lastModel": "claude-opus-4-8",
+    "messages": 111,
+    "switchAtMessage": 54,
+    "requested": null,
+    "downgraded": true,
+    "servedFraction": 0.48,
+    "at": "2026-07-03T21:49:47.029Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0012-quick-capture-inbox",
+    "role": "reviewer",
+    "agentType": "orky:reviewer",
+    "transcript": "agent-ab69e454802f06abd",
+    "dir": "C--dev-Orky/2a49ed92-3b01-4ae3-a3af-6d6a7d229a6e/subagents",
+    "served": [
+      "claude-opus-4-8"
+    ],
+    "firstModel": "claude-opus-4-8",
+    "lastModel": "claude-opus-4-8",
+    "messages": 71,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.029Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0013-os-needs-you-notifications",
+    "role": "reviewer",
+    "agentType": "orky:reviewer",
+    "transcript": "agent-ab78398a7ba021dad",
+    "dir": "C--dev-Orky/2a49ed92-3b01-4ae3-a3af-6d6a7d229a6e/subagents",
+    "served": [
+      "claude-opus-4-8"
+    ],
+    "firstModel": "claude-opus-4-8",
+    "lastModel": "claude-opus-4-8",
+    "messages": 34,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.029Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0008-queue-answer-resume-actions",
+    "role": "spec-writer",
+    "agentType": "orky:spec-writer",
+    "transcript": "agent-ab869f797fd2ae729",
+    "dir": "C--dev-Orky/2a49ed92-3b01-4ae3-a3af-6d6a7d229a6e/subagents",
+    "served": [
+      "claude-opus-4-8"
+    ],
+    "firstModel": "claude-opus-4-8",
+    "lastModel": "claude-opus-4-8",
+    "messages": 69,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.029Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0008-queue-answer-resume-actions",
+    "role": "doc-sync",
+    "agentType": "orky:doc-sync",
+    "transcript": "agent-ab8da0931e6cbfc7c",
+    "dir": "C--dev-Orky/2a49ed92-3b01-4ae3-a3af-6d6a7d229a6e/subagents",
+    "served": [
+      "claude-sonnet-5"
+    ],
+    "firstModel": "claude-sonnet-5",
+    "lastModel": "claude-sonnet-5",
+    "messages": 85,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.029Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0006-decision-queue-panel",
+    "role": "spec-writer",
+    "agentType": "orky:spec-writer",
+    "transcript": "agent-abf9450f94d47d7f2",
+    "dir": "C--dev-Orky/2a49ed92-3b01-4ae3-a3af-6d6a7d229a6e/subagents",
+    "served": [
+      "claude-fable-5"
+    ],
+    "firstModel": "claude-fable-5",
+    "lastModel": "claude-fable-5",
+    "messages": 30,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.029Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0006-decision-queue-panel",
+    "role": "planner",
+    "agentType": "orky:planner",
+    "transcript": "agent-ac011692efd43822e",
+    "dir": "C--dev-Orky/2a49ed92-3b01-4ae3-a3af-6d6a7d229a6e/subagents",
+    "served": [
+      "claude-sonnet-5"
+    ],
+    "firstModel": "claude-sonnet-5",
+    "lastModel": "claude-sonnet-5",
+    "messages": 41,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.029Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0007-orky-action-dispatch",
+    "role": "reviewer",
+    "agentType": "orky:reviewer",
+    "transcript": "agent-ac10186f027a0189a",
+    "dir": "C--dev-Orky/2a49ed92-3b01-4ae3-a3af-6d6a7d229a6e/subagents",
+    "served": [
+      "claude-fable-5"
+    ],
+    "firstModel": "claude-fable-5",
+    "lastModel": "claude-fable-5",
+    "messages": 44,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.029Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0010-orky-pane-inline-actions",
+    "role": "test-designer",
+    "agentType": "orky:test-designer",
+    "transcript": "agent-ac43a89981f83a037",
+    "dir": "C--dev-Orky/2a49ed92-3b01-4ae3-a3af-6d6a7d229a6e/subagents",
+    "served": [
+      "claude-fable-5"
+    ],
+    "firstModel": "claude-fable-5",
+    "lastModel": "claude-fable-5",
+    "messages": 215,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.029Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0011-orky-workspace-template",
+    "role": "doc-sync",
+    "agentType": "orky:doc-sync",
+    "transcript": "agent-ac649acaf1f9b5635",
+    "dir": "C--dev-Orky/2a49ed92-3b01-4ae3-a3af-6d6a7d229a6e/subagents",
+    "served": [
+      "claude-sonnet-5"
+    ],
+    "firstModel": "claude-sonnet-5",
+    "lastModel": "claude-sonnet-5",
+    "messages": 54,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.029Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0006-decision-queue-panel",
+    "role": "reviewer",
+    "agentType": "orky:reviewer",
+    "transcript": "agent-acb103202c85d7df0",
+    "dir": "C--dev-Orky/2a49ed92-3b01-4ae3-a3af-6d6a7d229a6e/subagents",
+    "served": [
+      "claude-fable-5"
+    ],
+    "firstModel": "claude-fable-5",
+    "lastModel": "claude-fable-5",
+    "messages": 55,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.029Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0012-quick-capture-inbox",
+    "role": "reviewer",
+    "agentType": "orky:reviewer",
+    "transcript": "agent-acb802176a0e6719f",
+    "dir": "C--dev-Orky/2a49ed92-3b01-4ae3-a3af-6d6a7d229a6e/subagents",
+    "served": [
+      "claude-fable-5"
+    ],
+    "firstModel": "claude-fable-5",
+    "lastModel": "claude-fable-5",
+    "messages": 62,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.029Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0008-queue-answer-resume-actions",
+    "role": "test-designer",
+    "agentType": "orky:test-designer",
+    "transcript": "agent-acb886e9cea4657f3",
+    "dir": "C--dev-Orky/2a49ed92-3b01-4ae3-a3af-6d6a7d229a6e/subagents",
+    "served": [
+      "claude-fable-5"
+    ],
+    "firstModel": "claude-fable-5",
+    "lastModel": "claude-fable-5",
+    "messages": 80,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.029Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0009-native-orky-pane",
+    "role": "spec-writer",
+    "agentType": "orky:spec-writer",
+    "transcript": "agent-ad03102db7afeff40",
+    "dir": "C--dev-Orky/2a49ed92-3b01-4ae3-a3af-6d6a7d229a6e/subagents",
+    "served": [
+      "claude-fable-5"
+    ],
+    "firstModel": "claude-fable-5",
+    "lastModel": "claude-fable-5",
+    "messages": 81,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.029Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0011-orky-workspace-template",
+    "role": "test-designer",
+    "agentType": "orky:test-designer",
+    "transcript": "agent-ad0e45cbbe6132e97",
+    "dir": "C--dev-Orky/2a49ed92-3b01-4ae3-a3af-6d6a7d229a6e/subagents",
+    "served": [
+      "claude-fable-5"
+    ],
+    "firstModel": "claude-fable-5",
+    "lastModel": "claude-fable-5",
+    "messages": 146,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.029Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0006-decision-queue-panel",
+    "role": "reviewer",
+    "agentType": "orky:reviewer",
+    "transcript": "agent-ad8554ab8e857e40f",
+    "dir": "C--dev-Orky/2a49ed92-3b01-4ae3-a3af-6d6a7d229a6e/subagents",
+    "served": [
+      "claude-fable-5"
+    ],
+    "firstModel": "claude-fable-5",
+    "lastModel": "claude-fable-5",
+    "messages": 51,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.029Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0010-orky-pane-inline-actions",
+    "role": "test-designer",
+    "agentType": "orky:test-designer",
+    "transcript": "agent-ad8dc64ab8a3112c4",
+    "dir": "C--dev-Orky/2a49ed92-3b01-4ae3-a3af-6d6a7d229a6e/subagents",
+    "served": [
+      "claude-fable-5"
+    ],
+    "firstModel": "claude-fable-5",
+    "lastModel": "claude-fable-5",
+    "messages": 110,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.029Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0011-orky-workspace-template",
+    "role": "implementer",
+    "agentType": "orky:implementer",
+    "transcript": "agent-ad93aab452f767f32",
+    "dir": "C--dev-Orky/2a49ed92-3b01-4ae3-a3af-6d6a7d229a6e/subagents",
+    "served": [
+      "claude-fable-5"
+    ],
+    "firstModel": "claude-fable-5",
+    "lastModel": "claude-fable-5",
+    "messages": 135,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.029Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0012-quick-capture-inbox",
+    "role": "doc-sync",
+    "agentType": "orky:doc-sync",
+    "transcript": "agent-ad9505a728ebdddf3",
+    "dir": "C--dev-Orky/2a49ed92-3b01-4ae3-a3af-6d6a7d229a6e/subagents",
+    "served": [
+      "claude-sonnet-5"
+    ],
+    "firstModel": "claude-sonnet-5",
+    "lastModel": "claude-sonnet-5",
+    "messages": 71,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.029Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0007-orky-action-dispatch",
+    "role": "implementer",
+    "agentType": "orky:implementer",
+    "transcript": "agent-adb8af6433fee1891",
+    "dir": "C--dev-Orky/2a49ed92-3b01-4ae3-a3af-6d6a7d229a6e/subagents",
+    "served": [
+      "claude-fable-5"
+    ],
+    "firstModel": "claude-fable-5",
+    "lastModel": "claude-fable-5",
+    "messages": 52,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.029Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0009-native-orky-pane",
+    "role": "reviewer",
+    "agentType": "orky:reviewer",
+    "transcript": "agent-ae085035da31051ef",
+    "dir": "C--dev-Orky/2a49ed92-3b01-4ae3-a3af-6d6a7d229a6e/subagents",
+    "served": [
+      "claude-fable-5"
+    ],
+    "firstModel": "claude-fable-5",
+    "lastModel": "claude-fable-5",
+    "messages": 58,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.029Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0006-decision-queue-panel",
+    "role": "reviewer",
+    "agentType": "orky:reviewer",
+    "transcript": "agent-ae38ec19ac13628e1",
+    "dir": "C--dev-Orky/2a49ed92-3b01-4ae3-a3af-6d6a7d229a6e/subagents",
+    "served": [
+      "claude-fable-5"
+    ],
+    "firstModel": "claude-fable-5",
+    "lastModel": "claude-fable-5",
+    "messages": 47,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.029Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0013-os-needs-you-notifications",
+    "role": "implementer",
+    "agentType": "orky:implementer",
+    "transcript": "agent-ae529c1764c9da75d",
+    "dir": "C--dev-Orky/2a49ed92-3b01-4ae3-a3af-6d6a7d229a6e/subagents",
+    "served": [
+      "claude-opus-4-8"
+    ],
+    "firstModel": "claude-opus-4-8",
+    "lastModel": "claude-opus-4-8",
+    "messages": 102,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.029Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0008-queue-answer-resume-actions",
+    "role": "planner",
+    "agentType": "orky:planner",
+    "transcript": "agent-ae5b23f54e761e56d",
+    "dir": "C--dev-Orky/2a49ed92-3b01-4ae3-a3af-6d6a7d229a6e/subagents",
+    "served": [
+      "claude-sonnet-5"
+    ],
+    "firstModel": "claude-sonnet-5",
+    "lastModel": "claude-sonnet-5",
+    "messages": 41,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.029Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0009-native-orky-pane",
+    "role": "test-designer",
+    "agentType": "orky:test-designer",
+    "transcript": "agent-ae73ffd083dfec3aa",
+    "dir": "C--dev-Orky/2a49ed92-3b01-4ae3-a3af-6d6a7d229a6e/subagents",
+    "served": [
+      "claude-fable-5"
+    ],
+    "firstModel": "claude-fable-5",
+    "lastModel": "claude-fable-5",
+    "messages": 25,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.029Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0013-os-needs-you-notifications",
+    "role": "spec-writer",
+    "agentType": "orky:spec-writer",
+    "transcript": "agent-ae7ac214838d5148d",
+    "dir": "C--dev-Orky/2a49ed92-3b01-4ae3-a3af-6d6a7d229a6e/subagents",
+    "served": [
+      "claude-opus-4-8"
+    ],
+    "firstModel": "claude-opus-4-8",
+    "lastModel": "claude-opus-4-8",
+    "messages": 22,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.029Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0009-native-orky-pane",
+    "role": "implementer",
+    "agentType": "orky:implementer",
+    "transcript": "agent-aea7181b53a215e77",
+    "dir": "C--dev-Orky/2a49ed92-3b01-4ae3-a3af-6d6a7d229a6e/subagents",
+    "served": [
+      "claude-fable-5"
+    ],
+    "firstModel": "claude-fable-5",
+    "lastModel": "claude-fable-5",
+    "messages": 215,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.029Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0011-orky-workspace-template",
+    "role": "reviewer",
+    "agentType": "orky:reviewer",
+    "transcript": "agent-aec95f83c7cbbc51e",
+    "dir": "C--dev-Orky/2a49ed92-3b01-4ae3-a3af-6d6a7d229a6e/subagents",
+    "served": [
+      "claude-fable-5"
+    ],
+    "firstModel": "claude-fable-5",
+    "lastModel": "claude-fable-5",
+    "messages": 37,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.029Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0011-orky-workspace-template",
+    "role": "reviewer",
+    "agentType": "orky:reviewer",
+    "transcript": "agent-aed7a758df513ca4b",
+    "dir": "C--dev-Orky/2a49ed92-3b01-4ae3-a3af-6d6a7d229a6e/subagents",
+    "served": [
+      "claude-fable-5"
+    ],
+    "firstModel": "claude-fable-5",
+    "lastModel": "claude-fable-5",
+    "messages": 82,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.029Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0008-queue-answer-resume-actions",
+    "role": "reviewer",
+    "agentType": "orky:reviewer",
+    "transcript": "agent-aee3bb1a47ad51f7e",
+    "dir": "C--dev-Orky/2a49ed92-3b01-4ae3-a3af-6d6a7d229a6e/subagents",
+    "served": [
+      "claude-fable-5"
+    ],
+    "firstModel": "claude-fable-5",
+    "lastModel": "claude-fable-5",
+    "messages": 64,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.029Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0006-decision-queue-panel",
+    "role": "reviewer",
+    "agentType": "orky:reviewer",
+    "transcript": "agent-aee948c4bd87ea009",
+    "dir": "C--dev-Orky/2a49ed92-3b01-4ae3-a3af-6d6a7d229a6e/subagents",
+    "served": [
+      "claude-fable-5"
+    ],
+    "firstModel": "claude-fable-5",
+    "lastModel": "claude-fable-5",
+    "messages": 67,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.029Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0009-native-orky-pane",
+    "role": "planner",
+    "agentType": "orky:planner",
+    "transcript": "agent-af1916d0bc8630de2",
+    "dir": "C--dev-Orky/2a49ed92-3b01-4ae3-a3af-6d6a7d229a6e/subagents",
+    "served": [
+      "claude-sonnet-5"
+    ],
+    "firstModel": "claude-sonnet-5",
+    "lastModel": "claude-sonnet-5",
+    "messages": 14,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.029Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0013-os-needs-you-notifications",
+    "role": "reviewer",
+    "agentType": "orky:reviewer",
+    "transcript": "agent-af31df0359d4e27e2",
+    "dir": "C--dev-Orky/2a49ed92-3b01-4ae3-a3af-6d6a7d229a6e/subagents",
+    "served": [
+      "claude-opus-4-8"
+    ],
+    "firstModel": "claude-opus-4-8",
+    "lastModel": "claude-opus-4-8",
+    "messages": 71,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.029Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0007-orky-action-dispatch",
+    "role": "reviewer",
+    "agentType": "orky:reviewer",
+    "transcript": "agent-af98eda960b43428b",
+    "dir": "C--dev-Orky/2a49ed92-3b01-4ae3-a3af-6d6a7d229a6e/subagents",
+    "served": [
+      "claude-fable-5"
+    ],
+    "firstModel": "claude-fable-5",
+    "lastModel": "claude-fable-5",
+    "messages": 25,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.029Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0009-native-orky-pane",
+    "role": "reviewer",
+    "agentType": "orky:reviewer",
+    "transcript": "agent-afbf7de15b65ae0b1",
+    "dir": "C--dev-Orky/2a49ed92-3b01-4ae3-a3af-6d6a7d229a6e/subagents",
+    "served": [
+      "claude-fable-5"
+    ],
+    "firstModel": "claude-fable-5",
+    "lastModel": "claude-fable-5",
+    "messages": 44,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.029Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0009-native-orky-pane",
+    "role": "spec-writer",
+    "agentType": "orky:spec-writer",
+    "transcript": "agent-afcefdbe47c98e077",
+    "dir": "C--dev-Orky/2a49ed92-3b01-4ae3-a3af-6d6a7d229a6e/subagents",
+    "served": [
+      "claude-fable-5"
+    ],
+    "firstModel": "claude-fable-5",
+    "lastModel": "claude-fable-5",
+    "messages": 32,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.029Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0008-queue-answer-resume-actions",
+    "role": "implementer",
+    "agentType": "orky:implementer",
+    "transcript": "agent-afedbeb9d7c51ccef",
+    "dir": "C--dev-Orky/2a49ed92-3b01-4ae3-a3af-6d6a7d229a6e/subagents",
+    "served": [
+      "claude-fable-5"
+    ],
+    "firstModel": "claude-fable-5",
+    "lastModel": "claude-fable-5",
+    "messages": 129,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.029Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0004-orky-status-awareness",
+    "role": "app-planner",
+    "agentType": "orky:app-planner",
+    "transcript": "agent-a6f41e9a7f53f4ae0",
+    "dir": "C--dev-Orky/75644e70-0b3c-4e60-b550-f3f256baaf3b/subagents",
+    "served": [
+      "claude-opus-4-8"
+    ],
+    "firstModel": "claude-opus-4-8",
+    "lastModel": "claude-opus-4-8",
+    "messages": 46,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.029Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0005-cross-project-orky-registry",
+    "role": "implementer",
+    "agentType": "orky:implementer",
+    "transcript": "agent-a011ea6aca1b22c6c",
+    "dir": "C--dev-Termhalla/4db9ff00-cb60-40cd-bc1b-6b22be2b0320/subagents",
+    "served": [
+      "claude-sonnet-5"
+    ],
+    "firstModel": "claude-sonnet-5",
+    "lastModel": "claude-sonnet-5",
+    "messages": 92,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.029Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0014-orky-osc-heartbeat",
+    "role": "implementer",
+    "agentType": "orky:implementer",
+    "transcript": "agent-a09b205ede08563a2",
+    "dir": "C--dev-Termhalla/4db9ff00-cb60-40cd-bc1b-6b22be2b0320/subagents",
+    "served": [
+      "claude-sonnet-5"
+    ],
+    "firstModel": "claude-sonnet-5",
+    "lastModel": "claude-sonnet-5",
+    "messages": 20,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.029Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0014-orky-osc-heartbeat",
+    "role": "test-designer",
+    "agentType": "orky:test-designer",
+    "transcript": "agent-a0a4e4f4c88241bda",
+    "dir": "C--dev-Termhalla/4db9ff00-cb60-40cd-bc1b-6b22be2b0320/subagents",
+    "served": [
+      "claude-sonnet-5"
+    ],
+    "firstModel": "claude-sonnet-5",
+    "lastModel": "claude-sonnet-5",
+    "messages": 116,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.029Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0007-orky-action-dispatch",
+    "role": "spec-writer",
+    "agentType": "orky:spec-writer",
+    "transcript": "agent-a0e7fbe25588cf7ff",
+    "dir": "C--dev-Termhalla/4db9ff00-cb60-40cd-bc1b-6b22be2b0320/subagents",
+    "served": [
+      "claude-opus-4-8"
+    ],
+    "firstModel": "claude-opus-4-8",
+    "lastModel": "claude-opus-4-8",
+    "messages": 53,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.029Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0014-orky-osc-heartbeat",
+    "role": "doc-sync",
+    "agentType": "orky:doc-sync",
+    "transcript": "agent-a1261fd596b2a94d9",
+    "dir": "C--dev-Termhalla/4db9ff00-cb60-40cd-bc1b-6b22be2b0320/subagents",
+    "served": [
+      "claude-sonnet-5"
+    ],
+    "firstModel": "claude-sonnet-5",
+    "lastModel": "claude-sonnet-5",
+    "messages": 64,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.029Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0005-cross-project-orky-registry",
+    "role": "spec-writer",
+    "agentType": "orky:spec-writer",
+    "transcript": "agent-a17314e641720fc56",
+    "dir": "C--dev-Termhalla/4db9ff00-cb60-40cd-bc1b-6b22be2b0320/subagents",
+    "served": [
+      "claude-opus-4-8"
+    ],
+    "firstModel": "claude-opus-4-8",
+    "lastModel": "claude-opus-4-8",
+    "messages": 34,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.029Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0014-orky-osc-heartbeat",
+    "role": "reviewer",
+    "agentType": "orky:reviewer",
+    "transcript": "agent-a24caade4d123c7c8",
+    "dir": "C--dev-Termhalla/4db9ff00-cb60-40cd-bc1b-6b22be2b0320/subagents",
+    "served": [
+      "claude-opus-4-8"
+    ],
+    "firstModel": "claude-opus-4-8",
+    "lastModel": "claude-opus-4-8",
+    "messages": 49,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.029Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0007-orky-action-dispatch",
+    "role": "reviewer",
+    "agentType": "orky:reviewer",
+    "transcript": "agent-a26ff80699cb799ec",
+    "dir": "C--dev-Termhalla/4db9ff00-cb60-40cd-bc1b-6b22be2b0320/subagents",
+    "served": [
+      "claude-opus-4-8"
+    ],
+    "firstModel": "claude-opus-4-8",
+    "lastModel": "claude-opus-4-8",
+    "messages": 63,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.029Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0007-orky-action-dispatch",
+    "role": "reviewer",
+    "agentType": "orky:reviewer",
+    "transcript": "agent-a2f22aec17f28fe45",
+    "dir": "C--dev-Termhalla/4db9ff00-cb60-40cd-bc1b-6b22be2b0320/subagents",
+    "served": [
+      "claude-opus-4-8"
+    ],
+    "firstModel": "claude-opus-4-8",
+    "lastModel": "claude-opus-4-8",
+    "messages": 62,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.029Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0014-orky-osc-heartbeat",
+    "role": "reviewer",
+    "agentType": "orky:reviewer",
+    "transcript": "agent-a302f0742d6028a43",
+    "dir": "C--dev-Termhalla/4db9ff00-cb60-40cd-bc1b-6b22be2b0320/subagents",
+    "served": [
+      "claude-opus-4-8"
+    ],
+    "firstModel": "claude-opus-4-8",
+    "lastModel": "claude-opus-4-8",
+    "messages": 23,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.029Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0014-orky-osc-heartbeat",
+    "role": "test-designer",
+    "agentType": "orky:test-designer",
+    "transcript": "agent-a32816f05f86e61de",
+    "dir": "C--dev-Termhalla/4db9ff00-cb60-40cd-bc1b-6b22be2b0320/subagents",
+    "served": [
+      "claude-sonnet-5"
+    ],
+    "firstModel": "claude-sonnet-5",
+    "lastModel": "claude-sonnet-5",
+    "messages": 72,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.029Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0005-cross-project-orky-registry",
+    "role": "implementer",
+    "agentType": "orky:implementer",
+    "transcript": "agent-a3500240a6ad888da",
+    "dir": "C--dev-Termhalla/4db9ff00-cb60-40cd-bc1b-6b22be2b0320/subagents",
+    "served": [
+      "claude-sonnet-5"
+    ],
+    "firstModel": "claude-sonnet-5",
+    "lastModel": "claude-sonnet-5",
+    "messages": 25,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.029Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0007-orky-action-dispatch",
+    "role": "reviewer",
+    "agentType": "orky:reviewer",
+    "transcript": "agent-a367597adee478e4c",
+    "dir": "C--dev-Termhalla/4db9ff00-cb60-40cd-bc1b-6b22be2b0320/subagents",
+    "served": [
+      "claude-opus-4-8"
+    ],
+    "firstModel": "claude-opus-4-8",
+    "lastModel": "claude-opus-4-8",
+    "messages": 53,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.029Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0014-orky-osc-heartbeat",
+    "role": "implementer",
+    "agentType": "orky:implementer",
+    "transcript": "agent-a367f22cb8891315f",
+    "dir": "C--dev-Termhalla/4db9ff00-cb60-40cd-bc1b-6b22be2b0320/subagents",
+    "served": [
+      "claude-sonnet-5"
+    ],
+    "firstModel": "claude-sonnet-5",
+    "lastModel": "claude-sonnet-5",
+    "messages": 96,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.029Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0005-cross-project-orky-registry",
+    "role": "reviewer",
+    "agentType": "orky:reviewer",
+    "transcript": "agent-a36bf56c70b286aa9",
+    "dir": "C--dev-Termhalla/4db9ff00-cb60-40cd-bc1b-6b22be2b0320/subagents",
+    "served": [
+      "claude-opus-4-8"
+    ],
+    "firstModel": "claude-opus-4-8",
+    "lastModel": "claude-opus-4-8",
+    "messages": 19,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.029Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0005-cross-project-orky-registry",
+    "role": "reviewer",
+    "agentType": "orky:reviewer",
+    "transcript": "agent-a4150836b3ee65328",
+    "dir": "C--dev-Termhalla/4db9ff00-cb60-40cd-bc1b-6b22be2b0320/subagents",
+    "served": [
+      "claude-opus-4-8"
+    ],
+    "firstModel": "claude-opus-4-8",
+    "lastModel": "claude-opus-4-8",
+    "messages": 25,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.029Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0007-orky-action-dispatch",
+    "role": "spec-writer",
+    "agentType": "orky:spec-writer",
+    "transcript": "agent-a457ff2f29f5994da",
+    "dir": "C--dev-Termhalla/4db9ff00-cb60-40cd-bc1b-6b22be2b0320/subagents",
+    "served": [
+      "claude-opus-4-8"
+    ],
+    "firstModel": "claude-opus-4-8",
+    "lastModel": "claude-opus-4-8",
+    "messages": 6,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.029Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0007-orky-action-dispatch",
+    "role": "test-designer",
+    "agentType": "orky:test-designer",
+    "transcript": "agent-a46c924fb5dc3d984",
+    "dir": "C--dev-Termhalla/4db9ff00-cb60-40cd-bc1b-6b22be2b0320/subagents",
+    "served": [
+      "claude-sonnet-5"
+    ],
+    "firstModel": "claude-sonnet-5",
+    "lastModel": "claude-sonnet-5",
+    "messages": 75,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.029Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0005-cross-project-orky-registry",
+    "role": "implementer",
+    "agentType": "orky:implementer",
+    "transcript": "agent-a4c8aaae7a084b6cb",
+    "dir": "C--dev-Termhalla/4db9ff00-cb60-40cd-bc1b-6b22be2b0320/subagents",
+    "served": [
+      "claude-sonnet-5"
+    ],
+    "firstModel": "claude-sonnet-5",
+    "lastModel": "claude-sonnet-5",
+    "messages": 255,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.029Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0007-orky-action-dispatch",
+    "role": "implementer",
+    "agentType": "orky:implementer",
+    "transcript": "agent-a4cccbbecd5984e27",
+    "dir": "C--dev-Termhalla/4db9ff00-cb60-40cd-bc1b-6b22be2b0320/subagents",
+    "served": [
+      "claude-sonnet-5"
+    ],
+    "firstModel": "claude-sonnet-5",
+    "lastModel": "claude-sonnet-5",
+    "messages": 45,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.029Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0005-cross-project-orky-registry",
+    "role": "test-designer",
+    "agentType": "orky:test-designer",
+    "transcript": "agent-a4e7316167569452e",
+    "dir": "C--dev-Termhalla/4db9ff00-cb60-40cd-bc1b-6b22be2b0320/subagents",
+    "served": [
+      "claude-sonnet-5"
+    ],
+    "firstModel": "claude-sonnet-5",
+    "lastModel": "claude-sonnet-5",
+    "messages": 41,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.029Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0014-orky-osc-heartbeat",
+    "role": "reviewer",
+    "agentType": "orky:reviewer",
+    "transcript": "agent-a59e1a9290943b0d1",
+    "dir": "C--dev-Termhalla/4db9ff00-cb60-40cd-bc1b-6b22be2b0320/subagents",
+    "served": [
+      "claude-opus-4-8"
+    ],
+    "firstModel": "claude-opus-4-8",
+    "lastModel": "claude-opus-4-8",
+    "messages": 38,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.029Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0014-orky-osc-heartbeat",
+    "role": "reviewer",
+    "agentType": "orky:reviewer",
+    "transcript": "agent-a61e11eef7a0c6134",
+    "dir": "C--dev-Termhalla/4db9ff00-cb60-40cd-bc1b-6b22be2b0320/subagents",
+    "served": [
+      "claude-opus-4-8"
+    ],
+    "firstModel": "claude-opus-4-8",
+    "lastModel": "claude-opus-4-8",
+    "messages": 39,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.029Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0005-cross-project-orky-registry",
+    "role": "planner",
+    "agentType": "orky:planner",
+    "transcript": "agent-a65fe854045a1a719",
+    "dir": "C--dev-Termhalla/4db9ff00-cb60-40cd-bc1b-6b22be2b0320/subagents",
+    "served": [
+      "claude-sonnet-5"
+    ],
+    "firstModel": "claude-sonnet-5",
+    "lastModel": "claude-sonnet-5",
+    "messages": 46,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.029Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0005-cross-project-orky-registry",
+    "role": "reviewer",
+    "agentType": "orky:reviewer",
+    "transcript": "agent-a6b2656735b8f2beb",
+    "dir": "C--dev-Termhalla/4db9ff00-cb60-40cd-bc1b-6b22be2b0320/subagents",
+    "served": [
+      "claude-opus-4-8"
+    ],
+    "firstModel": "claude-opus-4-8",
+    "lastModel": "claude-opus-4-8",
+    "messages": 70,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.029Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0005-cross-project-orky-registry",
+    "role": "test-designer",
+    "agentType": "orky:test-designer",
+    "transcript": "agent-a6b280867a74dd3a8",
+    "dir": "C--dev-Termhalla/4db9ff00-cb60-40cd-bc1b-6b22be2b0320/subagents",
+    "served": [
+      "claude-sonnet-5"
+    ],
+    "firstModel": "claude-sonnet-5",
+    "lastModel": "claude-sonnet-5",
+    "messages": 50,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.030Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0014-orky-osc-heartbeat",
+    "role": "test-designer",
+    "agentType": "orky:test-designer",
+    "transcript": "agent-a70cd50ecd693188f",
+    "dir": "C--dev-Termhalla/4db9ff00-cb60-40cd-bc1b-6b22be2b0320/subagents",
+    "served": [
+      "claude-sonnet-5"
+    ],
+    "firstModel": "claude-sonnet-5",
+    "lastModel": "claude-sonnet-5",
+    "messages": 23,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.030Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0014-orky-osc-heartbeat",
+    "role": "reviewer",
+    "agentType": "orky:reviewer",
+    "transcript": "agent-a74c10990241464a5",
+    "dir": "C--dev-Termhalla/4db9ff00-cb60-40cd-bc1b-6b22be2b0320/subagents",
+    "served": [
+      "claude-opus-4-8"
+    ],
+    "firstModel": "claude-opus-4-8",
+    "lastModel": "claude-opus-4-8",
+    "messages": 60,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.030Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0007-orky-action-dispatch",
+    "role": "reviewer",
+    "agentType": "orky:reviewer",
+    "transcript": "agent-a77875cd4b8f677ab",
+    "dir": "C--dev-Termhalla/4db9ff00-cb60-40cd-bc1b-6b22be2b0320/subagents",
+    "served": [
+      "claude-opus-4-8"
+    ],
+    "firstModel": "claude-opus-4-8",
+    "lastModel": "claude-opus-4-8",
+    "messages": 38,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.030Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0007-orky-action-dispatch",
+    "role": "implementer",
+    "agentType": "orky:implementer",
+    "transcript": "agent-a837d779b87ca090c",
+    "dir": "C--dev-Termhalla/4db9ff00-cb60-40cd-bc1b-6b22be2b0320/subagents",
+    "served": [
+      "claude-sonnet-5"
+    ],
+    "firstModel": "claude-sonnet-5",
+    "lastModel": "claude-sonnet-5",
+    "messages": 22,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.030Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0014-orky-osc-heartbeat",
+    "role": "reviewer",
+    "agentType": "orky:reviewer",
+    "transcript": "agent-a83adeff8d7592d5b",
+    "dir": "C--dev-Termhalla/4db9ff00-cb60-40cd-bc1b-6b22be2b0320/subagents",
+    "served": [
+      "claude-opus-4-8"
+    ],
+    "firstModel": "claude-opus-4-8",
+    "lastModel": "claude-opus-4-8",
+    "messages": 14,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.030Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0014-orky-osc-heartbeat",
+    "role": "implementer",
+    "agentType": "orky:implementer",
+    "transcript": "agent-a85f4c9507517adbe",
+    "dir": "C--dev-Termhalla/4db9ff00-cb60-40cd-bc1b-6b22be2b0320/subagents",
+    "served": [
+      "claude-sonnet-5"
+    ],
+    "firstModel": "claude-sonnet-5",
+    "lastModel": "claude-sonnet-5",
+    "messages": 146,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.030Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0005-cross-project-orky-registry",
+    "role": "reviewer",
+    "agentType": "orky:reviewer",
+    "transcript": "agent-a8be2d0b1a2cfbdf5",
+    "dir": "C--dev-Termhalla/4db9ff00-cb60-40cd-bc1b-6b22be2b0320/subagents",
+    "served": [
+      "claude-opus-4-8"
+    ],
+    "firstModel": "claude-opus-4-8",
+    "lastModel": "claude-opus-4-8",
+    "messages": 17,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.030Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0007-orky-action-dispatch",
+    "role": "implementer",
+    "agentType": "orky:implementer",
+    "transcript": "agent-a93001d3b0700fd79",
+    "dir": "C--dev-Termhalla/4db9ff00-cb60-40cd-bc1b-6b22be2b0320/subagents",
+    "served": [
+      "claude-sonnet-5"
+    ],
+    "firstModel": "claude-sonnet-5",
+    "lastModel": "claude-sonnet-5",
+    "messages": 257,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.030Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0014-orky-osc-heartbeat",
+    "role": "test-designer",
+    "agentType": "orky:test-designer",
+    "transcript": "agent-a9809d268f92aafd1",
+    "dir": "C--dev-Termhalla/4db9ff00-cb60-40cd-bc1b-6b22be2b0320/subagents",
+    "served": [
+      "claude-sonnet-5"
+    ],
+    "firstModel": "claude-sonnet-5",
+    "lastModel": "claude-sonnet-5",
+    "messages": 60,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.030Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0014-orky-osc-heartbeat",
+    "role": "spec-writer",
+    "agentType": "orky:spec-writer",
+    "transcript": "agent-a98e5cfddd75ba068",
+    "dir": "C--dev-Termhalla/4db9ff00-cb60-40cd-bc1b-6b22be2b0320/subagents",
+    "served": [
+      "claude-opus-4-8"
+    ],
+    "firstModel": "claude-opus-4-8",
+    "lastModel": "claude-opus-4-8",
+    "messages": 33,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.030Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0007-orky-action-dispatch",
+    "role": "test-designer",
+    "agentType": "orky:test-designer",
+    "transcript": "agent-a98fa7865ad3df065",
+    "dir": "C--dev-Termhalla/4db9ff00-cb60-40cd-bc1b-6b22be2b0320/subagents",
+    "served": [
+      "claude-sonnet-5"
+    ],
+    "firstModel": "claude-sonnet-5",
+    "lastModel": "claude-sonnet-5",
+    "messages": 53,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.030Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0005-cross-project-orky-registry",
+    "role": "test-designer",
+    "agentType": "orky:test-designer",
+    "transcript": "agent-a9e7d3a6bf7b8caba",
+    "dir": "C--dev-Termhalla/4db9ff00-cb60-40cd-bc1b-6b22be2b0320/subagents",
+    "served": [
+      "claude-sonnet-5"
+    ],
+    "firstModel": "claude-sonnet-5",
+    "lastModel": "claude-sonnet-5",
+    "messages": 210,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.030Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0014-orky-osc-heartbeat",
+    "role": "reviewer",
+    "agentType": "orky:reviewer",
+    "transcript": "agent-aa0388078a9ba01d6",
+    "dir": "C--dev-Termhalla/4db9ff00-cb60-40cd-bc1b-6b22be2b0320/subagents",
+    "served": [
+      "claude-opus-4-8"
+    ],
+    "firstModel": "claude-opus-4-8",
+    "lastModel": "claude-opus-4-8",
+    "messages": 48,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.030Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0014-orky-osc-heartbeat",
+    "role": "doc-sync",
+    "agentType": "orky:doc-sync",
+    "transcript": "agent-aa2ac3bdf0185f946",
+    "dir": "C--dev-Termhalla/4db9ff00-cb60-40cd-bc1b-6b22be2b0320/subagents",
+    "served": [
+      "claude-sonnet-5"
+    ],
+    "firstModel": "claude-sonnet-5",
+    "lastModel": "claude-sonnet-5",
+    "messages": 45,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.030Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0007-orky-action-dispatch",
+    "role": "test-designer",
+    "agentType": "orky:test-designer",
+    "transcript": "agent-aa3bb5ea1497379ae",
+    "dir": "C--dev-Termhalla/4db9ff00-cb60-40cd-bc1b-6b22be2b0320/subagents",
+    "served": [
+      "claude-sonnet-5"
+    ],
+    "firstModel": "claude-sonnet-5",
+    "lastModel": "claude-sonnet-5",
+    "messages": 148,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.030Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0014-orky-osc-heartbeat",
+    "role": "reviewer",
+    "agentType": "orky:reviewer",
+    "transcript": "agent-aa78ac5d74eeca498",
+    "dir": "C--dev-Termhalla/4db9ff00-cb60-40cd-bc1b-6b22be2b0320/subagents",
+    "served": [
+      "claude-opus-4-8"
+    ],
+    "firstModel": "claude-opus-4-8",
+    "lastModel": "claude-opus-4-8",
+    "messages": 56,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.030Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0005-cross-project-orky-registry",
+    "role": "doc-sync",
+    "agentType": "orky:doc-sync",
+    "transcript": "agent-aa7f538f6043929ad",
+    "dir": "C--dev-Termhalla/4db9ff00-cb60-40cd-bc1b-6b22be2b0320/subagents",
+    "served": [
+      "claude-sonnet-5"
+    ],
+    "firstModel": "claude-sonnet-5",
+    "lastModel": "claude-sonnet-5",
+    "messages": 52,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.030Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0014-orky-osc-heartbeat",
+    "role": "reviewer",
+    "agentType": "orky:reviewer",
+    "transcript": "agent-aa82b8f0a085a0f99",
+    "dir": "C--dev-Termhalla/4db9ff00-cb60-40cd-bc1b-6b22be2b0320/subagents",
+    "served": [
+      "claude-opus-4-8"
+    ],
+    "firstModel": "claude-opus-4-8",
+    "lastModel": "claude-opus-4-8",
+    "messages": 27,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.030Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0005-cross-project-orky-registry",
+    "role": "reviewer",
+    "agentType": "orky:reviewer",
+    "transcript": "agent-aadd690d0d44ff003",
+    "dir": "C--dev-Termhalla/4db9ff00-cb60-40cd-bc1b-6b22be2b0320/subagents",
+    "served": [
+      "claude-opus-4-8"
+    ],
+    "firstModel": "claude-opus-4-8",
+    "lastModel": "claude-opus-4-8",
+    "messages": 42,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.030Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0007-orky-action-dispatch",
+    "role": "test-designer",
+    "agentType": "orky:test-designer",
+    "transcript": "agent-aaf5ddd5039b31dfc",
+    "dir": "C--dev-Termhalla/4db9ff00-cb60-40cd-bc1b-6b22be2b0320/subagents",
+    "served": [
+      "claude-sonnet-5"
+    ],
+    "firstModel": "claude-sonnet-5",
+    "lastModel": "claude-sonnet-5",
+    "messages": 63,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.030Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0014-orky-osc-heartbeat",
+    "role": "reviewer",
+    "agentType": "orky:reviewer",
+    "transcript": "agent-ab0f744c56b3ec042",
+    "dir": "C--dev-Termhalla/4db9ff00-cb60-40cd-bc1b-6b22be2b0320/subagents",
+    "served": [
+      "claude-opus-4-8"
+    ],
+    "firstModel": "claude-opus-4-8",
+    "lastModel": "claude-opus-4-8",
+    "messages": 37,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.030Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0014-orky-osc-heartbeat",
+    "role": "spec-writer",
+    "agentType": "orky:spec-writer",
+    "transcript": "agent-ab2a82c8c6dbc4551",
+    "dir": "C--dev-Termhalla/4db9ff00-cb60-40cd-bc1b-6b22be2b0320/subagents",
+    "served": [
+      "claude-opus-4-8"
+    ],
+    "firstModel": "claude-opus-4-8",
+    "lastModel": "claude-opus-4-8",
+    "messages": 16,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.030Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0014-orky-osc-heartbeat",
+    "role": "test-designer",
+    "agentType": "orky:test-designer",
+    "transcript": "agent-ab309c26fa5301132",
+    "dir": "C--dev-Termhalla/4db9ff00-cb60-40cd-bc1b-6b22be2b0320/subagents",
+    "served": [
+      "claude-sonnet-5"
+    ],
+    "firstModel": "claude-sonnet-5",
+    "lastModel": "claude-sonnet-5",
+    "messages": 90,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.030Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0005-cross-project-orky-registry",
+    "role": "reviewer",
+    "agentType": "orky:reviewer",
+    "transcript": "agent-ab6edd106c0c00062",
+    "dir": "C--dev-Termhalla/4db9ff00-cb60-40cd-bc1b-6b22be2b0320/subagents",
+    "served": [
+      "claude-opus-4-8"
+    ],
+    "firstModel": "claude-opus-4-8",
+    "lastModel": "claude-opus-4-8",
+    "messages": 34,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.030Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0005-cross-project-orky-registry",
+    "role": "reviewer",
+    "agentType": "orky:reviewer",
+    "transcript": "agent-ab74c1900778957ef",
+    "dir": "C--dev-Termhalla/4db9ff00-cb60-40cd-bc1b-6b22be2b0320/subagents",
+    "served": [
+      "claude-opus-4-8"
+    ],
+    "firstModel": "claude-opus-4-8",
+    "lastModel": "claude-opus-4-8",
+    "messages": 41,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.030Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0007-orky-action-dispatch",
+    "role": "implementer",
+    "agentType": "orky:implementer",
+    "transcript": "agent-ab7577c7beb8e6de0",
+    "dir": "C--dev-Termhalla/4db9ff00-cb60-40cd-bc1b-6b22be2b0320/subagents",
+    "served": [
+      "claude-sonnet-5"
+    ],
+    "firstModel": "claude-sonnet-5",
+    "lastModel": "claude-sonnet-5",
+    "messages": 56,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.030Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0005-cross-project-orky-registry",
+    "role": "reviewer",
+    "agentType": "orky:reviewer",
+    "transcript": "agent-ab9c82cf67a0275b5",
+    "dir": "C--dev-Termhalla/4db9ff00-cb60-40cd-bc1b-6b22be2b0320/subagents",
+    "served": [
+      "claude-opus-4-8"
+    ],
+    "firstModel": "claude-opus-4-8",
+    "lastModel": "claude-opus-4-8",
+    "messages": 29,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.030Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0014-orky-osc-heartbeat",
+    "role": "reviewer",
+    "agentType": "orky:reviewer",
+    "transcript": "agent-ac2c48d2012d98aaf",
+    "dir": "C--dev-Termhalla/4db9ff00-cb60-40cd-bc1b-6b22be2b0320/subagents",
+    "served": [
+      "claude-opus-4-8"
+    ],
+    "firstModel": "claude-opus-4-8",
+    "lastModel": "claude-opus-4-8",
+    "messages": 37,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.030Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0014-orky-osc-heartbeat",
+    "role": "planner",
+    "agentType": "orky:planner",
+    "transcript": "agent-ac822310d03df73d7",
+    "dir": "C--dev-Termhalla/4db9ff00-cb60-40cd-bc1b-6b22be2b0320/subagents",
+    "served": [
+      "claude-sonnet-5"
+    ],
+    "firstModel": "claude-sonnet-5",
+    "lastModel": "claude-sonnet-5",
+    "messages": 13,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.030Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0007-orky-action-dispatch",
+    "role": "planner",
+    "agentType": "orky:planner",
+    "transcript": "agent-acaf91b0c3fe3be94",
+    "dir": "C--dev-Termhalla/4db9ff00-cb60-40cd-bc1b-6b22be2b0320/subagents",
+    "served": [
+      "claude-sonnet-5"
+    ],
+    "firstModel": "claude-sonnet-5",
+    "lastModel": "claude-sonnet-5",
+    "messages": 15,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.030Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0005-cross-project-orky-registry",
+    "role": "reviewer",
+    "agentType": "orky:reviewer",
+    "transcript": "agent-ace7a70d272214f3b",
+    "dir": "C--dev-Termhalla/4db9ff00-cb60-40cd-bc1b-6b22be2b0320/subagents",
+    "served": [
+      "claude-opus-4-8"
+    ],
+    "firstModel": "claude-opus-4-8",
+    "lastModel": "claude-opus-4-8",
+    "messages": 39,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.030Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0005-cross-project-orky-registry",
+    "role": "implementer",
+    "agentType": "orky:implementer",
+    "transcript": "agent-ad13a2fe631a11f95",
+    "dir": "C--dev-Termhalla/4db9ff00-cb60-40cd-bc1b-6b22be2b0320/subagents",
+    "served": [
+      "claude-sonnet-5"
+    ],
+    "firstModel": "claude-sonnet-5",
+    "lastModel": "claude-sonnet-5",
+    "messages": 43,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.030Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0005-cross-project-orky-registry",
+    "role": "reviewer",
+    "agentType": "orky:reviewer",
+    "transcript": "agent-ae52a143817b45392",
+    "dir": "C--dev-Termhalla/4db9ff00-cb60-40cd-bc1b-6b22be2b0320/subagents",
+    "served": [
+      "claude-opus-4-8"
+    ],
+    "firstModel": "claude-opus-4-8",
+    "lastModel": "claude-opus-4-8",
+    "messages": 63,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.030Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0005-cross-project-orky-registry",
+    "role": "doc-sync",
+    "agentType": "orky:doc-sync",
+    "transcript": "agent-ae88e47db63c23280",
+    "dir": "C--dev-Termhalla/4db9ff00-cb60-40cd-bc1b-6b22be2b0320/subagents",
+    "served": [
+      "claude-sonnet-5"
+    ],
+    "firstModel": "claude-sonnet-5",
+    "lastModel": "claude-sonnet-5",
+    "messages": 46,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.030Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0014-orky-osc-heartbeat",
+    "role": "spec-writer",
+    "agentType": "orky:spec-writer",
+    "transcript": "agent-ae9f811c869f7cb21",
+    "dir": "C--dev-Termhalla/4db9ff00-cb60-40cd-bc1b-6b22be2b0320/subagents",
+    "served": [
+      "claude-opus-4-8"
+    ],
+    "firstModel": "claude-opus-4-8",
+    "lastModel": "claude-opus-4-8",
+    "messages": 26,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.030Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0014-orky-osc-heartbeat",
+    "role": "planner",
+    "agentType": "orky:planner",
+    "transcript": "agent-aea5261d1da5d30b9",
+    "dir": "C--dev-Termhalla/4db9ff00-cb60-40cd-bc1b-6b22be2b0320/subagents",
+    "served": [
+      "claude-sonnet-5"
+    ],
+    "firstModel": "claude-sonnet-5",
+    "lastModel": "claude-sonnet-5",
+    "messages": 38,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.030Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0014-orky-osc-heartbeat",
+    "role": "implementer",
+    "agentType": "orky:implementer",
+    "transcript": "agent-aecef9a122b177eab",
+    "dir": "C--dev-Termhalla/4db9ff00-cb60-40cd-bc1b-6b22be2b0320/subagents",
+    "served": [
+      "claude-sonnet-5"
+    ],
+    "firstModel": "claude-sonnet-5",
+    "lastModel": "claude-sonnet-5",
+    "messages": 24,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.030Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0007-orky-action-dispatch",
+    "role": "test-designer",
+    "agentType": "orky:test-designer",
+    "transcript": "agent-af446877699b1a1e0",
+    "dir": "C--dev-Termhalla/4db9ff00-cb60-40cd-bc1b-6b22be2b0320/subagents",
+    "served": [
+      "claude-sonnet-5"
+    ],
+    "firstModel": "claude-sonnet-5",
+    "lastModel": "claude-sonnet-5",
+    "messages": 22,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.030Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0005-cross-project-orky-registry",
+    "role": "test-designer",
+    "agentType": "orky:test-designer",
+    "transcript": "agent-af4b4199d8491705f",
+    "dir": "C--dev-Termhalla/4db9ff00-cb60-40cd-bc1b-6b22be2b0320/subagents",
+    "served": [
+      "claude-sonnet-5"
+    ],
+    "firstModel": "claude-sonnet-5",
+    "lastModel": "claude-sonnet-5",
+    "messages": 29,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.030Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0014-orky-osc-heartbeat",
+    "role": "reviewer",
+    "agentType": "orky:reviewer",
+    "transcript": "agent-af550e8d98ec096b3",
+    "dir": "C--dev-Termhalla/4db9ff00-cb60-40cd-bc1b-6b22be2b0320/subagents",
+    "served": [
+      "claude-opus-4-8"
+    ],
+    "firstModel": "claude-opus-4-8",
+    "lastModel": "claude-opus-4-8",
+    "messages": 42,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.030Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0014-orky-osc-heartbeat",
+    "role": "planner",
+    "agentType": "orky:planner",
+    "transcript": "agent-af86bac2982ef8705",
+    "dir": "C--dev-Termhalla/4db9ff00-cb60-40cd-bc1b-6b22be2b0320/subagents",
+    "served": [
+      "claude-sonnet-5"
+    ],
+    "firstModel": "claude-sonnet-5",
+    "lastModel": "claude-sonnet-5",
+    "messages": 40,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.030Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0007-orky-action-dispatch",
+    "role": "planner",
+    "agentType": "orky:planner",
+    "transcript": "agent-afa78db1653052b7e",
+    "dir": "C--dev-Termhalla/4db9ff00-cb60-40cd-bc1b-6b22be2b0320/subagents",
+    "served": [
+      "claude-sonnet-5"
+    ],
+    "firstModel": "claude-sonnet-5",
+    "lastModel": "claude-sonnet-5",
+    "messages": 37,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.030Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0003-pane-minimize-restore",
+    "role": "reviewer",
+    "agentType": "orky:reviewer",
+    "transcript": "agent-a13dbb935fc4a0ce7",
+    "dir": "C--dev-Termhalla/5a277eee-26c9-45ba-a906-9a03a16d60d6/subagents",
+    "served": [
+      "claude-opus-4-8"
+    ],
+    "firstModel": "claude-opus-4-8",
+    "lastModel": "claude-opus-4-8",
+    "messages": 44,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.030Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0003-pane-minimize-restore",
+    "role": "implementer",
+    "agentType": "orky:implementer",
+    "transcript": "agent-a20971374234d4842",
+    "dir": "C--dev-Termhalla/5a277eee-26c9-45ba-a906-9a03a16d60d6/subagents",
+    "served": [
+      "claude-opus-4-8"
+    ],
+    "firstModel": "claude-opus-4-8",
+    "lastModel": "claude-opus-4-8",
+    "messages": 277,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.030Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0003-pane-minimize-restore",
+    "role": "spec-writer",
+    "agentType": "orky:spec-writer",
+    "transcript": "agent-a22eb8d1a98e0ac00",
+    "dir": "C--dev-Termhalla/5a277eee-26c9-45ba-a906-9a03a16d60d6/subagents",
+    "served": [
+      "claude-opus-4-8"
+    ],
+    "firstModel": "claude-opus-4-8",
+    "lastModel": "claude-opus-4-8",
+    "messages": 39,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.030Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0003-pane-minimize-restore",
+    "role": "reviewer",
+    "agentType": "orky:reviewer",
+    "transcript": "agent-a2fd9c4d8096a218f",
+    "dir": "C--dev-Termhalla/5a277eee-26c9-45ba-a906-9a03a16d60d6/subagents",
+    "served": [
+      "claude-opus-4-8"
+    ],
+    "firstModel": "claude-opus-4-8",
+    "lastModel": "claude-opus-4-8",
+    "messages": 54,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.030Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0003-pane-minimize-restore",
+    "role": "implementer",
+    "agentType": "orky:implementer",
+    "transcript": "agent-a4ddc953bc9fcf38b",
+    "dir": "C--dev-Termhalla/5a277eee-26c9-45ba-a906-9a03a16d60d6/subagents",
+    "served": [
+      "claude-opus-4-8"
+    ],
+    "firstModel": "claude-opus-4-8",
+    "lastModel": "claude-opus-4-8",
+    "messages": 41,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.030Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0003-pane-minimize-restore",
+    "role": "reviewer",
+    "agentType": "orky:reviewer",
+    "transcript": "agent-a5ae2bcac8e4ed971",
+    "dir": "C--dev-Termhalla/5a277eee-26c9-45ba-a906-9a03a16d60d6/subagents",
+    "served": [
+      "claude-opus-4-8"
+    ],
+    "firstModel": "claude-opus-4-8",
+    "lastModel": "claude-opus-4-8",
+    "messages": 45,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.030Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0003-pane-minimize-restore",
+    "role": "test-designer",
+    "agentType": "orky:test-designer",
+    "transcript": "agent-a5d78073807e43ec4",
+    "dir": "C--dev-Termhalla/5a277eee-26c9-45ba-a906-9a03a16d60d6/subagents",
+    "served": [
+      "claude-opus-4-8"
+    ],
+    "firstModel": "claude-opus-4-8",
+    "lastModel": "claude-opus-4-8",
+    "messages": 91,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.030Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0003-pane-minimize-restore",
+    "role": "planner",
+    "agentType": "orky:planner",
+    "transcript": "agent-a8e28436973ba8e05",
+    "dir": "C--dev-Termhalla/5a277eee-26c9-45ba-a906-9a03a16d60d6/subagents",
+    "served": [
+      "claude-opus-4-8"
+    ],
+    "firstModel": "claude-opus-4-8",
+    "lastModel": "claude-opus-4-8",
+    "messages": 41,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.030Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0003-pane-minimize-restore",
+    "role": "reviewer",
+    "agentType": "orky:reviewer",
+    "transcript": "agent-aa93b3ff9dd630cda",
+    "dir": "C--dev-Termhalla/5a277eee-26c9-45ba-a906-9a03a16d60d6/subagents",
+    "served": [
+      "claude-opus-4-8"
+    ],
+    "firstModel": "claude-opus-4-8",
+    "lastModel": "claude-opus-4-8",
+    "messages": 46,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.030Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0003-pane-minimize-restore",
+    "role": "implementer",
+    "agentType": "orky:implementer",
+    "transcript": "agent-ab75916b088bdf1d6",
+    "dir": "C--dev-Termhalla/5a277eee-26c9-45ba-a906-9a03a16d60d6/subagents",
+    "served": [
+      "claude-opus-4-8"
+    ],
+    "firstModel": "claude-opus-4-8",
+    "lastModel": "claude-opus-4-8",
+    "messages": 261,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.030Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0003-pane-minimize-restore",
+    "role": "reviewer",
+    "agentType": "orky:reviewer",
+    "transcript": "agent-abe28dd57f9ab1837",
+    "dir": "C--dev-Termhalla/5a277eee-26c9-45ba-a906-9a03a16d60d6/subagents",
+    "served": [
+      "claude-opus-4-8"
+    ],
+    "firstModel": "claude-opus-4-8",
+    "lastModel": "claude-opus-4-8",
+    "messages": 36,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.030Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0003-pane-minimize-restore",
+    "role": "test-designer",
+    "agentType": "orky:test-designer",
+    "transcript": "agent-ac29d5f6b1e9e1e82",
+    "dir": "C--dev-Termhalla/5a277eee-26c9-45ba-a906-9a03a16d60d6/subagents",
+    "served": [
+      "claude-opus-4-8"
+    ],
+    "firstModel": "claude-opus-4-8",
+    "lastModel": "claude-opus-4-8",
+    "messages": 49,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.030Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0003-pane-minimize-restore",
+    "role": "planner",
+    "agentType": "orky:planner",
+    "transcript": "agent-ae821024f199d2e3b",
+    "dir": "C--dev-Termhalla/5a277eee-26c9-45ba-a906-9a03a16d60d6/subagents",
+    "served": [
+      "claude-opus-4-8"
+    ],
+    "firstModel": "claude-opus-4-8",
+    "lastModel": "claude-opus-4-8",
+    "messages": 35,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.030Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0003-pane-minimize-restore",
+    "role": "test-designer",
+    "agentType": "orky:test-designer",
+    "transcript": "agent-aeb76a146cde17cb4",
+    "dir": "C--dev-Termhalla/5a277eee-26c9-45ba-a906-9a03a16d60d6/subagents",
+    "served": [
+      "claude-opus-4-8"
+    ],
+    "firstModel": "claude-opus-4-8",
+    "lastModel": "claude-opus-4-8",
+    "messages": 96,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.030Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0003-pane-minimize-restore",
+    "role": "doc-sync",
+    "agentType": "orky:doc-sync",
+    "transcript": "agent-af8555a465a3503d4",
+    "dir": "C--dev-Termhalla/5a277eee-26c9-45ba-a906-9a03a16d60d6/subagents",
+    "served": [
+      "claude-opus-4-8"
+    ],
+    "firstModel": "claude-opus-4-8",
+    "lastModel": "claude-opus-4-8",
+    "messages": 62,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.030Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0004-orky-status-awareness",
+    "role": "planner",
+    "agentType": "orky:planner",
+    "transcript": "agent-a2244addebdeb3f6f",
+    "dir": "C--dev-Termhalla/7ca1970b-a744-4f00-bf1e-fb47b44a391e/subagents",
+    "served": [
+      "claude-opus-4-8"
+    ],
+    "firstModel": "claude-opus-4-8",
+    "lastModel": "claude-opus-4-8",
+    "messages": 55,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.030Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0004-orky-status-awareness",
+    "role": "reviewer",
+    "agentType": "orky:reviewer",
+    "transcript": "agent-a233ed25a79b69b8d",
+    "dir": "C--dev-Termhalla/7ca1970b-a744-4f00-bf1e-fb47b44a391e/subagents",
+    "served": [
+      "claude-opus-4-8"
+    ],
+    "firstModel": "claude-opus-4-8",
+    "lastModel": "claude-opus-4-8",
+    "messages": 25,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.030Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0004-orky-status-awareness",
+    "role": "reviewer",
+    "agentType": "orky:reviewer",
+    "transcript": "agent-a23ad0d00f225e3a9",
+    "dir": "C--dev-Termhalla/7ca1970b-a744-4f00-bf1e-fb47b44a391e/subagents",
+    "served": [
+      "claude-opus-4-8"
+    ],
+    "firstModel": "claude-opus-4-8",
+    "lastModel": "claude-opus-4-8",
+    "messages": 27,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.030Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0004-orky-status-awareness",
+    "role": "reviewer",
+    "agentType": "orky:reviewer",
+    "transcript": "agent-a271b1127557509f8",
+    "dir": "C--dev-Termhalla/7ca1970b-a744-4f00-bf1e-fb47b44a391e/subagents",
+    "served": [
+      "claude-opus-4-8"
+    ],
+    "firstModel": "claude-opus-4-8",
+    "lastModel": "claude-opus-4-8",
+    "messages": 32,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.030Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0004-orky-status-awareness",
+    "role": "implementer",
+    "agentType": "orky:implementer",
+    "transcript": "agent-a375389985cb23727",
+    "dir": "C--dev-Termhalla/7ca1970b-a744-4f00-bf1e-fb47b44a391e/subagents",
+    "served": [
+      "claude-opus-4-8"
+    ],
+    "firstModel": "claude-opus-4-8",
+    "lastModel": "claude-opus-4-8",
+    "messages": 144,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.030Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0004-orky-status-awareness",
+    "role": "planner",
+    "agentType": "orky:planner",
+    "transcript": "agent-a3a3c2698c2663eea",
+    "dir": "C--dev-Termhalla/7ca1970b-a744-4f00-bf1e-fb47b44a391e/subagents",
+    "served": [
+      "claude-opus-4-8"
+    ],
+    "firstModel": "claude-opus-4-8",
+    "lastModel": "claude-opus-4-8",
+    "messages": 15,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.030Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0004-orky-status-awareness",
+    "role": "test-designer",
+    "agentType": "orky:test-designer",
+    "transcript": "agent-a5d8043cedaee8f5a",
+    "dir": "C--dev-Termhalla/7ca1970b-a744-4f00-bf1e-fb47b44a391e/subagents",
+    "served": [
+      "claude-opus-4-8"
+    ],
+    "firstModel": "claude-opus-4-8",
+    "lastModel": "claude-opus-4-8",
+    "messages": 38,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.030Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0004-orky-status-awareness",
+    "role": "reviewer",
+    "agentType": "orky:reviewer",
+    "transcript": "agent-a6729444aba9991ea",
+    "dir": "C--dev-Termhalla/7ca1970b-a744-4f00-bf1e-fb47b44a391e/subagents",
+    "served": [
+      "claude-opus-4-8"
+    ],
+    "firstModel": "claude-opus-4-8",
+    "lastModel": "claude-opus-4-8",
+    "messages": 22,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.030Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0004-orky-status-awareness",
+    "role": "test-designer",
+    "agentType": "orky:test-designer",
+    "transcript": "agent-a682e1dd251816e0d",
+    "dir": "C--dev-Termhalla/7ca1970b-a744-4f00-bf1e-fb47b44a391e/subagents",
+    "served": [
+      "claude-opus-4-8"
+    ],
+    "firstModel": "claude-opus-4-8",
+    "lastModel": "claude-opus-4-8",
+    "messages": 91,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.030Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0004-orky-status-awareness",
+    "role": "reviewer",
+    "agentType": "orky:reviewer",
+    "transcript": "agent-a7d4352759991617b",
+    "dir": "C--dev-Termhalla/7ca1970b-a744-4f00-bf1e-fb47b44a391e/subagents",
+    "served": [
+      "claude-opus-4-8"
+    ],
+    "firstModel": "claude-opus-4-8",
+    "lastModel": "claude-opus-4-8",
+    "messages": 17,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.030Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0004-orky-status-awareness",
+    "role": "reviewer",
+    "agentType": "orky:reviewer",
+    "transcript": "agent-a9a6edf5a1dda9e2d",
+    "dir": "C--dev-Termhalla/7ca1970b-a744-4f00-bf1e-fb47b44a391e/subagents",
+    "served": [
+      "claude-opus-4-8"
+    ],
+    "firstModel": "claude-opus-4-8",
+    "lastModel": "claude-opus-4-8",
+    "messages": 33,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.030Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0004-orky-status-awareness",
+    "role": "reviewer",
+    "agentType": "orky:reviewer",
+    "transcript": "agent-a9f7ec2aecd1dec27",
+    "dir": "C--dev-Termhalla/7ca1970b-a744-4f00-bf1e-fb47b44a391e/subagents",
+    "served": [
+      "claude-opus-4-8"
+    ],
+    "firstModel": "claude-opus-4-8",
+    "lastModel": "claude-opus-4-8",
+    "messages": 32,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.030Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0004-orky-status-awareness",
+    "role": "test-designer",
+    "agentType": "orky:test-designer",
+    "transcript": "agent-aa5311dcb6d2cd78d",
+    "dir": "C--dev-Termhalla/7ca1970b-a744-4f00-bf1e-fb47b44a391e/subagents",
+    "served": [
+      "claude-opus-4-8"
+    ],
+    "firstModel": "claude-opus-4-8",
+    "lastModel": "claude-opus-4-8",
+    "messages": 75,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.030Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0004-orky-status-awareness",
+    "role": "doc-sync",
+    "agentType": "orky:doc-sync",
+    "transcript": "agent-aabdd83dabb4a3e49",
+    "dir": "C--dev-Termhalla/7ca1970b-a744-4f00-bf1e-fb47b44a391e/subagents",
+    "served": [
+      "claude-opus-4-8"
+    ],
+    "firstModel": "claude-opus-4-8",
+    "lastModel": "claude-opus-4-8",
+    "messages": 46,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.030Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0004-orky-status-awareness",
+    "role": "implementer",
+    "agentType": "orky:implementer",
+    "transcript": "agent-ab03266a7a6f64a28",
+    "dir": "C--dev-Termhalla/7ca1970b-a744-4f00-bf1e-fb47b44a391e/subagents",
+    "served": [
+      "claude-opus-4-8"
+    ],
+    "firstModel": "claude-opus-4-8",
+    "lastModel": "claude-opus-4-8",
+    "messages": 22,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.030Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0004-orky-status-awareness",
+    "role": "reviewer",
+    "agentType": "orky:reviewer",
+    "transcript": "agent-ac88b03ccd7c42a7f",
+    "dir": "C--dev-Termhalla/7ca1970b-a744-4f00-bf1e-fb47b44a391e/subagents",
+    "served": [
+      "claude-opus-4-8"
+    ],
+    "firstModel": "claude-opus-4-8",
+    "lastModel": "claude-opus-4-8",
+    "messages": 16,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.030Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0004-orky-status-awareness",
+    "role": "reviewer",
+    "agentType": "orky:reviewer",
+    "transcript": "agent-acb92991ac6d1ec0f",
+    "dir": "C--dev-Termhalla/7ca1970b-a744-4f00-bf1e-fb47b44a391e/subagents",
+    "served": [
+      "claude-opus-4-8"
+    ],
+    "firstModel": "claude-opus-4-8",
+    "lastModel": "claude-opus-4-8",
+    "messages": 17,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.030Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0004-orky-status-awareness",
+    "role": "implementer",
+    "agentType": "orky:implementer",
+    "transcript": "agent-adf0dd181239cac41",
+    "dir": "C--dev-Termhalla/7ca1970b-a744-4f00-bf1e-fb47b44a391e/subagents",
+    "served": [
+      "claude-opus-4-8"
+    ],
+    "firstModel": "claude-opus-4-8",
+    "lastModel": "claude-opus-4-8",
+    "messages": 160,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.030Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0004-orky-status-awareness",
+    "role": "spec-writer",
+    "agentType": "orky:spec-writer",
+    "transcript": "agent-ae44fbdd027ff461a",
+    "dir": "C--dev-Termhalla/7ca1970b-a744-4f00-bf1e-fb47b44a391e/subagents",
+    "served": [
+      "claude-opus-4-8"
+    ],
+    "firstModel": "claude-opus-4-8",
+    "lastModel": "claude-opus-4-8",
+    "messages": 26,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.030Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0004-orky-status-awareness",
+    "role": "reviewer",
+    "agentType": "orky:reviewer",
+    "transcript": "agent-af144fafa0dc9a243",
+    "dir": "C--dev-Termhalla/7ca1970b-a744-4f00-bf1e-fb47b44a391e/subagents",
+    "served": [
+      "claude-opus-4-8"
+    ],
+    "firstModel": "claude-opus-4-8",
+    "lastModel": "claude-opus-4-8",
+    "messages": 33,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.030Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0004-orky-status-awareness",
+    "role": "spec-writer",
+    "agentType": "orky:spec-writer",
+    "transcript": "agent-afcdaa0d9d6de555e",
+    "dir": "C--dev-Termhalla/7ca1970b-a744-4f00-bf1e-fb47b44a391e/subagents",
+    "served": [
+      "claude-opus-4-8"
+    ],
+    "firstModel": "claude-opus-4-8",
+    "lastModel": "claude-opus-4-8",
+    "messages": 20,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.030Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0015-orky-contract-v2-refresh",
+    "role": "test-designer",
+    "agentType": "orky:test-designer",
+    "transcript": "agent-a0b9df4d7a2a140d0",
+    "dir": "C--dev-Termhalla/ac7ad217-54be-4d03-9c0c-b94444d2d4b0/subagents",
+    "served": [
+      "claude-fable-5"
+    ],
+    "firstModel": "claude-fable-5",
+    "lastModel": "claude-fable-5",
+    "messages": 35,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.030Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0015-orky-contract-v2-refresh",
+    "role": "spec-writer",
+    "agentType": "orky:spec-writer",
+    "transcript": "agent-a0bf77fc15401d1b9",
+    "dir": "C--dev-Termhalla/ac7ad217-54be-4d03-9c0c-b94444d2d4b0/subagents",
+    "served": [
+      "claude-fable-5"
+    ],
+    "firstModel": "claude-fable-5",
+    "lastModel": "claude-fable-5",
+    "messages": 11,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.030Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0015-orky-contract-v2-refresh",
+    "role": "planner",
+    "agentType": "orky:planner",
+    "transcript": "agent-a254e0e6130835227",
+    "dir": "C--dev-Termhalla/ac7ad217-54be-4d03-9c0c-b94444d2d4b0/subagents",
+    "served": [
+      "claude-fable-5"
+    ],
+    "firstModel": "claude-fable-5",
+    "lastModel": "claude-fable-5",
+    "messages": 14,
+    "requested": "fable",
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.030Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0015-orky-contract-v2-refresh",
+    "role": "spec-writer",
+    "agentType": "orky:spec-writer",
+    "transcript": "agent-a45263eb87b97dd4e",
+    "dir": "C--dev-Termhalla/ac7ad217-54be-4d03-9c0c-b94444d2d4b0/subagents",
+    "served": [
+      "claude-fable-5"
+    ],
+    "firstModel": "claude-fable-5",
+    "lastModel": "claude-fable-5",
+    "messages": 29,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.030Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0015-orky-contract-v2-refresh",
+    "role": "reviewer",
+    "agentType": "orky:reviewer",
+    "transcript": "agent-a52f36b953f88e626",
+    "dir": "C--dev-Termhalla/ac7ad217-54be-4d03-9c0c-b94444d2d4b0/subagents",
+    "served": [
+      "claude-fable-5"
+    ],
+    "firstModel": "claude-fable-5",
+    "lastModel": "claude-fable-5",
+    "messages": 65,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.031Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0015-orky-contract-v2-refresh.",
+    "role": "reviewer",
+    "agentType": "orky:reviewer",
+    "transcript": "agent-a538c2be7b6b0781f",
+    "dir": "C--dev-Termhalla/ac7ad217-54be-4d03-9c0c-b94444d2d4b0/subagents",
+    "served": [
+      "claude-fable-5"
+    ],
+    "firstModel": "claude-fable-5",
+    "lastModel": "claude-fable-5",
+    "messages": 60,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.031Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0015-orky-contract-v2-refresh",
+    "role": "reviewer",
+    "agentType": "orky:reviewer",
+    "transcript": "agent-a5898a025bee4fe94",
+    "dir": "C--dev-Termhalla/ac7ad217-54be-4d03-9c0c-b94444d2d4b0/subagents",
+    "served": [
+      "claude-fable-5"
+    ],
+    "firstModel": "claude-fable-5",
+    "lastModel": "claude-fable-5",
+    "messages": 53,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.031Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0015-orky-contract-v2-refresh",
+    "role": "test-designer",
+    "agentType": "orky:test-designer",
+    "transcript": "agent-a620d5d3c382810c3",
+    "dir": "C--dev-Termhalla/ac7ad217-54be-4d03-9c0c-b94444d2d4b0/subagents",
+    "served": [
+      "claude-fable-5"
+    ],
+    "firstModel": "claude-fable-5",
+    "lastModel": "claude-fable-5",
+    "messages": 54,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.031Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0015-orky-contract-v2-refresh",
+    "role": "reviewer",
+    "agentType": "orky:reviewer",
+    "transcript": "agent-a64a68b68ad98d669",
+    "dir": "C--dev-Termhalla/ac7ad217-54be-4d03-9c0c-b94444d2d4b0/subagents",
+    "served": [
+      "claude-fable-5"
+    ],
+    "firstModel": "claude-fable-5",
+    "lastModel": "claude-fable-5",
+    "messages": 42,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.031Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0015-orky-contract-v2-refresh",
+    "role": "implementer",
+    "agentType": "orky:implementer",
+    "transcript": "agent-a7bbea6ea0bbbafe3",
+    "dir": "C--dev-Termhalla/ac7ad217-54be-4d03-9c0c-b94444d2d4b0/subagents",
+    "served": [
+      "claude-sonnet-5"
+    ],
+    "firstModel": "claude-sonnet-5",
+    "lastModel": "claude-sonnet-5",
+    "messages": 126,
+    "requested": "sonnet",
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.031Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0015-orky-contract-v2-refresh",
+    "role": "planner",
+    "agentType": "orky:planner",
+    "transcript": "agent-aa8151a3e25073bdc",
+    "dir": "C--dev-Termhalla/ac7ad217-54be-4d03-9c0c-b94444d2d4b0/subagents",
+    "served": [
+      "claude-sonnet-5"
+    ],
+    "firstModel": "claude-sonnet-5",
+    "lastModel": "claude-sonnet-5",
+    "messages": 16,
+    "requested": "fable",
+    "downgraded": true,
+    "servedFraction": 0,
+    "at": "2026-07-03T21:49:47.031Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0015-orky-contract-v2-refresh.",
+    "role": "reviewer",
+    "agentType": "orky:reviewer",
+    "transcript": "agent-ab1a641dfe717f664",
+    "dir": "C--dev-Termhalla/ac7ad217-54be-4d03-9c0c-b94444d2d4b0/subagents",
+    "served": [
+      "claude-fable-5"
+    ],
+    "firstModel": "claude-fable-5",
+    "lastModel": "claude-fable-5",
+    "messages": 41,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.031Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0015-orky-contract-v2-refresh",
+    "role": "reviewer",
+    "agentType": "orky:reviewer",
+    "transcript": "agent-ab36e866d66a9dcf1",
+    "dir": "C--dev-Termhalla/ac7ad217-54be-4d03-9c0c-b94444d2d4b0/subagents",
+    "served": [
+      "claude-fable-5"
+    ],
+    "firstModel": "claude-fable-5",
+    "lastModel": "claude-fable-5",
+    "messages": 28,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.031Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0015-orky-contract-v2-refresh",
+    "role": "doc-sync",
+    "agentType": "orky:doc-sync",
+    "transcript": "agent-abe9be5e0138f7593",
+    "dir": "C--dev-Termhalla/ac7ad217-54be-4d03-9c0c-b94444d2d4b0/subagents",
+    "served": [
+      "claude-sonnet-5"
+    ],
+    "firstModel": "claude-sonnet-5",
+    "lastModel": "claude-sonnet-5",
+    "messages": 54,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.031Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0015-orky-contract-v2-refresh",
+    "role": "test-designer",
+    "agentType": "orky:test-designer",
+    "transcript": "agent-ad2cec700e60c12cc",
+    "dir": "C--dev-Termhalla/ac7ad217-54be-4d03-9c0c-b94444d2d4b0/subagents",
+    "served": [
+      "claude-fable-5"
+    ],
+    "firstModel": "claude-fable-5",
+    "lastModel": "claude-fable-5",
+    "messages": 102,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.031Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0015-orky-contract-v2-refresh",
+    "role": "planner",
+    "agentType": "orky:planner",
+    "transcript": "agent-ada5aa4a6f578d2ca",
+    "dir": "C--dev-Termhalla/ac7ad217-54be-4d03-9c0c-b94444d2d4b0/subagents",
+    "served": [
+      "claude-fable-5"
+    ],
+    "firstModel": "claude-fable-5",
+    "lastModel": "claude-fable-5",
+    "messages": 11,
+    "requested": "fable",
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.031Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "orky-pane.md",
+    "role": "implementer",
+    "agentType": "orky:implementer",
+    "transcript": "agent-aefc60ca9978a4071",
+    "dir": "C--dev-Termhalla/ac7ad217-54be-4d03-9c0c-b94444d2d4b0/subagents",
+    "served": [
+      "claude-sonnet-5"
+    ],
+    "firstModel": "claude-sonnet-5",
+    "lastModel": "claude-sonnet-5",
+    "messages": 68,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.031Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0015-orky-contract-v2-refresh",
+    "role": "reviewer",
+    "agentType": "orky:reviewer",
+    "transcript": "agent-affa0d81f15aeb756",
+    "dir": "C--dev-Termhalla/ac7ad217-54be-4d03-9c0c-b94444d2d4b0/subagents",
+    "served": [
+      "claude-fable-5"
+    ],
+    "firstModel": "claude-fable-5",
+    "lastModel": "claude-fable-5",
+    "messages": 52,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.031Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0001-edit-menu-settings-toasts",
+    "role": "reviewer",
+    "agentType": "orky:reviewer",
+    "transcript": "agent-a057a0070695069b4",
+    "dir": "C--dev-Termhalla/c072bae4-721a-4fb1-b70b-47bd90466352/subagents",
+    "served": [
+      "claude-opus-4-8"
+    ],
+    "firstModel": "claude-opus-4-8",
+    "lastModel": "claude-opus-4-8",
+    "messages": 17,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.031Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0001-edit-menu-settings-toasts",
+    "role": "reviewer",
+    "agentType": "orky:reviewer",
+    "transcript": "agent-a1377a29559b223f3",
+    "dir": "C--dev-Termhalla/c072bae4-721a-4fb1-b70b-47bd90466352/subagents",
+    "served": [
+      "claude-opus-4-8"
+    ],
+    "firstModel": "claude-opus-4-8",
+    "lastModel": "claude-opus-4-8",
+    "messages": 35,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.031Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0001-edit-menu-settings-toasts",
+    "role": "reviewer",
+    "agentType": "orky:reviewer",
+    "transcript": "agent-a1be29a644594d1ea",
+    "dir": "C--dev-Termhalla/c072bae4-721a-4fb1-b70b-47bd90466352/subagents",
+    "served": [
+      "claude-opus-4-8"
+    ],
+    "firstModel": "claude-opus-4-8",
+    "lastModel": "claude-opus-4-8",
+    "messages": 40,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.031Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0001-edit-menu-settings-toasts",
+    "role": "reviewer",
+    "agentType": "orky:reviewer",
+    "transcript": "agent-a39e43ce5c869420d",
+    "dir": "C--dev-Termhalla/c072bae4-721a-4fb1-b70b-47bd90466352/subagents",
+    "served": [
+      "claude-opus-4-8"
+    ],
+    "firstModel": "claude-opus-4-8",
+    "lastModel": "claude-opus-4-8",
+    "messages": 15,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.031Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0001-edit-menu-settings-toasts",
+    "role": "planner",
+    "agentType": "orky:planner",
+    "transcript": "agent-a73eaf0d142ac88a0",
+    "dir": "C--dev-Termhalla/c072bae4-721a-4fb1-b70b-47bd90466352/subagents",
+    "served": [
+      "claude-opus-4-8"
+    ],
+    "firstModel": "claude-opus-4-8",
+    "lastModel": "claude-opus-4-8",
+    "messages": 28,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.031Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0001-edit-menu-settings-toasts",
+    "role": "test-designer",
+    "agentType": "orky:test-designer",
+    "transcript": "agent-a8573ece3d63d85c9",
+    "dir": "C--dev-Termhalla/c072bae4-721a-4fb1-b70b-47bd90466352/subagents",
+    "served": [
+      "claude-opus-4-8"
+    ],
+    "firstModel": "claude-opus-4-8",
+    "lastModel": "claude-opus-4-8",
+    "messages": 27,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.031Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0001-edit-menu-settings-toasts",
+    "role": "doc-sync",
+    "agentType": "orky:doc-sync",
+    "transcript": "agent-a8955175a072f8f6d",
+    "dir": "C--dev-Termhalla/c072bae4-721a-4fb1-b70b-47bd90466352/subagents",
+    "served": [
+      "claude-opus-4-8"
+    ],
+    "firstModel": "claude-opus-4-8",
+    "lastModel": "claude-opus-4-8",
+    "messages": 76,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.031Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0001-edit-menu-settings-toasts",
+    "role": "reviewer",
+    "agentType": "orky:reviewer",
+    "transcript": "agent-a92f7535ddda2ef0d",
+    "dir": "C--dev-Termhalla/c072bae4-721a-4fb1-b70b-47bd90466352/subagents",
+    "served": [
+      "claude-opus-4-8"
+    ],
+    "firstModel": "claude-opus-4-8",
+    "lastModel": "claude-opus-4-8",
+    "messages": 61,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.031Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0001-edit-menu-settings-toasts",
+    "role": "spec-writer",
+    "agentType": "orky:spec-writer",
+    "transcript": "agent-a9cec0eee3ba88414",
+    "dir": "C--dev-Termhalla/c072bae4-721a-4fb1-b70b-47bd90466352/subagents",
+    "served": [
+      "claude-opus-4-8"
+    ],
+    "firstModel": "claude-opus-4-8",
+    "lastModel": "claude-opus-4-8",
+    "messages": 15,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.031Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0001-edit-menu-settings-toasts",
+    "role": "spec-writer",
+    "agentType": "orky:spec-writer",
+    "transcript": "agent-a9f381c615bb85a9e",
+    "dir": "C--dev-Termhalla/c072bae4-721a-4fb1-b70b-47bd90466352/subagents",
+    "served": [
+      "claude-opus-4-8"
+    ],
+    "firstModel": "claude-opus-4-8",
+    "lastModel": "claude-opus-4-8",
+    "messages": 25,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.031Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0001-edit-menu-settings-toasts",
+    "role": "implementer",
+    "agentType": "orky:implementer",
+    "transcript": "agent-ad6f00836478be8a3",
+    "dir": "C--dev-Termhalla/c072bae4-721a-4fb1-b70b-47bd90466352/subagents",
+    "served": [
+      "claude-opus-4-8"
+    ],
+    "firstModel": "claude-opus-4-8",
+    "lastModel": "claude-opus-4-8",
+    "messages": 70,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.031Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0001-edit-menu-settings-toasts",
+    "role": "test-designer",
+    "agentType": "orky:test-designer",
+    "transcript": "agent-ade613a7c4f1299d1",
+    "dir": "C--dev-Termhalla/c072bae4-721a-4fb1-b70b-47bd90466352/subagents",
+    "served": [
+      "claude-opus-4-8"
+    ],
+    "firstModel": "claude-opus-4-8",
+    "lastModel": "claude-opus-4-8",
+    "messages": 118,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.031Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0001-edit-menu-settings-toasts",
+    "role": "planner",
+    "agentType": "orky:planner",
+    "transcript": "agent-aed1047e402b80199",
+    "dir": "C--dev-Termhalla/c072bae4-721a-4fb1-b70b-47bd90466352/subagents",
+    "served": [
+      "claude-opus-4-8"
+    ],
+    "firstModel": "claude-opus-4-8",
+    "lastModel": "claude-opus-4-8",
+    "messages": 11,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.031Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0001-edit-menu-settings-toasts",
+    "role": "implementer",
+    "agentType": "orky:implementer",
+    "transcript": "agent-aedd8a3efbf434024",
+    "dir": "C--dev-Termhalla/c072bae4-721a-4fb1-b70b-47bd90466352/subagents",
+    "served": [
+      "claude-opus-4-8"
+    ],
+    "firstModel": "claude-opus-4-8",
+    "lastModel": "claude-opus-4-8",
+    "messages": 12,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.031Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0002-pane-toolbar-split-control",
+    "role": "implementer",
+    "agentType": "orky:implementer",
+    "transcript": "agent-a022006583fdda1bb",
+    "dir": "C--dev-Termhalla/c2bf51fb-a5bb-424e-bfd9-1510f39942af/subagents",
+    "served": [
+      "claude-opus-4-8"
+    ],
+    "firstModel": "claude-opus-4-8",
+    "lastModel": "claude-opus-4-8",
+    "messages": 134,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.031Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0002-pane-toolbar-split-control",
+    "role": "reviewer",
+    "agentType": "orky:reviewer",
+    "transcript": "agent-a02830b2a9635e9e5",
+    "dir": "C--dev-Termhalla/c2bf51fb-a5bb-424e-bfd9-1510f39942af/subagents",
+    "served": [
+      "claude-opus-4-8"
+    ],
+    "firstModel": "claude-opus-4-8",
+    "lastModel": "claude-opus-4-8",
+    "messages": 17,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.031Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0002-pane-toolbar-split-control",
+    "role": "spec-writer",
+    "agentType": "orky:spec-writer",
+    "transcript": "agent-a0d2727d947d994a1",
+    "dir": "C--dev-Termhalla/c2bf51fb-a5bb-424e-bfd9-1510f39942af/subagents",
+    "served": [
+      "claude-opus-4-8"
+    ],
+    "firstModel": "claude-opus-4-8",
+    "lastModel": "claude-opus-4-8",
+    "messages": 37,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.031Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0002-pane-toolbar-split-control",
+    "role": "test-designer",
+    "agentType": "orky:test-designer",
+    "transcript": "agent-a12ef1f8f7073c321",
+    "dir": "C--dev-Termhalla/c2bf51fb-a5bb-424e-bfd9-1510f39942af/subagents",
+    "served": [
+      "claude-opus-4-8"
+    ],
+    "firstModel": "claude-opus-4-8",
+    "lastModel": "claude-opus-4-8",
+    "messages": 75,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.031Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0002-pane-toolbar-split-control",
+    "role": "planner",
+    "agentType": "orky:planner",
+    "transcript": "agent-a19e6c8be3eb0f30e",
+    "dir": "C--dev-Termhalla/c2bf51fb-a5bb-424e-bfd9-1510f39942af/subagents",
+    "served": [
+      "claude-opus-4-8"
+    ],
+    "firstModel": "claude-opus-4-8",
+    "lastModel": "claude-opus-4-8",
+    "messages": 39,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.031Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0002-pane-toolbar-split-control",
+    "role": "reviewer",
+    "agentType": "orky:reviewer",
+    "transcript": "agent-a228ba9c730dcfab3",
+    "dir": "C--dev-Termhalla/c2bf51fb-a5bb-424e-bfd9-1510f39942af/subagents",
+    "served": [
+      "claude-opus-4-8"
+    ],
+    "firstModel": "claude-opus-4-8",
+    "lastModel": "claude-opus-4-8",
+    "messages": 31,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.031Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0002-pane-toolbar-split-control",
+    "role": "reviewer",
+    "agentType": "orky:reviewer",
+    "transcript": "agent-a3e13ae8e1800f5ae",
+    "dir": "C--dev-Termhalla/c2bf51fb-a5bb-424e-bfd9-1510f39942af/subagents",
+    "served": [
+      "claude-opus-4-8"
+    ],
+    "firstModel": "claude-opus-4-8",
+    "lastModel": "claude-opus-4-8",
+    "messages": 13,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.031Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0002-pane-toolbar-split-control",
+    "role": "reviewer",
+    "agentType": "orky:reviewer",
+    "transcript": "agent-a64448ba8540ddd95",
+    "dir": "C--dev-Termhalla/c2bf51fb-a5bb-424e-bfd9-1510f39942af/subagents",
+    "served": [
+      "claude-opus-4-8"
+    ],
+    "firstModel": "claude-opus-4-8",
+    "lastModel": "claude-opus-4-8",
+    "messages": 29,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.031Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0002-pane-toolbar-split-control",
+    "role": "reviewer",
+    "agentType": "orky:reviewer",
+    "transcript": "agent-ac53b0fdc4cabcee4",
+    "dir": "C--dev-Termhalla/c2bf51fb-a5bb-424e-bfd9-1510f39942af/subagents",
+    "served": [
+      "claude-opus-4-8"
+    ],
+    "firstModel": "claude-opus-4-8",
+    "lastModel": "claude-opus-4-8",
+    "messages": 15,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.031Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0002-pane-toolbar-split-control",
+    "role": "test-designer",
+    "agentType": "orky:test-designer",
+    "transcript": "agent-ac6f273322306c7f8",
+    "dir": "C--dev-Termhalla/c2bf51fb-a5bb-424e-bfd9-1510f39942af/subagents",
+    "served": [
+      "claude-opus-4-8"
+    ],
+    "firstModel": "claude-opus-4-8",
+    "lastModel": "claude-opus-4-8",
+    "messages": 112,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.031Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0002-pane-toolbar-split-control",
+    "role": "implementer",
+    "agentType": "orky:implementer",
+    "transcript": "agent-ac8724f44e2146316",
+    "dir": "C--dev-Termhalla/c2bf51fb-a5bb-424e-bfd9-1510f39942af/subagents",
+    "served": [
+      "claude-opus-4-8"
+    ],
+    "firstModel": "claude-opus-4-8",
+    "lastModel": "claude-opus-4-8",
+    "messages": 53,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.031Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0002-pane-toolbar-split-control",
+    "role": "reviewer",
+    "agentType": "orky:reviewer",
+    "transcript": "agent-add6394e67e2a9b37",
+    "dir": "C--dev-Termhalla/c2bf51fb-a5bb-424e-bfd9-1510f39942af/subagents",
+    "served": [
+      "claude-opus-4-8"
+    ],
+    "firstModel": "claude-opus-4-8",
+    "lastModel": "claude-opus-4-8",
+    "messages": 44,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.031Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "workspaces.md",
+    "role": "doc-sync",
+    "agentType": "orky:doc-sync",
+    "transcript": "agent-af243f774fa9b50ca",
+    "dir": "C--dev-Termhalla/c2bf51fb-a5bb-424e-bfd9-1510f39942af/subagents",
+    "served": [
+      "claude-opus-4-8"
+    ],
+    "firstModel": "claude-opus-4-8",
+    "lastModel": "claude-opus-4-8",
+    "messages": 106,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-03T21:49:47.031Z"
   }
 ]
