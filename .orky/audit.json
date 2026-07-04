@@ -5386,6 +5386,28 @@
   },
   {
     "action": "gate.check",
+    "feature": "0019-agent-replay-session-survival",
+    "phase": "spec",
+    "pass": true,
+    "attempts": 0,
+    "totalFailures": 0,
+    "wallClockMs": 7,
+    "at": "2026-07-04T19:25:40.370Z"
+  },
+  {
+    "action": "producer.select",
+    "feature": "0019-agent-replay-session-survival",
+    "role": "planner",
+    "phase": "plan",
+    "tier": "low",
+    "model": "sonnet",
+    "effort": "medium",
+    "trigger": "base",
+    "attempts": 0,
+    "at": "2026-07-04T19:25:56.096Z"
+  },
+  {
+    "action": "gate.check",
     "feature": "0020-ssh-tunnel-provisioned-bootstrap",
     "phase": "spec",
     "pass": true,
@@ -5403,6 +5425,16 @@
     "totalFailures": 0,
     "wallClockMs": 11,
     "at": "2026-07-04T19:29:31.746Z"
+  },
+  {
+    "action": "gate.check",
+    "feature": "0019-agent-replay-session-survival",
+    "phase": "plan",
+    "pass": true,
+    "attempts": 0,
+    "totalFailures": 0,
+    "wallClockMs": 13,
+    "at": "2026-07-04T19:30:03.442Z"
   },
   {
     "action": "gate.check",
@@ -5447,6 +5479,28 @@
     "trigger": "base",
     "attempts": 0,
     "at": "2026-07-04T19:44:04.676Z"
+  },
+  {
+    "action": "gate.check",
+    "feature": "0019-agent-replay-session-survival",
+    "phase": "tests",
+    "pass": true,
+    "attempts": 0,
+    "totalFailures": 0,
+    "wallClockMs": 78557,
+    "at": "2026-07-04T19:50:02.749Z"
+  },
+  {
+    "action": "producer.select",
+    "feature": "0019-agent-replay-session-survival",
+    "role": "implementer",
+    "phase": "implement",
+    "tier": "low",
+    "model": "sonnet",
+    "effort": "medium",
+    "trigger": "base",
+    "attempts": 0,
+    "at": "2026-07-04T19:50:25.703Z"
   },
   {
     "action": "gate.check",
@@ -5500,6 +5554,26 @@
     "totalFailures": 0,
     "wallClockMs": 167594,
     "at": "2026-07-04T20:08:57.323Z"
+  },
+  {
+    "action": "gate.check",
+    "feature": "0019-agent-replay-session-survival",
+    "phase": "tests",
+    "pass": true,
+    "attempts": 0,
+    "totalFailures": 0,
+    "wallClockMs": 80688,
+    "at": "2026-07-04T20:12:34.816Z"
+  },
+  {
+    "action": "gate.check",
+    "feature": "0019-agent-replay-session-survival",
+    "phase": "implement",
+    "pass": true,
+    "attempts": 0,
+    "totalFailures": 0,
+    "wallClockMs": 189610,
+    "at": "2026-07-04T20:16:09.773Z"
   },
   {
     "action": "gate.check",
@@ -5626,5 +5700,48 @@
     "totalFailures": 1,
     "wallClockMs": 131,
     "at": "2026-07-04T20:30:56.598Z"
+  },
+  {
+    "action": "gate.check",
+    "feature": "0019-agent-replay-session-survival",
+    "phase": "implement",
+    "pass": true,
+    "attempts": 0,
+    "totalFailures": 0,
+    "wallClockMs": 183816,
+    "at": "2026-07-04T20:37:44.868Z"
+  },
+  {
+    "action": "gate.check",
+    "feature": "0019-agent-replay-session-survival",
+    "phase": "review",
+    "pass": true,
+    "attempts": 0,
+    "totalFailures": 0,
+    "wallClockMs": 11,
+    "at": "2026-07-04T20:37:57.449Z"
+  },
+  {
+    "action": "gate.check",
+    "feature": "0019-agent-replay-session-survival",
+    "phase": "doc-sync",
+    "pass": true,
+    "attempts": 0,
+    "totalFailures": 0,
+    "wallClockMs": 87,
+    "at": "2026-07-04T20:40:22.921Z"
+  },
+  {
+    "action": "gate.check",
+    "feature": "0019-agent-replay-session-survival",
+    "phase": "implement",
+    "pass": false,
+    "attempts": 1,
+    "totalFailures": 1,
+    "wallClockMs": 161272,
+    "failed": [
+      "test-freeze"
+    ],
+    "at": "2026-07-04T21:19:06.231Z"
   }
 ]

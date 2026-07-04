@@ -1,119 +1,103 @@
 /**
- * The agent session core (0017 REQ-004..REQ-010, REQ-013): handshake-first, exactly-one-res
- * dispatch over the pty methods, status detection at the source, push mirroring, and the
- * lifecycle taxonomy. ALL IO is injected (`send`/`diag`/`shutdown` + the pty backend), so the
- * entire core runs in-process under vitest; `main.ts` is the only stdio wiring.
+ * The agent session core — ONE protocol CONNECTION (F16 REQ-004..REQ-010, REQ-013; F18/0019
+ * REQ-005..REQ-009): handshake-first, exactly-one-res dispatch, and the lifecycle taxonomy.
+ * ALL IO is injected (`send`/`diag`/`shutdown`), so the entire core runs in-process under
+ * vitest; `main.ts` is the only stdio wiring.
  *
- * Since 0018 (windowed flow control) the once-inert ack/window frames HAVE semantics here:
- * every emitted pty:data payload is counted through the shared flow gate, which pauses the
- * pane's backend past the unacked window and resumes it when the client's acks drain to the
- * low watermark — see src/shared/remote/flow-control.ts for the measure and hysteresis.
+ * Since 0019 the pane ownership lives in an injectable SESSION STORE (`session-store.ts`):
+ *  - `init.backend` + `init.homeDir` (the F16 composition, what `main.ts` ships): the session
+ *    creates its OWN store and `destroy()`s it on every end path — byte-compatible with F16
+ *    (end of input kills every live pane and exits 0; a live pane never outlives the process).
+ *  - `init.sessions` (the survival composition, locked decision 3): the session is one
+ *    connection over a LONGER-LIVED store; every end path — clean EOF, fatal framing,
+ *    handshake failure, an outbound send failure — DETACHES (`unbind()`): panes keep running,
+ *    replay + status keep consuming, and a later connection reattaches via `pty:attach` /
+ *    `pty:sessions`. F19/F21 wire this seam to a reattachable transport.
  *
- * Protocol comes exclusively from the F15 barrel (REQ-002). Status detection REUSES the
- * existing src/main/status/ stack (REQ-008): one StatusEngine, panes registered BEFORE the
- * backend spawn (the repo's register-before-spawn discipline — a failed spawn unwinds it),
- * fed from each pane's byte stream, unregistered on exit (CONV-011: no stale sessions).
+ * Since 0018 (windowed flow control) the once-inert ack/window frames HAVE semantics: every
+ * emitted pty:data payload is counted through the shared flow gate, which pauses the pane's
+ * backend past the unacked window and resumes it when the client's acks drain to the low
+ * watermark — see src/shared/remote/flow-control.ts for the measure and hysteresis. The gate
+ * itself lives in the session store (the emit path moved there with 0019); this connection
+ * merely forwards inbound ack/window frames, fire-and-forget (never answered with a frame).
  *
- * Outbound TerminalStatus objects are re-shaped to drop an absent `lastExit` KEY entirely:
- * the tracker's status() carries `lastExit: undefined` before any exit, and F15's strict
- * validator (deliberately) rejects `undefined` inside JSON positions — sending it raw would
- * turn the very first pty:status push into a fatal encode error.
+ * Protocol comes exclusively from the F15 barrel (REQ-002). Outbound TerminalStatus objects
+ * are re-shaped to drop an absent `lastExit` KEY (see `session-api.ts` — F15's strict validator
+ * rejects `undefined` inside JSON positions).
  */
 import {
-  createAgentHandshake, AGENT_V1_CAPABILITIES, createAgentFlowGate
+  createAgentHandshake, AGENT_V1_CAPABILITIES
 } from '@shared/remote/protocol'
-import type { DecodedItem, WireFrame, ReqFrame, ResFrame, FlowDecision } from '@shared/remote/protocol'
+import type { DecodedItem, WireFrame, ReqFrame, ResFrame } from '@shared/remote/protocol'
 import { CH } from '@shared/ipc-contract'
-import type { TerminalStatus } from '@shared/types'
-import { StatusEngine } from '../main/status/status-engine'
-import type { AgentPtyBackend, AgentPtyHandle } from './pty-backend'
+import type { AgentPtyBackend } from './pty-backend'
 import type { AgentErrorCode } from './error-codes'
+import { AGENT_SESSION_METHODS } from './session-api'
+import { createSessionStore, type AgentSessionStore } from './session-store'
 import {
-  validateSpawnParams, validateWriteParams, validateResizeParams, validateKillParams
+  validateSpawnParams, validateWriteParams, validateResizeParams, validateKillParams,
+  validateAttachParams, validateSessionsParams
 } from './validate'
 
-export interface AgentSessionInit {
+interface AgentSessionBaseInit {
   /** The advertised version — main.ts passes AGENT_VERSION (the repo package.json version). */
   version: string
-  backend: AgentPtyBackend
-  /** Resolution target for an empty wire cwd (REQ-007) — main.ts passes the process home. */
-  homeDir: string
   send: (frame: WireFrame) => void
   diag: (text: string) => void
   shutdown: (code: number) => void
 }
+
+export type AgentSessionInit = AgentSessionBaseInit & (
+  | {
+      backend: AgentPtyBackend
+      /** Resolution target for an empty wire cwd (REQ-007) — main.ts passes the process home. */
+      homeDir: string
+      sessions?: undefined
+    }
+  | {
+      /** The survival composition: an external store that OUTLIVES this connection. */
+      sessions: AgentSessionStore
+      backend?: undefined
+      homeDir?: undefined
+    }
+)
 
 export interface AgentSession {
   /** Send the agent hello — MUST be called before any input is fed (REQ-004). */
   start(): void
   /** Feed one decoded item from the inbound stream. */
   onItem(item: DecodedItem): void
-  /** The inbound stream ended (ssh channel / parent gone): clean shutdown (REQ-013). */
+  /** The inbound stream ended (ssh channel / parent gone): end THIS connection (REQ-013). */
   endOfInput(): void
 }
 
 const bounded = (e: unknown): string => String(e instanceof Error ? e.message : e).slice(0, 300)
 
+const [ATTACH_METHOD, SESSIONS_METHOD] = AGENT_SESSION_METHODS
+
 export const createAgentSession = (init: AgentSessionInit): AgentSession => {
   const handshake = createAgentHandshake({ version: init.version, capabilities: AGENT_V1_CAPABILITIES })
-  const panes = new Map<string, AgentPtyHandle>()
+  const owned = init.sessions === undefined
+  const store: AgentSessionStore = init.sessions !== undefined
+    ? init.sessions
+    : createSessionStore({ backend: init.backend, homeDir: init.homeDir, diag: init.diag })
   let established = false
   let ended = false
-
-  // Windowed flow control (0018, REQ-013): ONE gate per session; its diagnostics ride the
-  // session's stderr channel. Decisions are applied to the pane's backend handle synchronously
-  // inside whatever event produced them (data emission, ack, window).
-  const gate = createAgentFlowGate({ onDiagnostic: init.diag })
-  const applyDecisions = (decisions: FlowDecision[]): void => {
-    for (const d of decisions) {
-      const pane = panes.get(d.id)
-      if (!pane) continue // the pane raced away; its flow state is pruned on the exit funnel
-      // Containment parity with the dispatch path (FINDING-001): a throwing backend
-      // pause()/resume() degrades to a diagnostic, never crashes the agent.
-      try {
-        if (d.action === 'pause') pane.pause()
-        else pane.resume()
-      } catch (e) {
-        init.diag(`flow: ${d.action} on pane "${d.id}" failed: ${bounded(e)} - the session continues`)
-      }
-    }
-  }
-
-  /** Drop an absent lastExit KEY (see module header) and clone to inert JSON data. */
-  const statusPayload = (s: TerminalStatus): Record<string, unknown> =>
-    s.lastExit === undefined ? { state: s.state, since: s.since } : { state: s.state, lastExit: s.lastExit, since: s.since }
-
-  const engine = new StatusEngine(
-    (id, status) => { if (!ended) init.send({ type: 'evt', channel: CH.ptyStatus, args: [id, statusPayload(status)] }) },
-    (id, cwd) => { if (!ended) init.send({ type: 'evt', channel: CH.ptyCwd, args: [id, cwd] }) }
-  )
 
   const end = (code: number): void => {
     if (ended) return
     ended = true
-    for (const [id, handle] of [...panes]) {
-      panes.delete(id)
-      try { handle.kill() } catch (e) { init.diag(`shutdown: killing pane "${id}" failed: ${bounded(e)}`) }
-      engine.unregister(id)
-    }
-    gate.dispose() // session end clears ALL flow state (REQ-009)
-    engine.dispose()
+    // The owned store dies with its one connection (F16 behavior: panes killed, exit code
+    // taxonomy unchanged). An external store merely detaches — the survival substance.
+    if (owned) store.destroy()
+    else store.unbind()
     init.shutdown(code)
-  }
-
-  const paneExited = (id: string, code: number): void => {
-    if (!panes.has(id)) return // exactly-once: kill-initiated and self-exit funnel here
-    panes.delete(id)
-    gate.paneExited(id) // prune flow state (REQ-009); late acks/windows hit the untracked paths
-    engine.markExit(id, code) // final status (lastExit) flows out BEFORE the exit event
-    engine.unregister(id)
-    if (!ended) init.send({ type: 'evt', channel: CH.ptyExit, args: [id, code] })
   }
 
   const dispatch = (req: ReqFrame): void => {
     let replied = false
     const reply = (res: ResFrame): void => {
-      if (replied) return
+      if (replied || ended) return
       replied = true
       init.send(res)
     }
@@ -126,60 +110,74 @@ export const createAgentSession = (init: AgentSessionInit): AgentSession => {
         case CH.ptySpawn: {
           const v = validateSpawnParams(req.params)
           if (!v.ok) return fail(v.code, v.message)
-          const a = v.args
-          if (panes.has(a.id)) return ok(true) // adopt: the pane is live, never respawn (local semantic)
-          const cwd = a.cwd === '' ? init.homeDir : a.cwd
-          engine.register(a.id) // register BEFORE spawn — a failed spawn unwinds cleanly
-          let handle: AgentPtyHandle
-          try {
-            handle = init.backend.spawn({ id: a.id, cwd, cols: a.cols, rows: a.rows, shellId: a.shellId })
-          } catch (e) {
-            engine.unregister(a.id)
-            return fail('spawn-failed', `pty:spawn "${a.id}" failed: ${bounded(e)} - no pane was registered`)
-          }
-          panes.set(a.id, handle)
-          handle.onExit((code) => paneExited(a.id, code))
-          handle.onData((data) => {
-            // Liveness guard (FINDING-001): a real-backend data straggler delivered after
-            // onExit must never emit pty:data AFTER pty:exit — exit-last is REQ-010's contract.
-            // panes.has stays true through the legitimate pre-exit flush window.
-            if (!panes.has(a.id)) return
-            engine.feed(a.id, data)
-            if (!ended) init.send({ type: 'evt', channel: CH.ptyData, args: [a.id, data] })
-            // Flow control (0018 REQ-005): count the SAME payload string just emitted; a
-            // crossing pauses the backend synchronously, within this very delivery — the
-            // fake backend queues (and node-pty stops reading) from the next chunk on.
-            applyDecisions(gate.onDataEmitted(a.id, data))
-          })
-          return ok(false) // fresh spawn
+          const outcome = store.spawn(v.args)
+          if (!outcome.ok) return fail('spawn-failed', outcome.message)
+          return ok(outcome.adopted)
         }
         case CH.ptyWrite: {
           const v = validateWriteParams(req.params)
           if (!v.ok) return fail(v.code, v.message)
-          const pane = panes.get(v.args.id)
-          if (!pane) return fail('unknown-pane', `pty:write: no live pane "${v.args.id}" on this agent`)
-          pane.write(v.args.data)
+          if (!store.write(v.args.id, v.args.data)) {
+            return fail('unknown-pane', `pty:write: no live pane "${v.args.id}" on this agent`)
+          }
           return ok(null)
         }
         case CH.ptyResize: {
           const v = validateResizeParams(req.params)
           if (!v.ok) return fail(v.code, v.message)
-          const pane = panes.get(v.args.id)
-          if (!pane) return fail('unknown-pane', `pty:resize: no live pane "${v.args.id}" on this agent`)
-          pane.resize(v.args.cols, v.args.rows)
+          if (!store.resize(v.args.id, v.args.cols, v.args.rows)) {
+            return fail('unknown-pane', `pty:resize: no live pane "${v.args.id}" on this agent`)
+          }
           return ok(null)
         }
         case CH.ptyKill: {
           const v = validateKillParams(req.params)
           if (!v.ok) return fail(v.code, v.message)
-          const pane = panes.get(v.id)
-          if (!pane) return fail('unknown-pane', `pty:kill: no live pane "${v.id}" on this agent`)
-          pane.kill() // the handle's exit funnels through paneExited (pty:exit exactly once)
+          if (!store.kill(v.id)) {
+            return fail('unknown-pane', `pty:kill: no live pane "${v.id}" on this agent`)
+          }
           return ok(null)
+        }
+        case ATTACH_METHOD: {
+          const v = validateAttachParams(req.params)
+          if (!v.ok) return fail(v.code, v.message)
+          // The ONLY async handler: the res is sent when the replay snapshot barrier resolves.
+          // Exactly-once rides the shared reply guard; the ordering invariant (REQ-006d) rides
+          // the store's hold window, opened synchronously inside store.attach().
+          void store.attach(v.id)
+            .then((outcome) => {
+              if (ended) return // the connection died while the snapshot was in flight
+              if (!outcome.ok) return fail(outcome.code, outcome.message)
+              try {
+                ok(outcome.result) // the res goes out FIRST...
+              } finally {
+                // FINDING-007: the window must release even when the res send throws — the
+                // drain's own deliver path detects a broken sink (store unbinds + the
+                // connection ends), instead of wedging the pane's data in held forever.
+                outcome.drain()    // ...then the window's held bytes, in the same continuation
+              }
+            })
+            .catch((e) => {
+              // FINDING-003: terminal catch — a throw anywhere above (including a throwing
+              // send) must never surface as an unhandledRejection in a long-lived agent.
+              try {
+                init.diag(`${ATTACH_METHOD} "${v.id}" continuation failed: ${bounded(e)}`)
+                if (!ended) fail('internal', `${ATTACH_METHOD} "${v.id}" failed: ${bounded(e)} - the session continues`)
+              } catch {
+                // the send itself is broken; the diag (or the connection's own death path)
+                // already recorded the failure — swallowing here is the terminal backstop
+              }
+            })
+          return
+        }
+        case SESSIONS_METHOD: {
+          const v = validateSessionsParams(req.params)
+          if (!v.ok) return fail(v.code, v.message)
+          return ok(store.list())
         }
         default:
           return fail('unknown-method',
-            `unknown method "${req.method}" - the v1 agent implements only the pty methods (${CH.ptySpawn}, ${CH.ptyWrite}, ${CH.ptyResize}, ${CH.ptyKill}); other domains are not advertised`)
+            `unknown method "${req.method}" - the v1 agent implements only the pty methods (${CH.ptySpawn}, ${CH.ptyWrite}, ${CH.ptyResize}, ${CH.ptyKill}, ${ATTACH_METHOD}, ${SESSIONS_METHOD}); other domains are not advertised`)
       }
     } catch (e) {
       fail('internal', `handler for "${req.method}" failed: ${bounded(e)} - the session continues`)
@@ -209,6 +207,16 @@ export const createAgentSession = (init: AgentSessionInit): AgentSession => {
           init.diag(`handshake failed (${result.failure.reason}): ${result.failure.message}`)
           return end(1)
         }
+        // Bind BEFORE flipping established: a second concurrent connection is rejected here
+        // (the store's single-connection guard — F20 retires it with lease semantics).
+        store.bind({
+          send: (frame) => { if (!ended) init.send(frame) },
+          onSendFailure: (e) => {
+            if (ended) return
+            init.diag(`connection send failed: ${bounded(e)} - ending this connection (panes survive on an external store)`)
+            end(1)
+          }
+        })
         established = true
         return
       }
@@ -224,12 +232,13 @@ export const createAgentSession = (init: AgentSessionInit): AgentSession => {
           return dispatch(frame)
         case 'ack':
           // Flow control (0018, REQ-006/REQ-013 — F16's inertness superseded per TEST-773's
-          // retirement path): fire-and-forget, never answered with a frame.
-          applyDecisions(gate.onAck(frame.id, frame.bytes))
+          // retirement path): fire-and-forget, never answered with a frame. The gate rides
+          // the store (where the emit path lives since 0019).
+          store.flowAck(frame.id, frame.bytes)
           return
         case 'window':
           // Per-pane with `id`, connection-wide default without (REQ-007). Fire-and-forget.
-          applyDecisions(gate.onWindow(frame.size, frame.id))
+          store.flowWindow(frame.size, frame.id)
           return
         case 'hello':
         case 'res':

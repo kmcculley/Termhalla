@@ -115,7 +115,9 @@ endpoints share the measure by construction:
 - **The measure** is UTF-16 code units of the `pty:data` payload string
   (`flowPayloadSize(data) === data.length`). The wire field name `bytes` is F15's frozen shape;
   proportionality, not byte-exactness, is what bounds memory.
-- **Agent side** (`createAgentFlowGate`, wired in `session.ts`): every emitted `pty:data`
+- **Agent side** (`createAgentFlowGate`, wired in `session-store.ts` since the 0019 store
+  split moved the emit path there; the connection in `session.ts` forwards inbound
+  `ack`/`window` frames via `flowAck`/`flowWindow`): every DELIVERED `pty:data`
   payload is counted per pane; when unacked units EXCEED the pane's window the pane's backend
   is `pause()`d synchronously within that very delivery, and it `resume()`s when acks drain the
   count to the **low watermark** `floor(window / 2)` ("drained" — resume-at-zero would deadlock
@@ -136,6 +138,16 @@ endpoints share the measure by construction:
   consumer arrives with F21 (client routing); today the vitest suites drive it.
 - **Lifecycle:** a pane's exit prunes ALL its flow state (a reused id starts fresh under the
   connection default); session end clears everything.
+- **Across detach/reattach (the 0018 ⊗ 0019 weld):** flow accounting is CONNECTION-scoped
+  even though the gate rides the session store. Unacked units measure what the BOUND client
+  has received and not yet acked; while detached no `pty:data` is delivered (output feeds only
+  the replay terminal, which applies no backpressure), so `unbind()` resumes any pane the
+  departed client's stall had paused — otherwise a pane paused at disconnect would record
+  nothing into replay while away, breaking the survival contract — and resets counters,
+  per-pane window overrides, and the connection default. The reset mirrors the client side:
+  `createClientAckPolicy` is per-connection, so a persisted agent-side residue could never be
+  acked away by a fresh client and would ratchet toward a permanent pause (residue past the
+  low watermark is unrecoverable by any ack sequence).
 
 Proven by a scripted flood against a deliberately stalled consumer (zero acks → bounded
 emission, the session keeps serving other panes) and a recovery pass (policy-driven acks drain
@@ -156,6 +168,60 @@ the flood to completion byte-for-byte), both in-process and over the real stdio 
 
 ## Non-goals here
 
-Replay/scrollback (F18), ssh tunnel + provisioning (F19), attach lease (F20), client routing
+Replay/scrollback (F18 — LANDED, see "Session survival + replay" below), ssh tunnel +
+provisioning (F19), attach lease (F20), client routing
 and any renderer/main wiring (F21 — F15's zero-consumer scope guard TEST-746 survives this
 feature unchanged, exactly as its header prescribes).
+
+## Session survival + replay (F18 / 0019-agent-replay-session-survival)
+
+Sessions survive client disconnect/death (locked decision 3). The machinery is agent-side and
+transport-independent:
+
+- **Store/connection split.** Pane ownership (PTY handles, replay terminals, the status engine,
+  cached cwd/status/dims) lives in a **session store** (`src/agent/session-store.ts`) that can
+  outlive any one protocol connection. `createAgentSession` takes either `{ backend, homeDir }`
+  (the F16 composition: the session owns its store and destroys it on every end path — the
+  SHIPPED stdio artifact behavior is unchanged: stdin end still kills panes and exits 0) or
+  `{ sessions: store }` (the survival composition: every connection-end path — clean EOF, fatal
+  framing, handshake failure, a failed outbound send — merely **detaches**; panes keep running
+  and their output keeps feeding replay + status). F19/F21 wire this seam to a reattachable
+  transport; v1 is **single-connection**: binding a second concurrent connection throws — an
+  explicit guard that **F20** (0021-exclusive-attach-lease) retires with lease/steal semantics
+  through its own tests phase.
+- **One `@xterm/headless` terminal per PTY** (`src/agent/replay.ts`, the only file allowed to
+  import `@xterm/headless` / `@xterm/addon-serialize`), with **bounded scrollback** — the tmux
+  `history-limit` analog. The default is `HISTORY_LIMIT_DEFAULT = 2000` lines (tmux's own
+  default), overridable per store (`scrollback`) — deliberately NOT a CLI flag; sizing policy
+  and GC of never-reattached sessions remain the roadmap's recorded open question (no GC ships
+  in v1). Reboot survival is NOT promised (agent supervision is the other recorded open
+  question).
+- **`pty:attach` `{ id }`** → `{ snapshot, cols, rows, cwd, status }`: the serialize-addon
+  snapshot of the pane's headless terminal plus current metadata, so the client repaints the
+  pane EXACTLY. `status` re-shapes `TerminalStatus` with an absent `lastExit` as a **dropped
+  key** (F15's strict validator rejects `undefined` — the F16 `pty:status` precedent). Unknown
+  or already-exited ids (including a pane that exits while the snapshot is in flight) fail with
+  `unknown-pane`; a pane whose replay previously failed reports `internal` rather than a
+  silently-wrong snapshot. **Ordering invariant:** no `pty:data` for the pane is delivered
+  between the attach req and its res; bytes arriving in that window are excluded from the
+  snapshot (the barrier opens with the dispatch) and delivered exactly once, in order, right
+  after the res — writing the snapshot into a fresh terminal and applying subsequent `pty:data`
+  reproduces the full stream byte-exactly. Overlapping attaches on one pane are rejected
+  (`internal`, retry after the res) - windows never coexist, so a byte can never ride both
+  a snapshot and an event. `cols`/`rows` in the result are the current authoritative pty
+  dims at res time; size the terminal from them, then write the snapshot (a resize landing
+  inside the window can only rewrap, never corrupt).
+- **`pty:sessions` (params `null`)** → the survival inventory: one entry per LIVE pane, sorted
+  by id — `{ id, shellId, cwd, cols, rows, attached, status }` (`attached` = whether the asking
+  connection spawned/adopted/attached it). Exited panes vanish (an exit while detached is
+  silent by design); an empty agent answers `[]`.
+- **No transit-buffer reuse, no missed-event queue.** The window-manager transit buffer (a
+  1024-event/10s-GC same-machine handoff primitive) is explicitly the WRONG tool and is not
+  imported; while detached, NO frames are constructed or queued — the headless terminal IS the
+  history, plus the cwd/status caches. `pty:spawn` on a live id still adopts (returns `true`)
+  WITHOUT replaying history: `pty:attach` is the snapshot-bearing verb.
+- **Vocabulary:** `AGENT_SESSION_METHODS = ['pty:attach', 'pty:sessions']`, the result types
+  (`AgentAttachResult`, `AgentSessionInfo`, `AgentStatusPayload`) ride
+  `src/shared/remote-agent-api.ts` (defined in `src/agent/session-api.ts`, the error-codes
+  two-door pattern). No new error codes and no new frame types were added; the capability
+  advertisement is unchanged (the methods live in the `pty` domain).
