@@ -7,46 +7,58 @@
       "title": "Remote wire protocol core + version/capability handshake",
       "summary": "Pure protocol layer in src/shared/ (zero Node/Electron imports, vitest-only, zero behavior change to the running app) derived from the typed ipc-contract.ts: framing over a byte stream, request/response correlation, agent→client push events, and the connect handshake — an EXACT-version check (locked: client and agent are version-locked because the client provisions the agent; the handshake is a version check, NOT a compatibility matrix) plus capability advertisement where the capability partition IS the set of per-domain IPC registrar names (v1 agent advertises only pty + status). Includes the flow-control ack/window frame types (semantics land in F17). Stdio is the only assumed transport, so the identical protocol path runs over system ssh in production and over a plain local child process in CI/e2e.",
       "deps": [],
-      "status": "pending"
+      "status": "done",
+      "completedAt": "2026-07-04T17:55:33.831Z"
     },
     {
       "id": "F16",
       "slug": "0017-agent-runtime-skeleton",
       "title": "Agent runtime skeleton — pty + status domains over stdio",
       "summary": "The walking skeleton: a headless Node agent living in THIS repo (sharing src/shared/ protocol types — that is the point of the epic's architecture) that speaks F15's protocol over stdio and implements ONLY the pty + status domains (locked: that is tmux parity; the 17 per-domain registrars are the capability partition). Agent-side node-pty spawn/write/resize/data/exit round-trips through the real protocol against a plain locally-spawned agent child process (no real ssh anywhere in CI — identical protocol path, locked decision 1). Status detection (OSC 133 / needs-input / cwd, reusing the existing pure src/main/status/ modules) consumes the byte stream AT THE SOURCE on the agent, so status chips work identically for remote panes. Agent platform v1 = Linux only; design POSIX-portable (macOS nearly free later) but no macOS/Windows-remote REQs or tests in v1. MUST fold the agent build + tests into npm run build and npm test so the verified gate profile (.orky/profiles/node-app.json) actually builds and tests the agent without the profile file itself changing.",
-      "deps": ["F15"],
-      "status": "pending"
+      "deps": [
+        "F15"
+      ],
+      "status": "done",
+      "completedAt": "2026-07-04T19:03:58.396Z"
     },
     {
       "id": "F17",
       "slug": "0018-windowed-flow-control",
       "title": "Windowed flow control (protocol-level backpressure)",
       "summary": "Day-one, protocol-level backpressure (locked decision 4 — the cat-a-huge-file problem, not an afterthought): the client acks pty output every N KB; the agent calls node-pty pause() when unacked bytes exceed the window and resume() when drained, so agent memory stays bounded under an output flood even with a slow or stalled client. Implements the semantics over F15's ack/window frames in F16's agent + client; tested with a scripted flood and a deliberately stalled consumer.",
-      "deps": ["F16"],
-      "status": "pending"
+      "deps": [
+        "F16"
+      ],
+      "status": "in-progress"
     },
     {
       "id": "F18",
       "slug": "0019-agent-replay-session-survival",
       "title": "Agent-side replay + session survival",
       "summary": "Sessions survive client disconnect/death (locked decision 3): the agent keeps PTYs alive with one @xterm/headless terminal per PTY running AGENT-side, bounded scrollback (tmux history-limit analog), and a serialize-addon snapshot sent to the client on (re)attach so the pane repaints exactly. Adds the agent-side session inventory (list/identify surviving sessions for reattach). Explicitly NOT the window-manager transit buffer — that is a 1024-event/10s-GC same-machine handoff primitive and the wrong tool here; no code in this feature may reuse it. Surviving DISCONNECT is v1; surviving host reboot is not promised (supervision is a recorded open question).",
-      "deps": ["F16"],
-      "status": "pending"
+      "deps": [
+        "F16"
+      ],
+      "status": "in-progress"
     },
     {
       "id": "F19",
       "slug": "0020-ssh-tunnel-provisioned-bootstrap",
       "title": "SSH tunnel + client-provisioned agent bootstrap",
       "summary": "Transport = a stdio exec channel over the SYSTEM ssh binary — spawn the user's ssh, NEVER an SSH library (locked decision 1) — inheriting ~/.ssh/config, jump hosts, hardware keys, and 2FA. Seeds connection config from SSH favorites (host/user/port + identity-file PATH; buildSshArgs in src/shared/quick.ts + quick-store.ts) and introduces named agents as the connection registry (no secrets persisted, per baseline posture). On connect the client version-checks the remote agent through F15's handshake and uploads its own bundled matching agent build if absent or mismatched (locked decision 2 — client-provisioned, version-locked). e2e runs against a fake/local 'ssh' shim spawning the agent as a local child process — never a real network.",
-      "deps": ["F16"],
-      "status": "pending"
+      "deps": [
+        "F16"
+      ],
+      "status": "in-progress"
     },
     {
       "id": "F20",
       "slug": "0021-exclusive-attach-lease",
       "title": "Exclusive attach via agent-side lease",
       "summary": "tmux attach -d semantics (locked decision 5): attaching a session STEALS it via an agent-side lease; the agent notifies the previously-attached client, which drops that workspace to a disconnected state (F21 renders the banner). No mirrored/shared attach in v1. Lease grant/steal/release rides F18's session inventory and reattach/replay path; the concurrent-attach steal race must resolve deterministically (exactly one holder).",
-      "deps": ["F18"],
+      "deps": [
+        "F18"
+      ],
       "status": "pending"
     },
     {
@@ -54,7 +66,11 @@
       "slug": "0022-client-routing-remote-workspace-ux",
       "title": "Client routing + remote-workspace UX (per-workspace home)",
       "summary": "Granularity = per-workspace home (locked decision 7): a workspace has a home — local, or a named agent — every pane in it lives at its home, one connection per workspace, and cross-workspace pane moves between different homes are out of scope (a running PTY cannot teleport machines). Persists home on the workspace record (SCHEMA_VERSION bump + migration; the constant is currently 8). Routes pty/status IPC for remote-home workspaces through the ssh-tunneled agent client transparently to the renderer; remote panes get identical status chips (agent-sourced, from F16); disconnect/lease-steal shows a disconnected/reconnecting banner riding the keep-mounted discipline — a disconnected pane freezes with a banner, NEVER unmounts (no xterm disposal); unsupported IPC domains (fs/editor, git, usage, orky, …) are greyed out per remote workspace from F15's capability handshake (locked decision 6). Hard invariants: renderer keeps ZERO Node/Electron imports; existing local-workspace behavior is byte-identical when no remote workspace exists; characterization tests stay green.",
-      "deps": ["F18", "F19", "F20"],
+      "deps": [
+        "F18",
+        "F19",
+        "F20"
+      ],
       "status": "pending"
     }
   ],

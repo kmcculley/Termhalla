@@ -1,6 +1,6 @@
 {
   "feature": "0017-agent-runtime-skeleton",
-  "phase": "doc-sync",
+  "phase": "implement",
   "gates": {
     "brainstorm": {
       "passed": true,
@@ -61,7 +61,7 @@
     },
     "implement": {
       "passed": true,
-      "at": "2026-07-04T18:51:57.778Z",
+      "at": "2026-07-04T19:03:34.297Z",
       "firstAt": "2026-07-04T18:47:09.432Z",
       "tokens": [
         {

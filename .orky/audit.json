@@ -5178,67 +5178,22 @@
   },
   {
     "action": "gate.check",
-    "feature": "0017-agent-runtime-skeleton",
-    "phase": "spec",
-    "pass": true,
-    "attempts": 0,
-    "totalFailures": 0,
-    "wallClockMs": 2,
-    "at": "2026-07-04T18:15:54.060Z"
-  },
-  {
-    "action": "producer.select",
-    "feature": "0017-agent-runtime-skeleton",
-    "role": "planner",
-    "phase": "plan",
-    "tier": "low",
-    "model": "sonnet",
-    "effort": "medium",
-    "trigger": "base",
-    "attempts": 0,
-    "at": "2026-07-04T18:16:07.902Z"
-  },
-  {
-    "action": "gate.check",
-    "feature": "0017-agent-runtime-skeleton",
-    "phase": "plan",
-    "pass": true,
-    "attempts": 0,
-    "totalFailures": 0,
-    "wallClockMs": 3,
-    "at": "2026-07-04T18:18:43.226Z"
-  },
-  {
-    "action": "gate.check",
-    "feature": "0017-agent-runtime-skeleton",
-    "phase": "tests",
-    "pass": true,
-    "attempts": 0,
-    "totalFailures": 0,
-    "wallClockMs": 21877,
-    "at": "2026-07-04T18:30:54.288Z"
-  },
-  {
-    "action": "producer.select",
-    "feature": "0017-agent-runtime-skeleton",
-    "role": "implementer",
+    "feature": "0016-remote-protocol-core-handshake",
     "phase": "implement",
-    "tier": "low",
-    "model": "sonnet",
-    "effort": "medium",
-    "trigger": "base",
-    "attempts": 0,
-    "at": "2026-07-04T18:31:12.115Z"
-  },
-  {
-    "action": "gate.check",
-    "feature": "0017-agent-runtime-skeleton",
-    "phase": "tests",
     "pass": true,
     "attempts": 0,
-    "totalFailures": 0,
-    "wallClockMs": 24686,
-    "at": "2026-07-04T18:44:50.795Z"
+    "totalFailures": 2,
+    "wallClockMs": 63334,
+    "at": "2026-07-04T17:55:19.296Z"
+  },
+  {
+    "action": "batch.isolation",
+    "features": [
+      "F16"
+    ],
+    "isolation": "parallel",
+    "reason": "ADR-031 workflow batch: per-feature worktrees under C:/dev/Termhalla-orky-worktrees",
+    "at": "2026-07-04T17:59:07.884Z"
   },
   {
     "action": "gate.check",
@@ -5247,37 +5202,18 @@
     "pass": true,
     "attempts": 0,
     "totalFailures": 0,
-    "wallClockMs": 62635,
-    "at": "2026-07-04T18:47:09.437Z"
+    "wallClockMs": 41614,
+    "at": "2026-07-04T19:03:34.317Z"
   },
   {
-    "action": "gate.check",
-    "feature": "0017-agent-runtime-skeleton",
-    "phase": "implement",
-    "pass": true,
-    "attempts": 0,
-    "totalFailures": 0,
-    "wallClockMs": 43048,
-    "at": "2026-07-04T18:51:57.781Z"
-  },
-  {
-    "action": "gate.check",
-    "feature": "0017-agent-runtime-skeleton",
-    "phase": "review",
-    "pass": true,
-    "attempts": 0,
-    "totalFailures": 0,
-    "wallClockMs": 2,
-    "at": "2026-07-04T18:53:00.918Z"
-  },
-  {
-    "action": "gate.check",
-    "feature": "0017-agent-runtime-skeleton",
-    "phase": "doc-sync",
-    "pass": true,
-    "attempts": 0,
-    "totalFailures": 0,
-    "wallClockMs": 21,
-    "at": "2026-07-04T18:56:09.646Z"
+    "action": "batch.isolation",
+    "features": [
+      "F17",
+      "F18",
+      "F19"
+    ],
+    "isolation": "parallel",
+    "reason": "ADR-031 workflow batch: per-feature worktrees under C:/dev/Termhalla-orky-worktrees",
+    "at": "2026-07-04T19:06:44.157Z"
   }
 ]
