@@ -1,0 +1,437 @@
+/**
+ * The session store (REQ-004) — pane ownership that OUTLIVES a protocol connection: PTY
+ * handles, per-pane replay terminals (REQ-003), the StatusEngine (reused from src/main/status —
+ * REQ-008's F16 discipline: register-before-spawn, markExit-before-exit-event,
+ * unregister-on-exit), and per-pane cached metadata (resolved cwd, dims, last status). This is
+ * locked decision 3's survival substance: a connection ending — however it ends — DETACHES
+ * (`unbind()`); panes keep running and their output keeps feeding replay + status. Only
+ * `destroy()` (the single-connection composition's end, or process teardown) kills panes.
+ *
+ * Routing (REQ-008): pushes flow ONLY to the currently bound connection and ONLY for panes it
+ * spawned/adopted/attached during ITS life. While detached, no frames are constructed — there
+ * is NO missed-event queue (REQ-002: the replay terminal is the history; the window-manager
+ * transit buffer is explicitly the wrong tool and is not imported). The one bounded in-flight
+ * hold is the per-attach ordering window of REQ-006(d): pty:data arriving while an attach
+ * snapshot is being produced for a CONNECTED client is held and drained right after that
+ * attach's res, so the snapshot ⊕ subsequent data reconstruct the stream exactly-once.
+ *
+ * v1 is single-connection: `bind()` while bound throws (F20 / 0021-exclusive-attach-lease
+ * retires this guard with lease/steal semantics through its own tests phase — CONV-019).
+ */
+import { CH } from '@shared/ipc-contract'
+import type { PtySpawnArgs } from '@shared/ipc-contract'
+import type { TerminalStatus } from '@shared/types'
+import type { WireFrame } from '@shared/remote/protocol'
+import { StatusEngine } from '../main/status/status-engine'
+import type { AgentPtyBackend, AgentPtyHandle } from './pty-backend'
+import { createPaneReplay, HISTORY_LIMIT_DEFAULT, type PaneReplay, type ReplayFactory } from './replay'
+import { toStatusPayload, type AgentAttachResult, type AgentSessionInfo } from './session-api'
+
+export interface AgentSessionStoreInit {
+  backend: AgentPtyBackend
+  /** Resolution target for an empty wire cwd (F16 REQ-007 semantics, unchanged). */
+  homeDir: string
+  /** Replay history bound in lines (tmux history-limit analog). Default HISTORY_LIMIT_DEFAULT. */
+  scrollback?: number
+  /** Injectable replay seam (tests); default = the real @xterm/headless replay. */
+  replayFactory?: ReplayFactory
+  /** Store-level diagnostics (replay failures, teardown failures). Default: silent. */
+  diag?: (text: string) => void
+}
+
+/** What a connection registers at bind time. `send` delivers evt frames; a `send` throw is a
+ *  connection death: the store unbinds FIRST, then reports through `onSendFailure`. */
+export interface BoundClient {
+  send(frame: WireFrame): void
+  onSendFailure(error: unknown): void
+}
+
+export type SpawnOutcome =
+  | { ok: true; adopted: boolean }
+  | { ok: false; message: string }
+
+export type AttachOutcome =
+  | { ok: true; result: AgentAttachResult; drain: () => void }
+  | { ok: false; code: 'unknown-pane' | 'internal'; message: string }
+
+export interface AgentSessionStore {
+  bind(client: BoundClient): void
+  unbind(): void
+  spawn(args: PtySpawnArgs): SpawnOutcome
+  /** true = delivered; false = no live pane with that id (the session codes unknown-pane). */
+  write(id: string, data: string): boolean
+  resize(id: string, cols: number, rows: number): boolean
+  kill(id: string): boolean
+  attach(id: string): Promise<AttachOutcome>
+  list(): AgentSessionInfo[]
+  /** Kill every pane, dispose replays + engine. Idempotent. Detach must NOT call this. */
+  destroy(): void
+}
+
+const bounded = (e: unknown): string => String(e instanceof Error ? e.message : e).slice(0, 300)
+
+interface PaneRec {
+  handle: AgentPtyHandle | null // null only during the spawn call itself
+  replay: PaneReplay
+  replayBroken: boolean
+  shellId: string
+  cwd: string
+  cols: number
+  rows: number
+  status: TerminalStatus | null
+  /** Subscription of the CURRENTLY bound connection (spawned/adopted/attached this life). */
+  subscribed: boolean
+  /** In-flight attach window (0 or 1 — overlap is rejected, FINDING-006); while > 0,
+   *  subscribed pty:data is held, not sent. */
+  holds: number
+  held: string[]
+}
+
+export const createSessionStore = (init: AgentSessionStoreInit): AgentSessionStore => {
+  const scrollback = init.scrollback ?? HISTORY_LIMIT_DEFAULT
+  const replayFactory = init.replayFactory ?? createPaneReplay
+  const diag = init.diag ?? ((): void => {})
+  const panes = new Map<string, PaneRec>()
+  let bound: BoundClient | null = null
+  let destroyed = false
+  /** Bumped on every unbind: hold windows are generation-scoped, so a stale attach settling
+   *  after its connection died can never corrupt the NEXT connection's hold bookkeeping. */
+  let bindGen = 0
+
+  const deliver = (frame: WireFrame): void => {
+    if (!bound) return
+    const client = bound
+    try {
+      client.send(frame)
+    } catch (e) {
+      // A throwing send is a connection death (REQ-005): detach FIRST (panes survive), then
+      // let the connection map it to its shutdown taxonomy.
+      unbindInternal()
+      client.onSendFailure(e)
+    }
+  }
+
+  const routeData = (id: string, rec: PaneRec, data: string): void => {
+    if (destroyed || !bound || !rec.subscribed) return
+    if (rec.holds > 0) {
+      rec.held.push(data) // the bounded per-attach ordering window (REQ-006d) — NOT a queue
+      return
+    }
+    deliver({ type: 'evt', channel: CH.ptyData, args: [id, data] })
+  }
+
+  const engine = new StatusEngine(
+    (id, status) => {
+      const rec = panes.get(id)
+      if (!rec) return
+      rec.status = status // the cache survives detach (inventory/attach metadata)
+      if (destroyed || !bound || !rec.subscribed) return
+      deliver({ type: 'evt', channel: CH.ptyStatus, args: [id, toStatusPayload(status)] })
+    },
+    (id, cwd) => {
+      const rec = panes.get(id)
+      if (!rec) return
+      rec.cwd = cwd
+      if (destroyed || !bound || !rec.subscribed) return
+      deliver({ type: 'evt', channel: CH.ptyCwd, args: [id, cwd] })
+    }
+  )
+
+  const feedReplay = (id: string, rec: PaneRec, data: string): void => {
+    if (rec.replayBroken) return
+    try {
+      rec.replay.feed(data)
+    } catch (e) {
+      // Containment (REQ-004): a replay failure must never tear down the live pty. The pane
+      // sails on; attach on it reports `internal` (never a silently-wrong snapshot).
+      rec.replayBroken = true
+      diag(`replay for pane "${id}" failed and was disabled: ${bounded(e)} - the pane continues; reattach will report internal`)
+    }
+  }
+
+  const paneExited = (id: string, code: number): void => {
+    const rec = panes.get(id)
+    if (!rec) return // exactly-once: kill-initiated and self-exit funnel here (F16)
+    // FINDING-001: bytes held by an open attach window are the pane's FINAL output — flush
+    // them before the final status/exit so the data-before-exit contract (REQ-010) survives an
+    // exit-during-attach; the raced attach itself still fails unknown-pane, and later
+    // release() calls find held already empty.
+    if (!destroyed && bound && rec.subscribed && rec.held.length > 0) {
+      const finalHeld = rec.held
+      rec.held = []
+      for (const chunk of finalHeld) {
+        deliver({ type: 'evt', channel: CH.ptyData, args: [id, chunk] })
+      }
+    }
+    rec.held = []
+    engine.markExit(id, code) // final status (lastExit) flows out BEFORE the exit event
+    engine.unregister(id)
+    panes.delete(id)
+    rec.replay.dispose() // resolves any in-flight snapshot; the attach liveness re-check rejects
+    if (!destroyed && bound && rec.subscribed) {
+      deliver({ type: 'evt', channel: CH.ptyExit, args: [id, code] })
+    }
+    rec.subscribed = false
+  }
+
+  const unbindInternal = (): void => {
+    bound = null
+    bindGen++
+    for (const rec of panes.values()) {
+      rec.subscribed = false
+      rec.holds = 0 // open windows belonged to the dead connection — their releases no-op
+      rec.held = [] // the attaching connection is gone; its window dies with it (REQ-002)
+    }
+  }
+
+  const currentStatus = (rec: PaneRec): TerminalStatus =>
+    rec.status ?? { state: 'idle', since: 0 }
+
+  return {
+    bind(client: BoundClient): void {
+      if (destroyed) { bound = client; return } // a destroyed store answers empty inventories
+      if (bound) {
+        throw new Error(
+          'agent session store: a connection is already bound - v1 is single-connection; exclusive attach/steal semantics arrive with F20 (0021-exclusive-attach-lease)')
+      }
+      bound = client
+    },
+
+    unbind(): void {
+      unbindInternal()
+    },
+
+    spawn(args: PtySpawnArgs): SpawnOutcome {
+      if (destroyed) {
+        // FINDING-004: a destroyed store must never own a fresh pty — destroy() already ran
+        // (idempotent), so a pane spawned now would be an unkillable zombie.
+        return { ok: false, message: `pty:spawn "${args.id}" failed: this agent session store was destroyed - no pane was registered` }
+      }
+      const existing = panes.get(args.id)
+      if (existing) {
+        // Adopt: the pane is live, never respawn (the local idempotent semantic, F16).
+        // Adoption subscribes but deliberately does NOT replay history — pty:attach is the
+        // snapshot-bearing verb (REQ-008).
+        existing.subscribed = true
+        return { ok: true, adopted: true }
+      }
+      const cwd = args.cwd === '' ? init.homeDir : args.cwd
+      // FINDING-005: the replay is created FIRST — a throwing factory unwinds nothing, and no
+      // reachable rec ever carries a placeholder replay field.
+      let replay: PaneReplay
+      try {
+        replay = replayFactory({ cols: args.cols, rows: args.rows, scrollback })
+      } catch (e) {
+        return { ok: false, message: `pty:spawn "${args.id}" failed: ${bounded(e)} - no pane was registered` }
+      }
+      const rec: PaneRec = {
+        handle: null,
+        replay,
+        replayBroken: false,
+        shellId: args.shellId,
+        cwd,
+        cols: args.cols,
+        rows: args.rows,
+        status: null,
+        subscribed: true,
+        holds: 0,
+        held: []
+      }
+      // The rec is registered BEFORE the engine so the register-time initial status routes to
+      // the spawning connection (TEST-769); the engine is registered BEFORE the backend spawn
+      // (the repo's register-before-spawn discipline) so a failed spawn unwinds cleanly.
+      panes.set(args.id, rec)
+      engine.register(args.id)
+      let handle: AgentPtyHandle
+      try {
+        handle = init.backend.spawn({ id: args.id, cwd, cols: args.cols, rows: args.rows, shellId: args.shellId })
+      } catch (e) {
+        engine.unregister(args.id)
+        panes.delete(args.id)
+        rec.replay.dispose()
+        return { ok: false, message: `pty:spawn "${args.id}" failed: ${bounded(e)} - no pane was registered` }
+      }
+      rec.handle = handle
+      handle.onExit((code) => paneExited(args.id, code))
+      handle.onData((data) => {
+        // Liveness guard (F16 FINDING-001): a straggler after exit must never emit pty:data
+        // AFTER pty:exit; identity-checked so a respawned id cannot alias a dead handle.
+        if (panes.get(args.id) !== rec) return
+        feedReplay(args.id, rec, data)
+        engine.feed(args.id, data)
+        routeData(args.id, rec, data)
+      })
+      return { ok: true, adopted: false }
+    },
+
+    write(id: string, data: string): boolean {
+      const rec = panes.get(id)
+      if (!rec?.handle) return false
+      rec.handle.write(data)
+      return true
+    },
+
+    resize(id: string, cols: number, rows: number): boolean {
+      const rec = panes.get(id)
+      if (!rec?.handle) return false
+      rec.handle.resize(cols, rows)
+      rec.cols = cols
+      rec.rows = rows
+      if (!rec.replayBroken) {
+        try {
+          rec.replay.resize(cols, rows)
+        } catch (e) {
+          rec.replayBroken = true
+          diag(`replay resize for pane "${id}" failed and the replay was disabled: ${bounded(e)}`)
+        }
+      }
+      return true
+    },
+
+    kill(id: string): boolean {
+      const rec = panes.get(id)
+      if (!rec?.handle) return false
+      rec.handle.kill() // the handle's exit funnels through paneExited (pty:exit exactly once)
+      return true
+    },
+
+    attach(id: string): Promise<AttachOutcome> {
+      const rec = panes.get(id)
+      if (!rec) {
+        return Promise.resolve({
+          ok: false, code: 'unknown-pane',
+          message: `pty:attach: no live pane "${id}" on this agent - list surviving sessions with pty:sessions`
+        })
+      }
+      if (rec.replayBroken) {
+        return Promise.resolve({
+          ok: false, code: 'internal',
+          message: `pty:attach "${id}": the replay terminal previously failed and was disabled - a faithful snapshot cannot be produced (kill and respawn the pane to restore replay)`
+        })
+      }
+      if (rec.holds > 0) {
+        // FINDING-006: attach windows on one pane never coexist — a byte held for window A
+        // that precedes window B's barrier would sit inside B's snapshot AND flush as an event
+        // (double-apply). v1 rejects the overlap deterministically; sequential re-attach (the
+        // spec'd surface) is unaffected.
+        return Promise.resolve({
+          ok: false, code: 'internal',
+          message: `pty:attach "${id}": an attach for this pane is already in flight - await its res, then retry (v1 serializes attach windows per pane)`
+        })
+      }
+      // Attach subscribes immediately (REQ-006c) and opens its hold window SYNCHRONOUSLY with
+      // the req dispatch (REQ-006d): from this exact point, subscribed pty:data is held, so no
+      // data event can precede the res.
+      rec.subscribed = true
+      const gen = bindGen
+      rec.holds++
+      // The snapshot BARRIER is captured synchronously with the req dispatch: bytes fed after
+      // this exact point are excluded from the snapshot and ride the hold window instead —
+      // delivered exactly once, in order, AFTER the res (REQ-006d). The hold window above and
+      // this barrier opening at the same instant is what makes snapshot ⊕ held ≡ stream.
+      // (FINDING-009: the already-parsed fast path serializes synchronously — a throw here
+      // must undo the hold, or subscribed data black-holes into held forever.)
+      let barrier: Promise<string>
+      try {
+        barrier = rec.replay.snapshot()
+      } catch (e) {
+        rec.holds = Math.max(0, rec.holds - 1)
+        return Promise.resolve({
+          ok: false, code: 'internal',
+          message: `pty:attach "${id}" failed: ${bounded(e)} - the session continues`
+        })
+      }
+      void barrier.catch(() => '') // an early-exit run may leave it floating; never unhandled
+      let released = false
+      const release = (redeliver: boolean): void => {
+        if (released) return
+        released = true
+        if (gen !== bindGen) return // the owning connection died; unbind already reset holds
+        rec.holds = Math.max(0, rec.holds - 1)
+        if (panes.get(id) !== rec || !bound || !rec.subscribed) {
+          if (rec.holds === 0) rec.held = []
+          return
+        }
+        if (redeliver || rec.holds === 0) {
+          const heldNow = rec.held
+          rec.held = []
+          for (const chunk of heldNow) {
+            deliver({ type: 'evt', channel: CH.ptyData, args: [id, chunk] })
+          }
+        }
+      }
+      const unknownPane = (): AttachOutcome => ({
+        ok: false, code: 'unknown-pane',
+        message: `pty:attach: pane "${id}" exited before the snapshot completed - it is no longer on this agent`
+      })
+      const run = async (): Promise<AttachOutcome> => {
+        if (panes.get(id) !== rec) {
+          release(false)
+          return unknownPane()
+        }
+        const snapshot = await barrier
+        // Session-identity re-check after the await (the repo's watcher race pattern): an
+        // exit-during-attach yields unknown-pane, never a snapshot of a disposed terminal.
+        if (panes.get(id) !== rec) {
+          release(false)
+          return unknownPane()
+        }
+        const result: AgentAttachResult = {
+          snapshot,
+          cols: rec.cols,
+          rows: rec.rows,
+          cwd: rec.cwd,
+          status: toStatusPayload(currentStatus(rec))
+        }
+        return {
+          ok: true,
+          result,
+          // Called by the connection right after it sends the res, in the same synchronous
+          // continuation — nothing interleaves between the res and this flush.
+          drain: (): void => release(false)
+        }
+      }
+      return run().catch((e) => {
+        release(true) // pane may still be live (replay fault): better to deliver than to drop
+        return {
+          ok: false as const, code: 'internal' as const,
+          message: `pty:attach "${id}" failed: ${bounded(e)} - the session continues`
+        }
+      })
+    },
+
+    list(): AgentSessionInfo[] {
+      const out: AgentSessionInfo[] = []
+      for (const [id, rec] of panes) {
+        out.push({
+          id,
+          shellId: rec.shellId,
+          cwd: rec.cwd,
+          cols: rec.cols,
+          rows: rec.rows,
+          attached: bound !== null && rec.subscribed,
+          status: toStatusPayload(currentStatus(rec))
+        })
+      }
+      out.sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0))
+      return out
+    },
+
+    destroy(): void {
+      if (destroyed) return
+      destroyed = true
+      unbindInternal()
+      for (const [id, rec] of [...panes]) {
+        panes.delete(id)
+        try {
+          rec.handle?.kill()
+        } catch (e) {
+          diag(`teardown: killing pane "${id}" failed: ${bounded(e)}`)
+        }
+        engine.unregister(id)
+        rec.replay.dispose()
+      }
+      engine.dispose()
+    }
+  }
+}

@@ -1,8 +1,8 @@
 {
-  "feature": ".orky/features/0017-agent-runtime-skeleton",
+  "feature": ".orky/features/0019-agent-replay-session-survival",
   "projectRoot": "C:/dev/Termhalla",
   "phase": "human-review",
-  "lastTickAt": "2026-07-04T18:56:31.989Z",
+  "lastTickAt": "2026-07-04T20:40:48.116Z",
   "lastAction": "build complete; awaiting human review at batch boundary",
   "runs": {
     ".orky/features/0016-remote-protocol-core-handshake": {
@@ -13,6 +13,11 @@
     ".orky/features/0017-agent-runtime-skeleton": {
       "phase": "human-review",
       "lastTickAt": "2026-07-04T18:56:31.989Z",
+      "lastAction": "build complete; awaiting human review at batch boundary"
+    },
+    ".orky/features/0019-agent-replay-session-survival": {
+      "phase": "human-review",
+      "lastTickAt": "2026-07-04T20:40:48.116Z",
       "lastAction": "build complete; awaiting human review at batch boundary"
     }
   }

@@ -7,6 +7,28 @@ All notable changes to Termhalla are recorded here. The format follows
 ## [Unreleased]
 
 ### Added
+- **Agent-side replay + session survival (Remote Agent v1, batch 3 — F18).** Sessions survive
+  client disconnect/death (locked decision 3), agent-side and transport-independent: pane
+  ownership moved into a **session store** (`src/agent/session-store.ts`) that outlives a
+  protocol connection — every connection-end path (clean EOF, fatal framing, handshake failure,
+  a failed outbound send) now merely **detaches** when the session is composed over an external
+  store, while the SHIPPED single-connection stdio artifact keeps F16's kill-on-end behavior
+  byte-identically. Each pane feeds one **`@xterm/headless` terminal** (`src/agent/replay.ts`,
+  new `@xterm/headless ^5.5.0` dependency bundled into `termhalla-agent.cjs`) with **bounded
+  scrollback** (`HISTORY_LIMIT_DEFAULT = 2000`, the tmux `history-limit` analog; store-option
+  override, sizing/GC recorded open). Two new pty-domain methods: **`pty:attach`** returns the
+  serialize-addon snapshot + cwd/status/dims so a reconnecting client repaints the pane EXACTLY
+  (write-flush-barrier correct; a hold window guarantees no `pty:data` crosses the res — bytes
+  arriving mid-attach flow exactly once, after it; overlapping attaches on one pane are rejected
+  deterministically), and **`pty:sessions`** lists surviving sessions (sorted, live-only,
+  truthful `attached` flags) for reattach discovery — the surface F20's lease and F21's routing
+  build on. Explicitly NOT the window-manager transit buffer: no missed-event queue exists; the
+  headless terminal IS the history (structural guard pins the non-import). Vocabulary rides
+  `src/shared/remote-agent-api.ts` (`AGENT_SESSION_METHODS`, `AgentAttachResult`,
+  `AgentSessionInfo`; no new error codes, no new frame types, capabilities unchanged). Review
+  hardening: exit-during-attach flushes held final bytes before `pty:exit`; a throwing res send
+  can't wedge the hold window; destroyed stores reject spawns. Zero behavior change to the
+  running Electron app. See `docs/features/remote-agent.md` § "Session survival + replay".
 - **Agent runtime skeleton — pty + status domains over stdio (Remote Agent v1, batch 2).** The
   epic's walking skeleton: a **headless Node agent** in a new `src/agent/` tree that speaks F15's
   protocol over stdio (stdout = frames ONLY, diagnostics on stderr) and implements exactly the

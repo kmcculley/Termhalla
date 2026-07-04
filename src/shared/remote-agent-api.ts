@@ -16,6 +16,18 @@ import { CH } from './ipc-contract'
 export { AGENT_ERROR_CODES } from '../agent/error-codes'
 export type { AgentErrorCode } from '../agent/error-codes'
 
+// Session survival + replay (F18 / 0019): the reattach method strings and result shapes are
+// DEFINED in `src/agent/session-api.ts` and re-exported here — the same two-door pattern (and
+// reason) as the error codes above: the frozen TEST-752 reserves `shared/remote`-containing
+// specifiers inside `src/agent/` for the F15 barrel, so the agent cannot import THIS module.
+export { AGENT_SESSION_METHODS } from '../agent/session-api'
+export type {
+  AgentSessionMethod,
+  AgentStatusPayload,
+  AgentAttachResult,
+  AgentSessionInfo
+} from '../agent/session-api'
+
 /** The v1 agent's implemented method surface — exactly the local pty IPC channel values. */
 export const AGENT_PTY_METHODS = [CH.ptySpawn, CH.ptyWrite, CH.ptyResize, CH.ptyKill] as const
 

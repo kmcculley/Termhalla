@@ -5279,5 +5279,109 @@
     "totalFailures": 0,
     "wallClockMs": 21,
     "at": "2026-07-04T18:56:09.646Z"
+  },
+  {
+    "action": "gate.check",
+    "feature": "0019-agent-replay-session-survival",
+    "phase": "spec",
+    "pass": true,
+    "attempts": 0,
+    "totalFailures": 0,
+    "wallClockMs": 7,
+    "at": "2026-07-04T19:25:40.370Z"
+  },
+  {
+    "action": "producer.select",
+    "feature": "0019-agent-replay-session-survival",
+    "role": "planner",
+    "phase": "plan",
+    "tier": "low",
+    "model": "sonnet",
+    "effort": "medium",
+    "trigger": "base",
+    "attempts": 0,
+    "at": "2026-07-04T19:25:56.096Z"
+  },
+  {
+    "action": "gate.check",
+    "feature": "0019-agent-replay-session-survival",
+    "phase": "plan",
+    "pass": true,
+    "attempts": 0,
+    "totalFailures": 0,
+    "wallClockMs": 13,
+    "at": "2026-07-04T19:30:03.442Z"
+  },
+  {
+    "action": "gate.check",
+    "feature": "0019-agent-replay-session-survival",
+    "phase": "tests",
+    "pass": true,
+    "attempts": 0,
+    "totalFailures": 0,
+    "wallClockMs": 78557,
+    "at": "2026-07-04T19:50:02.749Z"
+  },
+  {
+    "action": "producer.select",
+    "feature": "0019-agent-replay-session-survival",
+    "role": "implementer",
+    "phase": "implement",
+    "tier": "low",
+    "model": "sonnet",
+    "effort": "medium",
+    "trigger": "base",
+    "attempts": 0,
+    "at": "2026-07-04T19:50:25.703Z"
+  },
+  {
+    "action": "gate.check",
+    "feature": "0019-agent-replay-session-survival",
+    "phase": "tests",
+    "pass": true,
+    "attempts": 0,
+    "totalFailures": 0,
+    "wallClockMs": 80688,
+    "at": "2026-07-04T20:12:34.816Z"
+  },
+  {
+    "action": "gate.check",
+    "feature": "0019-agent-replay-session-survival",
+    "phase": "implement",
+    "pass": true,
+    "attempts": 0,
+    "totalFailures": 0,
+    "wallClockMs": 189610,
+    "at": "2026-07-04T20:16:09.773Z"
+  },
+  {
+    "action": "gate.check",
+    "feature": "0019-agent-replay-session-survival",
+    "phase": "implement",
+    "pass": true,
+    "attempts": 0,
+    "totalFailures": 0,
+    "wallClockMs": 183816,
+    "at": "2026-07-04T20:37:44.868Z"
+  },
+  {
+    "action": "gate.check",
+    "feature": "0019-agent-replay-session-survival",
+    "phase": "review",
+    "pass": true,
+    "attempts": 0,
+    "totalFailures": 0,
+    "wallClockMs": 11,
+    "at": "2026-07-04T20:37:57.449Z"
+  },
+  {
+    "action": "gate.check",
+    "feature": "0019-agent-replay-session-survival",
+    "phase": "doc-sync",
+    "pass": true,
+    "attempts": 0,
+    "totalFailures": 0,
+    "wallClockMs": 87,
+    "at": "2026-07-04T20:40:22.921Z"
   }
 ]

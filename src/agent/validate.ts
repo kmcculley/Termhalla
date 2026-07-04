@@ -125,3 +125,27 @@ export const validateKillParams = (params: unknown): ValidKill => {
   }
   return { ok: true, id: params }
 }
+
+// ── Session survival methods (0019 REQ-006/REQ-007) — same strictness stance ─────────────────
+
+export type ValidAttach = { ok: true; id: string } | InvalidParams
+
+export const validateAttachParams = (params: unknown): ValidAttach => {
+  const r = asRecord(params, 'pty:attach')
+  if (!r.ok) return r
+  const m = r.rec
+  const extra = unknownKeys(m, ['id'], 'pty:attach')
+  if (extra) return extra
+  const id = nonEmptyString(m, 'id', 'pty:attach')
+  if (id) return id
+  return { ok: true, id: m.id as string }
+}
+
+export type ValidSessions = { ok: true } | InvalidParams
+
+export const validateSessionsParams = (params: unknown): ValidSessions => {
+  if (params !== null) {
+    return bad(`pty:sessions params must be null (the inventory takes no arguments), got ${show(params)}`)
+  }
+  return { ok: true }
+}

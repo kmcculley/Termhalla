@@ -1,0 +1,162 @@
+{
+  "feature": "0019-agent-replay-session-survival",
+  "phase": "doc-sync",
+  "gates": {
+    "brainstorm": {
+      "passed": true,
+      "at": "2026-07-04T19:18:47.394Z",
+      "evidence": "app-run: concept fixed by roadmap entry F18",
+      "external": true
+    },
+    "spec": {
+      "passed": true,
+      "at": "2026-07-04T19:25:40.340Z",
+      "firstAt": "2026-07-04T19:25:40.340Z",
+      "tokens": [
+        {
+          "token": "findings",
+          "pass": true,
+          "evidence": "no open blocking findings (CRITICAL/HIGH or contract-violation) at or before this gate"
+        }
+      ]
+    },
+    "plan": {
+      "passed": true,
+      "at": "2026-07-04T19:30:03.429Z",
+      "firstAt": "2026-07-04T19:30:03.429Z",
+      "tokens": [
+        {
+          "token": "spec-freeze",
+          "pass": true,
+          "evidence": "spec unchanged since the spec gate"
+        },
+        {
+          "token": "traceability-plan",
+          "pass": true,
+          "evidence": "all 13 REQ(s) trace to TASK"
+        },
+        {
+          "token": "findings",
+          "pass": true,
+          "evidence": "no open blocking findings (CRITICAL/HIGH or contract-violation) at or before this gate"
+        }
+      ]
+    },
+    "tests": {
+      "passed": true,
+      "at": "2026-07-04T20:12:34.808Z",
+      "firstAt": "2026-07-04T20:12:34.808Z",
+      "tokens": [
+        {
+          "token": "spec-freeze",
+          "pass": true,
+          "evidence": "spec unchanged since the spec gate"
+        },
+        {
+          "token": "tests-red",
+          "pass": true,
+          "evidence": "tests are GREEN on a tests loopback (coverage augmentation; implementation already exists) — freeze re-captured"
+        }
+      ]
+    },
+    "implement": {
+      "passed": true,
+      "at": "2026-07-04T20:37:44.858Z",
+      "firstAt": "2026-07-04T20:16:09.762Z",
+      "tokens": [
+        {
+          "token": "spec-freeze",
+          "pass": true,
+          "evidence": "spec unchanged since the spec gate"
+        },
+        {
+          "token": "build",
+          "pass": true,
+          "evidence": "build exited 0"
+        },
+        {
+          "token": "test",
+          "pass": true,
+          "evidence": "test exited 0"
+        },
+        {
+          "token": "test-freeze",
+          "pass": true,
+          "evidence": "test files unchanged since freeze"
+        }
+      ]
+    },
+    "review": {
+      "passed": true,
+      "at": "2026-07-04T20:37:57.434Z",
+      "firstAt": "2026-07-04T20:37:57.434Z",
+      "tokens": [
+        {
+          "token": "spec-freeze",
+          "pass": true,
+          "evidence": "spec unchanged since the spec gate"
+        },
+        {
+          "token": "findings",
+          "pass": true,
+          "evidence": "no open blocking findings (CRITICAL/HIGH or contract-violation) at or before this gate"
+        }
+      ]
+    },
+    "doc-sync": {
+      "passed": true,
+      "at": "2026-07-04T20:40:22.910Z",
+      "firstAt": "2026-07-04T20:40:22.910Z",
+      "tokens": [
+        {
+          "token": "spec-freeze",
+          "pass": true,
+          "evidence": "spec unchanged since the spec gate"
+        },
+        {
+          "token": "traceability",
+          "pass": true,
+          "evidence": "all 13 REQ(s) trace to TASK+TEST"
+        },
+        {
+          "token": "findings",
+          "pass": true,
+          "evidence": "no open blocking findings (CRITICAL/HIGH or contract-violation) at or before this gate"
+        }
+      ]
+    }
+  },
+  "iterations": {
+    "tests": 1
+  },
+  "escalations": [],
+  "concerns": [
+    "networking",
+    "determinism"
+  ],
+  "attempts": {
+    "spec": 0,
+    "plan": 0,
+    "tests": 0,
+    "implement": 0,
+    "review": 0,
+    "doc-sync": 0
+  },
+  "loopbacks": [
+    {
+      "to": "tests",
+      "from": "implement",
+      "reason": "Implementer-reported frozen-test defect (ADR-009 route, shift-left before review): TEST-1911 in tests/agent-stdio-attach.test.ts spawns its pane with rows: 7 and asserts expect(result.rows).toBe(7) - that exact literal 'toBe(7)' collides with feature 0009's repo-wide residual guard TEST-384 (tests/shared/orky-pane-migration.test.ts), which forbids any literal SCHEMA_VERSION=7 value pin in tests/** outside its two documented allow-list hits. The collision is dimension-choice noise, not substance: fix = respawn dims rows 7 -> 9 in the frozen file (cols stay 44). No production code change expected from this loopback; the second full-suite failure (TEST-1910 counting two import STATEMENTS of @xterm/headless in replay.ts) was implementation-side and is already fixed by merging the imports into one specifier.",
+      "at": "2026-07-04T20:10:38.633Z"
+    }
+  ],
+  "implementer": {
+    "mode": "claude",
+    "agents": [
+      "orky:implementer"
+    ],
+    "winner": "orky:implementer",
+    "reason": "Router requested A/B (orky:implementer + codex:codex-rescue) on the networking+determinism concerns, but this driver environment has no parallel agent-dispatch tool and one shared worktree (two concurrent implementers would collide); codex exec has a recorded stall precedent on this box (0016 implement re-entry 3) and per ADR-025 codex never holds the pipeline. orky:implementer (Claude, driver-inline) ran solo: 6 source/config/doc artifacts (session-api.ts + replay.ts + session-store.ts new; session.ts/validate.ts/remote-agent-api.ts extended in place; @xterm/headless ^5.5.0 dep; remote-agent.md section), one ADR-009 tests loopback en route (TEST-1911 rows-7 literal collided with 0009's repo-wide toBe(7) residual guard TEST-384; fixed at the tests phase, freeze re-captured) plus one implementation-side barrier redesign after the frozen ordering-invariant vector caught snapshot/window double-coverage (barrier now opens synchronously with the attach dispatch). Implement gate green (build+test+both freezes); codex reserved for a bounded read-only verifier cross-check at review.",
+    "at": "2026-07-04T20:16:35.218Z"
+  }
+}
