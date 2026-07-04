@@ -1,13 +1,18 @@
 {
-  "feature": ".orky/features/0016-remote-protocol-core-handshake",
+  "feature": ".orky/features/0017-agent-runtime-skeleton",
   "projectRoot": "C:/dev/Termhalla",
   "phase": "human-review",
-  "lastTickAt": "2026-07-04T17:49:11.638Z",
+  "lastTickAt": "2026-07-04T18:56:31.989Z",
   "lastAction": "build complete; awaiting human review at batch boundary",
   "runs": {
     ".orky/features/0016-remote-protocol-core-handshake": {
       "phase": "human-review",
       "lastTickAt": "2026-07-04T17:49:11.638Z",
+      "lastAction": "build complete; awaiting human review at batch boundary"
+    },
+    ".orky/features/0017-agent-runtime-skeleton": {
+      "phase": "human-review",
+      "lastTickAt": "2026-07-04T18:56:31.989Z",
       "lastAction": "build complete; awaiting human review at batch boundary"
     }
   }

@@ -1,0 +1,19 @@
+{
+  "REQ-001": { "tasks": ["TASK-002", "TASK-003", "TASK-004", "TASK-005", "TASK-006", "TASK-007", "TASK-008"], "tests": ["TEST-751"], "files": ["src/agent/pty-backend.ts", "src/agent/fake-backend.ts", "src/agent/node-pty-backend.ts", "src/agent/args.ts", "src/agent/version.ts", "src/agent/validate.ts", "src/agent/session.ts", "src/agent/main.ts"] },
+  "REQ-002": { "tasks": ["TASK-007", "TASK-008"], "tests": ["TEST-752"], "files": ["src/agent/session.ts", "src/agent/main.ts"] },
+  "REQ-003": { "tasks": ["TASK-008"], "tests": ["TEST-774"], "files": ["src/agent/main.ts"] },
+  "REQ-004": { "tasks": ["TASK-005", "TASK-007"], "tests": ["TEST-753", "TEST-764", "TEST-774"], "files": ["src/agent/version.ts", "src/agent/session.ts"] },
+  "REQ-005": { "tasks": ["TASK-007", "TASK-008"], "tests": ["TEST-765", "TEST-775"], "files": ["src/agent/session.ts", "src/agent/main.ts"] },
+  "REQ-006": { "tasks": ["TASK-007"], "tests": ["TEST-766"], "files": ["src/agent/session.ts"] },
+  "REQ-007": { "tasks": ["TASK-006", "TASK-007", "TASK-003", "TASK-004"], "tests": ["TEST-760", "TEST-767", "TEST-768", "TEST-774"], "files": ["src/agent/validate.ts", "src/agent/session.ts", "src/agent/fake-backend.ts", "src/agent/node-pty-backend.ts"] },
+  "REQ-008": { "tasks": ["TASK-007"], "tests": ["TEST-754", "TEST-769", "TEST-770", "TEST-774"], "files": ["src/agent/session.ts"] },
+  "REQ-009": { "tasks": ["TASK-006", "TASK-007"], "tests": ["TEST-760", "TEST-761", "TEST-772"], "files": ["src/agent/validate.ts", "src/agent/session.ts"] },
+  "REQ-010": { "tasks": ["TASK-007", "TASK-003"], "tests": ["TEST-771", "TEST-774"], "files": ["src/agent/session.ts", "src/agent/fake-backend.ts"] },
+  "REQ-011": { "tasks": ["TASK-002", "TASK-004", "TASK-005", "TASK-008"], "tests": ["TEST-755", "TEST-759", "TEST-776"], "files": ["src/agent/pty-backend.ts", "src/agent/node-pty-backend.ts", "src/agent/args.ts", "src/agent/main.ts"] },
+  "REQ-012": { "tasks": ["TASK-003"], "tests": ["TEST-756", "TEST-762", "TEST-763"], "files": ["src/agent/fake-backend.ts"] },
+  "REQ-013": { "tasks": ["TASK-007", "TASK-008"], "tests": ["TEST-773", "TEST-777"], "files": ["src/agent/session.ts", "src/agent/main.ts"] },
+  "REQ-014": { "tasks": ["TASK-001"], "tests": ["TEST-749", "TEST-750"], "files": ["src/shared/remote-agent-api.ts"] },
+  "REQ-015": { "tasks": ["TASK-009"], "tests": ["TEST-757"], "files": ["vite.agent.config.ts", "package.json"] },
+  "REQ-016": { "tasks": ["TASK-009"], "tests": ["TEST-774"], "files": ["vite.agent.config.ts"] },
+  "REQ-017": { "tasks": ["TASK-009", "TASK-010"], "tests": ["TEST-758", "TEST-778"], "files": ["tsconfig.node.json", "docs/features/remote-agent.md"] }
+}

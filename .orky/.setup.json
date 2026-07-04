@@ -1,6 +1,6 @@
 {
-  "hash": "3158375b25a95473afbb313a0b1dcb97ef3de460eccf423eda893db22e2700fe",
+  "hash": "7e0c93d0697d75ce6c451f0bae9327a6b138d859ed8f7ea636999cbfc0968cbe",
   "ok": true,
   "command": "npm install --no-audit --no-fund",
-  "at": "2026-07-04T16:04:14.084Z"
+  "at": "2026-07-04T18:44:28.003Z"
 }

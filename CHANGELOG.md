@@ -7,6 +7,27 @@ All notable changes to Termhalla are recorded here. The format follows
 ## [Unreleased]
 
 ### Added
+- **Agent runtime skeleton — pty + status domains over stdio (Remote Agent v1, batch 2).** The
+  epic's walking skeleton: a **headless Node agent** in a new `src/agent/` tree that speaks F15's
+  protocol over stdio (stdout = frames ONLY, diagnostics on stderr) and implements exactly the
+  **pty + status** domains. Agent-first handshake (version = the repo `package.json` version
+  inlined at build time; capabilities = the pinned `['pty', 'status']`); the four methods mirror
+  the local `pty:*` IPC surface with the SHARED arg types (`pty:spawn` keeps the idempotent
+  adopt→`true` semantic; write/resize/kill answer `unknown-pane` on a dead id — a disclosed
+  divergence from the local silent voids) under strict coded validation (`bad-params` /
+  `unknown-method` / `spawn-failed` / `internal`, vocabulary shared at
+  `src/shared/remote-agent-api.ts`); pushes mirror `pty:data`/`pty:exit` and run **status
+  detection at the source** — each pane's byte stream feeds the EXISTING `src/main/status/`
+  engine on the agent (OSC 133, needs-input, cwd), so `pty:status`/`pty:cwd` chips work
+  identically for remote panes. The pty layer is an injectable backend: real `node-pty` (POSIX,
+  Linux-only v1, lazily loaded strictly on `--pty=node-pty`) and a deterministic scripted fake
+  (`--pty=fake`) that CI drives through the REAL artifact — `npm run build` now also emits
+  `out/agent/termhalla-agent.cjs` (single-file, plain Node) via `vite.agent.config.ts`, and the
+  stdio integration test bundles through that SAME config on demand, spawns the bundle under
+  plain node, and round-trips the full protocol with F15's client machinery — no ssh and no real
+  node-pty anywhere in CI, per the epic's locked decisions. Zero behavior change to the running
+  Electron app (F15's TEST-746 scope guard survives untouched); inbound `ack`/`window` frames
+  are accepted-and-inert until F17 gives them semantics. See `docs/features/remote-agent.md`.
 - **Remote wire protocol core + version/capability handshake (Remote Agent v1, batch 1).** A pure
   protocol layer under `src/shared/remote/` (barrel: `@shared/remote/protocol`) with **zero
   Node/Electron imports and zero behavior change to the running app** — in v1 nothing outside the

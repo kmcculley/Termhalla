@@ -1,0 +1,162 @@
+{
+  "feature": "0017-agent-runtime-skeleton",
+  "phase": "doc-sync",
+  "gates": {
+    "brainstorm": {
+      "passed": true,
+      "at": "2026-07-04T18:07:34.601Z",
+      "evidence": "app-run: concept fixed by roadmap entry F16",
+      "external": true
+    },
+    "spec": {
+      "passed": true,
+      "at": "2026-07-04T18:15:54.049Z",
+      "firstAt": "2026-07-04T18:15:54.049Z",
+      "tokens": [
+        {
+          "token": "findings",
+          "pass": true,
+          "evidence": "no open blocking findings (CRITICAL/HIGH or contract-violation) at or before this gate"
+        }
+      ]
+    },
+    "plan": {
+      "passed": true,
+      "at": "2026-07-04T18:18:43.223Z",
+      "firstAt": "2026-07-04T18:18:43.223Z",
+      "tokens": [
+        {
+          "token": "spec-freeze",
+          "pass": true,
+          "evidence": "spec unchanged since the spec gate"
+        },
+        {
+          "token": "traceability-plan",
+          "pass": true,
+          "evidence": "all 17 REQ(s) trace to TASK"
+        },
+        {
+          "token": "findings",
+          "pass": true,
+          "evidence": "no open blocking findings (CRITICAL/HIGH or contract-violation) at or before this gate"
+        }
+      ]
+    },
+    "tests": {
+      "passed": true,
+      "at": "2026-07-04T18:44:50.791Z",
+      "firstAt": "2026-07-04T18:44:50.791Z",
+      "tokens": [
+        {
+          "token": "spec-freeze",
+          "pass": true,
+          "evidence": "spec unchanged since the spec gate"
+        },
+        {
+          "token": "tests-red",
+          "pass": true,
+          "evidence": "tests are GREEN on a tests loopback (coverage augmentation; implementation already exists) — freeze re-captured"
+        }
+      ]
+    },
+    "implement": {
+      "passed": true,
+      "at": "2026-07-04T18:51:57.778Z",
+      "firstAt": "2026-07-04T18:47:09.432Z",
+      "tokens": [
+        {
+          "token": "spec-freeze",
+          "pass": true,
+          "evidence": "spec unchanged since the spec gate"
+        },
+        {
+          "token": "build",
+          "pass": true,
+          "evidence": "build exited 0"
+        },
+        {
+          "token": "test",
+          "pass": true,
+          "evidence": "test exited 0"
+        },
+        {
+          "token": "test-freeze",
+          "pass": true,
+          "evidence": "test files unchanged since freeze"
+        }
+      ]
+    },
+    "review": {
+      "passed": true,
+      "at": "2026-07-04T18:53:00.915Z",
+      "firstAt": "2026-07-04T18:53:00.915Z",
+      "tokens": [
+        {
+          "token": "spec-freeze",
+          "pass": true,
+          "evidence": "spec unchanged since the spec gate"
+        },
+        {
+          "token": "findings",
+          "pass": true,
+          "evidence": "no open blocking findings (CRITICAL/HIGH or contract-violation) at or before this gate"
+        }
+      ]
+    },
+    "doc-sync": {
+      "passed": true,
+      "at": "2026-07-04T18:56:09.643Z",
+      "firstAt": "2026-07-04T18:56:09.643Z",
+      "tokens": [
+        {
+          "token": "spec-freeze",
+          "pass": true,
+          "evidence": "spec unchanged since the spec gate"
+        },
+        {
+          "token": "traceability",
+          "pass": true,
+          "evidence": "all 17 REQ(s) trace to TASK+TEST"
+        },
+        {
+          "token": "findings",
+          "pass": true,
+          "evidence": "no open blocking findings (CRITICAL/HIGH or contract-violation) at or before this gate"
+        }
+      ]
+    }
+  },
+  "iterations": {
+    "tests": 1
+  },
+  "escalations": [],
+  "concerns": [
+    "networking",
+    "determinism"
+  ],
+  "attempts": {
+    "spec": 0,
+    "plan": 0,
+    "tests": 0,
+    "implement": 0,
+    "review": 0,
+    "doc-sync": 0
+  },
+  "loopbacks": [
+    {
+      "to": "tests",
+      "from": "implement",
+      "reason": "Implementer-reported frozen-test defect (ADR-009 route, shift-left before review): TEST-755 in tests/agent-structure.test.ts triggers its confinement check on the raw substring src.includes('node-pty'), which contradicts REQ-011's own surface - args.ts MUST contain the literal 'node-pty' to parse the --pty=node-pty flag value (TEST-759 requires it), and main.ts must import './node-pty-backend' by name to select the backend. The REQ-011 intent is confinement of the node-pty MODULE reference (import/require/dynamic-import specifier exactly 'node-pty'), not of the substring. Fix: key the trigger on extracted import specifiers === 'node-pty' (the existing importSpecifiers helper), keeping the static-import/require prohibitions and the lazy dynamic-import pin unchanged, plus an anti-vacuity existence assertion for node-pty-backend.ts. No production code change expected from this loopback; the implementation (closure-handle fake backend, session, entry) is NOT condemned.",
+      "at": "2026-07-04T18:43:34.577Z"
+    }
+  ],
+  "implementer": {
+    "mode": "claude",
+    "agents": [
+      "orky:implementer"
+    ],
+    "winner": "orky:implementer",
+    "reason": "Router requested A/B (codex:codex-rescue + orky:implementer) on the networking+determinism concerns, but this driver environment has no parallel agent-dispatch tool and one shared worktree (two concurrent implementers would collide); codex exec additionally has a recorded stall precedent on this box (0016 implement re-entry 3: backgrounded codex sat on stdin and wrote nothing, killed at the 600s bound) and per ADR-025 codex never holds the pipeline. orky:implementer (Claude, driver-inline) ran solo: 10 source/config/doc artifacts, one ADR-009 tests loopback en route (TEST-755 substring-trigger defect, fixed at the tests phase), implement gate re-derived green (build+test+both freezes) on the final tree; codex is reserved for a bounded read-only verifier cross-check at review.",
+    "at": "2026-07-04T18:47:27.216Z"
+  }
+}

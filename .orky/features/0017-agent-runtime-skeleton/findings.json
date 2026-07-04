@@ -1,0 +1,29 @@
+[
+  {
+    "lens": "networking",
+    "claim": "REQ-010 pins pty:exit as the LAST pane-scoped frame, but the session's onData callback forwards ANY backend data as a pty:data evt without a liveness check - with the real node-pty backend a data event delivered after onExit (post-exit flush straggler) would emit pty:data AFTER pty:exit, breaking the ordering invariant the client will key teardown on; the fake backend cannot exhibit this (dead-guard), so the frozen suite cannot catch it.",
+    "severity": "LOW",
+    "gate": "review",
+    "fix": "Guard the onData callback with panes.has(id) (true during pre-exit flush, false only after paneExited) so a post-exit straggler is dropped instead of violating the exit-last contract.",
+    "location": "src/agent/session.ts:onData wiring (handle.onData callback)",
+    "phase_of_origin": "implement",
+    "verified_by": "networking",
+    "id": "FINDING-001",
+    "status": "resolved",
+    "resolution": "Fixed in src/agent/session.ts onData wiring: the callback now early-returns unless panes.has(id) (in-code comment cites FINDING-001), so a post-exit backend straggler can never emit pty:data after pty:exit while the legitimate pre-exit flush window (panes.has true until onExit->paneExited) is preserved. Verified: read the guarded code; full agent suite (56) + whole-repo suite green after the edit; implement gate re-derived green on the final tree; codex read-only cross-check independently reported the SAME defect against the pre-fix tree (its only finding), confirming both the defect and that the fix addresses the exact path it named.",
+    "resolvedBy": "networking",
+    "resolvedAt": "2026-07-04T18:52:43.778Z"
+  },
+  {
+    "lens": "devils-advocate",
+    "claim": "REQ-013's 'a live pane MUST NOT keep the process alive' is proven only through the fake backend: the real node-pty backend's teardown sends the default signal (SIGHUP) and the agent then waits for natural loop drain - a shell/child that ignores SIGHUP keeps its pty fds open and can hold the remote agent process alive after stdin end, exactly the orphan class the epic's supervision open-question owns; no v1 CI vector can exercise this (Linux-only real backend), so it is a disclosed real-backend residual, not a frozen-suite gap.",
+    "severity": "LOW",
+    "gate": "review",
+    "fix": "Defer to the F18/F19 hardening (session survival + provisioning own agent-process lifetime): add a bounded SIGKILL escalation after kill() in the real backend, verified on a real Linux host; no F16 action beyond recording.",
+    "location": "src/agent/session.ts:end() teardown + node-pty-backend kill()",
+    "phase_of_origin": "spec",
+    "verified_by": "devils-advocate",
+    "id": "FINDING-002",
+    "status": "open"
+  }
+]
