@@ -419,6 +419,16 @@ All notable changes to Termhalla are recorded here. The format follows
   the DOM lib, scoped to `tests/e2e`) restores them while keeping main-process and `tests/main` code
   DOM-free; a few genuine `tests/main` type slips (a QuickStore cast, a mock signature) were fixed too.
 
+## [0.11.0] - 2026-07-04
+
+Tagged release shipping the workspace tab-strip rework — equal, compact fixed-width tabs with status
+badges pinned **before** the name, long names that **scroll horizontally** instead of truncating,
+**◀/▶ overflow scroll buttons** when the strip is crowded (active tab kept in view), and a secondary
+**"pipe" border** on every tab (accent on the active/hovered tab). Everything is paint-only or
+fixed-size, so the strip keeps its constant single-line height (the ConPTY-repaint-oscillation guard).
+The detailed entry stays under [Unreleased] above, per the same convention the 0.9.0/0.10.0/0.10.1
+releases recorded.
+
 ## [0.10.1] - 2026-07-03
 
 Tagged release shipping one fix: undocking a workspace no longer types `claude --resume` into a
