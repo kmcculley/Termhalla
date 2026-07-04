@@ -8,6 +8,8 @@
 
 A workspace is a named tab holding a tiled arrangement of panes. In Phase 1 every pane is a live Windows terminal (PowerShell 7, Windows PowerShell, Git Bash, WSL, or cmd — whichever are installed). Panes split horizontally or vertically via `react-mosaic`, resize by dragging the gutters, and rearrange by drag-and-drop. A picker in the tab strip selects which discovered shell new terminals use.
 
+**Tab strip.** Every workspace tab is an equal, compact fixed width (`--ws-tab-w` in `index.css`), so tabs stay uniform regardless of name length. A tab's status badges (AI ✨, needs-input 🔔, busy •) sit *before* the name; a name too long for the tab **scrolls horizontally** instead of truncating with an ellipsis. When more tabs are open than fit the bar, they collapse into a horizontally-scrolling strip flanked by **◀ / ▶** scroll buttons (the active tab is kept in view) rather than shrinking to nothing. Each tab carries a secondary **"pipe" border** — an inset ring a few pixels inside its edge, so a double line runs all the way around — that turns accent on the active/hovered tab. The strip keeps a **constant height** by design: a height change would resize the terminal area, trigger a ConPTY repaint, and oscillate (guarded by `tests/e2e/tab-strip.spec.ts`).
+
 Workspaces are saved to disk and restored on the next launch: layout tree, per-pane shell, and cwd come back, the window returns to its last size/position/maximized state, and fresh PTYs are spawned (no process resurrection, per spec). Saving is automatic and debounced — an explicit Save button exists but is rarely needed.
 
 ## How it works

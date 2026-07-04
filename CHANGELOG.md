@@ -221,6 +221,19 @@ All notable changes to Termhalla are recorded here. The format follows
   reflowed terminal beneath it.
 
 ### Changed
+- **Workspace tab strip reworked into equal, scrollable "pipe" tabs.** Every workspace tab is now a
+  compact, equal fixed width (`--ws-tab-w`), so tabs stay uniform and no longer resize as names or
+  badges change (a name too long for the width scrolls — see below). The status badges (AI sparkle,
+  needs/busy) move to a pinned
+  cluster **before** the name; the name fills the rest and **scrolls horizontally** when too long
+  (hidden scrollbar + vertical-wheel-to-horizontal) instead of truncating with an ellipsis. When the
+  tabs overflow the bar they no longer squeeze — a hidden-scrollbar viewport holds them and **◀ / ▶
+  scroll buttons** appear at the ends (disabled at the respective edge), with the active tab kept in
+  view. Each tab gains a **secondary "pipe" border** — an inset box-shadow paints a channel + inner
+  wall ~2–3px inside the existing border, so a double line runs all the way around; it recolors to
+  the accent on hover/active. All of this is paint-only or fixed-size, so the strip keeps its
+  constant single-line height (the ConPTY-repaint-oscillation guard in `tests/e2e/tab-strip.spec.ts`
+  still holds). `src/renderer/components/WorkspaceTabs.tsx`, `src/renderer/index.css`.
 - **Orky contract mirror re-synced to v2.** `EXPECTED_CONTRACT_VERSION`
   (`src/main/orky/orky-contract-handshake.ts`) bumps `1` → `2` — the strict (`!==`, no
   range/minimum-version tolerance) startup handshake now treats a v1 plugin as the drift case and a

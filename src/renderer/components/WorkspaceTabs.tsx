@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { useShallow } from 'zustand/react/shallow'
 import { useStore } from '../store'
 import type { PaneKind } from '../store/pane-ops'
@@ -46,6 +46,47 @@ export function WorkspaceTabs() {
   const startRename = (id: string) => { setRenameText(workspaces[id]?.name ?? ''); setRenamingId(id); setMenuFor(null) }
   const commitRename = (id: string) => { renameWorkspace(id, renameText); setRenamingId(null) }
 
+  // --- Tab-strip horizontal scroll ------------------------------------------------------------
+  // The tabs live in a fixed-scrollbar-free viewport; when they overflow the available width we
+  // reveal ◀/▶ scroll buttons (the native scrollbar stays hidden so an overflowing strip never
+  // grows the strip's height — the constant-height invariant guarded by tab-strip.spec.ts).
+  const scrollRef = useRef<HTMLDivElement>(null)
+  const [nav, setNav] = useState({ overflow: false, atStart: true, atEnd: true })
+  const syncNav = useCallback(() => {
+    const el = scrollRef.current
+    if (!el) return
+    const overflow = el.scrollWidth - el.clientWidth > 1
+    const atStart = el.scrollLeft <= 1
+    const atEnd = el.scrollLeft >= el.scrollWidth - el.clientWidth - 1
+    setNav(prev => (prev.overflow === overflow && prev.atStart === atStart && prev.atEnd === atEnd)
+      ? prev : { overflow, atStart, atEnd })
+  }, [])
+  // Re-measure when the tab count changes or the viewport is resized (window resize, arrows
+  // appearing/disappearing). setNav is guarded so this settles rather than oscillates.
+  useLayoutEffect(() => {
+    const el = scrollRef.current
+    if (!el) return
+    syncNav()
+    const ro = new ResizeObserver(syncNav)
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [syncNav, order.length])
+  // Keep the active tab in view (a fixed-width overflowing strip can otherwise hide it after a
+  // switch, reorder, or new-workspace). getBoundingClientRect avoids offsetParent assumptions.
+  useLayoutEffect(() => {
+    const el = scrollRef.current
+    const btn = activeId ? tabRefs.current.get(activeId) : null
+    if (!el || !btn) return
+    const er = el.getBoundingClientRect(), br = btn.getBoundingClientRect()
+    if (br.left < er.left) el.scrollLeft -= (er.left - br.left) + 8
+    else if (br.right > er.right) el.scrollLeft += (br.right - er.right) + 8
+    syncNav()
+  }, [activeId, order, syncNav])
+  const scrollStrip = (dir: -1 | 1) => {
+    const el = scrollRef.current
+    if (el) el.scrollBy({ left: dir * Math.max(160, el.clientWidth * 0.75), behavior: 'smooth' })
+  }
+
   // Roving-tabindex arrow nav within the tablist (ArrowLeft/Right wrap; Home/End jump).
   const onTabKey = (id: string) => (e: React.KeyboardEvent) => {
     const i = order.indexOf(id)
@@ -61,34 +102,51 @@ export function WorkspaceTabs() {
 
   return (
     <div data-testid="workspace-tabs" role="tablist" aria-label="Workspaces"
-      // The strip must keep a CONSTANT height: when crowded, tabs shrink with an ellipsis instead of
-      // letting their text wrap to a second line. A wrap-driven height change resizes the terminal
-      // area → full ConPTY repaint → the status tracker sees "output" → the badge flips → the strip
-      // un-wraps — a self-sustaining oscillation. Guarded by tests/e2e/tab-strip.spec.ts.
+      // The strip must keep a CONSTANT height: when crowded, tabs scroll horizontally (arrows) rather
+      // than wrapping to a second line. A wrap-driven height change resizes the terminal area → full
+      // ConPTY repaint → the status tracker sees "output" → the badge flips → the strip un-wraps — a
+      // self-sustaining oscillation. Guarded by tests/e2e/tab-strip.spec.ts.
       style={{ display: 'flex', flexWrap: 'nowrap', gap: 4, padding: 4, background: 'var(--panel, #1e1e1e)', alignItems: 'center', fontSize: 'var(--font-size, 13px)' }}>
-      {order.map(id => (
-        renamingId === id ? (
-          <input key={id} data-testid={`ws-rename-${id}`} autoFocus value={renameText}
-            onFocus={e => e.currentTarget.select()}
-            onChange={e => setRenameText(e.target.value)}
-            onKeyDown={e => { if (e.key === 'Enter') commitRename(id); else if (e.key === 'Escape') setRenamingId(null) }}
-            onBlur={() => commitRename(id)}
-            style={{ width: 120, flexShrink: 0 }} />
-        ) : (
-          <button key={id} data-testid={`tab-${id}`} data-tab-id={id}
-            data-active={id === activeId}
-            role="tab" aria-selected={id === activeId} tabIndex={id === activeId ? 0 : -1}
-            ref={el => { if (el) tabRefs.current.set(id, el); else tabRefs.current.delete(id) }}
-            onKeyDown={onTabKey(id)}
-            onPointerDown={beginTabDrag(id)}
-            onDoubleClick={() => startRename(id)}
-            onContextMenu={e => { e.preventDefault(); setMenuFor({ id, x: e.clientX, y: e.clientY }) }}
-            style={{ fontWeight: id === activeId ? 700 : 400,
-              whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', minWidth: 0, maxWidth: 200 }}>
-            {workspaces[id].name}{badges[id] ?? ''}
-          </button>
-        )
-      ))}
+      {nav.overflow && (
+        <button data-testid="tabs-scroll-left" className="ws-scroll-btn" aria-label="Scroll tabs left"
+          disabled={nav.atStart} onClick={() => scrollStrip(-1)}>◀</button>
+      )}
+      {/* Presentational scroll viewport: keeps the tab buttons (still tablist descendants) on one
+          scrollable line. Its native scrollbar is hidden in CSS so overflow can't add height. */}
+      <div className="ws-tab-scroll" role="presentation" ref={scrollRef} onScroll={syncNav}>
+        {order.map(id => (
+          renamingId === id ? (
+            <input key={id} data-testid={`ws-rename-${id}`} className="ws-rename" autoFocus value={renameText}
+              onFocus={e => e.currentTarget.select()}
+              onChange={e => setRenameText(e.target.value)}
+              onKeyDown={e => { if (e.key === 'Enter') commitRename(id); else if (e.key === 'Escape') setRenamingId(null) }}
+              onBlur={() => commitRename(id)}
+              style={{ width: 'var(--ws-tab-w)', flexShrink: 0 }} />
+          ) : (
+            <button key={id} data-testid={`tab-${id}`} data-tab-id={id} className="ws-tab"
+              data-active={id === activeId}
+              role="tab" aria-selected={id === activeId} tabIndex={id === activeId ? 0 : -1}
+              title={workspaces[id].name}
+              ref={el => { if (el) tabRefs.current.set(id, el); else tabRefs.current.delete(id) }}
+              onKeyDown={onTabKey(id)}
+              onPointerDown={beginTabDrag(id)}
+              onDoubleClick={() => startRename(id)}
+              onContextMenu={e => { e.preventDefault(); setMenuFor({ id, x: e.clientX, y: e.clientY }) }}>
+              {badges[id]?.trim() ? <span className="ws-tab-badge">{badges[id].trim()}</span> : null}
+              {/* Name scrolls horizontally when it can't fit; translate a vertical wheel into a
+                  horizontal scroll so a plain mouse can reveal the rest. */}
+              <span className="ws-tab-name"
+                onWheel={e => { const el = e.currentTarget; if (el.scrollWidth > el.clientWidth) el.scrollLeft += e.deltaY || e.deltaX }}>
+                {workspaces[id].name}
+              </span>
+            </button>
+          )
+        ))}
+      </div>
+      {nav.overflow && (
+        <button data-testid="tabs-scroll-right" className="ws-scroll-btn" aria-label="Scroll tabs right"
+          disabled={nav.atEnd} onClick={() => scrollStrip(1)}>▶</button>
+      )}
       <button data-testid="new-workspace" style={{ flexShrink: 0 }}
         onClick={() => { const id = newWorkspace(`Workspace ${order.length + 1}`); startRename(id) }}>+</button>
       <button data-testid="templates-button" title="Workspace templates" style={{ flexShrink: 0 }}

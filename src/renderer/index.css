@@ -258,12 +258,71 @@ option {
 }
 [data-testid="editor-tabs"] button:hover { background: rgba(255, 255, 255, 0.15); }
 
-/* Active workspace tab gets an accent treatment (set via data-active). */
+/* Active workspace tab gets an accent treatment (set via data-active): its background lifts and both
+   "pipe" walls (the 1px border + the inset box-shadow ring below) turn accent. No border-WIDTH change
+   so every tab stays exactly the same height (constant-height invariant, tab-strip.spec.ts). */
 [data-testid="workspace-tabs"] [data-testid^="tab-"][data-active="true"] {
   background: rgba(255, 255, 255, 0.12);
   border-color: var(--accent, #1e88e5);
-  border-bottom-width: 2px;
 }
+
+/* --- Workspace tabs: equal fixed width, badges-before-name, scrolling name, "pipe" double border ---
+   The tab count is unbounded, so tabs share a compact fixed width (--ws-tab-w) and the strip scrolls
+   (◀/▶ buttons) rather than shrinking tabs to nothing; a name too long for the width scrolls. */
+[data-testid="workspace-tabs"] {
+  --ws-tab-w: 126px;
+  /* The inner "pipe" wall, a touch lighter than the chrome border so the double line reads clearly on
+     the dark strip (recolored to accent on hover/active below). */
+  --ws-pipe: color-mix(in srgb, var(--border, #444) 55%, var(--fg, #eee));
+}
+
+/* The horizontal scroll viewport that holds the tabs. Its scrollbar is HIDDEN (the ◀/▶ buttons are the
+   affordance) so an overflowing strip can never add a scrollbar's height — keeping the strip height
+   constant. overflow-y is pinned hidden so a stray descendant can't force a vertical scrollbar either. */
+[data-testid="workspace-tabs"] .ws-tab-scroll {
+  display: flex; align-items: center; gap: 6px;
+  flex: 0 1 auto; min-width: 0;
+  overflow-x: auto; overflow-y: hidden;
+  scrollbar-width: none;
+}
+[data-testid="workspace-tabs"] .ws-tab-scroll::-webkit-scrollbar { width: 0; height: 0; }
+
+[data-testid="workspace-tabs"] .ws-tab {
+  flex: 0 0 var(--ws-tab-w); width: var(--ws-tab-w);
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 4px 10px; overflow: hidden;
+  /* The "pipe": the button's own 1px border (from the chrome rule above) is the OUTER wall; an inset
+     box-shadow paints a panel-colored channel (edge→2px) then a 1px INNER wall (2px→3px). Two parallel
+     rings with a gap between = a pipe running all the way around. Box-shadow is paint-only, so it never
+     changes the tab's box → the strip height stays constant and adjacent tabs never collide. */
+  box-shadow: inset 0 0 0 2px var(--panel, #1e1e1e), inset 0 0 0 3px var(--ws-pipe, #666);
+}
+[data-testid="workspace-tabs"] .ws-tab[data-active="true"] { font-weight: 700; }
+/* Recolor the inner pipe wall to accent on hover/active (the outer wall is recolored by the chrome
+   border-color rules). Active listed last so it wins over hover at equal specificity. */
+[data-testid="workspace-tabs"] .ws-tab:hover,
+[data-testid="workspace-tabs"] .ws-tab[data-active="true"] {
+  box-shadow: inset 0 0 0 2px var(--panel, #1e1e1e), inset 0 0 0 3px var(--accent, #1e88e5);
+}
+
+/* Badges (AI sparkle + needs/busy) are pinned BEFORE the name and never scroll. pointer-events:none so
+   a click/drag-start on a badge falls through to the tab button. */
+[data-testid="workspace-tabs"] .ws-tab .ws-tab-badge {
+  flex: 0 0 auto; white-space: nowrap; pointer-events: none;
+}
+/* The name fills the rest and scrolls horizontally when too long — no ellipsis. Its scrollbar is hidden
+   too, so an overflowing name can't add height either. */
+[data-testid="workspace-tabs"] .ws-tab .ws-tab-name {
+  flex: 1 1 auto; min-width: 0;
+  overflow-x: auto; overflow-y: hidden;
+  white-space: nowrap; scrollbar-width: none;
+  /* Start an overflowing name at its beginning (a <button> centers text by default, which would
+     scroll a long name to its middle). */
+  text-align: left;
+}
+[data-testid="workspace-tabs"] .ws-tab .ws-tab-name::-webkit-scrollbar { width: 0; height: 0; }
+
+[data-testid="workspace-tabs"] .ws-scroll-btn { flex: 0 0 auto; line-height: 1; }
 
 /* Themed scrollbars for chrome scroll regions (xterm/Monaco render their own). */
 :is([data-testid="env-manager"], [data-testid="theme-editor"], [data-testid="proc-menu"],
