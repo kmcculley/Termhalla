@@ -20,11 +20,19 @@ export interface AgentSpawnOpts {
 }
 
 /** One live pane. Handles buffer their emissions until the corresponding callback attaches
- *  (the session attaches right after `spawn` returns), then deliver synchronously in order. */
+ *  (the session attaches right after `spawn` returns), then deliver synchronously in order.
+ *
+ *  Flow control (F17, REQ-010): `pause()` stops FUTURE `onData` delivery at the source —
+ *  already-read stragglers may still arrive and are never dropped; `resume()` restores
+ *  delivery, flushing anything the backend queued while paused, in order. Both idempotent
+ *  (a redundant call is a no-op). `kill()` is the owner's action and is NOT deferred by a
+ *  pause — its exit still funnels normally. */
 export interface AgentPtyHandle {
   write(data: string): void
   resize(cols: number, rows: number): void
   kill(): void
+  pause(): void
+  resume(): void
   onData(cb: (data: string) => void): void
   onExit(cb: (code: number) => void): void
 }

@@ -367,23 +367,14 @@ describe('TEST-772 REQ-009 rejected params execute nothing', () => {
   })
 })
 
-// SCOPE-GUARD RETIREMENT PATH (CONV-019): the ack/window INERTNESS pinned below is v1-only.
-// F17 (0018-windowed-flow-control) gives these frames semantics and MUST retire/supersede
-// these assertions through its own tests phase — never silently during implementation.
-describe('TEST-773 REQ-013 lifecycle taxonomy: inert reserved frames, recovery, fatal, clean end', () => {
-  it('ack/window are inert: no res, no state change, the session continues', () => {
-    const h = mkHarness()
-    establish(h)
-    req(h, CH.ptySpawn, spawnArgs('a'), 1)
-    const before = h.sent.length
-    h.session.onItem(msg({ type: 'ack', id: 'a', bytes: 4096 }))
-    h.session.onItem(msg({ type: 'window', size: 65536 }))
-    expect(h.sent.length).toBe(before) // nothing emitted for reserved frames
-    req(h, CH.ptyWrite, { id: 'a', data: 'echo still-alive\n' }, 2)
-    expect(dataText(h, 'a')).toContain('still-alive')
-    expect(h.exits).toEqual([])
-  })
-
+// SUPERSEDED ASSERTION (CONV-019, executed exactly as the retirement path here prescribed
+// since 0017): the 'ack/window are inert' vector that opened this describe was retired by
+// feature 0018-windowed-flow-control (2026-07-04) through its own tests phase — the frames
+// now HAVE semantics, pinned by tests/remote-flow-control.test.ts (TEST-782..TEST-787) and
+// tests/agent-session-flow.test.ts (TEST-791..TEST-794); the fire-and-forget "no res" half of
+// the old assertion survives strengthened in TEST-792. The sibling lifecycle assertions below
+// are byte-unchanged.
+describe('TEST-773 REQ-013 lifecycle taxonomy: recovery, fatal, clean end (reserved-frame inertness superseded by 0018)', () => {
   it('post-handshake hello/res/evt are ignored with a diagnostic naming the type', () => {
     const h = mkHarness()
     establish(h)

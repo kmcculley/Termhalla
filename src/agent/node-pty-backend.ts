@@ -20,6 +20,8 @@ interface NodePtyProc {
   write(data: string): void
   resize(cols: number, rows: number): void
   kill(signal?: string): void
+  pause(): void
+  resume(): void
   onData(cb: (data: string) => void): void
   onExit(cb: (ev: { exitCode: number }) => void): void
 }
@@ -51,6 +53,11 @@ export const createNodePtyBackend = async (): Promise<AgentPtyBackend> => {
         write: (data) => proc.write(data),
         resize: (cols, rows) => proc.resize(cols, rows),
         kill: () => proc.kill(),
+        // Flow control (REQ-010) maps DIRECTLY onto node-pty's own socket-level flow
+        // control: pause() stops reading the pty fd, so the kernel buffer backpressures
+        // the child (where `cat` blocks); resume() restarts the read loop.
+        pause: () => proc.pause(),
+        resume: () => proc.resume(),
         onData: (cb) => proc.onData(cb),
         onExit: (cb) => proc.onExit(({ exitCode }) => cb(exitCode))
       }

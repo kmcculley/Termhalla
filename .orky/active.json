@@ -1,9 +1,9 @@
 {
-  "feature": ".orky/features/0017-agent-runtime-skeleton",
+  "feature": ".orky/features/0018-windowed-flow-control",
   "projectRoot": "C:/dev/Termhalla",
-  "phase": "human-review",
-  "lastTickAt": "2026-07-04T18:56:31.989Z",
-  "lastAction": "build complete; awaiting human review at batch boundary",
+  "phase": "doc-sync",
+  "lastTickAt": "2026-07-04T20:26:09.725Z",
+  "lastAction": "tick: asking drive post-doc-sync",
   "runs": {
     ".orky/features/0016-remote-protocol-core-handshake": {
       "phase": "human-review",
@@ -14,6 +14,11 @@
       "phase": "human-review",
       "lastTickAt": "2026-07-04T18:56:31.989Z",
       "lastAction": "build complete; awaiting human review at batch boundary"
+    },
+    ".orky/features/0018-windowed-flow-control": {
+      "phase": "doc-sync",
+      "lastTickAt": "2026-07-04T20:26:09.725Z",
+      "lastAction": "tick: asking drive post-doc-sync"
     }
   }
 }

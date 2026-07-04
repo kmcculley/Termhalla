@@ -70,20 +70,31 @@ describe('TEST-742 REQ-011 the v1 agent advertisement constant', () => {
   })
 })
 
+// SUPERSEDED LIST (CONV-019/CONV-022 amendment path): this pin's original header called a
+// flow-control semantics API "premature ... that is F17's". Feature 0018-windowed-flow-control
+// (2026-07-04) landed that API through its own tests phase and extended the exact list below by
+// the five flow-control exports (flowPayloadSize, the two defaults, createAgentFlowGate,
+// createClientAckPolicy — spec'd in its Public interface section). The list stays EXACT and
+// sorted so scope creep remains mechanically visible for F18+.
 describe('TEST-747 REQ-013 the barrel exports exactly the spec public interface (scope-creep pin)', () => {
   it('the runtime export surface of @shared/remote/protocol is exactly the spec list', () => {
     expect(Object.keys(protocol).sort()).toEqual([
       'AGENT_V1_CAPABILITIES',
       'CAPABILITY_IDS',
+      'DEFAULT_ACK_EVERY_BYTES',
+      'DEFAULT_FLOW_WINDOW_BYTES',
       'DEFAULT_MAX_FRAME_BYTES',
       'FRAME_HEADER_BYTES',
       'ProtocolError',
       'WIRE_PROTO',
+      'createAgentFlowGate',
       'createAgentHandshake',
+      'createClientAckPolicy',
       'createClientHandshake',
       'createFrameDecoder',
       'createRequestTracker',
       'encodeFrame',
+      'flowPayloadSize',
       'isCapabilityId',
       'parseWireMessage'
     ])

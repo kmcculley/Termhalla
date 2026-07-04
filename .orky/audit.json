@@ -5279,5 +5279,155 @@
     "totalFailures": 0,
     "wallClockMs": 21,
     "at": "2026-07-04T18:56:09.646Z"
+  },
+  {
+    "action": "gate.check",
+    "feature": "0018-windowed-flow-control",
+    "phase": "spec",
+    "pass": true,
+    "attempts": 0,
+    "totalFailures": 0,
+    "wallClockMs": 8,
+    "at": "2026-07-04T19:22:32.358Z"
+  },
+  {
+    "action": "producer.select",
+    "feature": "0018-windowed-flow-control",
+    "role": "planner",
+    "phase": "plan",
+    "tier": "low",
+    "model": "sonnet",
+    "effort": "medium",
+    "trigger": "base",
+    "attempts": 0,
+    "at": "2026-07-04T19:22:58.241Z"
+  },
+  {
+    "action": "gate.check",
+    "feature": "0018-windowed-flow-control",
+    "phase": "plan",
+    "pass": true,
+    "attempts": 0,
+    "totalFailures": 0,
+    "wallClockMs": 11,
+    "at": "2026-07-04T19:24:51.009Z"
+  },
+  {
+    "action": "gate.check",
+    "feature": "0018-windowed-flow-control",
+    "phase": "tests",
+    "pass": true,
+    "attempts": 0,
+    "totalFailures": 0,
+    "wallClockMs": 86112,
+    "at": "2026-07-04T19:38:59.181Z"
+  },
+  {
+    "action": "producer.select",
+    "feature": "0018-windowed-flow-control",
+    "role": "implementer",
+    "phase": "implement",
+    "tier": "low",
+    "model": "sonnet",
+    "effort": "medium",
+    "trigger": "base",
+    "attempts": 0,
+    "at": "2026-07-04T19:39:21.045Z"
+  },
+  {
+    "action": "gate.check",
+    "feature": "0018-windowed-flow-control",
+    "phase": "tests",
+    "pass": true,
+    "attempts": 0,
+    "totalFailures": 0,
+    "wallClockMs": 73082,
+    "at": "2026-07-04T19:51:18.940Z"
+  },
+  {
+    "action": "gate.check",
+    "feature": "0018-windowed-flow-control",
+    "phase": "implement",
+    "pass": false,
+    "attempts": 1,
+    "totalFailures": 1,
+    "wallClockMs": 152700,
+    "failed": [
+      "test"
+    ],
+    "at": "2026-07-04T19:57:40.272Z"
+  },
+  {
+    "action": "gate.check",
+    "feature": "0018-windowed-flow-control",
+    "phase": "tests",
+    "pass": true,
+    "attempts": 0,
+    "totalFailures": 1,
+    "wallClockMs": 74050,
+    "at": "2026-07-04T20:01:06.549Z"
+  },
+  {
+    "action": "gate.check",
+    "feature": "0018-windowed-flow-control",
+    "phase": "implement",
+    "pass": true,
+    "attempts": 0,
+    "totalFailures": 1,
+    "wallClockMs": 165278,
+    "at": "2026-07-04T20:04:32.682Z"
+  },
+  {
+    "action": "gate.check",
+    "feature": "0018-windowed-flow-control",
+    "phase": "implement",
+    "pass": true,
+    "attempts": 0,
+    "totalFailures": 1,
+    "wallClockMs": 168604,
+    "at": "2026-07-04T20:16:46.491Z"
+  },
+  {
+    "action": "gate.check",
+    "feature": "0018-windowed-flow-control",
+    "phase": "implement",
+    "pass": false,
+    "attempts": 1,
+    "totalFailures": 2,
+    "wallClockMs": 146255,
+    "failed": [
+      "test"
+    ],
+    "at": "2026-07-04T20:19:16.523Z"
+  },
+  {
+    "action": "gate.check",
+    "feature": "0018-windowed-flow-control",
+    "phase": "implement",
+    "pass": true,
+    "attempts": 0,
+    "totalFailures": 2,
+    "wallClockMs": 112720,
+    "at": "2026-07-04T20:23:40.598Z"
+  },
+  {
+    "action": "gate.check",
+    "feature": "0018-windowed-flow-control",
+    "phase": "review",
+    "pass": true,
+    "attempts": 0,
+    "totalFailures": 2,
+    "wallClockMs": 11,
+    "at": "2026-07-04T20:24:13.931Z"
+  },
+  {
+    "action": "gate.check",
+    "feature": "0018-windowed-flow-control",
+    "phase": "doc-sync",
+    "pass": true,
+    "attempts": 0,
+    "totalFailures": 2,
+    "wallClockMs": 137,
+    "at": "2026-07-04T20:25:53.002Z"
   }
 ]
