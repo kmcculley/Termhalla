@@ -6,6 +6,11 @@
 // snapshot). Default-composition compatibility is guarded by F16's own frozen suites remaining
 // green unmodified (REQ-001/REQ-005).
 //
+// 0021 sanctioned amendments (CONV-019 retirement path, through 0021's tests phase):
+//  - the TEST-1905 bind-guard case now pins the lease STEAL (bind-while-bound displaces the
+//    incumbent — full semantics in tests/agent-lease.test.ts); the original throw is retired.
+//  - mkStub's handle gained pause/resume no-ops (TS2739 vs the 0018-widened AgentPtyHandle).
+//
 // All vectors run in-process with an injected scripted backend (the TEST drives pane output —
 // this is how "agent-side output continues while detached" is exercised deterministically) and
 // an injected fake replay factory where snapshot CONTENT is not the subject.
@@ -42,6 +47,9 @@ const mkStub = () => {
         write: (d) => p.writes.push(d),
         resize: (c, r) => p.resizes.push([c, r]),
         kill: () => { p.kills++; if (p.alive) { p.alive = false; p.exitCb?.(0) } },
+        // 0021 sanctioned amendment (type-only): pause/resume no-ops vs the 0018-widened
+        // AgentPtyHandle (TS2739 housekeeping routed to F20's tests phase).
+        pause: () => {}, resume: () => {},
         onData: (cb) => { p.dataCb = cb },
         onExit: (cb) => { p.exitCb = cb }
       }
@@ -393,13 +401,21 @@ describe('TEST-1905 REQ-005 store-composed lifecycle: every end path detaches; b
     store.destroy()
   })
 
-  it('binding while another connection is bound throws, naming the F20 retirement', () => {
+  it('binding while another connection is bound STEALS the lease (0021 amendment; was: throws naming F20)', () => {
     const stub = mkStub(); const fr = mkFakeReplays()
     const store = createSessionStore({ backend: stub.backend, homeDir: '/h', replayFactory: fr.factory })
     const a = mkConn(store)
     establish(a)
     const b = mkConn(store)
-    expect(() => establish(b)).toThrow(/F20/)
+    expect(() => establish(b), 'the single-connection guard is retired').not.toThrow()
+    // The displaced connection's FINAL frame is the revocation evt; it exits 0 (orderly).
+    // (The literal — not the constant — keeps this frozen file import-independent of the
+    // 0021 surface; identity of literal↔constant is pinned by tests/agent-lease-vocab.test.ts.)
+    const revs = a.sent.filter((f): f is EvtFrame => f.type === 'evt' && f.channel === 'lease:revoked')
+    expect(revs.length).toBe(1)
+    expect(a.sent[a.sent.length - 1]).toBe(revs[0])
+    expect(a.exits).toEqual([0])
+    expect(stub.totalKills(), 'a steal kills nothing (panes survive)').toBe(0)
     store.destroy()
   })
 

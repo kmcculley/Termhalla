@@ -41,6 +41,9 @@ const mkStub = () => {
         write: (d) => p.writes.push(d),
         resize: (c, r) => p.resizes.push([c, r]),
         kill: () => { p.kills++; if (p.alive) { p.alive = false; p.exitCb?.(0) } },
+        // 0021 sanctioned amendment (type-only): pause/resume no-ops vs the 0018-widened
+        // AgentPtyHandle (TS2739 housekeeping routed to F20's tests phase).
+        pause: () => {}, resume: () => {},
         onData: (cb) => { p.dataCb = cb },
         onExit: (cb) => { p.exitCb = cb }
       }

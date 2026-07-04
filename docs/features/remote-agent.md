@@ -186,9 +186,10 @@ transport-independent:
   `{ sessions: store }` (the survival composition: every connection-end path — clean EOF, fatal
   framing, handshake failure, a failed outbound send — merely **detaches**; panes keep running
   and their output keeps feeding replay + status). F19/F21 wire this seam to a reattachable
-  transport; v1 is **single-connection**: binding a second concurrent connection throws — an
-  explicit guard that **F20** (0021-exclusive-attach-lease) retires with lease/steal semantics
-  through its own tests phase.
+  transport. Binding while another connection holds the store **steals the lease** (see
+  "Exclusive attach lease" below) — the 0019-era guard that threw here was retired by **F20**
+  (0021-exclusive-attach-lease) through its own tests phase, exactly as its recorded
+  retirement path prescribed.
 - **One `@xterm/headless` terminal per PTY** (`src/agent/replay.ts`, the only file allowed to
   import `@xterm/headless` / `@xterm/addon-serialize`), with **bounded scrollback** — the tmux
   `history-limit` analog. The default is `HISTORY_LIMIT_DEFAULT = 2000` lines (tmux's own
@@ -225,3 +226,41 @@ transport-independent:
   `src/shared/remote-agent-api.ts` (defined in `src/agent/session-api.ts`, the error-codes
   two-door pattern). No new error codes and no new frame types were added; the capability
   advertisement is unchanged (the methods live in the `pty` domain).
+
+## Exclusive attach lease (F20 / 0021-exclusive-attach-lease)
+
+`tmux attach -d` semantics, agent-side (locked decision 5 — **no mirrored/shared attach** in
+v1): the session store's binding IS the lease, and **exactly one** connection holds it at every
+instant.
+
+- **Grant** — binding an unbound store (what handshake establishment already does).
+- **Release** — every connection-end path (clean EOF, fatal framing, handshake failure, a
+  failed outbound send) detaches exactly as F18 defined; a released store is re-bindable.
+- **Steal** — binding while another connection is bound no longer throws: within the one
+  synchronous `bind()`, the incumbent is (a) detached with the full unbind semantics (its
+  gate-paused backends resume while NO client is bound, so the flushed backlog feeds the
+  replay terminal only; the flow gate resets — the winner starts a fresh window, per-pane
+  overrides forgotten; its in-flight attach windows are generation-invalidated and settle
+  inert), then (b) notified, then (c) the newcomer holds. The newer attach always wins; binds
+  resolve strictly in arrival order, so concurrent attach races resolve deterministically. A
+  displaced client's fresh connection may simply bind again — steal-back is just another
+  attach.
+- **The loser learns it** — its connection receives `{ type: 'evt', channel: 'lease:revoked',
+  args: [] }` (`AGENT_LEASE_REVOKED_EVT` in `src/shared/remote-agent-api.ts`, defined in
+  `src/agent/session-api.ts` — the two-door pattern) as its **FINAL frame**, then ends with
+  exit code 0 (an orderly displacement, not a protocol fault). Nothing follows the evt: no
+  pane frames, no res to in-flight requests. F21's client drops that workspace to its
+  disconnected state (the banner) on receipt. Delivery is best-effort: a dead sink is
+  diagnosed and the end proceeds.
+- **Holder-scoped release** — a displaced connection's late end activity (a trailing EOF, a
+  fatal frame) can never detach the winner: the displaced session skips its store release
+  (the store already detached it).
+- **No agent-side byte loss** — bytes the loser never received (its stalled tail, bytes held
+  in its interrupted attach window) fed the replay terminal at emission; the winner's
+  `pty:attach` snapshot ⊕ subsequent `pty:data` reproduces the full stream byte-exactly
+  (F18's composition oracle, re-proven across the steal boundary).
+- **The shipped stdio artifact is unaffected** — one stdio connection per agent process means
+  a steal is unreachable over `termhalla-agent.cjs` in v1; the lease is exercised over the
+  survival composition in-process (the F19/F21 transport wiring makes steals reachable
+  end-to-end; the epic's integration phase proves the composed story). The owned (F16)
+  composition never shares a store, so it can never steal and never emits the evt.

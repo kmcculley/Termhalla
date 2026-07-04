@@ -5743,5 +5743,119 @@
       "test-freeze"
     ],
     "at": "2026-07-04T21:19:06.231Z"
+  },
+  {
+    "action": "gate.check",
+    "feature": "0021-exclusive-attach-lease",
+    "phase": "spec",
+    "pass": true,
+    "attempts": 0,
+    "totalFailures": 0,
+    "wallClockMs": 2,
+    "at": "2026-07-04T21:43:58.467Z"
+  },
+  {
+    "action": "producer.select",
+    "feature": "0021-exclusive-attach-lease",
+    "role": "planner",
+    "phase": "plan",
+    "tier": "low",
+    "model": "sonnet",
+    "effort": "medium",
+    "trigger": "base",
+    "attempts": 0,
+    "at": "2026-07-04T21:44:16.585Z"
+  },
+  {
+    "action": "gate.check",
+    "feature": "0021-exclusive-attach-lease",
+    "phase": "plan",
+    "pass": true,
+    "attempts": 0,
+    "totalFailures": 0,
+    "wallClockMs": 3,
+    "at": "2026-07-04T21:46:50.890Z"
+  },
+  {
+    "action": "gate.check",
+    "feature": "0021-exclusive-attach-lease",
+    "phase": "tests",
+    "pass": true,
+    "attempts": 0,
+    "totalFailures": 0,
+    "wallClockMs": 25893,
+    "at": "2026-07-04T21:59:46.800Z"
+  },
+  {
+    "action": "producer.select",
+    "feature": "0021-exclusive-attach-lease",
+    "role": "implementer",
+    "phase": "implement",
+    "tier": "low",
+    "model": "sonnet",
+    "effort": "medium",
+    "trigger": "base",
+    "attempts": 0,
+    "at": "2026-07-04T22:00:49.941Z"
+  },
+  {
+    "action": "gate.check",
+    "feature": "0021-exclusive-attach-lease",
+    "phase": "tests",
+    "pass": true,
+    "attempts": 0,
+    "totalFailures": 0,
+    "wallClockMs": 27186,
+    "at": "2026-07-04T22:06:43.882Z"
+  },
+  {
+    "action": "gate.check",
+    "feature": "0021-exclusive-attach-lease",
+    "phase": "implement",
+    "pass": true,
+    "attempts": 0,
+    "totalFailures": 0,
+    "wallClockMs": 64199,
+    "at": "2026-07-04T22:08:25.360Z"
+  },
+  {
+    "action": "gate.check",
+    "feature": "0021-exclusive-attach-lease",
+    "phase": "tests",
+    "pass": true,
+    "attempts": 0,
+    "totalFailures": 0,
+    "wallClockMs": 29516,
+    "at": "2026-07-04T22:17:42.709Z"
+  },
+  {
+    "action": "gate.check",
+    "feature": "0021-exclusive-attach-lease",
+    "phase": "implement",
+    "pass": true,
+    "attempts": 0,
+    "totalFailures": 0,
+    "wallClockMs": 54051,
+    "at": "2026-07-04T22:19:59.781Z"
+  },
+  {
+    "action": "gate.check",
+    "feature": "0021-exclusive-attach-lease",
+    "phase": "review",
+    "pass": true,
+    "attempts": 0,
+    "totalFailures": 0,
+    "wallClockMs": 8,
+    "at": "2026-07-04T22:20:47.638Z"
+  },
+  {
+    "action": "gate.check",
+    "feature": "0021-exclusive-attach-lease",
+    "phase": "doc-sync",
+    "pass": true,
+    "attempts": 0,
+    "totalFailures": 0,
+    "wallClockMs": 24,
+    "at": "2026-07-04T22:23:07.235Z"
   }
 ]

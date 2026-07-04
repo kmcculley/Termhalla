@@ -239,6 +239,9 @@ describe('TEST-1906 REQ-006 pty:attach: params, result, races, ordering invarian
         handles.set(opts.id, s)
         return {
           write: () => {}, resize: () => {}, kill: () => s.exitCb?.(0),
+          // 0021 sanctioned amendment (type-only): pause/resume no-ops vs the 0018-widened
+          // AgentPtyHandle (TS2739 housekeeping routed to F20's tests phase).
+          pause: () => {}, resume: () => {},
           onData: () => {}, onExit: (cb) => { s.exitCb = cb }
         }
       }

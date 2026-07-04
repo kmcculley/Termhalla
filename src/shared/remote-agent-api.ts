@@ -16,11 +16,12 @@ import { CH } from './ipc-contract'
 export { AGENT_ERROR_CODES } from '../agent/error-codes'
 export type { AgentErrorCode } from '../agent/error-codes'
 
-// Session survival + replay (F18 / 0019): the reattach method strings and result shapes are
-// DEFINED in `src/agent/session-api.ts` and re-exported here — the same two-door pattern (and
-// reason) as the error codes above: the frozen TEST-752 reserves `shared/remote`-containing
-// specifiers inside `src/agent/` for the F15 barrel, so the agent cannot import THIS module.
-export { AGENT_SESSION_METHODS } from '../agent/session-api'
+// Session survival + replay (F18 / 0019) and the exclusive-attach lease (F20 / 0021): the
+// reattach method strings, result shapes, and the lease-revocation evt channel are DEFINED in
+// `src/agent/session-api.ts` and re-exported here — the same two-door pattern (and reason) as
+// the error codes above: the frozen TEST-752 reserves `shared/remote`-containing specifiers
+// inside `src/agent/` for the F15 barrel, so the agent cannot import THIS module.
+export { AGENT_SESSION_METHODS, AGENT_LEASE_REVOKED_EVT } from '../agent/session-api'
 export type {
   AgentSessionMethod,
   AgentStatusPayload,

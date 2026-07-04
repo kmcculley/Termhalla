@@ -1,8 +1,8 @@
 {
-  "feature": ".orky/features/0019-agent-replay-session-survival",
+  "feature": ".orky/features/0021-exclusive-attach-lease",
   "projectRoot": "C:/dev/Termhalla",
   "phase": "human-review",
-  "lastTickAt": "2026-07-04T20:40:48.384Z",
+  "lastTickAt": "2026-07-04T22:23:37.809Z",
   "lastAction": "build complete; awaiting human review at batch boundary",
   "runs": {
     ".orky/features/0017-agent-runtime-skeleton": {
@@ -23,6 +23,11 @@
     ".orky/features/0019-agent-replay-session-survival": {
       "phase": "human-review",
       "lastTickAt": "2026-07-04T20:40:48.384Z",
+      "lastAction": "build complete; awaiting human review at batch boundary"
+    },
+    ".orky/features/0021-exclusive-attach-lease": {
+      "phase": "human-review",
+      "lastTickAt": "2026-07-04T22:23:37.809Z",
       "lastAction": "build complete; awaiting human review at batch boundary"
     }
   }
