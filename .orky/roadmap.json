@@ -40,7 +40,8 @@
       "deps": [
         "F16"
       ],
-      "status": "in-progress"
+      "status": "done",
+      "completedAt": "2026-07-04T21:28:01.885Z"
     },
     {
       "id": "F19",

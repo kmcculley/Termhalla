@@ -27,6 +27,24 @@ loopback and are resolved — this doc tracks what stays open.
   must derive its cadence from any window it declares (keep it well below `floor(window/2)`) or
   flush residue when the stream goes quiet.**
 
+## Added at the F17×F18 batch weld (2026-07-04)
+
+- **`npm run typecheck` is red on three frozen 0019 test stubs (TS2739).** The 0018→F16 widening
+  of `AgentPtyHandle` (mandatory `pause()`/`resume()`) landed in the same batch as 0019's suites,
+  whose stub handles (`agent-attach-sessions.test.ts:240`, `agent-session-store.test.ts:41`,
+  `agent-survival.test.ts:40`) predate it. Runtime is unaffected (stubs never cross a window;
+  build + vitest fully green — vitest transforms without the project tsconfig's type-check) and it
+  is NOT src-fixable (optional methods would break 0018's frozen `flowSpy` typing). Needs a
+  sanctioned tests-phase touch: **route to F20's tests phase** (it already works this exact seam —
+  it retires 0019's single-connection bind guard). Add `pause`/`resume` no-ops to the three stubs.
+- **Flow accounting is connection-scoped across detach/reattach (weld decision, documented in
+  `docs/features/remote-agent.md`).** `unbind()` resumes gate-paused backends then resets counters/
+  overrides; a reattaching client starts a fresh window. The persist-counters alternative was
+  rejected on evidence: pause gates the same `onData` that feeds replay (a pane paused at
+  disconnect would freeze its while-away snapshot, breaking 0019's REQ-011), and persisted residue
+  above `floor(window/2)` could never be acked by a fresh client (permanent wedge). Neither frozen
+  suite pins the intersection; if F20/F21 specs need a different model, spec it explicitly there.
+
 ## Resolved during the run
 
 - FINDING-001 (MEDIUM, quality) — `applyDecisions` now contains backend `pause()`/`resume()`
