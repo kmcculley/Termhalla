@@ -8,9 +8,10 @@
     "esModuleInterop": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
+    "resolveJsonModule": true,
     "baseUrl": ".",
     "paths": { "@shared/*": ["src/shared/*"] }
   },
-  "include": ["src/main", "src/shared", "tests"],
+  "include": ["src/main", "src/shared", "src/agent", "tests"],
   "exclude": ["tests/renderer", "tests/e2e"]
 }
