@@ -1,0 +1,138 @@
+{
+  "REQ-001": { "tasks": [
+      "TASK-002",
+      "TASK-003",
+      "TASK-005"
+    ],
+    "tests": [
+      "TEST-2101",
+      "TEST-2111",
+      "TEST-751",
+      "TEST-746"
+    ],
+    "files": [
+      "src/agent/session-store.ts",
+      "src/agent/session.ts",
+      "src/agent/session-api.ts",
+      "src/shared/remote-agent-api.ts",
+      "docs/features/remote-agent.md"
+    ] },
+  "REQ-002": { "tasks": [
+      "TASK-002",
+      "TASK-003"
+    ],
+    "tests": [
+      "TEST-2101",
+      "TEST-2104",
+      "TEST-2113"
+    ],
+    "files": [
+      "src/agent/session-store.ts",
+      "src/agent/session.ts"
+    ] },
+  "REQ-003": { "tasks": [
+      "TASK-002"
+    ],
+    "tests": [
+      "TEST-2102",
+      "TEST-1905"
+    ],
+    "files": [
+      "src/agent/session-store.ts"
+    ] },
+  "REQ-004": { "tasks": [
+      "TASK-003",
+      "TASK-001"
+    ],
+    "tests": [
+      "TEST-2103",
+      "TEST-2114"
+    ],
+    "files": [
+      "src/agent/session.ts",
+      "src/agent/session-api.ts"
+    ] },
+  "REQ-005": { "tasks": [
+      "TASK-002"
+    ],
+    "tests": [
+      "TEST-2105"
+    ],
+    "files": [
+      "src/agent/session-store.ts"
+    ] },
+  "REQ-006": { "tasks": [
+      "TASK-002"
+    ],
+    "tests": [
+      "TEST-2106",
+      "TEST-2107"
+    ],
+    "files": [
+      "src/agent/session-store.ts"
+    ] },
+  "REQ-007": { "tasks": [
+      "TASK-002",
+      "TASK-003"
+    ],
+    "tests": [
+      "TEST-2108",
+      "TEST-2115"
+    ],
+    "files": [
+      "src/agent/session-store.ts",
+      "src/agent/session.ts"
+    ] },
+  "REQ-008": { "tasks": [
+      "TASK-001"
+    ],
+    "tests": [
+      "TEST-2111"
+    ],
+    "files": [
+      "src/agent/session-api.ts",
+      "src/shared/remote-agent-api.ts"
+    ] },
+  "REQ-009": { "tasks": [
+      "TASK-003",
+      "TASK-002"
+    ],
+    "tests": [
+      "TEST-2109"
+    ],
+    "files": [
+      "src/agent/session.ts",
+      "src/agent/session-store.ts"
+    ] },
+  "REQ-010": { "tasks": [
+      "TASK-003",
+      "TASK-005"
+    ],
+    "tests": [
+      "TEST-2110"
+    ],
+    "files": [
+      "src/agent/session.ts",
+      "src/agent/main.ts"
+    ] },
+  "REQ-011": { "tasks": [
+      "TASK-005"
+    ],
+    "tests": [
+      "TEST-1905"
+    ],
+    "files": [
+      "tests/agent-attach-sessions.test.ts",
+      "tests/agent-session-store.test.ts",
+      "tests/agent-survival.test.ts"
+    ] },
+  "REQ-012": { "tasks": [
+      "TASK-004"
+    ],
+    "tests": [
+      "TEST-2112"
+    ],
+    "files": [
+      "docs/features/remote-agent.md"
+    ] }
+}

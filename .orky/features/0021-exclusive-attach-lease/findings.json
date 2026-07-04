@@ -1,0 +1,46 @@
+[
+  {
+    "lens": "networking",
+    "claim": "A connection that NEVER held the lease releases it anyway: session.ts end() calls store.unbind() on every external-composition end path, including pre-establishment ends (failed handshake / pre-hello EOF / pre-hello fatal framing). unbind() is unconditional, so a concurrent connection C whose hello is rejected (wrong version) silently strips the CURRENT holder A: bound goes null, A's subscriptions/holds/flow gate are cleared, A receives no further pane frames and NO lease:revoked notification (verified by an in-worktree repro: A's pty:data count frozen at 1 after C's exit-1 end). Violates REQ-002(a) exactly-one-holder determinism (the lease is vacated by a non-holder) — the same class REQ-002(c) fixed for displaced connections, generalized: only the holder may release. Latent in 0019 (single-connection guard made it near-unreachable); F20 makes concurrent connections first-class.",
+    "severity": "MEDIUM",
+    "gate": "review",
+    "fix": "Track lease holdership in the session (holdsLease flag: set true immediately after store.bind(), set false in onLeaseRevoked); end() releases via store.unbind() ONLY when holdsLease. Folds the revoked flag into the same mechanism. Add a lease-suite vector: a failed-handshake concurrent connection leaves the holder bound, subscribed, and served (tests loopback + freeze re-capture), plus a pre-hello EOF variant.",
+    "location": "src/agent/session.ts end() / store.bind site",
+    "phase_of_origin": "implement",
+    "id": "FINDING-001",
+    "status": "resolved",
+    "resolution": "Fixed: session.ts tracks holdsLease (true only after its own successful store.bind; false on revocation); end() calls store.unbind() only while holding. Pinned by TEST-2113 (failed-handshake and pre-hello-EOF concurrent connections leave the holder bound, subscribed, served) — RED against the defect, green after the fix; implement gate re-derived green.",
+    "resolvedBy": "orky:reviewer (driver-inline)",
+    "resolvedAt": "2026-07-04T22:20:20.095Z"
+  },
+  {
+    "lens": "networking",
+    "claim": "Res-after-revocation window: onLeaseRevoked sets revoked and sends the lease:revoked evt BEFORE end(0) flips ended, and onItem guards only on ended — a sink whose send() synchronously feeds inbound frames back into session.onItem (pathological but composable) can get a req dispatched between the evt and the end, emitting a res AFTER the supposedly-final lease:revoked frame (worse variant: a reentrant pty:spawn while bound===null marks subscribed=true, leaking a stale subscription to the next holder).",
+    "severity": "LOW",
+    "gate": "review",
+    "fix": "Guard the inbound path on the revocation too: onItem early-returns when (ended || revoked); revoked is set before the notification send, closing the window. Vector: a reentrant sendImpl that re-enters onItem with a req upon seeing the evt — assert nothing follows the evt.",
+    "location": "src/agent/session.ts onItem guard / onLeaseRevoked",
+    "phase_of_origin": "implement",
+    "verified_by": "codex-cross-check",
+    "id": "FINDING-002",
+    "status": "resolved",
+    "resolution": "Fixed: onItem early-returns when (ended || revoked); revoked is set before the notification send, closing the reentrant-sink window (and the stale-subscription leak variant). Pinned by TEST-2114 — RED against the defect, green after the fix.",
+    "resolvedBy": "orky:reviewer (driver-inline)",
+    "resolvedAt": "2026-07-04T22:20:20.178Z"
+  },
+  {
+    "lens": "determinism",
+    "claim": "Nested-bind clobber: store.bind(B) runs incumbent.onLeaseRevoked() and then unconditionally executes bound = B. If the revocation callback synchronously binds a NEWER connection C on the same store (an embedder auto-reconnecting inside its shutdown), the nested bind grants C, then the OUTER bind overwrites bound with the OLDER B — C is silently displaced without revocation, violating the newest-attach-wins / arrival-order lease rule (REQ-007a).",
+    "severity": "LOW",
+    "gate": "review",
+    "fix": "After the revocation callback, re-check bound: if a nested bind won during the callback, the newer holder stays and THIS (older) bind self-displaces — notify its client via onLeaseRevoked (contained) and return without granting. Vector: raw-store incumbent whose handler binds C; assert C holds, B revoked, A revoked once each.",
+    "location": "src/agent/session-store.ts bind() grant step",
+    "phase_of_origin": "implement",
+    "verified_by": "codex-cross-check",
+    "id": "FINDING-003",
+    "status": "resolved",
+    "resolution": "Fixed: bind() re-checks bound after the revocation callback; if a nested (newer) bind won during the callback the older outer bind self-displaces via its own onLeaseRevoked (contained) and never grants. session.ts sets holdsLease = !revoked after bind so a self-displaced session relinquishes holdership. Pinned by TEST-2115 (raw-store reentrancy: C holds, B revoked once, A revoked once) — RED against the defect, green after the fix.",
+    "resolvedBy": "orky:reviewer (driver-inline)",
+    "resolvedAt": "2026-07-04T22:20:20.261Z"
+  }
+]

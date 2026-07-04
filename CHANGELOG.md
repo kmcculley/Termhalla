@@ -7,6 +7,30 @@ All notable changes to Termhalla are recorded here. The format follows
 ## [Unreleased]
 
 ### Added
+- **Exclusive attach via agent-side lease (Remote Agent v1, batch 4 — F20).** `tmux attach -d`
+  semantics (locked decision 5; no mirrored attach): the session store's binding IS the lease —
+  exactly one connection holds an agent's session set at every instant. Binding while another
+  connection is bound no longer throws (F18's single-connection guard retired through this
+  feature's tests phase, exactly as its recorded CONV-019 path prescribed): the incumbent is
+  displaced atomically inside the synchronous `bind()` — detached with the full F17×F18 weld
+  semantics (its gate-paused backends resume into the replay terminal only; the flow gate
+  resets so the winner starts a fresh window; its in-flight attach windows settle inert via the
+  existing generation scoping) — then notified: the loser's connection receives
+  **`lease:revoked`** (`AGENT_LEASE_REVOKED_EVT` in `src/shared/remote-agent-api.ts`, defined in
+  `src/agent/session-api.ts` — the two-door pattern) as its FINAL frame and ends with exit 0;
+  F21 renders the disconnected-workspace banner off that evt. The steal race is deterministic
+  (newest bind wins, total arrival order, steal-back is just another attach; run-twice vectors
+  pin byte-identical logs) and no agent-side byte is lost across a steal (the winner's snapshot
+  ⊕ events ≡ the full stream — the F18 composition oracle re-proven over the boundary). Release
+  is **holder-scoped**: a connection that never held the lease (failed handshake, pre-hello
+  EOF) or was displaced cannot strip the current holder (review FINDING-001, repro-verified,
+  fixed in-run with FINDING-002/003 reentrancy hardening — nothing follows the revocation evt
+  even under a reentrant sink; a nested bind during the revocation callback wins as the
+  newest). No new methods, error codes, frame types, or dependencies; the shipped stdio
+  artifact is behavior-identical (one connection per process — F19/F21 wiring makes steals
+  reachable end-to-end). Also cleared the F17×F18 weld's mandatory housekeeping: `npm run
+  typecheck` red→green (pause/resume no-ops on three frozen 0019 stub handles). See
+  `docs/features/remote-agent.md` § "Exclusive attach lease".
 - **Agent-side replay + session survival (Remote Agent v1, batch 3 — F18).** Sessions survive
   client disconnect/death (locked decision 3), agent-side and transport-independent: pane
   ownership moved into a **session store** (`src/agent/session-store.ts`) that outlives a

@@ -27,8 +27,16 @@
  * persisted residue could never be acked away by a fresh client and would ratchet toward a
  * permanent pause — see docs/features/remote-agent.md § Flow control.
  *
- * v1 is single-connection: `bind()` while bound throws (F20 / 0021-exclusive-attach-lease
- * retires this guard with lease/steal semantics through its own tests phase — CONV-019).
+ * The binding IS the agent-side lease (F20 / 0021-exclusive-attach-lease, locked decision 5 —
+ * `tmux attach -d` semantics; this replaced the 0019-era single-connection throw guard exactly
+ * as its CONV-019 retirement path prescribed): exactly ONE holder at every instant. Grant =
+ * `bind()` on an unbound store; release = any connection-end path (`unbind()`); STEAL =
+ * `bind()` while bound — the incumbent is detached with the full unbind semantics above (with
+ * `bound` null, so a resumed backlog feeds replay only), then notified via its
+ * `onLeaseRevoked()` (contained — a throwing handler never blocks the grant), then the
+ * newcomer holds. The newer attach always wins; binds resolve strictly in arrival order.
+ * Holder-scoped release (a displaced connection's late end must not detach the winner) is
+ * enforced at the session layer via its `revoked` flag — see session.ts.
  */
 import { CH } from '@shared/ipc-contract'
 import type { PtySpawnArgs } from '@shared/ipc-contract'
@@ -53,10 +61,14 @@ export interface AgentSessionStoreInit {
 }
 
 /** What a connection registers at bind time. `send` delivers evt frames; a `send` throw is a
- *  connection death: the store unbinds FIRST, then reports through `onSendFailure`. */
+ *  connection death: the store unbinds FIRST, then reports through `onSendFailure`.
+ *  `onLeaseRevoked` fires when a LATER bind steals the lease (F20) — invoked AFTER this
+ *  connection was detached (it can no longer receive routed pane frames), so the handler's
+ *  notification is its final frame; the handler must not release the store again. */
 export interface BoundClient {
   send(frame: WireFrame): void
   onSendFailure(error: unknown): void
+  onLeaseRevoked(): void
 }
 
 export type SpawnOutcome =
@@ -257,11 +269,36 @@ export const createSessionStore = (init: AgentSessionStoreInit): AgentSessionSto
 
   return {
     bind(client: BoundClient): void {
-      if (destroyed) { bound = client; return } // a destroyed store answers empty inventories
-      if (bound) {
-        throw new Error(
-          'agent session store: a connection is already bound - v1 is single-connection; exclusive attach/steal semantics arrive with F20 (0021-exclusive-attach-lease)')
+      const incumbent = bound
+      if (incumbent) {
+        // The steal (F20, locked decision 5): the newer attach wins, identity-blind.
+        // (a) Detach the incumbent with EXACTLY the established unbind semantics — paused
+        //     backends resume while NO client is bound (the flushed backlog feeds the replay
+        //     terminal only), the flow gate resets, bindGen invalidates its open attach
+        //     windows, subscriptions/holds/held clear. (Harmless on a destroyed store.)
+        unbindInternal()
+        // (b) Tell it, now that it can no longer receive routed pane frames. Contained: a
+        //     throwing handler is diagnosed and the grant below proceeds regardless.
+        try {
+          incumbent.onLeaseRevoked()
+        } catch (e) {
+          diag(`lease: revocation handler failed: ${bounded(e)} - the steal completes`)
+        }
+        // Reentrancy re-check (FINDING-003): the revocation callback may have synchronously
+        // bound a NEWER connection (an embedder reconnecting inside its shutdown path). The
+        // newest bind wins — that nested holder stays, and THIS older bind self-displaces
+        // (its client is notified like any displaced incumbent; it was never granted, so it
+        // never received a routed frame).
+        if (bound !== null) {
+          try {
+            client.onLeaseRevoked()
+          } catch (e) {
+            diag(`lease: revocation handler failed: ${bounded(e)} - the steal completes`)
+          }
+          return
+        }
       }
+      // (c) Grant — on a destroyed store the holder still just answers empty inventories.
       bound = client
     },
 

@@ -1,0 +1,168 @@
+{
+  "feature": "0021-exclusive-attach-lease",
+  "phase": "doc-sync",
+  "gates": {
+    "brainstorm": {
+      "passed": true,
+      "at": "2026-07-04T21:37:28.850Z",
+      "evidence": "app-run: concept fixed by roadmap entry",
+      "external": true
+    },
+    "spec": {
+      "passed": true,
+      "at": "2026-07-04T21:43:58.451Z",
+      "firstAt": "2026-07-04T21:43:58.451Z",
+      "tokens": [
+        {
+          "token": "findings",
+          "pass": true,
+          "evidence": "no open blocking findings (CRITICAL/HIGH or contract-violation) at or before this gate"
+        }
+      ]
+    },
+    "plan": {
+      "passed": true,
+      "at": "2026-07-04T21:46:50.887Z",
+      "firstAt": "2026-07-04T21:46:50.887Z",
+      "tokens": [
+        {
+          "token": "spec-freeze",
+          "pass": true,
+          "evidence": "spec unchanged since the spec gate"
+        },
+        {
+          "token": "traceability-plan",
+          "pass": true,
+          "evidence": "all 12 REQ(s) trace to TASK"
+        },
+        {
+          "token": "findings",
+          "pass": true,
+          "evidence": "no open blocking findings (CRITICAL/HIGH or contract-violation) at or before this gate"
+        }
+      ]
+    },
+    "tests": {
+      "passed": true,
+      "at": "2026-07-04T22:17:42.705Z",
+      "firstAt": "2026-07-04T22:17:42.705Z",
+      "tokens": [
+        {
+          "token": "spec-freeze",
+          "pass": true,
+          "evidence": "spec unchanged since the spec gate"
+        },
+        {
+          "token": "tests-red",
+          "pass": true,
+          "evidence": "tests are RED (exit 1) — freeze snapshot captured"
+        }
+      ]
+    },
+    "implement": {
+      "passed": true,
+      "at": "2026-07-04T22:19:59.751Z",
+      "firstAt": "2026-07-04T22:19:59.751Z",
+      "tokens": [
+        {
+          "token": "spec-freeze",
+          "pass": true,
+          "evidence": "spec unchanged since the spec gate"
+        },
+        {
+          "token": "build",
+          "pass": true,
+          "evidence": "build exited 0"
+        },
+        {
+          "token": "test",
+          "pass": true,
+          "evidence": "test exited 0"
+        },
+        {
+          "token": "test-freeze",
+          "pass": true,
+          "evidence": "test files unchanged since freeze"
+        }
+      ]
+    },
+    "review": {
+      "passed": true,
+      "at": "2026-07-04T22:20:47.628Z",
+      "firstAt": "2026-07-04T22:20:47.628Z",
+      "tokens": [
+        {
+          "token": "spec-freeze",
+          "pass": true,
+          "evidence": "spec unchanged since the spec gate"
+        },
+        {
+          "token": "findings",
+          "pass": true,
+          "evidence": "no open blocking findings (CRITICAL/HIGH or contract-violation) at or before this gate"
+        }
+      ]
+    },
+    "doc-sync": {
+      "passed": true,
+      "at": "2026-07-04T22:23:07.232Z",
+      "firstAt": "2026-07-04T22:23:07.232Z",
+      "tokens": [
+        {
+          "token": "spec-freeze",
+          "pass": true,
+          "evidence": "spec unchanged since the spec gate"
+        },
+        {
+          "token": "traceability",
+          "pass": true,
+          "evidence": "all 12 REQ(s) trace to TASK+TEST"
+        },
+        {
+          "token": "findings",
+          "pass": true,
+          "evidence": "no open blocking findings (CRITICAL/HIGH or contract-violation) at or before this gate"
+        }
+      ]
+    }
+  },
+  "iterations": {
+    "tests": 2
+  },
+  "escalations": [],
+  "concerns": [
+    "networking",
+    "determinism"
+  ],
+  "attempts": {
+    "spec": 0,
+    "plan": 0,
+    "tests": 0,
+    "implement": 0,
+    "review": 0,
+    "doc-sync": 0
+  },
+  "loopbacks": [
+    {
+      "to": "tests",
+      "from": "implement",
+      "reason": "TEST-2105's three vectors send a per-pane window frame BEFORE any pty:data for that pane — F17's own pinned contract (D4/REQ-007, agent-flow-gate lazy tracking) IGNORES windows for gate-untracked panes, so the pane never pauses and the vectors fail against a correct implementation. Tests-phase fix: seed one small emission to create the gate record before the per-pane window frame (or use the connection-wide default), keeping the vectors' semantics (pause under the loser's stall; resume at steal; fresh winner window) intact. Test-file-only change; freeze re-captured at the tests gate per the 0018/0019/0020 loopback precedent.",
+      "at": "2026-07-04T22:05:09.390Z"
+    },
+    {
+      "to": "tests",
+      "from": "review",
+      "reason": "Review filed 3 code-addressable findings (FINDING-001 MEDIUM non-holder release strips the holder, repro-verified; FINDING-002 LOW res-after-revocation window under a reentrant sink; FINDING-003 LOW nested-bind clobber violating newest-wins — both codex-cross-check-verified traces). None blocking; fixed eagerly in thorough mode per the 0020 precedent. Each fix needs a pinned vector (TDD): route through the tests phase first — add TEST-2113/2114/2115 to the lease suite RED, freeze re-capture, then implement the holdsLease/revoked-guard/nested-bind-recheck fixes and re-derive the implement gate.",
+      "at": "2026-07-04T22:16:04.015Z"
+    }
+  ],
+  "implementer": {
+    "mode": "claude",
+    "agents": [
+      "orky:implementer"
+    ],
+    "winner": "orky:implementer",
+    "reason": "Re-entry after the review->tests loopback (FINDING-001/002/003 vectors): three surgical fixes — session.ts holdsLease flag (end() releases the store ONLY while holding: never-bound and displaced connections skip unbind, FINDING-001), the revoked inbound guard (onItem drops everything from the revocation instant, so nothing can follow the final lease:revoked frame even under a reentrant sink, FINDING-002), and session-store.ts bind()'s post-callback bound re-check (a nested newer bind issued inside the revocation callback holds; the older outer bind self-displaces — newest-wins preserved, FINDING-003). All 25 lease vectors + adjacent agent suites green; implement gate re-derived green (build+test+both freezes); typecheck exit 0.",
+    "at": "2026-07-04T22:20:20.012Z"
+  }
+}

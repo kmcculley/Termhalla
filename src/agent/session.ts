@@ -12,7 +12,10 @@
  *    connection over a LONGER-LIVED store; every end path — clean EOF, fatal framing,
  *    handshake failure, an outbound send failure — DETACHES (`unbind()`): panes keep running,
  *    replay + status keep consuming, and a later connection reattaches via `pty:attach` /
- *    `pty:sessions`. F19/F21 wire this seam to a reattachable transport.
+ *    `pty:sessions`. F19/F21 wire this seam to a reattachable transport. Since 0021 the
+ *    binding is an exclusive LEASE (`tmux attach -d`): a later connection's bind STEALS it —
+ *    this session then sends `lease:revoked` as its final frame and ends (exit 0) WITHOUT
+ *    releasing the store again (the store already detached it; see `end()`'s revoked skip).
  *
  * Since 0018 (windowed flow control) the once-inert ack/window frames HAVE semantics: every
  * emitted pty:data payload is counted through the shared flow gate, which pauses the pane's
@@ -32,7 +35,7 @@ import type { DecodedItem, WireFrame, ReqFrame, ResFrame } from '@shared/remote/
 import { CH } from '@shared/ipc-contract'
 import type { AgentPtyBackend } from './pty-backend'
 import type { AgentErrorCode } from './error-codes'
-import { AGENT_SESSION_METHODS } from './session-api'
+import { AGENT_SESSION_METHODS, AGENT_LEASE_REVOKED_EVT } from './session-api'
 import { createSessionStore, type AgentSessionStore } from './session-store'
 import {
   validateSpawnParams, validateWriteParams, validateResizeParams, validateKillParams,
@@ -83,14 +86,26 @@ export const createAgentSession = (init: AgentSessionInit): AgentSession => {
     : createSessionStore({ backend: init.backend, homeDir: init.homeDir, diag: init.diag })
   let established = false
   let ended = false
+  /** Lease holdership (F20 REQ-002c): true ONLY between a successful `store.bind()` and a
+   *  revocation. `end()` releases the store iff this connection still holds — a connection
+   *  that never held (failed handshake, pre-hello EOF — FINDING-001) or was displaced by a
+   *  steal must not release: an unconditional `unbind()` there would silently strip the
+   *  CURRENT holder's binding. */
+  let holdsLease = false
+  /** Set at the instant of revocation, BEFORE the notification send: from here on the
+   *  inbound path drops everything (FINDING-002 — nothing, not even a res, may follow the
+   *  final `lease:revoked` frame, even under a sink that synchronously pumps inbound). */
+  let revoked = false
 
   const end = (code: number): void => {
     if (ended) return
     ended = true
     // The owned store dies with its one connection (F16 behavior: panes killed, exit code
-    // taxonomy unchanged). An external store merely detaches — the survival substance.
+    // taxonomy unchanged). An external store is released ONLY by its holder — the survival
+    // substance, holder-scoped (REQ-002c): after a revocation the store already detached
+    // this connection, and a never-established connection never held anything to release.
     if (owned) store.destroy()
-    else store.unbind()
+    else if (holdsLease) store.unbind()
     init.shutdown(code)
   }
 
@@ -190,7 +205,7 @@ export const createAgentSession = (init: AgentSessionInit): AgentSession => {
     },
 
     onItem(item: DecodedItem): void {
-      if (ended) return
+      if (ended || revoked) return // revoked closes the inbound path DURING the notification
 
       if (item.kind === 'fatal') {
         init.diag(`fatal framing error (${item.error.reason}): ${item.error.message} - shutting down`)
@@ -207,16 +222,35 @@ export const createAgentSession = (init: AgentSessionInit): AgentSession => {
           init.diag(`handshake failed (${result.failure.reason}): ${result.failure.message}`)
           return end(1)
         }
-        // Bind BEFORE flipping established: a second concurrent connection is rejected here
-        // (the store's single-connection guard — F20 retires it with lease semantics).
+        // Bind BEFORE flipping established. Binding while another connection holds the store
+        // STEALS the lease (F20, `tmux attach -d`): the incumbent is revoked and ends; the
+        // newer attach always wins — see session-store.ts.
         store.bind({
           send: (frame) => { if (!ended) init.send(frame) },
           onSendFailure: (e) => {
             if (ended) return
             init.diag(`connection send failed: ${bounded(e)} - ending this connection (panes survive on an external store)`)
             end(1)
+          },
+          onLeaseRevoked: () => {
+            if (ended) return
+            revoked = true      // BEFORE the send: the inbound path is closed from here on
+            holdsLease = false  // BEFORE end(): the store already detached this connection
+            // The revocation evt is this connection's FINAL frame (F20 REQ-004): best-effort —
+            // a dead sink is diagnosed, never re-enters the send-failure death path (the store
+            // already detached this connection), and the orderly exit-0 end proceeds anyway.
+            try {
+              init.send({ type: 'evt', channel: AGENT_LEASE_REVOKED_EVT, args: [] })
+            } catch (e) {
+              init.diag(`lease revocation notification failed: ${bounded(e)} - ending this connection anyway`)
+            }
+            end(0)
           }
         })
+        // A nested bind during the steal (FINDING-003) may have displaced THIS connection
+        // synchronously inside store.bind — in that case its handler above already ran and
+        // holdership must stay relinquished.
+        holdsLease = !revoked
         established = true
         return
       }

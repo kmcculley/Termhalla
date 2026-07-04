@@ -24,6 +24,17 @@ export const AGENT_SESSION_METHODS = ['pty:attach', 'pty:sessions'] as const
 export type AgentSessionMethod = (typeof AGENT_SESSION_METHODS)[number]
 
 /**
+ * The lease-revocation push channel (F20 / 0021-exclusive-attach-lease, locked decision 5 —
+ * `tmux attach -d` semantics): `{ type: 'evt', channel: AGENT_LEASE_REVOKED_EVT, args: [] }`
+ * is sent to a connection displaced by a lease steal as its FINAL frame; that connection then
+ * ends (exit code 0). F21's client drops the workspace to its disconnected state on receipt.
+ * Remote-only: no local `CH` channel exists for it (the local app has no lease concept), so
+ * the literal is hand-typed deliberately here — the ONE definition site across `src/`
+ * (TEST-2111 pins the confinement; both doors re-export this binding).
+ */
+export const AGENT_LEASE_REVOKED_EVT = 'lease:revoked' as const
+
+/**
  * The wire re-shape of `TerminalStatus`: identical fields EXCEPT that an absent `lastExit` is a
  * DROPPED KEY, never `undefined` (F15's strict validator rejects `undefined` inside JSON
  * positions — the F16 `pty:status` push established this precedent; attach/inventory results
