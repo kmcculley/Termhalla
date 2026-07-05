@@ -21,6 +21,7 @@ import { DecisionQueuePanel } from './components/DecisionQueuePanel'
 import { OrkyRootPicker } from './components/OrkyRootPicker'
 import { OrkyCaptureModal } from './components/OrkyCaptureModal'
 import { RemoteAgentPicker } from './components/RemoteAgentPicker'
+import { ReopenWorkspaceModal } from './components/ReopenWorkspaceModal'
 import { SearchHistory } from './components/SearchHistory'
 import { matchShortcut, resolveBindings } from '@shared/keymap'
 import { redrawPane } from './components/terminal-registry'
@@ -47,6 +48,8 @@ export default function App() {
   const orkyCaptureRequest = useStore(s => s.orkyCaptureRequest)
   // Remote workspaces (feature 0022): the agent-picker request flag (the cockpit-picker pattern).
   const remoteAgentPickerOpen = useStore(s => s.remoteAgentPickerOpen)
+  // File ▸ Reopen Closed Workspace… (conditionally hosted so it reloads the list each open).
+  const reopenOpen = useStore(s => s.reopenOpen)
   useEffect(() => { init() }, [init])
   useEffect(() => {
     const flush = () => { const s = useStore.getState(); void s.saveAll(); s.flushQuick(); s.flushNotes() }
@@ -85,6 +88,12 @@ export default function App() {
       api.onTermSerialize(wsId => s().serializeWorkspace(wsId)),
       // Native Edit ▸ Settings… opens the Settings modal at the General section.
       api.onOpenSettings(() => s().openSettings({ section: 'general' })),
+      // Native File menu: the renderer owns live workspace state, so it performs each action.
+      api.onFileNew(() => { s().newWorkspace(`Workspace ${s().order.length + 1}`) }),
+      api.onFileOpen(() => { void s().openWorkspaceFromFile() }),
+      api.onFileReopen(() => s().setReopenOpen(true)),
+      api.onFileSave(() => { void s().saveActiveWorkspace() }),
+      api.onFileSaveAs(() => { void s().saveActiveWorkspaceAs() }),
       // Feature 0013: a needs-you OS notification was clicked. The main process already brought this
       // window forward; here we hand off to where the human acts — focus the matching pane via F6's
       // reused matcher, else open the decision-queue drawer scrolled to the project (a digest click,
@@ -232,6 +241,8 @@ export default function App() {
       {remoteAgentPickerOpen && (
         <RemoteAgentPicker onClose={() => useStore.getState().closeRemoteAgentPicker()} />
       )}
+      {/* File ▸ Reopen Closed Workspace… */}
+      {reopenOpen && <ReopenWorkspaceModal onClose={() => useStore.getState().setReopenOpen(false)} />}
       <SearchHistory />
       <SshConnectionForm key={connectionFormFor === null ? 'none' : connectionFormFor === 'new' ? 'new' : connectionFormFor.id} />
     </div>

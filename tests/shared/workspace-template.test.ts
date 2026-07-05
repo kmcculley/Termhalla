@@ -25,7 +25,9 @@ describe('remapPaneIds', () => {
   })
   it('passes through a blank workspace', () => {
     const r = remapPaneIds(null, {}, uuid)
-    expect(r).toEqual({ layout: null, panes: {} })
+    expect(r.layout).toBeNull()
+    expect(r.panes).toEqual({})
+    expect(r.idMap.size).toBe(0)
   })
 })
 

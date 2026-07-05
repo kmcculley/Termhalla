@@ -15,7 +15,7 @@ const fakeFocused = { webContents: { send: (ch: string) => sent.push(ch) } }
 
 vi.mock('electron', () => ({
   app: { getVersion: () => '0.0.0-test' },
-  BrowserWindow: { getFocusedWindow: () => fakeFocused },
+  BrowserWindow: { getFocusedWindow: () => fakeFocused, getAllWindows: () => [fakeFocused] },
   Menu: {
     buildFromTemplate: (tpl: any) => { built.push(tpl); return { tpl } },
     setApplicationMenu: () => {},
@@ -64,5 +64,43 @@ describe('installAppMenu — Edit menu', () => {
     item?.click?.()
     // Exactly one send, on exactly the open-settings channel (and no other).
     expect(sent).toEqual(['menu:open-settings'])
+  })
+})
+
+describe('installAppMenu — File menu', () => {
+  beforeEach(() => { built.length = 0; sent.length = 0 })
+
+  it('builds a top-level File submenu before Edit with the document actions', () => {
+    installAppMenu()
+    const tpl = lastTemplate()
+    const ls = labels(tpl)
+    expect(ls.indexOf('File')).toBe(0)
+    expect(ls.indexOf('File')).toBeLessThan(ls.indexOf('Edit'))
+
+    const file = tpl.find(m => m.label === 'File')
+    const sub = (file?.submenu ?? []) as any[]
+    const itemLabels = sub.filter(s => s.label).map(s => s.label)
+    expect(itemLabels).toEqual([
+      'New Workspace', 'Open Workspace…', 'Reopen Closed Workspace…',
+      'Save Workspace', 'Save Workspace As…', 'Exit'
+    ])
+    // Exit uses the native quit role so it inherits the before-quit flush machinery.
+    expect(sub.find(s => s.id === 'file-exit')?.role).toBe('quit')
+  })
+
+  it('each document action sends only its own channel to the window', () => {
+    installAppMenu()
+    const sub = (lastTemplate().find(m => m.label === 'File')?.submenu as any[])
+    const click = (id: string) => sub.find(s => s.id === id)?.click?.()
+
+    click('file-new'); expect(sent).toEqual(['menu:file-new'])
+    sent.length = 0
+    click('file-open'); expect(sent).toEqual(['menu:file-open'])
+    sent.length = 0
+    click('file-reopen'); expect(sent).toEqual(['menu:file-reopen'])
+    sent.length = 0
+    click('file-save'); expect(sent).toEqual(['menu:file-save'])
+    sent.length = 0
+    click('file-save-as'); expect(sent).toEqual(['menu:file-save-as'])
   })
 })

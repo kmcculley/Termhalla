@@ -5,6 +5,15 @@ export const CH = {
   listWorkspaceIds: 'ws:listIds',
   loadWorkspace: 'ws:load',
   saveWorkspace: 'ws:save',
+  deleteWorkspace: 'ws:delete',            // renderer -> main (remove a workspace's on-disk record)
+  // Workspace documents (File menu): portable `.thws` save/open + the per-workspace bound-file map.
+  wsdocPickSave: 'wsdoc:pickSave',         // renderer -> main (native Save-As dialog, .thws filter)
+  wsdocPickOpen: 'wsdoc:pickOpen',         // renderer -> main (native Open dialog, .thws filter)
+  wsdocRead: 'wsdoc:read',                 // renderer -> main (read a document file's text)
+  wsdocWrite: 'wsdoc:write',               // renderer -> main (atomic write a document file)
+  wsdocPathsLoad: 'wsdoc:pathsLoad',       // renderer -> main (load the persisted wsId->path map)
+  wsdocPathSet: 'wsdoc:pathSet',           // renderer -> main (bind a workspace to a document path)
+  wsdocPathClear: 'wsdoc:pathClear',       // renderer -> main (drop a workspace's document binding)
   loadAppState: 'app:loadState',
   saveAppState: 'app:saveState',
   ptySpawn: 'pty:spawn',
@@ -92,6 +101,13 @@ export const CH = {
   shellOpenExternal: 'shell:openExternal',  // renderer -> main (open a URL in the default browser)
   previewLoadImage: 'preview:loadImage',    // renderer -> main (read file / fetch url -> data URL)
   openSettings: 'menu:open-settings',       // main -> renderer event (native Edit ▸ Settings… clicked)
+  // Native File menu (main -> renderer events; each fires on the focused window). The renderer owns
+  // live workspace state, so the menu only signals intent and the renderer performs the action.
+  fileNew: 'menu:file-new',                 // New Workspace
+  fileOpen: 'menu:file-open',               // Open Workspace… (pick a .thws file)
+  fileReopen: 'menu:file-reopen',           // Reopen Closed Workspace… (internal list)
+  fileSave: 'menu:file-save',               // Save Workspace (write bound doc + flush internal)
+  fileSaveAs: 'menu:file-save-as',          // Save Workspace As… (pick a .thws file)
   // OS-level needs-you notifications (feature 0013). The SOLE new channel: a main -> renderer focus
   // handoff fired when the user clicks a needs-you notification. Payload = the target project-root
   // string (individual toast) or `null` (a digest click → open the drawer, no specific project).
@@ -136,6 +152,23 @@ export interface TermhallaApi {
   listWorkspaceIds(): Promise<string[]>
   loadWorkspace(id: string): Promise<Workspace | null>
   saveWorkspace(ws: Workspace): Promise<void>
+  /** Delete a workspace's on-disk record (used to prune a closed workspace from the reopen list). */
+  deleteWorkspace(id: string): Promise<void>
+  // ── Workspace documents (File menu) ───────────────────────────────────────────────────────────
+  /** Native Save-As dialog scoped to `.thws`; `defaultName` seeds the suggested filename. Null on cancel. */
+  pickWorkspaceSavePath(defaultName: string): Promise<string | null>
+  /** Native Open dialog scoped to `.thws`. Null on cancel. */
+  pickWorkspaceOpenPath(): Promise<string | null>
+  /** Read a document file's text; null if it can't be read (surfaced as a toast, never a throw). */
+  readWorkspaceDoc(path: string): Promise<string | null>
+  /** Atomically write a document file; false if the write failed (so the UI never toasts a false save). */
+  writeWorkspaceDoc(path: string, contents: string): Promise<boolean>
+  /** Load the persisted workspaceId→documentPath map (seeds the renderer's Save-vs-Save-As decision). */
+  loadWorkspaceDocPaths(): Promise<Record<string, string>>
+  /** Bind a workspace to a document path (fire-and-forget). */
+  setWorkspaceDocPath(workspaceId: string, path: string): void
+  /** Drop a workspace's document binding (fire-and-forget). */
+  clearWorkspaceDocPath(workspaceId: string): void
   loadAppState(): Promise<AppState | null>
   saveAppState(state: AppState): Promise<void>
   /** Resolves TRUE when an already-running PTY was adopted instead of spawned (moved / undocked /
@@ -260,6 +293,12 @@ export interface TermhallaApi {
   previewLoadImage(src: ImageSource): Promise<ImageResult>
   /** The native Edit ▸ Settings… menu item was clicked; open the Settings modal at General. */
   onOpenSettings(cb: () => void): () => void
+  // Native File menu clicks (each fires on the focused window; the renderer performs the action).
+  onFileNew(cb: () => void): () => void
+  onFileOpen(cb: () => void): () => void
+  onFileReopen(cb: () => void): () => void
+  onFileSave(cb: () => void): () => void
+  onFileSaveAs(cb: () => void): () => void
   /** A needs-you OS notification was clicked (feature 0013). Payload = the project root to reveal, or
    *  `null` for a digest click (open the decision-queue drawer with no specific project). The renderer
    *  focuses a matching pane via F6's shared matcher, else opens+scrolls the drawer — a read-side

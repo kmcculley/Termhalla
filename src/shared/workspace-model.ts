@@ -284,12 +284,14 @@ export function reorderIds(order: string[], fromId: string, toId: string): strin
 
 function cloneConfig<T>(v: T): T { return JSON.parse(JSON.stringify(v)) }
 
-/** Re-key every pane with a fresh id, rewriting the layout-tree leaves and the panes map. */
+/** Re-key every pane with a fresh id, rewriting the layout-tree leaves and the panes map. Returns
+ *  the `idMap` (old→new) too so callers that carry pane-id *references* elsewhere (e.g. a workspace
+ *  document's `minimized`/`maximized` view-state) can remap those references consistently. */
 export function remapPaneIds(
   layout: MosaicNode | null,
   panes: Record<string, PaneNode>,
   uuid: () => string
-): { layout: MosaicNode | null; panes: Record<string, PaneNode> } {
+): { layout: MosaicNode | null; panes: Record<string, PaneNode>; idMap: Map<string, string> } {
   const idMap = new Map<string, string>()
   for (const oldId of Object.keys(panes)) idMap.set(oldId, uuid())
   const remapNode = (node: MosaicNode): MosaicNode =>
@@ -301,7 +303,7 @@ export function remapPaneIds(
     const newId = idMap.get(oldId)!
     newPanes[newId] = { paneId: newId, config: cloneConfig(pane.config) }
   }
-  return { layout: layout === null ? null : remapNode(layout), panes: newPanes }
+  return { layout: layout === null ? null : remapNode(layout), panes: newPanes, idMap }
 }
 
 /** Capture a workspace's layout as a (deep-copied) template blueprint, including its
