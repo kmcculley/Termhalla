@@ -7,6 +7,25 @@ All notable changes to Termhalla are recorded here. The format follows
 ## [Unreleased]
 
 ### Added
+- **File menu — save / close / reopen a workspace as a document.** A native **File** menu
+  (New · Open Workspace… · Reopen Closed Workspace… · Save · Save As… · Exit) makes a workspace a
+  first-class document. **Save As…** writes a portable `.thws` file (the same versioned
+  `{ schemaVersion, workspace }` envelope the internal store uses) at a location you pick;
+  **Open** reads one back as a fresh workspace (new ids — the same file can be opened twice without
+  collision); **Save** overwrites the bound file (a per-workspace `workspaceId→path` binding is
+  persisted in `workspace-docs.json`, so Save keeps overwriting across relaunches) and always
+  flushes live state to the internal record. **Reopen Closed Workspace…** lists workspaces still on
+  disk but not open and brings one back with full identity, and can permanently delete one (the
+  long-deferred orphan cleanup). Reopening/opening restores every pane exactly as saved — each
+  terminal relaunches at its saved **cwd**, reconnects its **SSH** session, and re-runs
+  `claude --resume` where a Claude session was running (the existing save-time capture:
+  `applyCwds`/`applyResumeAi`); live scrollback/output is not preserved (panes relaunch fresh,
+  like restart-restore). The menu only signals intent — the renderer, which owns live workspace
+  state, performs each action (the `menu:open-settings` push idiom); Exit uses the native quit role
+  so it inherits the before-quit flush. New `wsdoc:*` + `ws:delete` IPC; `register-workspace-doc.ts`
+  joins the registrar/capability partition (`workspace-doc`, +1 `CAPABILITY_IDS` via TEST-741's
+  amendment path). No `SCHEMA_VERSION` bump — the document format IS the existing workspace record.
+  (`docs/features/workspace-documents.md`)
 - **Remote workspaces — client routing + per-workspace home (Remote Agent v1, batch 5 — F21).**
   A workspace now has a HOME: local (unchanged, byte-identical), or a named agent (locked
   decision 7) — every pane in it runs on that agent over ONE ssh-tunneled connection

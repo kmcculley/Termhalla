@@ -22,6 +22,14 @@ export interface Toast { id: string; kind: ToastKind; text: string }
 export type SettingsSection = 'general' | 'appearance' | 'environment' | 'terminal' | 'keybindings'
 export interface SettingsTarget { section: SettingsSection; paneId?: string }
 
+/** A closed (on-disk but not open in this window) workspace, listed in the Reopen dialog. */
+export interface ClosedWorkspaceInfo {
+  id: string
+  name: string
+  paneCount: number
+  firstCwd?: string   // the first terminal pane's cwd, shown as a hint of what the workspace is
+}
+
 export interface PreviewState {
   open: boolean
   source?: ImageSource
@@ -47,6 +55,23 @@ export interface State {
   newWorkspace: (name: string) => string
   renameWorkspace: (id: string, name: string) => void
   closeWorkspace: (id: string) => void
+  // ── Workspace documents (File menu) ───────────────────────────────────────────────────────────
+  docPaths: Record<string, string>   // wsId -> bound `.thws` file path (seeded from disk on init)
+  reopenOpen: boolean                // the Reopen Closed Workspace dialog is showing
+  setReopenOpen: (open: boolean) => void
+  /** Save the active workspace: flush live state to the internal record, and (if bound) write its
+   *  `.thws` document. Unbound workspaces are simply flushed — every workspace is always persisted. */
+  saveActiveWorkspace: () => Promise<void>
+  /** Pick a `.thws` path, write the active workspace there, and bind it for future Saves. */
+  saveActiveWorkspaceAs: () => Promise<void>
+  /** Pick a `.thws` file and open it as a fresh workspace (new ids), binding it for Save. */
+  openWorkspaceFromFile: () => Promise<string | null>
+  /** Reopen a previously-closed internal workspace by id (keeps its identity), or focus it if open. */
+  reopenClosedWorkspace: (id: string) => Promise<string | null>
+  /** List on-disk workspaces not currently open in this window (for the Reopen dialog). */
+  listClosedWorkspaces: () => Promise<ClosedWorkspaceInfo[]>
+  /** Permanently delete a closed workspace's on-disk record (+ its doc binding). */
+  deleteClosedWorkspace: (id: string) => Promise<void>
   moveWorkspace: (fromId: string, toId: string) => void
   setActive: (id: string) => void
   maximized: Record<string, string>   // wsId -> the paneId currently maximized in that workspace (persisted)

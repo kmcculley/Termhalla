@@ -28,7 +28,7 @@ Pure `reorderIds(order, fromId, toId)` (`src/shared/workspace-model.ts`) moves a
 
 - Rename to blank/whitespace keeps the current name.
 - Closing a workspace with panes confirms first; closing the active one moves to a neighbor; closing the last creates a fresh `Workspace 1`.
-- Closing leaves the saved workspace JSON on disk (restore loads only `openWorkspaceIds`, so it is not reloaded) — orphan cleanup is deferred.
+- Closing leaves the saved workspace JSON on disk; a relaunch reopens only the workspaces main's `windows[]` still lists, so a closed one isn't auto-reloaded. It is no longer orphaned, though: **File ▸ Reopen Closed Workspace…** ([workspace documents](workspace-documents.md)) brings it back (or deletes its record for good).
 - Drag onto self or a non-tab is a no-op.
 
 ## Testing

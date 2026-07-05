@@ -10,6 +10,7 @@ import { OrkyNeedsYouNotifier } from '../orky/orky-needs-you-notifier'
 import { registerPty } from './register-pty'
 import { registerFs } from './register-fs'
 import { registerWorkspaces } from './register-workspaces'
+import { registerWorkspaceDoc } from './register-workspace-doc'
 import { registerDrafts } from './register-drafts'
 import { registerNotes } from './register-notes'
 import { registerCloud } from './register-cloud'
@@ -99,7 +100,10 @@ export async function registerHandlers(services: Services, wm: WindowManager): P
   // (main or floating) so a floating window closing before main still flushes its in-memory state.
   const flushDrafts = registerDrafts(dir)
   const flushNotes = registerNotes(dir)
-  wm.onWindowClose(() => { flushDrafts(); flushNotes() })
+  // Workspace-document (File menu) handlers + the persisted wsId->doc-path binding map. Its store
+  // flush joins drafts/notes on every window close so a floating window closing first still persists.
+  const flushWorkspaceDoc = registerWorkspaceDoc(win, dir)
+  wm.onWindowClose(() => { flushDrafts(); flushNotes(); flushWorkspaceDoc() })
 
   const disposeSearch = registerSearch({ searchService, indexer })
   // Cross-project registry (feature 0005): pane-root membership is fed by the SAME watch/unwatch

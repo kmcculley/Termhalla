@@ -1,4 +1,4 @@
-import { readFile, readdir } from 'node:fs/promises'
+import { readFile, readdir, rm } from 'node:fs/promises'
 import { join } from 'node:path'
 import type { Workspace, AppState } from '@shared/types'
 import { serializeWorkspace, deserializeWorkspace } from '@shared/workspace-model'
@@ -34,6 +34,13 @@ export class WorkspaceStore {
       console.warn(`[workspace] ignoring corrupt workspace ${id}:`, e)
       return null
     }
+  }
+
+  /** Delete a workspace's on-disk record. Best-effort: a missing file (already gone) is not an
+   *  error, so pruning a closed workspace from the reopen list never rejects the IPC call. */
+  async deleteWorkspace(id: string): Promise<void> {
+    try { await rm(this.wsFile(id), { force: true }) }
+    catch (e: unknown) { console.warn(`[workspace] failed to delete ${id}:`, e) }
   }
 
   async listWorkspaceIds(): Promise<string[]> {

@@ -22,6 +22,7 @@ export function registerWorkspaces(
   ipcMain.handle(CH.listWorkspaceIds, () => store.listWorkspaceIds())
   ipcMain.handle(CH.loadWorkspace, (_e, id: string) => store.loadWorkspace(id))
   ipcMain.handle(CH.saveWorkspace, (_e, ws: Workspace) => store.saveWorkspace(ws))
+  ipcMain.handle(CH.deleteWorkspace, (_e, id: string) => store.deleteWorkspace(id))
   ipcMain.handle(CH.loadAppState, () => store.loadAppState())
   ipcMain.handle(CH.saveAppState, (_e, s: AppState) => store.saveAppState(s))
 
