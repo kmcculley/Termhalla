@@ -6,6 +6,13 @@ All notable changes to Termhalla are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.12.0] - 2026-07-05
+
+Remote Agent v1 — tmux-style remote sessions (Orky epic F15–F21 + cross-feature
+integration phase), plus the e2e un-rot sweep that followed it (three shipped
+product bugs found and fixed once the full Playwright suite ran for the first
+time since 0008).
+
 ### Added
 - **Remote workspaces — client routing + per-workspace home (Remote Agent v1, batch 5 — F21).**
   A workspace now has a HOME: local (unchanged, byte-identical), or a named agent (locked
@@ -429,6 +436,13 @@ All notable changes to Termhalla are recorded here. The format follows
   failure feedback is never silenced.
 
 ### Fixed
+- **`npm run package` now builds the remote-agent bundle.** The package script ran
+  `electron-vite build` directly — which never invokes `vite.agent.config.ts` — so a fresh
+  checkout (i.e. the release workflow) would reach electron-builder with no
+  `out/agent/termhalla-agent.cjs` for the `extraResources` entry to ship: the v0.12.0 tag push
+  would have failed (or shipped a stale agent locally). It now composes `npm run build`, the
+  same two-step the gate profile verifies. Caught in release prep; packaging is the one chain
+  the per-feature and integration gates never exercise. (2026-07-05)
 - **A `pty:resize` racing a just-exited process no longer freezes the whole app.** node-pty
   (ConPTY) sets its exit state at real process exit but withholds the exit *event* for
   `FLUSH_DATA_INTERVAL` (1 s) to drain conout — so a genuine mosaic re-layout (splitting, a second

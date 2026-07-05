@@ -124,6 +124,12 @@
           "evidence": "no open blocking findings (CRITICAL/HIGH or contract-violation) at or before this gate"
         }
       ]
+    },
+    "human-review": {
+      "passed": true,
+      "at": "2026-07-05T04:29:13.482Z",
+      "evidence": "Kevin: supervised each app-run batch boundary live (2026-07-04) and approved the epic close-out ('do it'); post-epic verification: cross-feature integration suite green (1890/1890 vitest), full Playwright e2e 179/185 with the 5 failures adjudicated as a box-wide environmental clipboard wedge (proven outside the app), typecheck green. Recorded 2026-07-05.",
+      "external": true
     }
   },
   "iterations": {
