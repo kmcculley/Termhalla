@@ -62,7 +62,8 @@
       "deps": [
         "F18"
       ],
-      "status": "pending"
+      "status": "done",
+      "completedAt": "2026-07-04T22:31:29.127Z"
     },
     {
       "id": "F21",
@@ -74,11 +75,13 @@
         "F19",
         "F20"
       ],
-      "status": "pending"
+      "status": "done",
+      "completedAt": "2026-07-05T00:53:04.650Z"
     }
   ],
   "integration": {
-    "status": "pending",
-    "summary": "End-to-end client↔agent proof over the stdio loopback — the agent spawned as a plain local child process, the IDENTICAL protocol path as ssh: (1) full pty round-trip (spawn/write/resize/data/exit) through the real protocol; (2) disconnect → agent-side output continues → reattach → the replayed serialize snapshot matches an independent headless reference terminal; (3) flow control holds under an output flood — agent memory stays bounded and node-pty pause()/resume() is observed; (4) a lease steal drops the losing client's workspace to disconnected (tmux attach -d semantics); (5) the provisioning version-check/upload path is exercised against the fake ssh shim (absent agent, version-mismatched agent, matching agent); (6) the renderer still has zero Node imports; (7) the full CHAR suite (tests/characterization-*.test.ts) stays green; (8) local-only behavior is byte-identical when no remote workspace exists."
+    "status": "done",
+    "summary": "End-to-end client↔agent proof over the stdio loopback — the agent spawned as a plain local child process, the IDENTICAL protocol path as ssh: (1) full pty round-trip (spawn/write/resize/data/exit) through the real protocol; (2) disconnect → agent-side output continues → reattach → the replayed serialize snapshot matches an independent headless reference terminal; (3) flow control holds under an output flood — agent memory stays bounded and node-pty pause()/resume() is observed; (4) a lease steal drops the losing client's workspace to disconnected (tmux attach -d semantics); (5) the provisioning version-check/upload path is exercised against the fake ssh shim (absent agent, version-mismatched agent, matching agent); (6) the renderer still has zero Node imports; (7) the full CHAR suite (tests/characterization-*.test.ts) stays green; (8) local-only behavior is byte-identical when no remote workspace exists.",
+    "completedAt": "2026-07-05T01:16:24.606Z"
   }
 }
