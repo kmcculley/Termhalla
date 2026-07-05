@@ -1,6 +1,6 @@
 {
   "feature": "0022-client-routing-remote-workspace-ux",
-  "phase": "doc-sync",
+  "phase": "implement",
   "gates": {
     "brainstorm": {
       "passed": true,
@@ -61,7 +61,7 @@
     },
     "implement": {
       "passed": true,
-      "at": "2026-07-05T00:41:31.894Z",
+      "at": "2026-07-05T00:52:39.409Z",
       "firstAt": "2026-07-05T00:41:31.894Z",
       "tokens": [
         {

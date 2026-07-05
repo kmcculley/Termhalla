@@ -1,6 +1,6 @@
 {
   "feature": "0021-exclusive-attach-lease",
-  "phase": "doc-sync",
+  "phase": "implement",
   "gates": {
     "brainstorm": {
       "passed": true,
@@ -61,7 +61,7 @@
     },
     "implement": {
       "passed": true,
-      "at": "2026-07-04T22:19:59.751Z",
+      "at": "2026-07-04T22:31:10.201Z",
       "firstAt": "2026-07-04T22:19:59.751Z",
       "tokens": [
         {

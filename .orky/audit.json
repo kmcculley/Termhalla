@@ -5860,6 +5860,25 @@
   },
   {
     "action": "gate.check",
+    "feature": "0021-exclusive-attach-lease",
+    "phase": "implement",
+    "pass": true,
+    "attempts": 0,
+    "totalFailures": 0,
+    "wallClockMs": 65723,
+    "at": "2026-07-04T22:31:10.235Z"
+  },
+  {
+    "action": "batch.isolation",
+    "features": [
+      "F21"
+    ],
+    "isolation": "parallel",
+    "reason": "ADR-031 workflow batch: per-feature worktrees under C:/dev/Termhalla-orky-worktrees",
+    "at": "2026-07-04T22:34:07.559Z"
+  },
+  {
+    "action": "gate.check",
     "feature": "0022-client-routing-remote-workspace-ux",
     "phase": "spec",
     "pass": true,
@@ -6037,5 +6056,15 @@
     "totalFailures": 2,
     "wallClockMs": 25,
     "at": "2026-07-05T00:44:21.916Z"
+  },
+  {
+    "action": "gate.check",
+    "feature": "0022-client-routing-remote-workspace-ux",
+    "phase": "implement",
+    "pass": true,
+    "attempts": 0,
+    "totalFailures": 2,
+    "wallClockMs": 46408,
+    "at": "2026-07-05T00:52:39.426Z"
   }
 ]

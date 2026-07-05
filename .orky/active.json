@@ -2,8 +2,8 @@
   "feature": ".orky/features/0022-client-routing-remote-workspace-ux",
   "projectRoot": "C:/dev/Termhalla",
   "phase": "driving",
-  "lastTickAt": "2026-07-05T00:44:32.287Z",
-  "lastAction": "workflow tick",
+  "lastTickAt": "2026-07-05T01:17:03.140Z",
+  "lastAction": "app-run complete: Remote Agent v1 allDone (F15-F21 + integration)",
   "runs": {
     ".orky/features/0017-agent-runtime-skeleton": {
       "phase": "human-review",
