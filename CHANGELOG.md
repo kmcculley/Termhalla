@@ -450,13 +450,31 @@ All notable changes to Termhalla are recorded here. The format follows
   answer forms, capture modal). The opener is now captured in `useLayoutEffect` (layout phase
   precedes all passive effects); open/close focus timing otherwise unchanged. Pinned by TEST-465.
   (2026-07-04)
+- **An undocked (or redocked / minimize-restored) Claude pane's ✨ chip no longer goes
+  permanently dark in its new window.** `aiSession` pushes are pane-scoped (routed to the
+  *owning* window) and the tracker is sticky with set-only dedup — a quiet agent keeps
+  classifying identically and never re-emits, so a window that adopts a running pane starts
+  with an empty `aiSessions` map it can never fill (the aiSessions-keyed usage display went
+  dark with it). The `pty:spawn` adoption branch now re-delivers the pane's sticky session
+  (`AiSessionTracker.reemit`) after the snapshot replay — the push twin of the codebase's
+  missed-push recovery pulls. Fresh spawns and the remote branch untouched. Surfaced by
+  `undock-resume.spec.ts` line 99 — which, it turns out, had never passed (the v0.10.1
+  behavior it guards was and is correct; its final chip assertion was unsatisfiable by
+  design), and it now passes byte-untouched. (2026-07-05)
 - **e2e suite un-rotted after its first full run since 0008** (the Orky gate profile runs
   build+vitest only, so Playwright drift accumulated invisibly): the never-green `orky-notify`
   specs were repaired via a strictly-inert main-process test seam (`TERMHALLA_E2E_NOTIFY_SPY=1`
   records needs-you toasts on a global instead of constructing OS notifications — evaluate-time
   module patching is impossible against the ESM main bundle) plus readiness/debounce-race fixes;
   `playwright.config.ts` `globalTimeout` scaled 20 → 60 min (the 20-min cap silently guillotined
-  79 of the now-185 specs, repeating the documented 600 s incident). (2026-07-04)
+  79 of the now-185 specs, repeating the documented 600 s incident). Wave 2: `orky-status`
+  TEST-055's probe resolved a custom property (`--status-failure`) that has never been defined
+  in the repo's history — it computed transparent since birth; the probe now mirrors the
+  fallback-carried expressions the CSS actually paints with (the failure accent itself renders
+  correctly). The 5 `clipboard.spec.ts` failures were adjudicated **environmental**, not
+  product: the box's OS clipboard was wedged by live redirectors (Horizon / Phone Link /
+  PowerToys AdvancedPaste) — `Set-Clipboard` failed from bare PowerShell with Termhalla not
+  involved; re-run that file once the redirectors are quiesced. (2026-07-04/05)
 - **Undocking a workspace no longer types `claude --resume` into a live Claude session.** The
   auto-resume gate keyed off the renderer-side scrollback stash to recognize "this mount re-adopts
   a still-running PTY" — but a multi-window tear-off remounts the pane in a *different* renderer,

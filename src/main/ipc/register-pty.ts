@@ -81,7 +81,12 @@ export function registerPty(
       if (deps.remote?.isAdoptable(a.id)) { deps.replayInto?.(a.id); return true }
       return deps.remote ? deps.remote.spawn(a) : false
     }
-    if (pty.has(a.id)) { deps.replayInto?.(a.id); return true }   // moved pane: adopt the live pty, don't respawn
+    // Moved pane: adopt the live pty, don't respawn. Adoption also re-delivers the pane's sticky
+    // AI session to the (possibly NEW) owning window: aiSession pushes are pane-scoped and the
+    // tracker's set-only dedup never re-emits for a QUIET agent, so an undocked Claude pane's
+    // destination window would otherwise stay ✨-dark for the session's remainder (the survival
+    // observable undock-resume.spec.ts pins; see AiSessionTracker.reemit).
+    if (pty.has(a.id)) { deps.replayInto?.(a.id); ai.reemit(a.id); return true }
     const shell = shells.find(s => s.id === a.shellId) ?? shells[0]
     tracker.register(a.id)   // register BEFORE spawn: a failed spawn calls onExit->unregister synchronously, keeping the registry clean
     pty.spawn(a.id, shell, a.cwd, a.cols, a.rows, a.launch, envVault.envFor(a.envId))

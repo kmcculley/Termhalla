@@ -161,8 +161,14 @@ test('TEST-055 REQ-006 a failed-AND-idle Orky pane RENDERS the failure accent ov
     const d = g.document.createElement('div'); d.style.backgroundColor = e; g.document.body.appendChild(d)
     const c = g.getComputedStyle(d).backgroundColor; d.remove(); return c
   }, expr)
-  const failure = await resolve('var(--status-failure)')
-  const panel = await resolve('var(--panel)')
+  // Resolve the EXACT expressions the two competing toolbar rules paint with (index.css: the
+  // failure rule `var(--status-failure, #c62828) !important` vs the idle rule
+  // `var(--panel, #1e1e1e) !important`). `--status-failure` is a fallback-carried token — it is
+  // deliberately never DEFINED as a custom property (no theme field feeds it), so probing the bare
+  // `var(--status-failure)` resolves to transparent on any element and could never equal a painted
+  // background; the probe must carry the same fallback the product rule carries.
+  const failure = await resolve('var(--status-failure, #c62828)')
+  const panel = await resolve('var(--panel, #1e1e1e)')
   expect(bg).toBe(failure)        // the failure accent actually renders
   expect(bg).not.toBe(panel)      // it is NOT masked by the idle !important background
 
