@@ -638,6 +638,17 @@ All notable changes to Termhalla are recorded here. The format follows
   the DOM lib, scoped to `tests/e2e`) restores them while keeping main-process and `tests/main` code
   DOM-free; a few genuine `tests/main` type slips (a QuickStore cast, a mock signature) were fixed too.
 
+## [0.13.0] - 2026-07-05
+
+File menu — save, close, and reopen a workspace as a document. A native File menu
+(New · Open · Reopen Closed · Save · Save As… · Exit) makes a workspace a first-class
+document: Save As… writes a portable `.thws` file, Open reads one back, and Reopen
+Closed Workspace… brings back (or permanently deletes) a workspace that was closed —
+each pane restored at its saved cwd, SSH session, and `claude --resume`. The document
+format is the existing versioned workspace record, so there is no SCHEMA_VERSION bump.
+The detailed entry stays under [Unreleased] above, per the same convention the
+0.9.0–0.12.0 releases recorded (the frozen doc-drift guards pin per-feature detail there).
+
 ## [0.12.0] - 2026-07-05
 
 Remote Agent v1 — tmux-style remote sessions (Orky epic F15–F21 + the cross-feature
