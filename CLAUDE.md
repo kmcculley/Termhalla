@@ -20,6 +20,11 @@ npm run package      # build + pack a Windows NSIS installer + latest.yml into d
   `latest.yml` to a single GitHub Release via `gh release create`. There is intentionally no
   `npm run release` (electron-builder's own publisher raced into duplicate releases — see
   [decisions](docs/decisions.md)).
+  - **CHANGELOG on release: per-feature detail STAYS under `[Unreleased]`.** Insert the new
+    `## [X.Y.Z]` section as a *summary* directly above the previous release's heading — never
+    directly under `## [Unreleased]` (that rotates the detail out, and the frozen doc-drift
+    guards in `tests/docs-feature-*.test.ts` pin per-feature detail in `[Unreleased]`; the
+    v0.12.0 release went red on exactly this). Convention recorded since 0.9.0.
 
 - **`npm run e2e` runs against `out/`** — always `npm run build` first (or after
   any source change you want exercised end-to-end).
