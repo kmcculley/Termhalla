@@ -53,7 +53,18 @@ export class PtyManager {
   }
   write(id: string, data: string): void { this.sessions.get(id)?.proc.write(data) }
   resize(id: string, cols: number, rows: number): void {
-    this.sessions.get(id)?.proc.resize(Math.max(cols, 1), Math.max(rows, 1))
+    const proc = this.sessions.get(id)?.proc
+    if (!proc) return
+    // A resize aimed at a pane whose process ALREADY exited is an inherent race, not a caller bug:
+    // node-pty (ConPTY) sets its internal exit code at the real exit but holds the exit EVENT for
+    // FLUSH_DATA_INTERVAL (1 s) to drain conout, so this map still holds the session while
+    // `proc.resize()` throws "Cannot resize a pty that has already exited". Uncaught inside the
+    // fire-and-forget ipcMain.on(pty:resize) listener, that throw hits Electron's default
+    // uncaughtException handler — a MODAL "Error" dialog that freezes the entire main event loop
+    // (hit by TEST-609: committing a second pane re-layouts the first, whose short-lived launch
+    // command just died → ResizeObserver → pty:resize → frozen app). A dead pty's resize is
+    // meaningless — drop it.
+    try { proc.resize(Math.max(cols, 1), Math.max(rows, 1)) } catch { /* exited mid-flight */ }
   }
   kill(id: string): void {
     this.sessions.get(id)?.proc.kill(); this.engine.unregister(id); this.sessions.delete(id)

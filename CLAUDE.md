@@ -78,6 +78,12 @@ related area:
   otherwise evict the prompt from the tail and wedge a terminal in "busy."
 - **Avoid redundant PTY resizes.** Only call `ptyResize` when cols/rows actually
   change (`TerminalPane` guards this); a redundant resize forces a ConPTY repaint.
+  Also: a resize can legally race a pty's exit — node-pty withholds the exit event
+  for `FLUSH_DATA_INTERVAL` (1 s) after the real exit, so a layout change can resize
+  a pane whose process just died and `proc.resize()` THROWS. `PtyManager.resize`
+  swallows that (dead-pty resize is meaningless); never let a pty op throw uncaught
+  in an `ipcMain.on` listener — Electron's default handler raises a **modal error
+  dialog that freezes the whole app**.
 - **Long-lived child processes must be abortable + `unref()`'d.** An in-flight
   `execFile`/spawn child (cloud probes) otherwise keeps the Electron main process
   alive and hangs `app.close()` / the e2e suite. Pattern: `AbortController` in the

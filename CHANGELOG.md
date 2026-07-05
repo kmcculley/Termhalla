@@ -429,6 +429,34 @@ All notable changes to Termhalla are recorded here. The format follows
   failure feedback is never silenced.
 
 ### Fixed
+- **A `pty:resize` racing a just-exited process no longer freezes the whole app.** node-pty
+  (ConPTY) sets its exit state at real process exit but withholds the exit *event* for
+  `FLUSH_DATA_INTERVAL` (1 s) to drain conout — so a genuine mosaic re-layout (splitting, a second
+  pane committing, a drawer opening) could fire a resize for a pane whose process died moments
+  earlier, and `pty.resize()` threw `Cannot resize a pty that has already exited` *uncaught inside
+  the fire-and-forget `ipcMain.on` listener*. Electron's default handler raises a **modal "Error"
+  dialog that blocks the main event loop forever** — a hard app freeze with an invisible dialog.
+  Real-world trigger: any short-lived launch pane (an ssh typo, `claude` not on PATH) followed
+  within ~2 s by any layout change. `PtyManager.resize` now drops the meaningless dead-pty resize
+  (an unavoidable TOCTOU — the renderer cannot see the delayed exit). Found by TEST-609
+  (`orky-queue-actions.spec.ts`) on the first full e2e run since 0008. (2026-07-04)
+- **Escape from a Modal-hosted picker now restores focus to its opener (CONV-020).** Since 0009,
+  `useOpenFocusRestore` captured its restore target in a passive effect — which runs *after* the
+  child `Modal`'s own pull-focus-into-the-dialog effect (child-first ordering), so it recorded the
+  Modal's card (an element that unmounts with the picker) instead of the real opener. On Escape the
+  restore no-oped, focus collapsed to `<body>`, and Modal's collapse guard legally refocused the
+  active terminal — exactly the "yanked into the terminal a microtask later" class the CONV-020
+  contract forbids, on *every* `useOpenFocusRestore` surface nested in a Modal (root picker, queue
+  answer forms, capture modal). The opener is now captured in `useLayoutEffect` (layout phase
+  precedes all passive effects); open/close focus timing otherwise unchanged. Pinned by TEST-465.
+  (2026-07-04)
+- **e2e suite un-rotted after its first full run since 0008** (the Orky gate profile runs
+  build+vitest only, so Playwright drift accumulated invisibly): the never-green `orky-notify`
+  specs were repaired via a strictly-inert main-process test seam (`TERMHALLA_E2E_NOTIFY_SPY=1`
+  records needs-you toasts on a global instead of constructing OS notifications — evaluate-time
+  module patching is impossible against the ESM main bundle) plus readiness/debounce-race fixes;
+  `playwright.config.ts` `globalTimeout` scaled 20 → 60 min (the 20-min cap silently guillotined
+  79 of the now-185 specs, repeating the documented 600 s incident). (2026-07-04)
 - **Undocking a workspace no longer types `claude --resume` into a live Claude session.** The
   auto-resume gate keyed off the renderer-side scrollback stash to recognize "this mount re-adopts
   a still-running PTY" — but a multi-window tear-off remounts the pane in a *different* renderer,

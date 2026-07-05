@@ -123,16 +123,30 @@ export async function registerHandlers(services: Services, wm: WindowManager): P
     mw.focus()
     if (!mw.webContents.isDestroyed()) mw.webContents.send(CH.orkyNotifyFocus, root)
   }
+  // TEST-ONLY seam (the TERMHALLA_SAVE_PATH e2e-hook precedent, register-fs.ts): when
+  // TERMHALLA_E2E_NOTIFY_SPY === '1' the two sinks below RECORD each would-be notification on a
+  // main-process global — including a `click` callable that dispatches the SAME focusMainWindow
+  // handoff the real Notification's click handler would — instead of constructing a real OS toast.
+  // out/main is ESM (static `import { Notification } from 'electron'`), so a Playwright
+  // app.evaluate cannot patch the import binding; this seam is the only observable surface
+  // (tests/e2e/orky-notify.spec.ts). Inert without the env var: notifySpy stays null and the
+  // production sinks are byte-identical.
+  type NotifySpyRecord = { title: string; body: string; projectRoot?: string; projectCount?: number; click: () => void }
+  const notifySpy: NotifySpyRecord[] | null = process.env.TERMHALLA_E2E_NOTIFY_SPY === '1'
+    ? ((globalThis as unknown as { __nyToasts?: NotifySpyRecord[] }).__nyToasts = [])
+    : null
   const needsYouNotifier = new OrkyNeedsYouNotifier({
     now: () => Date.now(),
     shouldNotify: () => needsYouNotificationsMirror,
     notifyOne: ({ title, body, projectRoot }) => {
+      if (notifySpy) { notifySpy.push({ title, body, projectRoot, click: () => focusMainWindow(projectRoot) }); return }
       if (!Notification.isSupported()) return
       const n = new Notification({ title, body })
       n.on('click', () => focusMainWindow(projectRoot))
       n.show()
     },
-    notifyDigest: ({ title, body }) => {
+    notifyDigest: ({ title, body, projectCount }) => {
+      if (notifySpy) { notifySpy.push({ title, body, projectCount, click: () => focusMainWindow(null) }); return }
       if (!Notification.isSupported()) return
       const n = new Notification({ title, body })
       n.on('click', () => focusMainWindow(null))

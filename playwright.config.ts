@@ -10,10 +10,12 @@ export default defineConfig({
   // mitigation for launch-heavy e2e (we also pin workers: 1 below).
   retries: 2,
   // Whole-suite cap. Each launch-heavy spec can need its full 60s timeout plus retries under
-  // contention; with ~50 specs the suite must not be guillotined mid-run (which silently
-  // leaves specs "did not run", as happened at the previous 600s cap). 20 min leaves ample
-  // headroom over the ~9-min happy path.
-  globalTimeout: 1_200_000,
+  // contention; the suite must not be guillotined mid-run (which silently leaves specs
+  // "did not run" — it happened at the 600s cap with ~50 specs, and AGAIN at the 1200s cap
+  // once the suite grew to ~185 specs across the Orky features + the Remote Agent v1 epic:
+  // 79 specs never ran). Scale this WITH the suite: ~12s/spec observed serial happy path
+  // (~37 min at 185 specs) + retry headroom → 60 min.
+  globalTimeout: 3_600_000,
   fullyParallel: false,
   // Each spec launches its own Electron app with node-pty + a system-wide
   // busy-gated process poll (CIM/WMI). Running multiple apps concurrently makes
