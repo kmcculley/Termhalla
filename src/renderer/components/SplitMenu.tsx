@@ -1,6 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { useStore, paneCwd } from '../store'
+import { domainAllowed, domainDisabledReason } from '../store/remote-gates'
 import { Z, SURFACE } from './Modal'
 import type { SplitDir4 } from '@shared/types'
 
@@ -51,6 +52,13 @@ export function SplitMenu(
       ? 'Orky (disabled: the tracked Orky projects could not be read)'
       : 'Orky (disabled: no tracked Orky project yet — open a terminal in a project containing .orky/ to track one)'
   const cwd = useStore(s => paneCwd(s, paneId))
+  // Remote capability gates (feature 0022, REQ-017): editor/explorer ride the fs domain, the orky
+  // kind rides the orky domain — in a remote-home workspace they are DISABLED (not hidden) with an
+  // actionable reason until the agent advertises the domain (v1 advertises pty+status only).
+  const fsAllowed = useStore(s => domainAllowed(s, wsId, 'fs'))
+  const orkyDomainAllowed = useStore(s => domainAllowed(s, wsId, 'orky'))
+  const fsReason = useStore(s => fsAllowed ? '' : domainDisabledReason(s, wsId, 'fs'))
+  const orkyDomainReason = useStore(s => orkyDomainAllowed ? '' : domainDisabledReason(s, wsId, 'orky'))
   const [kind, setKind] = useState<Kind>('terminal')
   // The visibly highlighted / roving-tabindex direction. Defaults to right (today's primary). Tracked
   // in state so the highlight is painted regardless of pointer-vs-keyboard (programmatic .focus() does
@@ -140,11 +148,15 @@ export function SplitMenu(
       }}>{DIR_GLYPH[d]}</button>
   )
 
+  const remoteGated = (k: Kind): boolean =>
+    ((k === 'editor' || k === 'explorer') && !fsAllowed) || (k === 'orky' && !orkyDomainAllowed)
+  const remoteReason = (k: Kind): string => (k === 'orky' ? orkyDomainReason : fsReason)
   const kindButton = (k: Kind) => (
     <button key={k} type="button" data-testid={`split-kind-${k}-${paneId}`}
       aria-pressed={kind === k}
-      aria-label={k === 'orky' && !hasOrkyMember ? orkyDisabledName : KIND_LABEL[k]}
-      disabled={(k === 'explorer' && !cwd) || (k === 'orky' && !hasOrkyMember)}
+      aria-label={remoteGated(k) ? `${KIND_LABEL[k]} (disabled: ${remoteReason(k)})` : k === 'orky' && !hasOrkyMember ? orkyDisabledName : KIND_LABEL[k]}
+      title={remoteGated(k) ? remoteReason(k) : undefined}
+      disabled={remoteGated(k) || (k === 'explorer' && !cwd) || (k === 'orky' && !hasOrkyMember)}
       onClick={() => setKind(k)}
       style={{
         ...PAINT, fontWeight: kind === k ? 700 : 400, opacity: kind === k ? 1 : 0.7,

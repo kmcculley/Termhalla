@@ -240,9 +240,10 @@ describe('composition-only scope guard (REQ-007)', () => {
   // spec's OWN acceptance ("stays 8", "byte-unchanged") for the FINAL roadmap feature. Sanctioned
   // amendment path: a future feature that legitimately bumps either amends THIS test atomically at
   // ITS tests phase (the 0009 REQ-003 six-guard precedent, CONV-019).
-  it('TEST-671 REQ-007 no new kind/schema/IPC/write path: SCHEMA_VERSION = 8 and the PaneKind union are byte-unchanged; the banned-string sweep over the F11 file set finds zero hits; no F11 symbol enters ipc-contract.ts, src/preload/**, or any of the five F9 files', () => {
+  it('TEST-671 REQ-007 no new kind/schema/IPC/write path: SCHEMA_VERSION (9 since 0022 REQ-002) and the PaneKind union are byte-unchanged; the banned-string sweep over the F11 file set finds zero hits; no F11 symbol enters ipc-contract.ts, src/preload/**, or any of the five F9 files', () => {
     // schema + kind surface unchanged (no new pane kind, no bump — F9's 8 stands)
-    expect(read('src/shared/types.ts')).toContain('export const SCHEMA_VERSION = 8')
+    // (re-pinned 8→9 by 0022 REQ-002 — the sanctioned amendment path this comment block names)
+    expect(read('src/shared/types.ts')).toContain('export const SCHEMA_VERSION = 9')
     expect(read('src/renderer/store/pane-ops.ts'))
       .toContain("export type PaneKind = 'terminal' | 'editor' | 'explorer' | 'orky'")
 

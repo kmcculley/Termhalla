@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react'
 import { useStore } from '../store'
 import { api } from '../api'
+import { paneIsRemote } from '../store/remote-gates'
 
 /** Reconciles main-process Orky `.orky/` watches with the set of terminal panes that have a tracked
  *  cwd. Watches on cwd-appear/change, unwatches on cwd-clear/pane-close, and releases every watch on
@@ -9,22 +10,32 @@ import { api } from '../api'
  *  nothing. */
 export function OrkyWatcher() {
   const cwds = useStore(s => s.cwds)
+  const workspaces = useStore(s => s.workspaces)
   const watched = useRef<Record<string, string>>({})
 
   useEffect(() => {
+    // Desired-set diff (FINDING-008, the UsageWatcher pattern): desired = LOCAL panes with a cwd.
+    // Remote panes never engage the LOCAL .orky watcher (feature 0022, REQ-011) — and a pane
+    // LEAVING the desired set for any reason (cwd cleared OR home turned remote) is unwatched.
+    const desired: Record<string, string> = {}
     for (const id of Object.keys(cwds)) {
-      if (cwds[id] && watched.current[id] !== cwds[id]) {
-        api.orkyWatch(id, cwds[id])
-        watched.current[id] = cwds[id]
+      if (!cwds[id]) continue
+      if (paneIsRemote({ workspaces }, id)) continue
+      desired[id] = cwds[id]
+    }
+    for (const id of Object.keys(desired)) {
+      if (watched.current[id] !== desired[id]) {
+        api.orkyWatch(id, desired[id])
+        watched.current[id] = desired[id]
       }
     }
     for (const id of Object.keys(watched.current)) {
-      if (!cwds[id]) {
+      if (!desired[id]) {
         api.orkyUnwatch(id)
         delete watched.current[id]
       }
     }
-  }, [cwds])
+  }, [cwds, workspaces])
 
   // Release any active watches if this reconciler ever unmounts.
   useEffect(() => () => {

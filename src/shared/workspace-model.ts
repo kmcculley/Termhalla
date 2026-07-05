@@ -2,6 +2,7 @@ import type {
   Workspace, PaneConfig, MosaicNode, MosaicParent, MosaicDirection, SplitDir4, PaneNode, WorkspaceTemplate
 } from '@shared/types'
 import { SCHEMA_VERSION } from '@shared/types'
+import { normalizeWorkspaceHome } from './remote-home'
 
 type IdGen = () => string
 
@@ -178,7 +179,7 @@ export function deserializeWorkspace(json: string): Workspace {
   if (typeof ws.id !== 'string' || typeof ws.panes !== 'object') {
     throw new Error('Invalid workspace file: bad shape')
   }
-  return normalizeViewState(normalizeOrkyBindings(ws))
+  return normalizeHome(normalizeViewState(normalizeOrkyBindings(ws)))
 }
 
 // Future versions add cases here; v1 is identity.
@@ -196,6 +197,12 @@ function migrate(ws: Workspace, version: number): Workspace {
   // rewritten. The bump exists so a pre-v8 build rejects a v8 file via the "newer than supported"
   // guard above instead of loading a pane kind it cannot render.
   if (version < 8) w = { ...w }
+  // v8 -> v9 (feature 0022, REQ-002): the persisted per-workspace `home` joined the Workspace
+  // record. This step is a DOCUMENTED IDENTITY — a pre-v9 record cannot contain a `home`, so no
+  // field is rewritten. The bump exists so a pre-v9 build rejects a v9 file via the "newer than
+  // supported" guard above instead of silently DROPPING the home and spawning panes meant for a
+  // remote machine as local shells.
+  if (version < 9) w = { ...w }
   return w
 }
 
@@ -209,6 +216,25 @@ function migrate(ws: Workspace, version: number): Workspace {
  *  so a hand-edited template is exactly the hostile input this seam exists for). A well-formed
  *  binding (and every non-orky pane) passes through untouched, keeping the serialize→deserialize
  *  round trip byte-identical (REQ-002). */
+/** Load tolerance for the persisted per-workspace `home` (feature 0022, REQ-001): the field is
+ *  re-derived through `normalizeWorkspaceHome` at EVERY deserialization path (CONV-026 —
+ *  workspace-file load AND template instantiation). A well-formed home (and every home-less
+ *  workspace) passes through with the SAME object reference, keeping the serialize→deserialize
+ *  round trip byte-identical (REQ-002). */
+function normalizeHome(ws: Workspace): Workspace {
+  const norm = normalizeWorkspaceHome(ws.home)
+  if (norm === undefined) {
+    if (ws.home === undefined) return ws
+    const next = { ...ws }
+    delete next.home
+    return next
+  }
+  const cur = ws.home as { kind?: unknown; agentId?: unknown; agentName?: unknown } | undefined
+  const identical = !!cur && cur.kind === norm.kind && cur.agentId === norm.agentId &&
+    cur.agentName === norm.agentName && Object.keys(cur).length === 3
+  return identical ? ws : { ...ws, home: norm }
+}
+
 function normalizeOrkyBindings(ws: Workspace): Workspace {
   let panes = ws.panes
   let changed = false
@@ -286,7 +312,10 @@ export function templateFromWorkspace(ws: Workspace, id: string, name: string): 
     layout: ws.layout === null ? null : cloneConfig(ws.layout),
     panes: cloneConfig(ws.panes),
     theme: ws.theme ? cloneConfig(ws.theme) : undefined,
-    runCommands: ws.runCommands ? cloneConfig(ws.runCommands) : undefined
+    runCommands: ws.runCommands ? cloneConfig(ws.runCommands) : undefined,
+    // Per-workspace home (feature 0022): a template saved from a remote workspace re-instantiates
+    // remote (normalized again at instantiation — CONV-026).
+    ...(ws.home ? { home: cloneConfig(ws.home) } : {})
   }
 }
 
@@ -297,9 +326,14 @@ export function templateFromWorkspace(ws: Workspace, id: string, name: string): 
  *  template's non-string `root` would reach the renderer verbatim and throw at render time. */
 export function workspaceFromTemplate(tpl: WorkspaceTemplate, wsId: string, name: string, uuid: () => string): Workspace {
   const { layout, panes } = remapPaneIds(tpl.layout, tpl.panes, uuid)
-  return normalizeOrkyBindings({
+  // The template's `home` rides the SAME normalization as the workspace-file loader (feature 0022,
+  // REQ-001/CONV-026): quick.json templates are validated only as an array, so a hand-edited home
+  // is exactly the hostile input this seam exists for.
+  const home = normalizeWorkspaceHome((tpl as { home?: unknown }).home)
+  return normalizeHome(normalizeOrkyBindings({
     id: wsId, name, layout, panes,
     theme: tpl.theme ? cloneConfig(tpl.theme) : undefined,
-    runCommands: tpl.runCommands ? cloneConfig(tpl.runCommands) : undefined
-  })
+    runCommands: tpl.runCommands ? cloneConfig(tpl.runCommands) : undefined,
+    ...(home ? { home } : {})
+  }))
 }

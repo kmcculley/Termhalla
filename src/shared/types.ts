@@ -210,6 +210,10 @@ export interface WorkspaceTemplate {
   panes: Record<string, PaneNode>
   theme?: Partial<Theme>
   runCommands?: RunCommand[]   // workspace-scoped saved run commands
+  // Per-workspace home (feature 0022): carried so a template saved from a remote workspace
+  // re-instantiates remote. Normalized through normalizeWorkspaceHome at instantiation
+  // (workspaceFromTemplate — the CONV-026 hostile-template seam), like every persisted home.
+  home?: import('./remote-home').WorkspaceHome
 }
 
 export interface Theme {
@@ -337,6 +341,11 @@ export interface Workspace {
   // onto the record on save (applyViewState) — never written to app-state from the renderer.
   minimized?: string[]
   maximized?: string | null
+  // Per-workspace home (feature 0022, SCHEMA_VERSION 9, locked decision 7): ABSENT = local (the
+  // byte-identical default); { kind: 'agent', agentId, agentName } homes every pane in this
+  // workspace to that named agent over ONE connection. Config only — never a secret (the
+  // named-agent registry itself holds at most an identity-file PATH).
+  home?: import('./remote-home').WorkspaceHome
 }
 
 /** One OS window: which workspaces it hosts (tab order), its active tab, and its bounds. */
@@ -455,7 +464,11 @@ export interface SearchStats {
 // v7 → v8 (feature 0009): the persisted `orky` pane kind joined PaneConfig. The v<8 migration step
 // is a documented identity (workspace-model.ts); the bump exists so pre-v8 builds reject a v8 file
 // via the "newer than supported" guard instead of loading a pane kind they cannot render (REQ-002).
-export const SCHEMA_VERSION = 8
+// v8 → v9 (feature 0022): the persisted per-workspace `home` joined the Workspace record. The v<9
+// migration step is likewise a documented identity (a pre-v9 record cannot carry a home); the bump
+// exists so a pre-v9 build rejects a v9 file via the "newer than supported" guard instead of
+// silently DROPPING the home and spawning panes meant for a remote machine as local shells.
+export const SCHEMA_VERSION = 9
 
 /** A saved, named command a user can run on click in a terminal. Persisted (pane- or
  *  workspace-scoped). Runtime sending reuses encodeBroadcast(command, 'keys', true). */

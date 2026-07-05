@@ -17,6 +17,13 @@ directories:
 files:
   - out/**/*
   - package.json
+# The remote-agent bundle (feature 0022): the client provisions remote hosts with this artifact
+# (version-locked to package.json — src/agent/version.ts inlines the same manifest version at
+# build time). It rides OUTSIDE the asar under resources/agent/ so the provisioning stream can
+# read it as a plain file (resolveAgentArtifactPath in src/main/remote/agent-artifact.ts).
+extraResources:
+  - from: out/agent/termhalla-agent.cjs
+    to: agent/termhalla-agent.cjs
 # node-pty ships a prebuilt/recompiled .node; native binaries cannot be loaded from
 # inside an asar archive, so unpack the whole module to app.asar.unpacked/.
 asarUnpack:

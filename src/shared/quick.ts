@@ -84,7 +84,7 @@ export type PaletteAction =
   | 'new-connection' | 'pin-cwd'
   | 'new-terminal' | 'new-editor' | 'new-explorer' | 'new-orky'
   | 'new-workspace' | 'broadcast' | 'save-all' | 'refresh-cloud' | 'settings'
-  | 'toggle-orky-queue' | 'capture-orky-work' | 'new-orky-workspace'
+  | 'toggle-orky-queue' | 'capture-orky-work' | 'new-orky-workspace' | 'new-remote-workspace'
 
 export type PaletteItem =
   | { kind: 'connection'; id: string; label: string; detail: string; search: string }
@@ -146,7 +146,8 @@ export function buildCommandItems(): PaletteItem[] {
     cmd('settings', 'Settings', 'settings preferences options theme environment'),
     cmd('toggle-orky-queue', 'Toggle Orky decision queue', 'orky decision queue needs you human review'),
     cmd('capture-orky-work', 'Capture Orky work item…', 'capture orky work idea inbox'),
-    cmd('new-orky-workspace', 'New Orky project workspace…', 'new orky project workspace cockpit')
+    cmd('new-orky-workspace', 'New Orky project workspace…', 'new orky project workspace cockpit'),
+    cmd('new-remote-workspace', 'New remote workspace…', 'new remote workspace agent ssh home')
   ]
 }
 

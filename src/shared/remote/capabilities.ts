@@ -17,7 +17,11 @@
  * Pure module: zero Node/Electron imports (REQ-001).
  */
 
-/** Closed, sorted, duplicate-free capability id vocabulary (17 registrar names + 'status'). */
+/** Closed, sorted, duplicate-free capability id vocabulary (18 registrar names + 'status').
+ *  'remote' joined when feature 0022 added register-remote.ts (the connection-lifecycle
+ *  registrar) — extended through 0022's tests phase per this file's TEST-741 amendment path.
+ *  No agent ever advertises it (an agent has no remote-of-remote); it exists because the
+ *  vocabulary IS the registrar-name partition (locked decision 6). */
 export const CAPABILITY_IDS = [
   'clipboard',
   'cloud',
@@ -32,6 +36,7 @@ export const CAPABILITY_IDS = [
   'pty',
   'recording',
   'registry',
+  'remote',
   'search',
   'shell',
   'status',

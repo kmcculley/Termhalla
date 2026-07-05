@@ -404,7 +404,7 @@ describe('no persisted schema bump (REQ-018)', () => {
   // SUPERSEDED point-in-time pin (CONV-019): 0004 persisted nothing (historical fact — its own diff
   // carried no schema change); feature 0009-native-orky-pane (REQ-003) sanctions the 7→8 bump, so
   // the proxy value pin is re-pinned at the current constant (see 0009's 04-tests.md).
-  it('TEST-020 REQ-018 SCHEMA_VERSION is NOT bumped by this feature (live runtime state only; re-pinned at 8 by 0009 REQ-003)', () => {
-    expect(SCHEMA_VERSION).toBe(8) // status is live; 0004 persisted nothing — 8 is 0009's orky pane kind
+  it('TEST-020 REQ-018 SCHEMA_VERSION is NOT bumped by this feature (live runtime state only; re-pinned at 9 by 0022 REQ-002)', () => {
+    expect(SCHEMA_VERSION).toBe(9) // status is live; 0004 persisted nothing — 9 is 0022's workspace home
   })
 })

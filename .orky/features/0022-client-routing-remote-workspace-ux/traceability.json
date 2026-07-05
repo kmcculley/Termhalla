@@ -1,0 +1,368 @@
+{
+  "REQ-001": {
+    "tasks": [
+      "TASK-001",
+      "TASK-002"
+    ],
+    "tests": [
+      "TEST-2201",
+      "TEST-2202",
+      "TEST-2203",
+      "TEST-2204",
+      "TEST-2205",
+      "TEST-2206",
+      "TEST-2212",
+      "TEST-2215",
+      "TEST-2216",
+      "TEST-2217"
+    ],
+    "files": [
+      "src/shared/remote-home.ts",
+      "src/shared/types.ts",
+      "src/shared/workspace-model.ts"
+    ]
+  },
+  "REQ-002": {
+    "tasks": [
+      "TASK-002"
+    ],
+    "tests": [
+      "TEST-2210",
+      "TEST-2211",
+      "TEST-2212",
+      "TEST-2213",
+      "TEST-2214",
+      "TEST-2272"
+    ],
+    "files": [
+      "src/shared/types.ts",
+      "src/shared/workspace-model.ts"
+    ]
+  },
+  "REQ-003": {
+    "tasks": [
+      "TASK-017"
+    ],
+    "tests": [
+      "TEST-746",
+      "TEST-2001",
+      "TEST-559",
+      "TEST-038",
+      "TEST-087",
+      "TEST-008",
+      "TEST-344",
+      "TEST-001",
+      "TEST-375",
+      "TEST-377",
+      "TEST-020",
+      "TEST-671"
+    ],
+    "files": [
+      "tests/remote-protocol-guards.test.ts",
+      "tests/remote-client-structure.test.ts",
+      "tests/main/orky-needs-you-quickstore.test.ts",
+      "tests/main/orky-osc-structural.test.ts",
+      "tests/main/orky-registry-store.test.ts",
+      "tests/main/quick-store-toasts.test.ts",
+      "tests/renderer/decision-queue-panel-structure.test.ts",
+      "tests/shared/minimize-persistence.test.ts",
+      "tests/shared/orky-pane-migration.test.ts",
+      "tests/shared/orky-status.test.ts",
+      "tests/renderer/orky-cockpit-structure.test.ts",
+      "tests/e2e/orky-cockpit.spec.ts",
+      "tests/e2e/orky-pane.spec.ts"
+    ]
+  },
+  "REQ-004": {
+    "tasks": [
+      "TASK-009",
+      "TASK-010"
+    ],
+    "tests": [
+      "TEST-2222",
+      "TEST-2223",
+      "TEST-2224",
+      "TEST-2225",
+      "TEST-2255",
+      "TEST-2261",
+      "TEST-2262"
+    ],
+    "files": [
+      "src/main/ipc/register-remote.ts",
+      "src/main/services.ts",
+      "src/renderer/store/remote-slice.ts"
+    ]
+  },
+  "REQ-005": {
+    "tasks": [
+      "TASK-003",
+      "TASK-004",
+      "TASK-009"
+    ],
+    "tests": [
+      "TEST-2254",
+      "TEST-2255",
+      "TEST-746",
+      "TEST-2001",
+      "TEST-2281"
+    ],
+    "files": [
+      "src/shared/ipc-contract.ts",
+      "src/shared/remote-workspace.ts",
+      "src/preload/index.ts",
+      "src/main/ipc/register-remote.ts"
+    ]
+  },
+  "REQ-006": {
+    "tasks": [
+      "TASK-005",
+      "TASK-006",
+      "TASK-009"
+    ],
+    "tests": [
+      "TEST-2218",
+      "TEST-2219",
+      "TEST-2220",
+      "TEST-2221",
+      "TEST-2226",
+      "TEST-2227",
+      "TEST-2228",
+      "TEST-2229",
+      "TEST-2257"
+    ],
+    "files": [
+      "src/main/remote/agent-artifact.ts",
+      "src/main/remote/remote-workspace-manager.ts",
+      "src/main/services.ts",
+      "electron-builder.yml"
+    ]
+  },
+  "REQ-007": {
+    "tasks": [
+      "TASK-006"
+    ],
+    "tests": [
+      "TEST-2230",
+      "TEST-2231",
+      "TEST-2232"
+    ],
+    "files": [
+      "src/main/remote/remote-workspace-manager.ts"
+    ]
+  },
+  "REQ-008": {
+    "tasks": [
+      "TASK-008"
+    ],
+    "tests": [
+      "TEST-2242",
+      "TEST-2243",
+      "TEST-2244",
+      "TEST-2245",
+      "TEST-2246",
+      "TEST-2247",
+      "TEST-2248",
+      "TEST-2256"
+    ],
+    "files": [
+      "src/main/remote/remote-workspace-manager.ts",
+      "src/main/ipc/register-pty.ts"
+    ]
+  },
+  "REQ-009": {
+    "tasks": [
+      "TASK-007"
+    ],
+    "tests": [
+      "TEST-2236",
+      "TEST-2237",
+      "TEST-2238",
+      "TEST-2239",
+      "TEST-2240",
+      "TEST-2241"
+    ],
+    "files": [
+      "src/main/remote/remote-workspace-manager.ts"
+    ]
+  },
+  "REQ-010": {
+    "tasks": [
+      "TASK-008",
+      "TASK-009"
+    ],
+    "tests": [
+      "TEST-2249",
+      "TEST-2257"
+    ],
+    "files": [
+      "src/main/remote/remote-workspace-manager.ts",
+      "src/main/ipc/register.ts",
+      "src/main/services.ts"
+    ]
+  },
+  "REQ-011": {
+    "tasks": [
+      "TASK-008",
+      "TASK-013"
+    ],
+    "tests": [
+      "TEST-2250",
+      "TEST-2267"
+    ],
+    "files": [
+      "src/main/remote/remote-workspace-manager.ts",
+      "src/renderer/components/UsageWatcher.tsx",
+      "src/renderer/components/OrkyWatcher.tsx"
+    ]
+  },
+  "REQ-012": {
+    "tasks": [
+      "TASK-006",
+      "TASK-012"
+    ],
+    "tests": [
+      "TEST-2233",
+      "TEST-2263"
+    ],
+    "files": [
+      "src/main/remote/remote-workspace-manager.ts",
+      "src/renderer/components/RemoteBanner.tsx"
+    ]
+  },
+  "REQ-013": {
+    "tasks": [
+      "TASK-006",
+      "TASK-008"
+    ],
+    "tests": [
+      "TEST-2234",
+      "TEST-2235",
+      "TEST-2251",
+      "TEST-2252",
+      "TEST-2253",
+      "TEST-2273"
+    ],
+    "files": [
+      "src/main/remote/remote-workspace-manager.ts"
+    ]
+  },
+  "REQ-014": {
+    "tasks": [
+      "TASK-006",
+      "TASK-010"
+    ],
+    "tests": [
+      "TEST-2226",
+      "TEST-2258",
+      "TEST-2260",
+      "TEST-2277",
+      "TEST-2282",
+      "TEST-2283"
+    ],
+    "files": [
+      "src/main/remote/remote-workspace-manager.ts",
+      "src/renderer/store/remote-slice.ts"
+    ]
+  },
+  "REQ-015": {
+    "tasks": [
+      "TASK-011"
+    ],
+    "tests": [
+      "TEST-2268",
+      "TEST-2269",
+      "TEST-2272"
+    ],
+    "files": [
+      "src/renderer/store.ts",
+      "src/renderer/components/RemoteAgentPicker.tsx",
+      "src/renderer/components/TemplatesMenu.tsx",
+      "src/renderer/components/CommandPalette.tsx"
+    ]
+  },
+  "REQ-016": {
+    "tasks": [
+      "TASK-012"
+    ],
+    "tests": [
+      "TEST-2259",
+      "TEST-2263",
+      "TEST-2264",
+      "TEST-2273",
+      "TEST-2275"
+    ],
+    "files": [
+      "src/renderer/components/RemoteBanner.tsx",
+      "src/renderer/components/remote-banner-model.ts",
+      "src/renderer/components/WorkspaceView.tsx"
+    ]
+  },
+  "REQ-017": {
+    "tasks": [
+      "TASK-001",
+      "TASK-013"
+    ],
+    "tests": [
+      "TEST-2207",
+      "TEST-2276",
+      "TEST-2208",
+      "TEST-2266",
+      "TEST-2267",
+      "TEST-2274"
+    ],
+    "files": [
+      "src/shared/remote-home.ts",
+      "src/renderer/store/remote-gates.ts",
+      "src/renderer/components/SplitMenu.tsx",
+      "src/renderer/components/WorkspaceView.tsx",
+      "src/renderer/components/TerminalPane.tsx",
+      "src/renderer/components/UsageWatcher.tsx",
+      "src/renderer/components/OrkyWatcher.tsx"
+    ]
+  },
+  "REQ-018": {
+    "tasks": [
+      "TASK-014"
+    ],
+    "tests": [
+      "TEST-2209",
+      "TEST-2270",
+      "TEST-2283"
+    ],
+    "files": [
+      "src/renderer/store.ts",
+      "src/shared/remote-home.ts"
+    ]
+  },
+  "REQ-019": {
+    "tasks": [
+      "TASK-009",
+      "TASK-015"
+    ],
+    "tests": [
+      "TEST-2256",
+      "TEST-2257"
+    ],
+    "files": [
+      "src/main/ipc/register-pty.ts",
+      "src/main/services.ts"
+    ]
+  },
+  "REQ-020": {
+    "tasks": [
+      "TASK-016"
+    ],
+    "tests": [
+      "TEST-2278",
+      "TEST-2279",
+      "TEST-2280"
+    ],
+    "files": [
+      "docs/features/remote-workspaces.md",
+      "docs/features/remote-bootstrap.md",
+      "docs/superpowers/0018-windowed-flow-control-review-followups.md",
+      "CLAUDE.md",
+      "CHANGELOG.md"
+    ]
+  }
+}

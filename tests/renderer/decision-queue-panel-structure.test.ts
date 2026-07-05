@@ -31,10 +31,10 @@ describe('DecisionQueuePanel — drawer, not a pane kind (REQ-001)', () => {
     // nothing", NOT "the union/schema never evolve". Re-expressed open-form: no decision-queue pane
     // kind exists (the pane-ops/WorkspaceView pins above plus the types.ts scan below), the union
     // still CONTAINS the three original members as its head (later kinds may append), and the
-    // schema-version pin follows the constant's sanctioned 0009 bump (7→8).
+    // schema-version pin follows the constant's sanctioned bumps (7→8 by 0009; 8→9 by 0022 REQ-002).
     expect(read('src/shared/types.ts')).toMatch(/export type PaneConfig = TerminalConfig \| EditorConfig \| ExplorerConfig(\s*\|\s*\w+Config)*/)
     expect(read('src/shared/types.ts')).not.toMatch(/DecisionQueueConfig|QueuePaneConfig/)
-    expect(SCHEMA_VERSION).toBe(8)
+    expect(SCHEMA_VERSION).toBe(9)
   })
 })
 

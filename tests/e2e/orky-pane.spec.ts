@@ -117,7 +117,7 @@ test('TEST-443 REQ-002 REQ-005 REQ-001 the binding persists VERBATIM across rela
   const saved = readdirSync(wsDir).map(f => readFileSync(join(wsDir, f), 'utf8')).find(s => s.includes('"orky"'))
   expect(saved, 'a saved workspace must contain the orky pane').toBeTruthy()
   const parsed = JSON.parse(saved!) as { schemaVersion: number; workspace: { panes: Record<string, { config: { kind: string; root?: string } }> } }
-  expect(parsed.schemaVersion).toBe(8)
+  expect(parsed.schemaVersion).toBe(9) // serialization stamps the current version (9 since 0022 REQ-002)
   const orkyPane = Object.values(parsed.workspace.panes).find(p => p.config.kind === 'orky')!
   expect(orkyPane.config.root).toBe(proj) // VERBATIM, case-preserved
 

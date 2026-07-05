@@ -1,4 +1,5 @@
 import { join } from 'node:path'
+import { app } from 'electron'
 import { detectShells } from './pty/shells'
 import { writeIntegrationScripts } from './status/integration-scripts'
 import { WorkspaceStore } from './persistence/store'
@@ -14,6 +15,10 @@ import { OrkyActionDispatcher } from './orky/orky-action-dispatcher'
 import { OrkyActionAuditLog } from './orky/orky-action-audit'
 import { OrkyActionQueue } from './orky/orky-action-queue'
 import { verifyOrkyContract } from './orky/orky-contract-handshake'
+import { RemoteWorkspaceManager } from './remote/remote-workspace-manager'
+import { MANIFEST_VERSION, resolveAgentArtifactPath } from './remote/agent-artifact'
+import { connectWithProvisioning } from '../remote-client/bootstrap'
+import { loadNamedAgents } from '../remote-client/agents-store'
 import type { ShellInfo } from '@shared/types'
 
 export interface Services {
@@ -40,6 +45,16 @@ export interface Services {
    *  allowlist (D3/REQ-004) — no second `OrkyRegistry`. Owned solely by `register-orky-action.ts`;
    *  `register.ts` disposes it once alongside the other single-owner registrars. */
   orkyActionDispatcher: OrkyActionDispatcher
+  /** The remote-workspace router (feature 0022): ONE per app, constructed here with the F19
+   *  provisioned bootstrap + real timers; its routed `send` arrives later (registerHandlers builds
+   *  it) via setRemoteSend. Dispose via disposeRemote (aborts in-flight connects, kills wires). */
+  remoteManager: RemoteWorkspaceManager
+  /** Late-bind the routed pane-scoped send into the remote manager (composition order: the send
+   *  seam is built by registerHandlers AFTER services exist). */
+  setRemoteSend(send: (channel: string, ...args: unknown[]) => void): void
+  /** The named-agents registry file path (userData — F19 bound no location; F21 wires it here). */
+  remoteAgentsPath: string
+  disposeRemote(): void
 }
 
 /** Build the privileged service layer ONCE for the whole app (not per window). PTYs and stores
@@ -60,6 +75,29 @@ export function buildServices(): Services {
   // never a gate): one warn line at startup if `gatekeeper contract` disagrees with Termhalla's
   // mirrored constants. Cached per located path; tolerates an absent/pre-contract plugin.
   void verifyOrkyContract().catch(() => {})
+
+  // Remote workspaces (feature 0022): ONE manager app-wide. The routed pane-scoped send does not
+  // exist yet (registerHandlers builds it), so the manager gets a late-bound forwarder; everything
+  // else is real: the F19 provisioned bootstrap (never a re-derived handshake), the ONE manifest
+  // version + the dev/packaged artifact path (version-lock, REQ-006), real timers for the ack
+  // quiet-flush (CONV-036 — the pure module stays timer-free; the composition root injects the
+  // scheduler), and the named-agent registry at userData/remote-agents.json (REQ-004).
+  const remoteAgentsPath = join(dir, 'remote-agents.json')
+  let remoteSend: (channel: string, ...args: unknown[]) => void = () => {}
+  const remoteManager = new RemoteWorkspaceManager({
+    send: (channel, ...args) => remoteSend(channel, ...args),
+    loadAgents: () => loadNamedAgents(remoteAgentsPath),
+    connect: ({ agent, version, artifactPath, signal }) =>
+      connectWithProvisioning({ agent, version, artifactPath, signal }),
+    version: MANIFEST_VERSION,
+    artifactPath: resolveAgentArtifactPath({
+      packaged: app.isPackaged,
+      appRoot: app.getAppPath(),
+      resourcesPath: process.resourcesPath
+    }),
+    scheduler: { setTimeout: (fn, ms) => setTimeout(fn, ms), clearTimeout: (t) => clearTimeout(t as ReturnType<typeof setTimeout>) }
+  })
+
   return {
     dir,
     store: new WorkspaceStore(dir),
@@ -71,6 +109,10 @@ export function buildServices(): Services {
     searchService,
     orkyEngine,
     orkyRegistry,
-    orkyActionDispatcher
+    orkyActionDispatcher,
+    remoteManager,
+    setRemoteSend: (send) => { remoteSend = send },
+    remoteAgentsPath,
+    disposeRemote: () => remoteManager.stop()
   }
 }

@@ -97,10 +97,26 @@ export const CH = {
   // string (individual toast) or `null` (a digest click → open the drawer, no specific project).
   // Deliberately OUTSIDE the frozen registry:* family — it is not a registry read/write.
   orkyNotifyFocus: 'orkyNotify:focus',      // main -> renderer event (payload: string | null)
+  // Remote workspaces (feature 0022 / F21) — the per-workspace-home connection surface. The
+  // pty/status traffic of a remote-home workspace rides the EXISTING pty:* channels above,
+  // routed main-side; these channels carry only the connection lifecycle + the named-agent
+  // registry (config only — never a secret).
+  remoteAgentsList: 'remote:agentsList',    // renderer -> main (the named-agent registry, read)
+  remoteAgentsSave: 'remote:agentsSave',    // renderer -> main (full-list save; rejects on disk failure)
+  remoteConnect: 'remote:connect',          // renderer -> main (begin/retry a workspace's connection)
+  remoteDisconnect: 'remote:disconnect',    // renderer -> main (drop; ALSO cancels an in-flight connect)
+  remoteState: 'remote:state',              // main -> renderer event (APP-GLOBAL; one RemoteWorkspaceState)
+  remoteCurrent: 'remote:current',          // renderer -> main (pull ALL current states — recovers a missed push)
 } as const
 
 export interface NotifyArgs { title: string; body: string }
-export interface PtySpawnArgs { id: string; shellId: string; cwd: string; cols: number; rows: number; launch?: TerminalLaunch; envId?: string }
+export interface PtySpawnArgs {
+  id: string; shellId: string; cwd: string; cols: number; rows: number; launch?: TerminalLaunch; envId?: string
+  /** Remote routing hint (feature 0022): present iff the pane's workspace homes to a named agent —
+   *  main then routes the spawn (and the pane's whole pty lifecycle) over that workspace's agent
+   *  connection. ABSENT for local spawns (the byte-identical pre-F21 path). */
+  remote?: { workspaceId: string; agentId: string }
+}
 export interface PtyWriteArgs { id: string; data: string }
 export interface PtyResizeArgs { id: string; cols: number; rows: number }
 
@@ -249,4 +265,20 @@ export interface TermhallaApi {
    *  focuses a matching pane via F6's shared matcher, else opens+scrolls the drawer — a read-side
    *  handoff only (no `.orky` write, no registry mutation, no action dispatch). */
   onOrkyNotifyFocus(cb: (root: string | null) => void): () => void
+  // Remote workspaces (feature 0022 / F21). The named-agent registry (config only, no secrets) +
+  // the per-workspace connection lifecycle. Remote pty/status traffic rides the existing pty:*
+  // surface transparently.
+  remoteAgentsList(): Promise<import('./remote-agents').NamedAgent[]>
+  /** Full-list save through the normalizer (both doors); rejects when the disk write fails so the
+   *  UI never toasts a false success (the envSetGlobal precedent). Returns the saved list. */
+  remoteAgentsSave(agents: import('./remote-agents').NamedAgent[]): Promise<import('./remote-agents').NamedAgent[]>
+  /** Begin (or retry) the workspace's agent connection. Fire-and-forget: outcomes ride remote:state. */
+  remoteConnect(workspaceId: string, agentId: string): void
+  /** Drop the workspace's connection — ALSO the user-facing CANCEL of an in-flight connect
+   *  (the F19 FINDING-005 caller-owned-cancellation contract). */
+  remoteDisconnect(workspaceId: string): void
+  /** Pull ALL current per-workspace connection states (recovers a missed remote:state push). */
+  remoteCurrent(): Promise<import('./remote-workspace').RemoteWorkspaceState[]>
+  /** Per-workspace connection state push (app-global broadcast; key by workspaceId). */
+  onRemoteState(cb: (state: import('./remote-workspace').RemoteWorkspaceState) => void): () => void
 }

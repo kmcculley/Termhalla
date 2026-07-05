@@ -23,6 +23,7 @@ import { registerClipboard } from './register-clipboard'
 import { registerShell } from './register-shell'
 import { registerPreview } from './register-preview'
 import { registerGit } from './register-git'
+import { registerRemote, createRemoteAgentsIo } from './register-remote'
 import { Indexer } from '../search/indexer'
 import { registerSearch } from './register-search'
 
@@ -36,13 +37,17 @@ import { registerSearch } from './register-search'
  *  first `registry:status` push, so a restart's persisted roots are members from the first snapshot
  *  (REQ-004). */
 export async function registerHandlers(services: Services, wm: WindowManager): Promise<PtyManager> {
-  const { store, quick, shells, recorder, envVault, scriptDir, dir, searchService, orkyEngine, orkyRegistry, orkyActionDispatcher } = services
+  const { store, quick, shells, recorder, envVault, scriptDir, dir, searchService, orkyEngine, orkyRegistry, orkyActionDispatcher, remoteManager } = services
 
   const send = (channel: string, ...args: unknown[]): void => {
     const paneId = typeof args[0] === 'string' ? args[0] : null
     if (paneId && wm.isPaneScoped(channel)) wm.routeToPane(paneId, channel, ...args)
     else wm.broadcast(channel, ...args)
   }
+  // Remote workspaces (feature 0022): the manager's pushes ride the SAME routed pane-scoped send —
+  // remote pty:data/status/cwd/exit inherit window ownership + transit buffering; remote:state is
+  // app-global and broadcasts (REQ-010).
+  services.setRemoteSend(send)
 
   const win = wm.mainWindow()
   const { service: git, dispose: disposeGit } = registerGit(send)
@@ -74,7 +79,8 @@ export async function registerHandlers(services: Services, wm: WindowManager): P
     onCwd: (id, cwd) => { void git.setCwd(id, cwd) },
     onCommandDone: (id) => git.onCommandDone(id),
     onPaneGone: (id) => { git.removePane(id); orkyBridge.clearPane(id) },
-    onOrkyHeartbeat: (id, hb) => orkyBridge.setStreamHeartbeat(id, hb)
+    onOrkyHeartbeat: (id, hb) => orkyBridge.setStreamHeartbeat(id, hb),
+    remote: remoteManager
   })
   // Feature 0013 — app-wide needs-you-notifications opt-in mirror. The production `shouldNotify` gate
   // is SYNCHRONOUS, but the preference is written renderer-side via fire-and-forget quickSave; so the
@@ -153,6 +159,15 @@ export async function registerHandlers(services: Services, wm: WindowManager): P
     // used for orkyRegistry/orkyEngine.
     registerOrkyAction(orkyActionDispatcher, (sender) => wm.isKnownWindowSender(sender)),
     registerRecording({ pty, recorder, userDataDir: dir, send }),
+    // Remote workspaces (feature 0022): the remote:* registrar + the manager's shutdown (aborts
+    // in-flight connects, kills live ssh wires — the long-lived-child gotcha).
+    registerRemote({
+      manager: remoteManager,
+      agentsIo: createRemoteAgentsIo(services.remoteAgentsPath),
+      // FINDING-001: the write-capable remote surface serves only tracked app windows.
+      isKnownWindowSender: (sender) => wm.isKnownWindowSender(sender)
+    }),
+    () => services.disposeRemote(),
     disposeGit,
     disposeSearch,
     // The shared OrkyRootEngine/OrkyRegistry lifecycle is owned ONCE here — neither registerOrky's nor

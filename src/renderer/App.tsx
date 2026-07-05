@@ -20,6 +20,7 @@ import { NotesPanel } from './components/NotesPanel'
 import { DecisionQueuePanel } from './components/DecisionQueuePanel'
 import { OrkyRootPicker } from './components/OrkyRootPicker'
 import { OrkyCaptureModal } from './components/OrkyCaptureModal'
+import { RemoteAgentPicker } from './components/RemoteAgentPicker'
 import { SearchHistory } from './components/SearchHistory'
 import { matchShortcut, resolveBindings } from '@shared/keymap'
 import { redrawPane } from './components/terminal-registry'
@@ -44,6 +45,8 @@ export default function App() {
   // The quick-capture request (feature 0012, REQ-002): conditionally hosted so every close path
   // unmounts the modal and a reopen starts with a fresh draft (decision #8).
   const orkyCaptureRequest = useStore(s => s.orkyCaptureRequest)
+  // Remote workspaces (feature 0022): the agent-picker request flag (the cockpit-picker pattern).
+  const remoteAgentPickerOpen = useStore(s => s.remoteAgentPickerOpen)
   useEffect(() => { init() }, [init])
   useEffect(() => {
     const flush = () => { const s = useStore.getState(); void s.saveAll(); s.flushQuick(); s.flushNotes() }
@@ -74,6 +77,8 @@ export default function App() {
       // Per-root change notification (feature 0009, REQ-022): routed into ONE store action whose
       // fan-out is per-root targeted — only OrkyPanes bound to a matching root fetch/re-render.
       api.onRegistryRootChanged(root => s().notifyOrkyRootChanged(root)),
+      // Remote workspaces (feature 0022, REQ-014): per-workspace connection state pushes.
+      api.onRemoteState(st => s().ingestRemoteState(st)),
       api.onRecState((id, state) => s().setRecording(id, state.recording)),
       api.onEnvState(state => s().setEnvState(state)),
       api.onWinAssignment(a => { void s().applyAssignment(a) }),
@@ -109,6 +114,8 @@ export default function App() {
     // pull, generation-guarded: the generation is captured at ISSUE time, so a stale late-settling
     // result is discarded if any snapshot (push or pull) was applied after the pull was issued.
     // The rejection path is explicit (an error state, REQ-013), never swallowed silently.
+    // Remote workspaces (feature 0022): the remote:current recovery pull (missed-push recovery).
+    void s().seedRemoteStates()
     const issuedAtGeneration = s().snapshotGeneration
     void api.registryCurrent()
       .then(snapshot => s().applyRecoveryPull(snapshot, issuedAtGeneration))
@@ -221,6 +228,10 @@ export default function App() {
           onCancel={() => useStore.getState().resolveOrkyCockpitPick(null)} />
       )}
       {orkyCaptureRequest !== null && <OrkyCaptureModal initialRoot={orkyCaptureRequest.root} />}
+      {/* Remote workspaces (feature 0022): the agent picker behind the new-remote-workspace gesture. */}
+      {remoteAgentPickerOpen && (
+        <RemoteAgentPicker onClose={() => useStore.getState().closeRemoteAgentPicker()} />
+      )}
       <SearchHistory />
       <SshConnectionForm key={connectionFormFor === null ? 'none' : connectionFormFor === 'new' ? 'new' : connectionFormFor.id} />
     </div>

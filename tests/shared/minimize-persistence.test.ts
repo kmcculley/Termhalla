@@ -26,8 +26,8 @@ describe('schema bump + migration (REQ-009)', () => {
   // current constant in the SAME change as F9's suite (see
   // .orky/features/0009-native-orky-pane/04-tests.md). 0003's real invariant — the v6→v7
   // view-state migration semantics below — is untouched.
-  it('TEST-001 REQ-009 SCHEMA_VERSION is the current persisted schema version (0003 bumped 6→7; re-pinned at 8 by 0009 REQ-003)', () => {
-    expect(SCHEMA_VERSION).toBe(8)
+  it('TEST-001 REQ-009 SCHEMA_VERSION is the current persisted schema version (0003 bumped 6→7; re-pinned at 9 by 0022 REQ-002)', () => {
+    expect(SCHEMA_VERSION).toBe(9)
   })
 
   it('TEST-002 REQ-009 a prior-version record (no view-state) loads with empty view-state and no data loss', () => {

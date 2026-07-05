@@ -32,10 +32,12 @@ describe('TEST-741 REQ-010 CAPABILITY_IDS = the per-domain registrar names + sta
     const registrarNames = readdirSync(resolve(process.cwd(), 'src/main/ipc'))
       .filter((f) => /^register-.+\.ts$/.test(f))
       .map((f) => f.replace(/^register-/, '').replace(/\.ts$/, ''))
-    expect(registrarNames.length).toBe(17)
+    // AMENDED by feature 0022 (tests phase): register-remote.ts joined the registrar set, so the
+    // partition grows 17→18 (+'status' = 19) — exactly the amendment path this header prescribes.
+    expect(registrarNames.length).toBe(18)
     const expected = [...registrarNames, 'status'].sort()
     expect([...CAPABILITY_IDS]).toEqual(expected)
-    expect(CAPABILITY_IDS.length).toBe(18)
+    expect(CAPABILITY_IDS.length).toBe(19)
   })
   it('is sorted ascending and duplicate-free', () => {
     expect([...CAPABILITY_IDS]).toEqual([...CAPABILITY_IDS].sort())

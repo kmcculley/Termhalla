@@ -51,7 +51,9 @@ describe('QuickStore — orkyNeedsYouNotifications (additive optional, default E
     expect((await store.load() as unknown as Record<string, unknown>).orkyNeedsYouNotifications).toBeUndefined()
   })
 
-  it('TEST-559 REQ-008 REQ-013 SCHEMA_VERSION is unchanged (=8) — the opt-in adds no persisted file and bumps no schema', () => {
-    expect(SCHEMA_VERSION).toBe(8)
+  // SUPERSEDED point-in-time pin (CONV-019): re-pinned 8→9 by feature 0022-client-routing-
+  // remote-workspace-ux (REQ-002, the persisted workspace home — see 0022's 04-tests.md).
+  it('TEST-559 REQ-008 REQ-013 SCHEMA_VERSION is unchanged by THIS feature — the opt-in adds no persisted file (re-pinned at 9 by 0022 REQ-002)', () => {
+    expect(SCHEMA_VERSION).toBe(9)
   })
 })
