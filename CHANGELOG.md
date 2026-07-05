@@ -6,13 +6,6 @@ All notable changes to Termhalla are recorded here. The format follows
 
 ## [Unreleased]
 
-## [0.12.0] - 2026-07-05
-
-Remote Agent v1 — tmux-style remote sessions (Orky epic F15–F21 + cross-feature
-integration phase), plus the e2e un-rot sweep that followed it (three shipped
-product bugs found and fixed once the full Playwright suite ran for the first
-time since 0008).
-
 ### Added
 - **Remote workspaces — client routing + per-workspace home (Remote Agent v1, batch 5 — F21).**
   A workspace now has a HOME: local (unchanged, byte-identical), or a named agent (locked
@@ -625,6 +618,15 @@ time since 0008).
   node config, producing 47 spurious errors. A dedicated `tsconfig.e2e.json` (the node config plus
   the DOM lib, scoped to `tests/e2e`) restores them while keeping main-process and `tests/main` code
   DOM-free; a few genuine `tests/main` type slips (a QuickStore cast, a mock signature) were fixed too.
+
+## [0.12.0] - 2026-07-05
+
+Remote Agent v1 — tmux-style remote sessions (Orky epic F15–F21 + the cross-feature
+integration phase), plus the e2e un-rot sweep that followed it (three shipped product
+bugs found and fixed once the full Playwright suite ran for the first time since 0008).
+The detailed entries stay under [Unreleased] above, per the same convention the
+0.9.0/0.10.0/0.10.1/0.11.0 releases recorded (the frozen doc-drift guards pin
+per-feature detail there).
 
 ## [0.11.0] - 2026-07-04
 
