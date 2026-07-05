@@ -104,10 +104,11 @@ describe('OrkyRegistryStore — save (REQ-013)', () => {
 
 describe('OrkyRegistryStore — no SCHEMA_VERSION coupling (REQ-013)', () => {
   it('TEST-087 REQ-013 the global SCHEMA_VERSION is unchanged by this feature; orky-registry.json carries its own embedded version:1', async () => {
-    // SUPERSEDED point-in-time pin (CONV-019): re-pinned 7→8 by feature 0009-native-orky-pane
-    // (REQ-003, see 0009's 04-tests.md). F5's invariant — orky-registry.json carries its OWN
-    // embedded version:1 outside the app-state migration chain — is untouched below.
-    expect(SCHEMA_VERSION).toBe(8) // this feature's persisted file is NOT part of the app-state migration chain
+    // SUPERSEDED point-in-time pin (CONV-019): re-pinned 7→8 by 0009 REQ-003, then 8→9 by feature
+    // 0022-client-routing-remote-workspace-ux (REQ-002, the persisted workspace home — see 0022's
+    // 04-tests.md). F5's invariant — orky-registry.json carries its OWN embedded version:1 outside
+    // the app-state migration chain — is untouched below.
+    expect(SCHEMA_VERSION).toBe(9) // this feature's persisted file is NOT part of the app-state migration chain
     const dir = tmpDir()
     const store = new OrkyRegistryStore(dir)
     await store.save(['/proj/a'])

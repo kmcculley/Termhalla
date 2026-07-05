@@ -176,7 +176,7 @@ test('TEST-673 REQ-003 REQ-001 REQ-002 REQ-005 palette → RELABELLED picker →
     schemaVersion: number
     workspace: { name: string; layout: { direction: string; first: string; second: string; splitPercentage?: number }; panes: Record<string, { config: Record<string, unknown> }> }
   }
-  expect(parsed.schemaVersion).toBe(8) // F9's bump stands — no new schema (REQ-007)
+  expect(parsed.schemaVersion).toBe(9) // serialization stamps the current version (9 since 0022 REQ-002); F11 itself added no schema (REQ-007)
   const configs = Object.values(parsed.workspace.panes).map(p => p.config)
   expect(configs).toHaveLength(2)
   const orky = configs.find(c => c.kind === 'orky')!

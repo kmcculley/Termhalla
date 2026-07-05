@@ -119,6 +119,13 @@ const api: TermhallaApi = {
   onOpenSettings: pushChannel<[]>(CH.openSettings),
   // Feature 0013: needs-you notification click → focus handoff (payload: project root | null).
   onOrkyNotifyFocus: pushChannel<[string | null]>(CH.orkyNotifyFocus),
+  // Feature 0022: remote workspaces — named-agent registry + per-workspace connection lifecycle.
+  remoteAgentsList: () => ipcRenderer.invoke(CH.remoteAgentsList),
+  remoteAgentsSave: (agents) => ipcRenderer.invoke(CH.remoteAgentsSave, agents),
+  remoteConnect: (workspaceId, agentId) => ipcRenderer.send(CH.remoteConnect, { workspaceId, agentId }),
+  remoteDisconnect: (workspaceId) => ipcRenderer.send(CH.remoteDisconnect, workspaceId),
+  remoteCurrent: () => ipcRenderer.invoke(CH.remoteCurrent),
+  onRemoteState: pushChannel<[import('@shared/remote-workspace').RemoteWorkspaceState]>(CH.remoteState),
 }
 
 contextBridge.exposeInMainWorld('termhalla', api)

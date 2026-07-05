@@ -7,6 +7,22 @@ All notable changes to Termhalla are recorded here. The format follows
 ## [Unreleased]
 
 ### Added
+- **Remote workspaces — client routing + per-workspace home (Remote Agent v1, batch 5 — F21).**
+  A workspace now has a HOME: local (unchanged, byte-identical), or a named agent (locked
+  decision 7) — every pane in it runs on that agent over ONE ssh-tunneled connection
+  (`RemoteWorkspaceManager`, `src/main/remote/`), spawned/provisioned via F19's bootstrap,
+  version-locked to the app manifest, flow-controlled via F17 (a fresh `createClientAckPolicy`
+  per (re)connection; quiet-flush timer; no window frames in v1). Remote panes get agent-sourced
+  status chips over the existing `pty:*` channels (transparent routing; zero local trackers
+  engaged); disconnect / F20 lease-steal shows a keep-mounted banner (Cancel while connecting —
+  the F19 caller-owned-cancellation contract — Reconnect after; panes freeze, never unmount);
+  unsupported domains (fs/editor, git, usage, orky, recording, …) are greyed per remote workspace
+  from the capability handshake. New `remote:*` IPC family + `remote-agents.json` named-agent
+  registry (config only, no secrets); "Remote workspace…" templates-menu row + palette entry →
+  agent picker. `SCHEMA_VERSION` 8→9 (workspace `home`; documented-identity migration). The
+  shipped v1 agent is not daemonized: a dropped transport ends its sessions — reconnect surfaces
+  them as exited (inventory-driven, so daemonization lands with no client change).
+  (`docs/features/remote-workspaces.md`)
 - **Exclusive attach via agent-side lease (Remote Agent v1, batch 4 — F20).** `tmux attach -d`
   semantics (locked decision 5; no mirrored attach): the session store's binding IS the lease —
   exactly one connection holds an agent's session set at every instant. Binding while another

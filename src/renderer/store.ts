@@ -31,6 +31,8 @@ import { createPreviewSlice } from './store/preview-slice'
 import { createRegistrySlice } from './store/registry-slice'
 import { createOrkyPaneSlice } from './store/orky-pane-slice'
 import { createOrkyCaptureSlice } from './store/orky-capture-slice'
+import { createRemoteSlice } from './store/remote-slice'
+import { paneMoveRefusalReason } from '@shared/remote-home'
 import { caseFoldFromPlatform } from '@shared/decision-queue'
 
 // Re-exported so existing `import { ... } from '../store'` call sites keep working.
@@ -146,6 +148,10 @@ export const useStore = create<State>((set, get) => {
     orkyRootPickOpen: false,
     // Per-project Orky cockpit workspace (feature 0011): the F11-owned picker request flag.
     orkyCockpitPickOpen: false,
+    // Remote workspaces (feature 0022): connection states + named-agent mirror + picker flag.
+    remoteStates: {},
+    namedAgents: [],
+    remoteAgentPickerOpen: false,
     paneFocusSeq: {},
     cloud: [],
     envVault: { exists: false, unlocked: false },
@@ -176,6 +182,17 @@ export const useStore = create<State>((set, get) => {
     // Native OrkyPane detail slice (feature 0009): the preload bridge and the fold mode are
     // INJECTED here — the fold is derived ONCE via caseFoldFromPlatform(navigator.platform), the
     // one platform signal that exists in the contextIsolated main world (REQ-005 / FINDING-003).
+    // Remote workspaces (feature 0022): the preload bridge is INJECTED (op.ts pattern) so the
+    // slice's pure logic tests under the node harness; the toast chokepoint is the store's own.
+    ...createRemoteSlice({
+      set, get,
+      remoteCurrent: () => api.remoteCurrent(),
+      remoteConnect: (wsId, agentId) => api.remoteConnect(wsId, agentId),
+      remoteDisconnect: (wsId) => api.remoteDisconnect(wsId),
+      remoteAgentsList: () => api.remoteAgentsList(),
+      remoteAgentsSave: (agents) => api.remoteAgentsSave(agents),
+      pushToast: (text, kind) => get().pushToast(text, kind)
+    }),
     ...createOrkyPaneSlice({
       set,
       get,
@@ -362,6 +379,40 @@ export const useStore = create<State>((set, get) => {
       resolvePick?.(root)
     },
 
+    /** New remote workspace (feature 0022, REQ-015): no argument opens the agent picker (which
+     *  re-invokes with the chosen id); with an agentId it creates a fresh workspace HOMED to that
+     *  named agent holding ONE terminal pane at the agent home dir (cwd '' — never a local path).
+     *  Registration matches newWorkspace IN FULL including the load-bearing arrangement report
+     *  (0011 FINDING-001: an unreported workspace is silently dropped by the next pushed
+     *  assignment). The gesture LANDS keyboard focus in the new terminal (CONV-055). */
+    newRemoteWorkspace: async (agentId) => {
+      if (agentId === undefined) {
+        if (get().namedAgents.length === 0) void get().loadNamedAgents()
+        set({ remoteAgentPickerOpen: true })
+        return null
+      }
+      let agent = get().namedAgents.find(a => a.id === agentId)
+      if (!agent) {
+        await get().loadNamedAgents()
+        agent = get().namedAgents.find(a => a.id === agentId)
+      }
+      if (!agent) {
+        get().pushToast(`No named agent with id "${agentId}" exists — add it in the remote-agent picker first.`, 'error')
+        return null
+      }
+      const ws = createWorkspace(agent.name, uuid)
+      const paneId = uuid()
+      ws.home = { kind: 'agent', agentId: agent.id, agentName: agent.name }
+      ws.panes = { [paneId]: { paneId, config: { kind: 'terminal', shellId: defaultShellId(get()), cwd: '' } } }
+      ws.layout = paneId
+      set(s => ({ workspaces: { ...s.workspaces, [ws.id]: ws }, order: [...s.order, ws.id], activeId: ws.id }))
+      scheduleAutosave()
+      reportAssignment()
+      requestPaneFocus(paneId)
+      return ws.id
+    },
+    closeRemoteAgentPicker: () => set({ remoteAgentPickerOpen: false }),
+
     renameWorkspace: (id, name) => {
       const n = name.trim()
       if (!n) return
@@ -373,7 +424,14 @@ export const useStore = create<State>((set, get) => {
       const ws = get().workspaces[id]
       if (!ws) return
       const paneIds = Object.keys(ws.panes)
+      // Order is load-bearing (FINDING-002): tear the panes down FIRST (each remote kill prunes
+      // its pane from the manager), THEN disconnect — the manager sees a pane-less entry and
+      // FORGETS it (CONV-011: no ghost in remote:current) — then prune the slice's own entry.
       teardownPanes(paneIds)
+      if (ws.home) {
+        get().disconnectRemote(id)
+        get().pruneRemoteStates(Object.keys(get().remoteStates).filter(wsId => wsId !== id))
+      }
       set(s => {
         const workspaces = { ...s.workspaces }; delete workspaces[id]
         const order = s.order.filter(x => x !== id)
@@ -501,6 +559,10 @@ export const useStore = create<State>((set, get) => {
       const from = s.workspaces[fromWsId]
       const to = s.workspaces[toWsId]
       if (!from || !to || fromWsId === toWsId || !from.panes[paneId]) return
+      // Cross-home moves are refused BEFORE any mutation (feature 0022, REQ-018 / locked decision
+      // 7: a running PTY cannot teleport machines; even same-agent workspaces hold two connections).
+      const refusal = paneMoveRefusalReason(from.home, to.home)
+      if (refusal !== null) { get().pushToast(refusal, 'error'); return }
       const kind = from.panes[paneId].config.kind
       if (kind === 'terminal') { const snap = readPaneSnapshot(paneId); if (snap) stashSnapshot(paneId, snap) }
       if (kind === 'editor') beginPaneTransit(paneId)
@@ -524,6 +586,11 @@ export const useStore = create<State>((set, get) => {
     movePaneToNewWorkspace: (paneId, fromWsId) => {
       const from = get().workspaces[fromWsId]
       if (!from?.panes[paneId]) return
+      // Guard FIRST (FINDING-003): a refused cross-home move must not strand an orphan empty
+      // workspace — the destination is always LOCAL (newWorkspace), so consult the predicate
+      // against a local home before creating anything.
+      const refusal = paneMoveRefusalReason(from.home, undefined)
+      if (refusal !== null) { get().pushToast(refusal, 'error'); return }
       const newId = get().newWorkspace(`Workspace ${get().order.length + 1}`)
       set(s => ({ workspaces: { ...s.workspaces, [newId]: carryTheme(s.workspaces[newId], from) } }))
       get().movePaneToWorkspace(paneId, fromWsId, newId)

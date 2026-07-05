@@ -8,6 +8,7 @@ export function TemplatesMenu({ onPicked, onClose }: { onPicked: (id: string) =>
   const deleteTemplate = useStore(s => s.deleteTemplate)
   const newFromTemplate = useStore(s => s.newWorkspaceFromTemplate)
   const newOrkyWorkspace = useStore(s => s.newOrkyWorkspace)
+  const newRemoteWorkspace = useStore(s => s.newRemoteWorkspace)
   const pushToast = useStore(s => s.pushToast)
   const [name, setName] = useState('')
   return (
@@ -29,6 +30,10 @@ export function TemplatesMenu({ onPicked, onClose }: { onPicked: (id: string) =>
             project root — and quick.json's template list is untouched by the whole flow. */}
         <button data-testid="tpl-orky-cockpit" style={{ textAlign: 'left' }}
           onClick={() => { void newOrkyWorkspace(); onClose() }}>Orky project cockpit…</button>
+        {/* Feature 0022 (REQ-015): the BUILT-IN remote-workspace row — window chrome, never a saved
+            template; activating it opens the remote-agent picker (single-gesture create). */}
+        <button data-testid="tpl-remote-workspace" style={{ textAlign: 'left' }}
+          onClick={() => { void newRemoteWorkspace(); onClose() }}>Remote workspace…</button>
         {templates.length === 0 && <div style={{ color: 'var(--fg-dim, #aaa)' }}>No templates yet.</div>}
         {templates.map(t => (
           <div key={t.id} style={{ display: 'flex', gap: 4, alignItems: 'center' }}>

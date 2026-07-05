@@ -5857,5 +5857,185 @@
     "totalFailures": 0,
     "wallClockMs": 24,
     "at": "2026-07-04T22:23:07.235Z"
+  },
+  {
+    "action": "gate.check",
+    "feature": "0022-client-routing-remote-workspace-ux",
+    "phase": "spec",
+    "pass": true,
+    "attempts": 0,
+    "totalFailures": 0,
+    "wallClockMs": 2,
+    "at": "2026-07-04T22:52:25.269Z"
+  },
+  {
+    "action": "producer.select",
+    "feature": "0022-client-routing-remote-workspace-ux",
+    "role": "planner",
+    "phase": "plan",
+    "tier": "low",
+    "model": "sonnet",
+    "effort": "medium",
+    "trigger": "base",
+    "attempts": 0,
+    "at": "2026-07-04T22:52:45.664Z"
+  },
+  {
+    "action": "gate.check",
+    "feature": "0022-client-routing-remote-workspace-ux",
+    "phase": "plan",
+    "pass": true,
+    "attempts": 0,
+    "totalFailures": 0,
+    "wallClockMs": 3,
+    "at": "2026-07-04T22:55:48.736Z"
+  },
+  {
+    "action": "gate.check",
+    "feature": "0022-client-routing-remote-workspace-ux",
+    "phase": "tests",
+    "pass": true,
+    "attempts": 0,
+    "totalFailures": 0,
+    "wallClockMs": 26925,
+    "at": "2026-07-04T23:24:09.026Z"
+  },
+  {
+    "action": "producer.select",
+    "feature": "0022-client-routing-remote-workspace-ux",
+    "role": "implementer",
+    "phase": "implement",
+    "tier": "low",
+    "model": "sonnet",
+    "effort": "medium",
+    "trigger": "base",
+    "attempts": 0,
+    "at": "2026-07-04T23:24:31.250Z"
+  },
+  {
+    "action": "gate.check",
+    "feature": "0022-client-routing-remote-workspace-ux",
+    "phase": "implement",
+    "pass": false,
+    "attempts": 1,
+    "totalFailures": 1,
+    "wallClockMs": 136670,
+    "failed": [
+      "test"
+    ],
+    "at": "2026-07-04T23:56:41.332Z"
+  },
+  {
+    "action": "gate.check",
+    "feature": "0022-client-routing-remote-workspace-ux",
+    "phase": "tests",
+    "pass": true,
+    "attempts": 0,
+    "totalFailures": 1,
+    "wallClockMs": 77954,
+    "at": "2026-07-05T00:06:04.442Z"
+  },
+  {
+    "action": "gate.check",
+    "feature": "0022-client-routing-remote-workspace-ux",
+    "phase": "implement",
+    "pass": false,
+    "attempts": 2,
+    "totalFailures": 2,
+    "wallClockMs": 145762,
+    "failed": [
+      "test"
+    ],
+    "at": "2026-07-05T00:11:40.410Z"
+  },
+  {
+    "action": "gate.check",
+    "feature": "0022-client-routing-remote-workspace-ux",
+    "phase": "tests",
+    "pass": true,
+    "attempts": 0,
+    "totalFailures": 2,
+    "wallClockMs": 93060,
+    "at": "2026-07-05T00:15:50.200Z"
+  },
+  {
+    "action": "gate.check",
+    "feature": "0022-client-routing-remote-workspace-ux",
+    "phase": "implement",
+    "pass": true,
+    "attempts": 0,
+    "totalFailures": 2,
+    "wallClockMs": 67541,
+    "at": "2026-07-05T00:17:38.465Z"
+  },
+  {
+    "action": "gate.check",
+    "feature": "0022-client-routing-remote-workspace-ux",
+    "phase": "implement",
+    "pass": true,
+    "attempts": 0,
+    "totalFailures": 2,
+    "wallClockMs": 68642,
+    "at": "2026-07-05T00:18:48.719Z"
+  },
+  {
+    "action": "gate.check",
+    "feature": "0022-client-routing-remote-workspace-ux",
+    "phase": "tests",
+    "pass": true,
+    "attempts": 0,
+    "totalFailures": 2,
+    "wallClockMs": 31893,
+    "at": "2026-07-05T00:24:46.198Z"
+  },
+  {
+    "action": "gate.check",
+    "feature": "0022-client-routing-remote-workspace-ux",
+    "phase": "implement",
+    "pass": true,
+    "attempts": 0,
+    "totalFailures": 2,
+    "wallClockMs": 54666,
+    "at": "2026-07-05T00:29:55.969Z"
+  },
+  {
+    "action": "gate.check",
+    "feature": "0022-client-routing-remote-workspace-ux",
+    "phase": "tests",
+    "pass": true,
+    "attempts": 0,
+    "totalFailures": 2,
+    "wallClockMs": 25887,
+    "at": "2026-07-05T00:40:30.910Z"
+  },
+  {
+    "action": "gate.check",
+    "feature": "0022-client-routing-remote-workspace-ux",
+    "phase": "implement",
+    "pass": true,
+    "attempts": 0,
+    "totalFailures": 2,
+    "wallClockMs": 48031,
+    "at": "2026-07-05T00:41:31.899Z"
+  },
+  {
+    "action": "gate.check",
+    "feature": "0022-client-routing-remote-workspace-ux",
+    "phase": "review",
+    "pass": true,
+    "attempts": 0,
+    "totalFailures": 2,
+    "wallClockMs": 3,
+    "at": "2026-07-05T00:42:35.391Z"
+  },
+  {
+    "action": "gate.check",
+    "feature": "0022-client-routing-remote-workspace-ux",
+    "phase": "doc-sync",
+    "pass": true,
+    "attempts": 0,
+    "totalFailures": 2,
+    "wallClockMs": 25,
+    "at": "2026-07-05T00:44:21.916Z"
   }
 ]

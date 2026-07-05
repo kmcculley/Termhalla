@@ -7,6 +7,8 @@ import { computeVisibleLayout } from '@shared/workspace-model'
 import { useStore } from '../store'
 import { api } from '../api'
 import { PaneTile } from './PaneTile'
+import { RemoteBanner } from './RemoteBanner'
+import { domainAllowed, domainDisabledReason } from '../store/remote-gates'
 import { MinimizedPaneHost } from './MinimizedPaneHost'
 import { MinimizedTray } from './MinimizedTray'
 
@@ -16,6 +18,9 @@ export function WorkspaceView({ ws }: { ws: Workspace }) {
   const addEditor = useStore(s => s.addEditor)
   const addExplorer = useStore(s => s.addExplorer)
   const maximized = useStore(s => !!s.maximized[ws.id])
+  // Remote capability gates (feature 0022, REQ-017): editor/explorer need the fs domain.
+  const fsAllowed = useStore(s => domainAllowed(s, ws.id, 'fs'))
+  const fsReason = useStore(s => fsAllowed ? '' : domainDisabledReason(s, ws.id, 'fs'))
   // Live minimized set for this workspace (runtime source of truth; folded onto the record on save).
   const minimizedIds = useStore(useShallow(s => s.minimized[ws.id] ?? []))
 
@@ -31,11 +36,12 @@ export function WorkspaceView({ ws }: { ws: Workspace }) {
   // A brand-new, truly empty workspace (no panes at all) — the add-a-pane prompt.
   if (ws.layout === null && minimizedIds.length === 0) {
     return (
-      <div data-testid="empty-workspace" style={{ display: 'grid', placeItems: 'center', height: '100%', gap: 8 }}>
+      <div data-testid="empty-workspace" style={{ display: 'grid', placeItems: 'center', height: '100%', gap: 8, position: 'relative' }}>
+        <RemoteBanner wsId={ws.id} />
         <div style={{ display: 'flex', gap: 8 }}>
           <button data-testid="add-first-terminal" onClick={() => addTerminal(ws.id, null, 'row')}>+ Terminal</button>
-          <button data-testid="add-first-editor" onClick={() => addEditor(ws.id, null, 'row')}>+ Editor</button>
-          <button data-testid="add-first-explorer" onClick={async () => { const r = await api.openFolder(); if (r) addExplorer(ws.id, null, 'row', r) }}>+ Explorer</button>
+          <button data-testid="add-first-editor" disabled={!fsAllowed} title={fsAllowed ? undefined : fsReason} onClick={() => addEditor(ws.id, null, 'row')}>+ Editor</button>
+          <button data-testid="add-first-explorer" disabled={!fsAllowed} title={fsAllowed ? undefined : fsReason} onClick={async () => { const r = await api.openFolder(); if (r) addExplorer(ws.id, null, 'row', r) }}>+ Explorer</button>
         </div>
       </div>
     )
@@ -64,6 +70,11 @@ export function WorkspaceView({ ws }: { ws: Workspace }) {
 
       {/* The per-workspace tray of restore chips, only when ≥1 pane is minimized (REQ-004). */}
       {minimizedIds.length > 0 && <MinimizedTray wsId={ws.id} paneIds={minimizedIds} />}
+
+      {/* Remote connection banner (feature 0022, REQ-016): a workspace-body OVERLAY sibling of
+          .mosaic — panes stay mounted and merely FREEZE beneath it (the keep-mounted discipline;
+          never display:none, never an unmount). */}
+      <RemoteBanner wsId={ws.id} />
     </div>
   )
 }

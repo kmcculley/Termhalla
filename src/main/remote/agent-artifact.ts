@@ -1,0 +1,35 @@
+/**
+ * The ONE canonical client version + the agent-artifact path resolver (feature 0022, REQ-006).
+ *
+ * Version-lock (locked decision 2, F19's REQ-015): the version injected into the F19 bootstrap
+ * drives BOTH the handshake identity check and the remote install path, and MUST be read from the
+ * same manifest that inlines AGENT_VERSION into the agent bundle (`src/agent/version.ts` imports
+ * this same package.json at build time) — never hand-typed, never a second source.
+ *
+ * Electron-free (deps injected) so it unit-tests under plain vitest; the composition root
+ * (services.ts) supplies the real `app.isPackaged` / `app.getAppPath()` / `process.resourcesPath`.
+ */
+import { join } from 'node:path'
+import { version } from '../../../package.json'
+
+/** The repo manifest version — string-identical to the bundle's inlined AGENT_VERSION. */
+export const MANIFEST_VERSION: string = version
+
+export interface ArtifactPathOpts {
+  packaged: boolean
+  /** The app root in dev (electron `app.getAppPath()` / the repo root). */
+  appRoot: string
+  /** Electron's `process.resourcesPath`; required when packaged. */
+  resourcesPath?: string
+}
+
+/**
+ * Where the bundled agent artifact lives:
+ * - dev: `<appRoot>/out/agent/termhalla-agent.cjs` (the `npm run build` output);
+ * - packaged: `<resourcesPath>/agent/termhalla-agent.cjs` (the electron-builder `extraResources`
+ *   landing spot — see electron-builder.yml).
+ */
+export function resolveAgentArtifactPath(opts: ArtifactPathOpts): string {
+  if (opts.packaged) return join(opts.resourcesPath ?? '', 'agent', 'termhalla-agent.cjs')
+  return join(opts.appRoot, 'out', 'agent', 'termhalla-agent.cjs')
+}

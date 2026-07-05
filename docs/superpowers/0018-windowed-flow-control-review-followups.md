@@ -15,11 +15,16 @@ loopback and are resolved — this doc tracks what stays open.
   defer-exit-behind-queued-data ordering. Inherent to F16's exit-last contract. **F18 (replay)
   must not assume a stalled pane's tail survives the child's exit**; put the truncation statement
   in F18's spec.
+- *(discharged by 0022/F21: pane ids are uuid-fresh per pane and the RemoteWorkspaceManager
+  refuses a respawn of any id already seen on the same connection — TEST-2244/TEST-2245.)*
 - **FINDING-004 (devils-advocate) — stale delta-ack after pane-id reuse.** A client that reuses a
   pane id and acks OLD-incarnation data after the new spawn decrements the NEW counter (worst
   case: one window of premature resume, or a clamp+diagnostic). Ordered-stream causality makes
   this need a lazy acker + id reuse; memory stays bounded. F21's client generates fresh ids per
   pane, which renders it unreachable — otherwise document beside D4/REQ-009.
+- *(discharged by 0022/F21: the client declares NO window in v1 — structurally, TEST-2241 — and
+  flushes residue on stream-quiet via a really-scheduled timer, TEST-2238; the weld's
+  fresh-policy-per-connection rule is pinned by TEST-2239.)*
 - **FINDING-006 (networking) — ack cadence vs declared window are independently configurable.**
   A client that declares a window smaller than its `ackEveryBytes` pauses the agent and never
   crosses its own ack threshold until its consumer calls `flush()`. Deliberate v1 design

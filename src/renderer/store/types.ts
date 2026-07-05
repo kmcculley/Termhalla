@@ -124,6 +124,21 @@ export interface State {
   // persisted. `null` = closed; `{root:null}` = picker-first; `{root:string}` = form-direct with
   // the pre-selected root held byte-verbatim (D4 — the entry point F10's OrkyPane "inject" later
   // calls). Re-invoking while open is a reference-stable no-op; close discards unconditionally.
+  // ── Remote workspaces (feature 0022 / F21) — per-workspace-home connection state + the
+  // named-agent registry mirror + the single-gesture create flow. remoteAgentPickerOpen is the
+  // session-scoped picker request flag (the cockpit-picker pattern).
+  remoteStates: Record<string, import('@shared/remote-workspace').RemoteWorkspaceState>
+  namedAgents: import('@shared/remote-agents').NamedAgent[]
+  ingestRemoteState: (s: import('@shared/remote-workspace').RemoteWorkspaceState) => void
+  seedRemoteStates: () => Promise<void>
+  connectRemote: (workspaceId: string, agentId: string) => void
+  disconnectRemote: (workspaceId: string) => void
+  loadNamedAgents: () => Promise<void>
+  saveNamedAgents: (agents: import('@shared/remote-agents').NamedAgent[]) => Promise<boolean>
+  pruneRemoteStates: (liveWorkspaceIds: string[]) => void
+  newRemoteWorkspace: (agentId?: string) => Promise<string | null>
+  remoteAgentPickerOpen: boolean
+  closeRemoteAgentPicker: () => void
   orkyCaptureRequest: { root: string | null } | null
   openOrkyCapture: (root?: string) => void
   closeOrkyCapture: () => void

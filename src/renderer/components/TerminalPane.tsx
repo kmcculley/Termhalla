@@ -9,6 +9,7 @@ import { resolveTheme } from '@shared/theme'
 import { nextFontSize } from '@shared/font-zoom'
 import { matchShortcut, resolveBindings } from '@shared/keymap'
 import { useStore, paneCwd } from '../store'
+import { domainAllowed } from '../store/remote-gates'
 import { useResolvedPaneTheme } from '../use-resolved-theme'
 import { handleClipboardKey } from './terminal-clipboard'
 import { registerSerializer, unregisterSerializer, consumeSnapshot, registerFocuser, unregisterFocuser, registerRedrawer, unregisterRedrawer } from './terminal-registry'
@@ -62,12 +63,20 @@ export function TerminalPane({ paneId, wsId, config }: { paneId: string; wsId: s
     let disposed = false
     // NOT awaited before the listeners below: main's replayInto sends the handoff snapshot as
     // pty:data BEFORE this invoke resolves, so onPtyData must already be registered by then.
+    // Remote-home workspace (feature 0022, REQ-008): the spawn carries the routing hint — main
+    // routes the pane's whole pty lifecycle over the workspace's agent connection. launch/envId
+    // are local-only features a remote pane does not carry (main strips them from the wire).
+    const home = useStore.getState().workspaces[wsId]?.home
     const spawned = api.ptySpawn({
       id: paneId, shellId: config.shellId, cwd: config.cwd,
-      cols: term.cols, rows: term.rows, launch: config.launch, envId: config.envId
+      cols: term.cols, rows: term.rows, launch: config.launch, envId: config.envId,
+      ...(home ? { remote: { workspaceId: wsId, agentId: home.agentId } } : {})
     })
     api.searchSetMuted(paneId, !!config.historyMuted)
-    if (useStore.getState().quick.recordByDefault) api.recStart(paneId)
+    // Remote gate (feature 0022, REQ-017): recording is a local-machine domain — never default-
+    // started for a pane of a remote-home workspace (the recorder taps the LOCAL pty data path,
+    // which a remote pane does not ride).
+    if (useStore.getState().quick.recordByDefault && domainAllowed(useStore.getState(), wsId, 'recording')) api.recStart(paneId)
 
     // Auto-resume Claude: a pane that had Claude running at last save (config.resumeAi) types
     // `claude --resume` once — after the restored shell has printed its prompt and gone quiet. Using

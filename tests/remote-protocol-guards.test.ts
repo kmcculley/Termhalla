@@ -1,15 +1,14 @@
 // FROZEN test suite — feature 0016-remote-protocol-core-handshake (phase 4).
 // Structural guards: purity of the protocol modules and the zero-consumer guarantee.
 //
-// TEST-746 SCOPE-GUARD RETIREMENT PATH (CONV-019): this guard asserts the ABSENCE of a
-// production consumer of src/shared/remote/ ("zero behavior change to the running app",
-// REQ-002). It is scoped to src/main/, src/preload/, src/renderer/ ONLY and keyed on the
-// feature-specific path segment 'shared/remote' (CONV-037). Expected lifecycle:
-//   - F16 (0017-agent-runtime-skeleton) adds the agent-side consumer OUTSIDE these trees
-//     (the guard SURVIVES F16 unchanged);
-//   - F21 (0022-client-routing-remote-workspace-ux) legitimately imports the protocol
-//     into src/main's transport layer and MUST retire/supersede this guard through its
-//     own tests phase — never silently during implementation.
+// TEST-746 SCOPE GUARD — SUPERSEDED as scheduled (CONV-019): the original guard asserted the
+// ABSENCE of ANY production consumer of src/shared/remote/ across src/main/, src/preload/,
+// src/renderer/ and named F21 as its retiring feature. F21 (0022-client-routing-remote-
+// workspace-ux, TASK-017) executed that retirement through ITS tests phase — never silently:
+// src/main/ now legitimately hosts the transport layer (the RemoteWorkspaceManager), so the
+// guard narrows to its natural successor: src/preload/ and src/renderer/ still NEVER import
+// shared/remote (the renderer zero-Node invariant + protocol confinement to main), keyed on
+// the same feature-specific path segment 'shared/remote' (CONV-037).
 import { describe, it, expect } from 'vitest'
 import { readdirSync, readFileSync, statSync, existsSync } from 'node:fs'
 import { resolve, join } from 'node:path'
@@ -52,10 +51,14 @@ describe('TEST-745 REQ-001 the protocol modules are environment-pure', () => {
   })
 })
 
-describe('TEST-746 REQ-002 zero production consumers (scope guard — see retirement path in the header)', () => {
-  it('no file under src/main, src/preload, or src/renderer imports shared/remote', () => {
-    const trees = ['src/main', 'src/preload', 'src/renderer']
-    const importRe = /(?:from\s+|import\s*\(\s*|require\s*\(\s*)['"][^'"]*shared\/remote[^'"]*['"]/
+describe('TEST-746 REQ-002 protocol confinement (superseded by 0022 TASK-017 — see header)', () => {
+  it('no file under src/preload or src/renderer imports shared/remote (src/main hosts the one sanctioned consumer since F21)', () => {
+    const trees = ['src/preload', 'src/renderer']
+    // Keyed on the protocol DIRECTORY 'shared/remote/' — the pure sibling models
+    // (shared/remote-agents, shared/remote-home, shared/remote-workspace) are renderer-legal and
+    // must not false-trip the guard (CONV-037; tightened by 0022 TASK-017 when its own modules
+    // exposed the latent prefix collision).
+    const importRe = /(?:from\s+|import\s*\(\s*|require\s*\(\s*)['"][^'"]*shared\/remote\/[^'"]*['"]/
     const offenders: string[] = []
     for (const tree of trees) {
       const dir = resolve(root, tree)
@@ -64,7 +67,7 @@ describe('TEST-746 REQ-002 zero production consumers (scope guard — see retire
         if (importRe.test(readFileSync(f, 'utf8'))) offenders.push(f)
       }
     }
-    expect(offenders, `production code must not consume the protocol yet (REQ-002): ${offenders.join(', ')}`)
+    expect(offenders, `the protocol is confined to src/main (renderer zero-Node invariant, 0022 REQ-005): ${offenders.join(', ')}`)
       .toEqual([])
   })
 })

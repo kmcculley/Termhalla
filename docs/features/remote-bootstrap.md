@@ -1,10 +1,12 @@
 # SSH tunnel + client-provisioned agent bootstrap (Remote Agent v1, batch 3 — F19)
 
 The CONNECTION layer of the Remote Agent epic: how the client reaches a remote host, how it knows
-the agent there is the right build, and how it makes it so when it isn't. Ships as a **headless
-library** in a new `src/remote-client/` tree plus a pure shared model — **no renderer/main/preload
-wiring** (F21 is the consumer; F15's TEST-746 scope guard and F19's own TEST-2001 scope guard both
-survive until then). Feature dir: `.orky/features/0020-ssh-tunnel-provisioned-bootstrap`.
+the agent there is the right build, and how it makes it so when it isn't. Shipped (as of F19) as a
+**headless library** in a new `src/remote-client/` tree plus a pure shared model, then **wired into
+`src/main/` by F21** (`RemoteWorkspaceManager` — see [remote-workspaces](remote-workspaces.md)): F15's
+TEST-746 and F19's TEST-2001 scope guards were superseded through F21's tests phase to their
+successor form (the tunnel is confined to `src/main/`; preload/renderer never import it). Feature
+dir: `.orky/features/0020-ssh-tunnel-provisioned-bootstrap`.
 
 ## The transport (locked decision 1)
 
@@ -87,7 +89,9 @@ handshake against the real F16 agent with the real version. Suite: TEST-2001..TE
   inherit. A signal-less `connectAgent`/`connectWithProvisioning` against a host that accepts the
   TCP connection and then wedges will wait indefinitely: **the caller (F21 UX) MUST own
   cancellation via `options.signal`** (abort kills the children and settles; mid-upload aborts are
-  reported indeterminate). Recorded as FINDING-005.
+  reported indeterminate). Recorded as FINDING-005 — the cancel affordance shipped in 0022
+  (F21): the RemoteWorkspaceManager owns an AbortController per attempt and the banner's Cancel
+  (`remote:disconnect`) aborts an in-flight connect; see docs/features/remote-workspaces.md.
 - **Remote `node` is assumed on the login shell's PATH.** A missing node exits 127 exactly like a
   missing artifact, so the flow classifies `absent`, provisions once, and ends
   `provision-ineffective` — the diagnostic names this conflation and the fix (FINDING-004; the
@@ -104,8 +108,9 @@ handshake against the real F16 agent with the real version. Suite: TEST-2001..TE
 ## Structural guards
 
 `tests/remote-client-structure.test.ts`: `src/remote-client/` imports no electron/renderer/
-preload/main module; **no file under the three app trees imports `remote-client`** (scope guard,
-retirement named: F21, CONV-019/CONV-037); `src/shared/remote-agents.ts` is environment-pure;
+preload/main module; **no file under `src/preload` or `src/renderer` imports `remote-client`** (the
+scope guard, superseded by F21 to its successor form — `src/main/` now hosts the sanctioned
+consumer, CONV-019/CONV-037); `src/shared/remote-agents.ts` is environment-pure;
 no ssh-implementation dependency (a scoped invariant, deliberately NOT an equality pin of the
 dependency sets — CONV-022); remote-client never references `package.json`; the protocol barrel is
 the only handshake source (no hand-built hello literals); the shim imports no network module.

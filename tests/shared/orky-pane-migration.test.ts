@@ -37,8 +37,10 @@ const V8_ORKY = fixture(8, {
 })
 
 describe('SCHEMA_VERSION bump + migration determinism (REQ-002)', () => {
-  it('TEST-375 REQ-002 SCHEMA_VERSION is 8', () => {
-    expect(SCHEMA_VERSION).toBe(8)
+  // SUPERSEDED point-in-time pin (CONV-019): re-pinned 8→9 by feature 0022-client-routing-
+  // remote-workspace-ux (REQ-002, the persisted workspace home — see 0022's 04-tests.md).
+  it('TEST-375 REQ-002 SCHEMA_VERSION is 9 (re-pinned by 0022 REQ-002)', () => {
+    expect(SCHEMA_VERSION).toBe(9)
   })
 
   it('TEST-376 REQ-002 a v6 and a v7 fixture deserialize with ALL panes preserved (v6: empty view-state) — twice, deep-equal both times (determinism)', () => {
@@ -59,7 +61,7 @@ describe('SCHEMA_VERSION bump + migration determinism (REQ-002)', () => {
     const parsed = deserializeWorkspace(V8_ORKY)
     expect((parsed.panes['p1'].config as { root?: unknown }).root).toBe('C:\\Dev\\MixedCase\\Proj') // verbatim, never re-cased
     const s1 = serializeWorkspace(parsed)
-    expect(JSON.parse(s1).schemaVersion).toBe(8)
+    expect(JSON.parse(s1).schemaVersion).toBe(9) // serialization stamps the CURRENT version (9 since 0022)
     const s2 = serializeWorkspace(deserializeWorkspace(s1))
     expect(s2).toBe(s1) // byte-identical fixpoint
   })
@@ -71,8 +73,12 @@ describe('SCHEMA_VERSION bump + migration determinism (REQ-002)', () => {
     }
   })
 
-  it('TEST-379 REQ-002 a schemaVersion 9 fixture still throws the existing "newer than supported" error', () => {
-    expect(() => deserializeWorkspace(fixture(9, { id: 'w', name: 'W', layout: 'p1', panes: { p1: term('p1') } })))
+  // AMENDED by feature 0022 (tests phase, the CONV-019/CONV-022 path): 9 became the CURRENT
+  // version (the persisted workspace home), so the newer-than-supported invariant re-pins at 10.
+  // This vector was the CONV-059 assembled-needle case: the 8→9 sweep greps could not see a pin
+  // spelled as a rejection-of-9 — the red run did.
+  it('TEST-379 REQ-002 a schemaVersion 10 fixture still throws the existing "newer than supported" error (re-pinned by 0022 REQ-002)', () => {
+    expect(() => deserializeWorkspace(fixture(10, { id: 'w', name: 'W', layout: 'p1', panes: { p1: term('p1') } })))
       .toThrow(/newer than supported/)
   })
 

@@ -19,6 +19,7 @@ export function CommandPalette() {
   const addPaneOfKind = useStore(s => s.addPaneOfKind)
   const newWorkspace = useStore(s => s.newWorkspace)
   const newOrkyWorkspace = useStore(s => s.newOrkyWorkspace)
+  const newRemoteWorkspace = useStore(s => s.newRemoteWorkspace)
   const setBroadcastOpen = useStore(s => s.setBroadcastOpen)
   const saveAll = useStore(s => s.saveAll)
   const refreshCloud = useStore(s => s.refreshCloud)
@@ -84,6 +85,7 @@ export function CommandPalette() {
     // picked project's cockpit workspace. Below the guard: no active workspace ⇒ the same
     // silent no-op new-workspace has (the spec-pinned precedent).
     else if (item.action === 'new-orky-workspace') void newOrkyWorkspace()
+    else if (item.action === 'new-remote-workspace') void newRemoteWorkspace()
     else if (item.action === 'broadcast') setBroadcastOpen(true)
     else if (item.action === 'save-all') { void saveAll(); pushToast('Workspaces saved') }
     else if (item.action === 'refresh-cloud') refreshCloud()

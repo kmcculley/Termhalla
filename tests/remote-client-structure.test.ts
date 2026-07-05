@@ -2,13 +2,13 @@
 // Structural guards over the new src/remote-client/ tree, the pure shared model, and the
 // no-ssh-library invariant (locked decision 1).
 //
-// TEST-2001 SCOPE-GUARD RETIREMENT PATH (CONV-019): the "zero app consumers" guard asserts the
-// ABSENCE of a production consumer of src/remote-client/ — F19 ships a headless library and the
-// running app's behavior is unchanged (REQ-001/REQ-002). It is scoped to src/main/, src/preload/,
-// src/renderer/ ONLY and keyed on the feature-specific path segment 'remote-client' (CONV-037,
-// anchored per CONV-032). F21 (0022-client-routing-remote-workspace-ux) legitimately imports the
-// tunnel into src/main's transport layer and MUST retire/supersede this guard through its own
-// tests phase — never silently during implementation.
+// TEST-2001 SCOPE GUARD — SUPERSEDED as scheduled (CONV-019): the original "zero app consumers"
+// guard (F19 ships a headless library) named F21 as its retiring feature. F21
+// (0022-client-routing-remote-workspace-ux, TASK-017) executed that retirement through ITS tests
+// phase: src/main/ now legitimately imports the tunnel (the RemoteWorkspaceManager composition),
+// so the guard narrows to its natural successor — src/preload/ and src/renderer/ still NEVER
+// import remote-client (the renderer zero-Node invariant), keyed on the same feature-specific
+// path segment 'remote-client' (CONV-037, anchored per CONV-032).
 //
 // TEST-2003 deliberately pins F19's OWN invariant (no ssh-implementation dependency), NOT an
 // equality snapshot of package.json's dependency sets — parallel sibling features legitimately
@@ -56,17 +56,17 @@ describe('TEST-2001 REQ-001 placement and isolation of the remote-client tree', 
     }
   })
 
-  it('no file under src/main, src/preload, or src/renderer imports remote-client (scope guard — retirement: F21, see header)', () => {
+  it('no file under src/preload or src/renderer imports remote-client (superseded by 0022 TASK-017 — src/main hosts the sanctioned consumer)', () => {
     const importRe = /(?:from\s+|import\s*\(\s*|require\s*\(\s*)['"][^'"]*remote-client[^'"]*['"]/
     const offenders: string[] = []
-    for (const tree of ['src/main', 'src/preload', 'src/renderer']) {
+    for (const tree of ['src/preload', 'src/renderer']) {
       const dir = resolve(root, tree)
       if (!existsSync(dir)) continue
       for (const f of walk(dir, ['.ts', '.tsx'])) {
         if (importRe.test(readFileSync(f, 'utf8'))) offenders.push(f)
       }
     }
-    expect(offenders, `the app must not consume remote-client yet (REQ-001): ${offenders.join(', ')}`).toEqual([])
+    expect(offenders, `remote-client is confined to src/main (renderer zero-Node invariant, 0022 REQ-005): ${offenders.join(', ')}`).toEqual([])
   })
 
   it('tsconfig.node.json includes BOTH src/agent and src/remote-client (typecheck folding)', () => {

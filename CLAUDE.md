@@ -230,6 +230,7 @@ related area:
 | Per-project notepad | `src/main/persistence/notes-store.ts`, `src/renderer/components/NotesPanel.tsx` | [notepad](docs/features/notepad.md) |
 | SSH / favorites store | `src/main/persistence/quick-store.ts`, `src/shared/quick.ts` | [ssh-favorites](docs/features/ssh-favorites.md) |
 | Multi-window / undock | `src/main/window-manager.ts` (+ `-core.ts`), `src/main/services.ts` | [window-management](docs/features/window-management.md) |
+| Remote workspaces (per-workspace home: routing over the ssh-tunneled agent client, the disconnected/reconnecting banner, capability greying; SCHEMA_VERSION v8→v9) | `src/main/remote/`, `src/shared/remote-home.ts`, `src/shared/remote-workspace.ts`, `src/renderer/store/remote-slice.ts`, `src/renderer/components/RemoteBanner.tsx` (+ `RemoteAgentPicker.tsx`) | [remote-workspaces](docs/features/remote-workspaces.md) |
 | Renderer store | `src/renderer/store.ts` (root) + `src/renderer/store/` (slices + helpers) | — |
 | IPC contract | `src/shared/ipc-contract.ts` | — |
 | Keybindings | `src/shared/keybindings.ts`, `src/renderer/components/KeybindingsSettings.tsx` | [keybindings](docs/features/keybindings.md) |

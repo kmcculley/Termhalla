@@ -1,0 +1,182 @@
+{
+  "feature": "0022-client-routing-remote-workspace-ux",
+  "phase": "doc-sync",
+  "gates": {
+    "brainstorm": {
+      "passed": true,
+      "at": "2026-07-04T22:38:20.327Z",
+      "evidence": "app-run: concept fixed by roadmap entry F21",
+      "external": true
+    },
+    "spec": {
+      "passed": true,
+      "at": "2026-07-04T22:52:25.249Z",
+      "firstAt": "2026-07-04T22:52:25.249Z",
+      "tokens": [
+        {
+          "token": "findings",
+          "pass": true,
+          "evidence": "no open blocking findings (CRITICAL/HIGH or contract-violation) at or before this gate"
+        }
+      ]
+    },
+    "plan": {
+      "passed": true,
+      "at": "2026-07-04T22:55:48.733Z",
+      "firstAt": "2026-07-04T22:55:48.733Z",
+      "tokens": [
+        {
+          "token": "spec-freeze",
+          "pass": true,
+          "evidence": "spec unchanged since the spec gate"
+        },
+        {
+          "token": "traceability-plan",
+          "pass": true,
+          "evidence": "all 20 REQ(s) trace to TASK"
+        },
+        {
+          "token": "findings",
+          "pass": true,
+          "evidence": "no open blocking findings (CRITICAL/HIGH or contract-violation) at or before this gate"
+        }
+      ]
+    },
+    "tests": {
+      "passed": true,
+      "at": "2026-07-05T00:40:30.906Z",
+      "firstAt": "2026-07-05T00:40:30.906Z",
+      "tokens": [
+        {
+          "token": "spec-freeze",
+          "pass": true,
+          "evidence": "spec unchanged since the spec gate"
+        },
+        {
+          "token": "tests-red",
+          "pass": true,
+          "evidence": "tests are GREEN on a tests loopback (coverage augmentation; implementation already exists) — freeze re-captured"
+        }
+      ]
+    },
+    "implement": {
+      "passed": true,
+      "at": "2026-07-05T00:41:31.894Z",
+      "firstAt": "2026-07-05T00:41:31.894Z",
+      "tokens": [
+        {
+          "token": "spec-freeze",
+          "pass": true,
+          "evidence": "spec unchanged since the spec gate"
+        },
+        {
+          "token": "build",
+          "pass": true,
+          "evidence": "build exited 0"
+        },
+        {
+          "token": "test",
+          "pass": true,
+          "evidence": "test exited 0"
+        },
+        {
+          "token": "test-freeze",
+          "pass": true,
+          "evidence": "test files unchanged since freeze"
+        }
+      ]
+    },
+    "review": {
+      "passed": true,
+      "at": "2026-07-05T00:42:35.388Z",
+      "firstAt": "2026-07-05T00:42:35.388Z",
+      "tokens": [
+        {
+          "token": "spec-freeze",
+          "pass": true,
+          "evidence": "spec unchanged since the spec gate"
+        },
+        {
+          "token": "findings",
+          "pass": true,
+          "evidence": "no open blocking findings (CRITICAL/HIGH or contract-violation) at or before this gate"
+        }
+      ]
+    },
+    "doc-sync": {
+      "passed": true,
+      "at": "2026-07-05T00:44:21.913Z",
+      "firstAt": "2026-07-05T00:44:21.913Z",
+      "tokens": [
+        {
+          "token": "spec-freeze",
+          "pass": true,
+          "evidence": "spec unchanged since the spec gate"
+        },
+        {
+          "token": "traceability",
+          "pass": true,
+          "evidence": "all 20 REQ(s) trace to TASK+TEST"
+        },
+        {
+          "token": "findings",
+          "pass": true,
+          "evidence": "no open blocking findings (CRITICAL/HIGH or contract-violation) at or before this gate"
+        }
+      ]
+    }
+  },
+  "iterations": {
+    "tests": 4
+  },
+  "escalations": [],
+  "concerns": [
+    "networking",
+    "determinism",
+    "ux"
+  ],
+  "attempts": {
+    "spec": 0,
+    "plan": 0,
+    "tests": 0,
+    "implement": 0,
+    "review": 0,
+    "doc-sync": 0
+  },
+  "implementer": {
+    "mode": "claude",
+    "agents": [
+      "orky:implementer"
+    ],
+    "winner": "orky:implementer",
+    "reason": "Re-entry after the CONV-052 e2e-witness tests-loopback: production already complete; the only src touch this cycle was the RemoteAgentPicker per-id select testid (inert to build+unit test). Gate re-derives from ground truth.",
+    "at": "2026-07-05T00:40:43.686Z"
+  },
+  "totalFailures": 2,
+  "loopbacks": [
+    {
+      "to": "tests",
+      "from": "implement",
+      "reason": "Two frozen vectors carry TEST-AUTHORING defects that fail against a correct implementation (the 0021 TEST-2105 class): (1) TEST-2227 overrides the harness connect fn but asserts the UNUSED built-in h.connect spy - the override bypasses the counter, so the coalescing assertion can never see the one real attempt; tests-phase fix: mkHarness wraps any over.connect INSIDE the counted vi.fn (spread over before connect). (2) TEST-2251's stub inventory responder serves the AFTER-reconnect inventory to the FIRST connection too, so a correct inventory-driven client legitimately attaches at connection 1 (session-survival semantics) and the exactly-once snapshot/resize counts read 2; tests-phase fix: start the rig's inventory empty and populate it only after the first wire dies (in-place array mutation), keeping every assertion's intent byte-unchanged. Test-file-only changes; freeze re-captured at the tests gate per the 0018/0019/0020/0021 loopback precedent.",
+      "at": "2026-07-04T23:57:07.746Z"
+    },
+    {
+      "to": "tests",
+      "from": "implement",
+      "reason": "The first tests-loopback amendment to remote-manager-harness.ts referenced RemoteConnectFn in the wrapped-spy fix without adding it to the type-only import list - vitest is unaffected (green) but npm run typecheck is red (TS2304), exactly the 0019-stub class the F17xF18 weld routed through a sanctioned tests-phase touch. One-line import amendment; freeze re-captured (green-on-loopback per the gatekeeper's coverage-augmentation rule).",
+      "at": "2026-07-05T00:13:24.137Z"
+    },
+    {
+      "to": "tests",
+      "from": "review",
+      "reason": "Review filed 6 findings (FINDING-001 MEDIUM sender-ungated remote:* registrar; FINDING-002 MEDIUM CONV-011 ghost entries on both sides of the bridge + closeWorkspace teardown order; FINDING-003/004/005 LOW orphan-workspace-on-refused-move / dead seed flag / hollow gate param; FINDING-006 LOW multi-window duplicate toasts, deferred to followups). None blocking; fixing eagerly in thorough mode per the 0020/0021 precedent. TDD: route through the tests phase first - add TEST-2281 (gated-sender rejection), TEST-2282 (pane-less disconnect forgets the entry), TEST-2283 (closeWorkspace order + prune wiring, guard-first movePaneToNewWorkspace) RED, freeze re-capture, then implement the fixes and re-derive the implement gate.",
+      "at": "2026-07-05T00:23:11.258Z"
+    },
+    {
+      "to": "tests",
+      "from": "review",
+      "reason": "CONV-052 witness obligation: the e2e suite (outside the npm test gate) was run green against the built implementation and unmasked TWO authoring defects fixed under the sanctioned tests-witness banner (the 0010 FINDING-016 / 0011 TEST-678 precedent): (1) the agent-row selection relied on a hasText regex that also matched the row's 'user@host' metadata line (CONV-056) - now a stable per-id data-testid on the name button (RemoteAgentPicker gained remote-agent-select-<id>); (2) empty-workspace/add-first-terminal/mosaic assertions were unscoped and strict-mode-collided with the kept-mounted boot workspace's own prompt - now scoped to [data-active=true]. No assertion weakened. Re-capture the freeze with the corrected witnessed e2e.",
+      "at": "2026-07-05T00:39:55.586Z"
+    }
+  ]
+}

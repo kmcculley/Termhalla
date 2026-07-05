@@ -33,6 +33,11 @@ export function registerPty(
     // wired to at the composition root, never here).
     onOrkyHeartbeat?: (paneId: string, hb: OrkyHeartbeat) => void
     indexer: import('../search/indexer').Indexer
+    // feature 0022: the remote-workspace router. A spawn carrying args.remote is delegated to it
+    // (short-circuiting the ENTIRE local stack: no StatusEngine/tracker/ai/recorder/indexer —
+    // REQ-011); write/resize/kill probe remote.owns(id) first. When no remote workspace exists the
+    // probe is a Map miss and the local path is byte-identical (REQ-019).
+    remote?: import('../remote/remote-workspace-manager').RemoteWorkspaceManager
   }
 ): PtyManager {
   const { shells, recorder, envVault, scriptDir, send } = deps
@@ -68,17 +73,34 @@ export function registerPty(
 
   ipcMain.handle(CH.ptySpawn, (e, a: PtySpawnArgs) => {
     deps.claimPane?.(a.id, e.sender)   // record which window owns this pane (also re-affirmed after a move)
+    if (a.remote) {
+      // Remote-home workspace (feature 0022): delegate to the manager BEFORE any local machinery.
+      // A pane already tracked on the live connection is a same-process remount (minimize/restore,
+      // cross-workspace move, undock) — flush its transit buffer and adopt, exactly the local
+      // pty.has branch below; otherwise the manager attach-or-spawns against its inventory.
+      if (deps.remote?.isAdoptable(a.id)) { deps.replayInto?.(a.id); return true }
+      return deps.remote ? deps.remote.spawn(a) : false
+    }
     if (pty.has(a.id)) { deps.replayInto?.(a.id); return true }   // moved pane: adopt the live pty, don't respawn
     const shell = shells.find(s => s.id === a.shellId) ?? shells[0]
     tracker.register(a.id)   // register BEFORE spawn: a failed spawn calls onExit->unregister synchronously, keeping the registry clean
     pty.spawn(a.id, shell, a.cwd, a.cols, a.rows, a.launch, envVault.envFor(a.envId))
     return false   // fresh spawn (adopted=true above) — the renderer's auto-resume gate needs this distinction
   })
-  ipcMain.on(CH.ptyWrite, (_e, a: PtyWriteArgs) => pty.write(a.id, a.data))
-  ipcMain.on(CH.ptyResize, (_e, a: PtyResizeArgs) => { pty.resize(a.id, a.cols, a.rows); recorder.resize(a.id, a.cols, a.rows) })
+  ipcMain.on(CH.ptyWrite, (_e, a: PtyWriteArgs) => {
+    if (deps.remote?.owns(a.id)) { deps.remote.write(a.id, a.data); return }
+    pty.write(a.id, a.data)
+  })
+  ipcMain.on(CH.ptyResize, (_e, a: PtyResizeArgs) => {
+    if (deps.remote?.owns(a.id)) { deps.remote.resize(a.id, a.cols, a.rows); return }
+    pty.resize(a.id, a.cols, a.rows); recorder.resize(a.id, a.cols, a.rows)
+  })
   // ai/tracker unregister here is synchronous; the async pty onExit fires them again but
   // both are idempotent (Map.delete returns false), so the renderer sees a single clear.
-  ipcMain.on(CH.ptyKill, (_e, id: string) => { pty.kill(id); tracker.unregister(id); ai.unregister(id); deps.onPaneGone?.(id); deps.indexer.remove(id) })
+  ipcMain.on(CH.ptyKill, (_e, id: string) => {
+    if (deps.remote?.owns(id)) { deps.remote.kill(id); return }
+    pty.kill(id); tracker.unregister(id); ai.unregister(id); deps.onPaneGone?.(id); deps.indexer.remove(id)
+  })
   // Same-window minimize/restore: arm the buffered transit BEFORE the source TerminalPane unmounts,
   // so pty:data emitted during the unmount→remount gap is buffered and replayed on re-adoption.
   ipcMain.on(CH.ptyTransitBegin, (e, id: string) => deps.beginTransit?.(id, e.sender))
