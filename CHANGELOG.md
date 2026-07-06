@@ -678,6 +678,23 @@ All notable changes to Termhalla are recorded here. The format follows
   the DOM lib, scoped to `tests/e2e`) restores them while keeping main-process and `tests/main` code
   DOM-free; a few genuine `tests/main` type slips (a QuickStore cast, a mock signature) were fixed too.
 
+## [0.15.0] - 2026-07-06
+
+Remote agent daemonization (Remote Agent v1, F23). Remote terminal sessions now survive closing
+and reopening Termhalla — true tmux-parity, fixing the v1 CONV-054 gap where closing the client
+killed a running remote `claude`. The agent gains a persistent `--daemon` mode: one `setsid`-detached
+process **per remote workspace**, listening on a workspace-keyed unix-domain socket
+(`agent-<wsToken>.sock`, created owner-only 0600 via an umask-wrapped bind); each SSH connection is a
+thin stdio↔socket bridge, so a reconnect re-attaches to the still-running daemon through the existing
+F18 inventory/replay path. Keying per workspace lets two same-host workspaces coexist independently;
+the wire-protocol version is decoupled from the app version so a routine auto-update
+(close → update → reopen) reattaches to the old-app-version daemon and sessions survive; closing a
+workspace tab now detaches (like quit/disconnect) rather than killing, and an idle daemon self-exits
+after its last session. Strictly additive — non-daemon connects and local workspaces are unchanged;
+no SCHEMA_VERSION bump, no persisted client state, no secrets (the socket is local to the host). The
+detailed entry stays under [Unreleased] above, per the same convention the 0.9.0–0.14.0 releases
+recorded (the frozen doc-drift guards pin per-feature detail there).
+
 ## [0.14.0] - 2026-07-06
 
 Remote node-pty prebuilt co-provisioning (Remote Agent v1, F22). A released installer now
