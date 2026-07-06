@@ -652,6 +652,23 @@ All notable changes to Termhalla are recorded here. The format follows
   the DOM lib, scoped to `tests/e2e`) restores them while keeping main-process and `tests/main` code
   DOM-free; a few genuine `tests/main` type slips (a QuickStore cast, a mock signature) were fixed too.
 
+## [0.14.0] - 2026-07-06
+
+Remote node-pty prebuilt co-provisioning (Remote Agent v1, F22). A released installer now
+ships a prebuilt native `node-pty` for the v1 target `linux-x64-glibc`, and connecting to a
+matching remote co-provisions it onto the agent's `node_modules` before launch — so the
+agent's lazy `import('node-pty')` resolves on a stock remote with only `node` installed, no
+manual setup (fixing the `ERR_MODULE_NOT_FOUND` that broke remote workspaces on hosts without
+node-pty, e.g. OpsHub on 0.13.0). The install self-repairs from a corrupted/torn binary
+(ground-truth sha re-verify every connect, never trusting a self-written marker), the promote
+is a race-tolerant rename-first transaction (concurrent installs both succeed), and integrity
+is a per-file sha-256 manifest verified at the release gate and again on the remote. A new
+`build-node-pty-linux` release job builds the binary on an old-glibc base; nothing native is
+committed. Strictly additive — `connectWithProvisioning` is byte-identical without the option
+— with no SCHEMA_VERSION bump, no persisted state, and no secrets. The detailed entry stays
+under [Unreleased] above, per the same convention the 0.9.0–0.13.0 releases recorded (the
+frozen doc-drift guards pin per-feature detail there).
+
 ## [0.13.0] - 2026-07-05
 
 File menu — save, close, and reopen a workspace as a document. A native File menu

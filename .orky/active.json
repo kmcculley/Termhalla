@@ -1,9 +1,9 @@
 {
-  "feature": ".orky/features/0023-remote-node-pty-prebuilt",
+  "feature": ".orky/features/0022-client-routing-remote-workspace-ux",
   "projectRoot": "C:/dev/Termhalla",
   "phase": "driving",
-  "lastTickAt": "2026-07-06T11:16:17.737Z",
-  "lastAction": "workflow tick",
+  "lastTickAt": "2026-07-06T11:19:30.418Z",
+  "lastAction": "feature done",
   "runs": {
     ".orky/features/0017-agent-runtime-skeleton": {
       "phase": "human-review",
@@ -33,16 +33,6 @@
     ".orky/features/0022-client-routing-remote-workspace-ux": {
       "phase": "driving",
       "lastTickAt": "2026-07-05T00:44:32.287Z",
-      "lastAction": "workflow tick"
-    },
-    ".orky/features/0023-remote-node-pty-prebuilt": {
-      "phase": "driving",
-      "lastTickAt": "2026-07-06T11:16:17.737Z",
-      "lastAction": "workflow tick"
-    },
-    ".orky\\features\\0023-remote-node-pty-prebuilt": {
-      "phase": "tests",
-      "lastTickAt": "2026-07-06T04:14:48.851Z",
       "lastAction": "workflow tick"
     }
   }
