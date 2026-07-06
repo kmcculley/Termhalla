@@ -18,7 +18,16 @@ export default defineConfig({
   build: {
     target: 'node18',
     outDir: 'out/agent',
-    emptyOutDir: true,
+    // NOT emptied (feature 0023): the release workflow stages node-pty prebuilts into the
+    // SIBLING out/agent/prebuilds/ dir (resolvePrebuiltRoot in src/main/remote/agent-artifact.ts)
+    // BEFORE `npm run package` re-runs this build — emptying out/agent here would wipe them right
+    // back out. This build always overwrites its one fixed-name output file
+    // (termhalla-agent.cjs), so leaving prior sibling content in place is safe. Every test/CI
+    // caller that needs a clean directory overrides both outDir AND emptyOutDir explicitly (see
+    // tests/agent-stdio-*.test.ts, tests/remote-client-gold.test.ts,
+    // tests/integration-*-full-stack.test.ts, tests/integration-node-pty-prebuilt.test.ts) and is
+    // unaffected by this default.
+    emptyOutDir: false,
     minify: false,
     ssr: resolve('src/agent/main.ts'),
     rollupOptions: {

@@ -24,6 +24,12 @@ files:
 extraResources:
   - from: out/agent/termhalla-agent.cjs
     to: agent/termhalla-agent.cjs
+  # The release-time-staged node-pty prebuilts (feature 0023): the client co-provisions the
+  # matching Linux target to a remote on connect (resolvePrebuiltRoot in
+  # src/main/remote/agent-artifact.ts). Rides outside the asar too, alongside the agent artifact,
+  # so the upload stream can read the bundle's files as plain files.
+  - from: out/agent/prebuilds
+    to: agent/prebuilds
 # node-pty ships a prebuilt/recompiled .node; native binaries cannot be loaded from
 # inside an asar archive, so unpack the whole module to app.asar.unpacked/.
 asarUnpack:

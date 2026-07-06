@@ -87,7 +87,11 @@ The core depends on an injected backend interface (`src/agent/pty-backend.ts`):
 - **`node-pty`** (default) — the real thing: POSIX-shaped, **Linux-only in v1** (macOS is
   designed-cheap later; Windows-remote is a non-goal). The `node-pty` module is loaded
   **lazily, only when this backend is selected** — dev checkouts carry an Electron-ABI binary
-  a plain-Node process cannot load, so `--pty=fake` must never touch it.
+  a plain-Node process cannot load, so `--pty=fake` must never touch it. A stock `(linux, x64,
+  glibc)` remote with only `node` on it used to fail this `import` with `ERR_MODULE_NOT_FOUND` —
+  feature 0023 has the client **co-provision** a released prebuilt `node-pty` onto the remote at
+  connect time so the bare specifier resolves with zero manual remote setup; see
+  [remote-node-pty-prebuilt](remote-node-pty-prebuilt.md).
 - **`fake`** — a deterministic scripted pseudo-shell (`echo` / `cwd` / `pwd` / `size` /
   `exit <code>` / `flood <chunks> <chunkBytes>`; OSC 133 + OSC 9;9 emission; no tty echo; no
   time/RNG). This is what CI and the vitest suite drive: no real ssh and no real node-pty

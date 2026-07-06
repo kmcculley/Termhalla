@@ -7,6 +7,20 @@ All notable changes to Termhalla are recorded here. The format follows
 ## [Unreleased]
 
 ### Added
+- **Remote node-pty prebuilt co-provisioning (Remote Agent v1, batch 6 — F22).** A released
+  installer now ships a prebuilt native `node-pty` for the v1 target `linux-x64-glibc` (staged
+  and release-gate-verified with a per-file sha-256 manifest, nothing native committed to the
+  repo), and connecting to a matching remote **co-provisions** it onto
+  `<remoteAgentDir>/node_modules/node-pty` before the agent launches — the agent's lazy
+  `import('node-pty')` now resolves on a stock remote with only `node` installed, no manual setup.
+  The provision decision re-verifies the on-disk native binary from ground truth every connect
+  (never trusts a self-written marker alone), so a torn/corrupted install self-repairs instead of
+  wedging permanently; the promote is a race-tolerant rename-first transaction (two concurrent
+  connects installing the same release both succeed); a bounded, early-settling probe channel
+  guards against an endless-stdout remote; and a too-old-glibc launch failure always gets an
+  actionable floor hint. Strictly additive — `connectWithProvisioning` behaves byte-identically
+  when the new option is absent, and `--pty=fake` is untouched. No `SCHEMA_VERSION` change, no
+  persisted state, no secrets. (`docs/features/remote-node-pty-prebuilt.md`)
 - **File menu — save / close / reopen a workspace as a document.** A native **File** menu
   (New · Open Workspace… · Reopen Closed Workspace… · Save · Save As… · Exit) makes a workspace a
   first-class document. **Save As…** writes a portable `.thws` file (the same versioned

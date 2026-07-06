@@ -295,6 +295,31 @@ to it when a review surfaces a lesson general enough to outlive its feature.
   enumeration cannot see assembled/self-match-proof needles (e.g. `'toBe(' + '7)'`), but the red
   run itself always can.
   *(from FINDING-005 in 0018-windowed-flow-control)*
+- **CONV-060** — A spec consequence written as a MUST-hold guarantee about concurrency,
+  idempotency, or atomicity (e.g. "two racing writers both succeed", "a reader never observes a
+  torn state") MUST carry its own acceptance vector at the tests phase that actually interleaves
+  the race — never prose-only. A guarantee stated but not exercised by an interleaved test passed
+  every gate while being false in practice.
+  *(from FINDING-013 in 0023-remote-node-pty-prebuilt)*
+- **CONV-061** — A skip/idempotency decision that trusts a self-written integrity marker (a file
+  the same system wrote at a prior install/commit time) MUST re-verify the artifact(s) it guards
+  from ground truth (re-hash/re-read the actual bytes) before trusting the marker's claim, and that
+  re-verification MUST cover every file the guarded operation depends on — not one representative
+  file. A marker-only check is blind to the guarded artifact being torn, corrupted, or hand-damaged
+  after the marker was written, producing a permanent, unrecoverable wedge with no self-repair path.
+  *(from FINDING-020 and its FINDING-027 completeness amendment in 0023-remote-node-pty-prebuilt)*
+- **CONV-062** — A test that must act mid-async-operation (abort/kill/mutate while a channel or
+  operation is open) MUST synchronize on an observed signal — a ledger line, a state file, or an
+  awaited event — never a fixed wall-clock timer racing process spawn or channel setup. A bare
+  `setTimeout` before an abort/mutation is inherently a race against machine load and spawn
+  latency, and passes in CI only by a timing margin nobody has verified.
+  *(from FINDING-025 in 0023-remote-node-pty-prebuilt)*
+- **CONV-063** — When a filesystem directory listing (`readdir`/`readdirSync`) feeds a wire
+  payload, a hash input, or a reproducible build artifact, the listing MUST be sorted by name
+  before use — directory enumeration order is unspecified and platform/filesystem-dependent, and
+  relying on it silently makes the payload's bytes (and any hash over them) non-reproducible across
+  hosts and runs.
+  *(from FINDING-008 in 0023-remote-node-pty-prebuilt)*
 
 ## Principles
 Higher-level stances that inform specs and reviews but are too broad to gate mechanically.

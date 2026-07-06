@@ -8,7 +8,59 @@ permissions:
   contents: write # create the Release and upload installer + latest.yml
 
 jobs:
+  # Feature 0023 (REQ-002/REQ-006/REQ-007): build the pinned node-pty version from source inside
+  # a container whose glibc is at or below the v1 floor (2.31 — Ubuntu 20.04 "focal", the locked
+  # build-on-oldest principle: a pty.node built here loads on any newer-glibc host too). No
+  # Windows Spectre/NDEBUG patch here — that patch (patches/node-pty+*.patch) is MSVC-only; this
+  # is a plain ELF build of the pinned version's registry tarball (release CI may reach the npm
+  # registry — only *remotes* must ever work offline, per the spec's definitions).
+  build-node-pty-linux:
+    name: Build node-pty (linux-x64-glibc)
+    runs-on: ubuntu-latest
+    container:
+      image: ubuntu:20.04 # glibc 2.31 — the v1 floor (Definitions, REQ-002).
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Install the build toolchain and Node
+        shell: bash
+        run: |
+          export DEBIAN_FRONTEND=noninteractive
+          apt-get update
+          apt-get install -y --no-install-recommends ca-certificates curl python3 make g++ git
+          curl -fsSL https://deb.nodesource.com/setup_22.x | bash -
+          apt-get install -y --no-install-recommends nodejs
+
+      - name: Resolve the pinned node-pty version (never hand-typed — REQ-006)
+        id: pin
+        shell: bash
+        run: |
+          VERSION=$(node -p "require('./package.json').dependencies['node-pty']")
+          echo "node-pty version: $VERSION"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Build node-pty from the registry tarball (ELF — no Windows Spectre/NDEBUG patch)
+        shell: bash
+        run: |
+          mkdir -p /tmp/node-pty-build
+          cd /tmp/node-pty-build
+          npm pack "node-pty@${{ steps.pin.outputs.version }}"
+          tar xzf node-pty-*.tgz
+          cd package
+          npm install --build-from-source
+
+      - name: Smoke-load the built pty.node under plain node (REQ-007)
+        shell: bash
+        run: node -e "require('/tmp/node-pty-build/package/build/Release/pty.node')"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: node-pty-linux-x64-glibc
+          path: /tmp/node-pty-build/package/build/Release/pty.node
+          if-no-files-found: error
+
   release:
+    needs: build-node-pty-linux
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v5
@@ -31,12 +83,44 @@ jobs:
             exit 1
           fi
 
+      - name: Download the Linux node-pty prebuilt
+        uses: actions/download-artifact@v4
+        with:
+          name: node-pty-linux-x64-glibc
+          path: artifacts/node-pty-linux-x64-glibc
+
+      # Feature 0023 (REQ-001/REQ-003): stage the REQ-001 bundle shape from the SAME pinned
+      # node-pty source the Linux build job used, then gate the release on it — BEFORE the
+      # packaging step below ever runs. A prebuilt-less LOCAL package build still succeeds; this
+      # gate lives only here, in the release workflow (never baked into the package script).
+      - name: Stage the node-pty prebuilt bundle
+        shell: bash
+        run: |
+          VERSION=$(node -p "require('./package.json').dependencies['node-pty']")
+          npm pack "node-pty@$VERSION" --pack-destination "$RUNNER_TEMP"
+          mkdir -p "$RUNNER_TEMP/node-pty-src"
+          tar xzf "$RUNNER_TEMP"/node-pty-*.tgz -C "$RUNNER_TEMP/node-pty-src" --strip-components=1
+          node scripts/stage-node-pty-prebuild.mjs \
+            --source "$RUNNER_TEMP/node-pty-src" \
+            --pty-node artifacts/node-pty-linux-x64-glibc/pty.node \
+            --out out/agent/prebuilds \
+            --target linux-x64-glibc
+
+      - name: Verify the node-pty prebuilt bundle (release gate — REQ-003)
+        shell: bash
+        run: |
+          VERSION=$(node -p "require('./package.json').dependencies['node-pty']")
+          node scripts/verify-node-pty-prebuild.mjs --root out/agent/prebuilds --version "$VERSION"
+
       # Build the artifacts WITHOUT letting electron-builder publish. electron-builder's GitHub
       # publisher races when multiple artifacts lazily create the release, producing TWO release
       # objects for one tag with the assets split between them (observed on v0.2.0). `npm run
       # package` = electron-vite build (compiles out/) + electron-builder --win --publish never,
       # which rebuilds native deps for Electron's ABI, packs the NSIS installer, and still emits
       # latest.yml (the publish config is present) into dist/ — but creates no GitHub release.
+      # The node-pty prebuilt staged above rides along: out/agent/prebuilds survives this rebuild
+      # (vite.agent.config.ts no longer empties out/agent — see the comment there) and
+      # electron-builder.yml's extraResources ships it into the installer (REQ-004).
       - name: Build installer
         run: npm run package
 

@@ -1,0 +1,229 @@
+{
+  "feature": "0023-remote-node-pty-prebuilt",
+  "phase": "doc-sync",
+  "gates": {
+    "brainstorm": {
+      "passed": true,
+      "at": "2026-07-05T21:47:01.173Z",
+      "evidence": "human confirmed concept",
+      "external": true
+    },
+    "spec": {
+      "passed": true,
+      "at": "2026-07-06T02:20:49.101Z",
+      "firstAt": "2026-07-06T02:20:49.101Z",
+      "tokens": [
+        {
+          "token": "findings",
+          "pass": true,
+          "evidence": "no open blocking findings (CRITICAL/HIGH or contract-violation) at or before this gate"
+        }
+      ]
+    },
+    "plan": {
+      "passed": true,
+      "at": "2026-07-06T02:25:37.284Z",
+      "firstAt": "2026-07-06T02:25:37.284Z",
+      "tokens": [
+        {
+          "token": "spec-freeze",
+          "pass": true,
+          "evidence": "spec unchanged since the spec gate"
+        },
+        {
+          "token": "traceability-plan",
+          "pass": true,
+          "evidence": "all 26 REQ(s) trace to TASK"
+        },
+        {
+          "token": "findings",
+          "pass": true,
+          "evidence": "no open blocking findings (CRITICAL/HIGH or contract-violation) at or before this gate"
+        }
+      ]
+    },
+    "tests": {
+      "passed": true,
+      "at": "2026-07-06T04:15:30.599Z",
+      "firstAt": "2026-07-06T04:15:30.599Z",
+      "tokens": [
+        {
+          "token": "spec-freeze",
+          "pass": true,
+          "evidence": "spec unchanged since the spec gate"
+        },
+        {
+          "token": "tests-red",
+          "pass": true,
+          "evidence": "tests are RED (exit 1) — freeze snapshot captured"
+        }
+      ]
+    },
+    "implement": {
+      "passed": true,
+      "at": "2026-07-06T04:22:27.916Z",
+      "firstAt": "2026-07-06T04:22:27.916Z",
+      "tokens": [
+        {
+          "token": "spec-freeze",
+          "pass": true,
+          "evidence": "spec unchanged since the spec gate"
+        },
+        {
+          "token": "build",
+          "pass": true,
+          "evidence": "build exited 0"
+        },
+        {
+          "token": "test",
+          "pass": true,
+          "evidence": "test exited 0"
+        },
+        {
+          "token": "test-freeze",
+          "pass": true,
+          "evidence": "test files unchanged since freeze"
+        }
+      ]
+    },
+    "review": {
+      "passed": true,
+      "at": "2026-07-06T04:34:18.366Z",
+      "firstAt": "2026-07-06T04:34:18.366Z",
+      "tokens": [
+        {
+          "token": "spec-freeze",
+          "pass": true,
+          "evidence": "spec unchanged since the spec gate"
+        },
+        {
+          "token": "findings",
+          "pass": true,
+          "evidence": "no open blocking findings (CRITICAL/HIGH or contract-violation) at or before this gate"
+        }
+      ]
+    },
+    "doc-sync": {
+      "passed": true,
+      "at": "2026-07-06T04:44:10.479Z",
+      "firstAt": "2026-07-06T04:44:10.479Z",
+      "tokens": [
+        {
+          "token": "spec-freeze",
+          "pass": true,
+          "evidence": "spec unchanged since the spec gate"
+        },
+        {
+          "token": "traceability",
+          "pass": true,
+          "evidence": "all 26 REQ(s) trace to TASK+TEST"
+        },
+        {
+          "token": "findings",
+          "pass": true,
+          "evidence": "no open blocking findings (CRITICAL/HIGH or contract-violation) at or before this gate"
+        }
+      ]
+    },
+    "human-review": {
+      "passed": true,
+      "at": "2026-07-06T11:15:41.472Z",
+      "evidence": "Kevin approved & finalize at the human-review checkpoint (2026-07-06). All autonomous gates green (spec→doc-sync); final verification: 1994 vitest tests pass, npm run build + typecheck green, spec-freeze + test-freeze intact, all REQs trace to TASK+TEST. Every blocking finding fixed (all HIGH + contract violations: 013/020/017/021/010/009/005/022/023/024). 19+7=26 non-blocking LOW/MEDIUM findings deferred to docs/superpowers/0023-remote-node-pty-prebuilt-review-followups.md. Implement ran A/B (winner A, sonnet) then 3 scoped single-implementer loop-back fixes per human escalation decisions (ESC-001..004).",
+      "external": true
+    }
+  },
+  "iterations": {
+    "spec": 2,
+    "tests": 1
+  },
+  "escalations": [
+    {
+      "id": "ESC-001",
+      "phase": "review",
+      "reason": "Decide whether to implement race-tolerant final rename and add concurrency acceptance test for concurrent node-pty installs, treating ENOTEMPTY/EEXIST as benign lost race vs serializing via remote lock.",
+      "kind": "judgment",
+      "finding": "FINDING-013",
+      "status": "resolved",
+      "at": "2026-07-06T00:53:48.040Z",
+      "decision": "Race-tolerant idempotent promote (human: Kevin). Fix REQ-015's concurrency MUST as follows: in UNPACK_SRC's final promote, treat ENOTEMPTY/EEXIST on renameSync(tmp,finalDir) as a BENIGN LOST RACE (another connect already promoted an identical, sha-verified install) rather than a byte/short-read failure: verify the now-present marker's ptyNodeSha256 equals the shipped manifest sha, and if it matches exit 0 (success); only fail if the present install's sha differs. Do NOT add a remote lock. Add a concurrency acceptance vector at the tests phase: two overlapping installs with interleaved promote windows must BOTH exit 0 with the final dir intact and marker valid. Adopt the proposed CONV: a spec MUST-hold consequence (concurrency/idempotency/atomicity) must carry its own acceptance test, never only prose. Loop back to spec so REQ-015 states the race-tolerant semantics + acceptance criterion, then re-propagate through plan/tests/implement.",
+      "resolvedAt": "2026-07-06T00:59:52.997Z"
+    },
+    {
+      "id": "ESC-002",
+      "phase": "review",
+      "reason": "Make the final rename race-tolerant by treating ENOTEMPTY/EEXIST at promote as a benign lost race (verify the marker equals the manifest and exit 0), or use atomic renameat2 RENAME_EXCHANGE to serialize; add a concurrency acceptance vector test running two installs with overlapping promote windows to ensure both complete successfully, verifying the spec's MUST-hold REQ-015 guarantee.",
+      "kind": "judgment",
+      "finding": "FINDING-013",
+      "status": "resolved",
+      "at": "2026-07-06T01:01:26.528Z",
+      "decision": "Same decision as ESC-001 (human: Kevin): race-tolerant idempotent promote, NOT a remote lock. In UNPACK_SRC's final promote, treat ENOTEMPTY/EEXIST on rename(tmp,finalDir) as a benign lost race: verify the now-present marker's ptyNodeSha256 == shipped manifest sha → exit 0; fail only if sha differs. Add a concurrency acceptance vector (two overlapping installs both exit 0, final dir intact). Adopt the CONV: a spec MUST-hold concurrency/idempotency guarantee needs its own acceptance test. Looping back to spec to re-propagate.",
+      "resolvedAt": "2026-07-06T01:03:56.748Z"
+    },
+    {
+      "id": "ESC-003",
+      "phase": "review",
+      "reason": "Should PROBE_SRC verify the on-disk pty.node binary integrity before skipping reinstall, to prevent permanent wedges when a native binary is later corrupted?",
+      "kind": "judgment",
+      "finding": "FINDING-020",
+      "status": "resolved",
+      "at": "2026-07-06T02:03:59.899Z",
+      "decision": "Fix per human (Kevin): make the skip decision verify the on-disk native binary from ground truth, not the self-claimed marker. PROBE_SRC must re-read + sha-256 the actual node_modules/node-pty/build/Release/pty.node bytes and report actualPtyNodeSha256; decideNodePtyProvision's skip requires actualPtyNodeSha256 === local manifest sha (a corrupt/missing binary forces reinstall = self-repair). Fix the closely-related robustness cluster in the same pass: FINDING-017 (same actual-hash gating), FINDING-021 (make promote atomic — rename without prior rm, sha-compare on collision — and/or re-probe+retry once on a post-install launch resolution failure; add a connect-flow concurrency vector), FINDING-010 (cap probe stdout to a bounded window + settle on sentinel), FINDING-009 (call glibcFloorHint on any GLIBC_NOT_FOUND launch fatal, not only module-resolution failures; add a test), FINDING-005 (manifest carries sha for ALL shipped files — package.json + lib/**/*.js — verified in both the release gate and UNPACK_SRC). Also stop emitting 'exactly one install was applied' wording on a skip path where no install ran. Adopt the CONV: a skip decision that trusts a self-written integrity marker MUST re-verify the guarded artifact from ground truth. Deferred (followups doc): 001/002/003/004/006/007/008/011/012/014/015/016/018/019. Loop back to spec to amend REQ-012/REQ-015 (+ integrity REQ) then re-propagate.",
+      "resolvedAt": "2026-07-06T02:12:33.715Z"
+    },
+    {
+      "id": "ESC-004",
+      "phase": "review",
+      "reason": "Validate and enforce strict local manifest completeness at connect time: confirm readLocalManifest should validate that the 'files' object covers every file in the bundle directory and reject any unmapped discovered files before upload (contract: REQ-014 MUST all shas be manifest-sourced, not self-computed from received bytes). FINDING-024 (contract violation) is the same defect refiled — should both be addressed together in a single fix.",
+      "kind": "judgment",
+      "finding": "FINDING-022",
+      "status": "resolved",
+      "at": "2026-07-06T04:01:03.986Z",
+      "decision": "Fix per human (Kevin) — completes the FINDING-005 integrity fix. FINDING-022 + FINDING-024 (both CONTRACT / REQ-014): in coProvisionNodePty's payload builder, DELETE the '?? createHash(sha256).update(f.bytes)' self-compute fallback — every uploaded file's sha256 MUST come from the local manifest's files map (marker excepted). In readLocalManifest, validate 'files' is a plain (non-array) object of non-empty-string values AND its key set covers every file walkBundleDir actually finds under the bundle dir (bidirectional parity, mirroring the release gate's verifyBundleFiles); on any missing/extra/malformed entry fail with a specific 'local manifest incomplete/malformed' fatal naming the path(s), per REQ-019's malformed-manifest fatal class — before any ssh upload. Deferred to followups (non-blocking MEDIUM/LOW): 025 (test abort timer), 026 (one-prebuilt-per-target assumption), 027 (extend ground-truth verify to lib/*.js), 028 (matched-target manifest read), 029 (terminal-wording edge). Loop back to tests to add the client-side reject-unmapped/malformed-manifest acceptance vector, then implement.",
+      "resolvedAt": "2026-07-06T04:03:50.777Z"
+    }
+  ],
+  "concerns": [
+    "security",
+    "networking",
+    "determinism",
+    "packaging"
+  ],
+  "attempts": {
+    "spec": 0,
+    "plan": 0,
+    "tests": 0,
+    "implement": 0,
+    "review": 0,
+    "doc-sync": 0
+  },
+  "implementer": {
+    "mode": "claude",
+    "agents": [
+      "orky:implementer@sonnet"
+    ],
+    "winner": "orky:implementer@sonnet",
+    "reason": "Contract fix (FINDING-022/024, REQ-014): dropped the '?? self-compute sha' fallback so every uploaded file's sha is manifest-sourced; added validateManifestFiles (shape + bidirectional on-disk parity) into readLocalManifest, fatal before any ssh upload. Single surgical bootstrap.ts change. Router suggested A/B; single sonnet used (narrow well-specified fix; budget). Gate green (1994 tests incl TEST-2380/81/82, build, typecheck, freeze).",
+    "at": "2026-07-06T04:22:40.176Z"
+  },
+  "totalFailures": 4,
+  "loopbacks": [
+    {
+      "to": "spec",
+      "from": "review",
+      "reason": "FINDING-013 (HIGH, contract): REQ-015 concurrency MUST unmet+unverified. Per human ESC-001/002 decision, implement race-tolerant promote (ENOTEMPTY/EEXIST=benign lost race, verify marker sha, exit 0) and add a concurrency acceptance vector. Spec-origin: amend REQ-015 semantics + acceptance criterion, re-propagate through plan/tests/implement.",
+      "at": "2026-07-06T01:03:56.821Z"
+    },
+    {
+      "to": "spec",
+      "from": "review",
+      "reason": "FINDING-020 (HIGH) + robustness cluster (017/021/010/009/005): skip decision trusts self-claimed marker, never re-verifies on-disk pty.node → permanent wedge on corruption; plus unbounded probe stdout, unreachable glibc hint, partial payload integrity. Per human ESC-003 decision, re-verify guarded artifact from ground truth + fix cluster. Spec-origin: amend REQ-012/015 + integrity REQ.",
+      "at": "2026-07-06T02:12:33.843Z"
+    },
+    {
+      "to": "tests",
+      "from": "review",
+      "reason": "FINDING-022/024 (CONTRACT/REQ-014): the FINDING-005 integrity fix's '?? self-compute' fallback + weak manifest.files validation lets an unmapped/tampered bundle file ship a self-computed sha, defeating manifest-sourced integrity. Per human ESC-004: drop fallback, add client-side bidirectional file-set parity + manifest shape validation, fatal before upload. Needs a client-side acceptance vector → tests.",
+      "at": "2026-07-06T04:03:51.156Z"
+    }
+  ]
+}

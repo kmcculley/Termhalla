@@ -6066,5 +6066,863 @@
     "totalFailures": 2,
     "wallClockMs": 46408,
     "at": "2026-07-05T00:52:39.426Z"
+  },
+  {
+    "action": "gate.check",
+    "feature": "0023-remote-node-pty-prebuilt",
+    "phase": "spec",
+    "pass": true,
+    "attempts": 0,
+    "totalFailures": 0,
+    "wallClockMs": 1,
+    "at": "2026-07-05T22:09:28.781Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "remote-agent.md",
+    "role": "integration-tester",
+    "agentType": "orky:integration-tester",
+    "transcript": "agent-add4ea00f86093668",
+    "dir": "C--dev-Termhalla/a8215db4-5826-4e0f-8d03-64a98806dbeb/subagents",
+    "served": [
+      "claude-fable-5"
+    ],
+    "firstModel": "claude-fable-5",
+    "lastModel": "claude-fable-5",
+    "messages": 81,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-05T22:10:23.508Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0023-remote-node-pty-prebuilt.",
+    "role": "spec-writer",
+    "agentType": "orky:spec-writer",
+    "transcript": "agent-a29869d28415f2477",
+    "dir": "C--dev-Termhalla/c111f95c-b2cc-41a0-80c6-0ecb6bce3277/subagents/workflows/wf_0acb10eb-75a",
+    "served": [
+      "claude-fable-5"
+    ],
+    "firstModel": "claude-fable-5",
+    "lastModel": "claude-fable-5",
+    "messages": 41,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-05T22:10:23.509Z"
+  },
+  {
+    "action": "producer.select",
+    "feature": "0023-remote-node-pty-prebuilt",
+    "role": "planner",
+    "phase": "plan",
+    "tier": "low",
+    "model": "sonnet",
+    "effort": "medium",
+    "trigger": "base",
+    "attempts": 0,
+    "at": "2026-07-05T22:11:22.686Z"
+  },
+  {
+    "action": "gate.check",
+    "feature": "0023-remote-node-pty-prebuilt",
+    "phase": "plan",
+    "pass": true,
+    "attempts": 0,
+    "totalFailures": 0,
+    "wallClockMs": 3,
+    "at": "2026-07-05T22:14:37.251Z"
+  },
+  {
+    "action": "gate.check",
+    "feature": "0023-remote-node-pty-prebuilt",
+    "phase": "tests",
+    "pass": true,
+    "attempts": 0,
+    "totalFailures": 0,
+    "wallClockMs": 39901,
+    "at": "2026-07-05T22:39:15.012Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0023-remote-node-pty-prebuilt.",
+    "role": "planner",
+    "agentType": "orky:planner",
+    "transcript": "agent-a1ac493866d2ed991",
+    "dir": "C--dev-Termhalla/c111f95c-b2cc-41a0-80c6-0ecb6bce3277/subagents/workflows/wf_0acb10eb-75a",
+    "served": [
+      "claude-sonnet-5"
+    ],
+    "firstModel": "claude-sonnet-5",
+    "lastModel": "claude-sonnet-5",
+    "messages": 27,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-05T22:39:16.150Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0023-remote-node-pty-prebuilt.",
+    "role": "test-designer",
+    "agentType": "orky:test-designer",
+    "transcript": "agent-a638843cee9d61073",
+    "dir": "C--dev-Termhalla/c111f95c-b2cc-41a0-80c6-0ecb6bce3277/subagents/workflows/wf_0acb10eb-75a",
+    "served": [
+      "claude-fable-5"
+    ],
+    "firstModel": "claude-fable-5",
+    "lastModel": "claude-fable-5",
+    "messages": 97,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-05T22:39:16.150Z"
+  },
+  {
+    "action": "producer.select",
+    "feature": "0023-remote-node-pty-prebuilt",
+    "role": "implementer",
+    "phase": "implement",
+    "tier": "low",
+    "model": "sonnet",
+    "effort": "medium",
+    "trigger": "base",
+    "attempts": 0,
+    "at": "2026-07-05T22:40:20.786Z"
+  },
+  {
+    "action": "producer.select",
+    "feature": "0023-remote-node-pty-prebuilt",
+    "role": "implementer",
+    "phase": "implement",
+    "tier": "low",
+    "model": "sonnet",
+    "effort": "medium",
+    "trigger": "base",
+    "attempts": 0,
+    "at": "2026-07-05T23:19:51.432Z"
+  },
+  {
+    "action": "gate.check",
+    "feature": "0023-remote-node-pty-prebuilt",
+    "phase": "implement",
+    "pass": true,
+    "attempts": 0,
+    "totalFailures": 0,
+    "wallClockMs": 57006,
+    "at": "2026-07-05T23:55:27.381Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0023-remote-node-pty-prebuilt",
+    "role": "implementer",
+    "agentType": "orky:implementer",
+    "transcript": "agent-a744a6bfdbd7384dc",
+    "dir": "C--dev-Termhalla/c111f95c-b2cc-41a0-80c6-0ecb6bce3277/subagents",
+    "served": [
+      "claude-sonnet-5"
+    ],
+    "firstModel": "claude-sonnet-5",
+    "lastModel": "claude-sonnet-5",
+    "messages": 216,
+    "requested": "sonnet",
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-05T23:55:28.548Z"
+  },
+  {
+    "action": "gate.check",
+    "feature": "0023-remote-node-pty-prebuilt",
+    "phase": "implement",
+    "pass": true,
+    "attempts": 0,
+    "totalFailures": 0,
+    "wallClockMs": 55172,
+    "at": "2026-07-06T00:37:28.252Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0023-remote-node-pty-prebuilt",
+    "role": "implementer",
+    "agentType": "orky:implementer",
+    "transcript": "agent-aa2e53566ed9b7348",
+    "dir": "C--dev-Termhalla/c111f95c-b2cc-41a0-80c6-0ecb6bce3277/subagents",
+    "served": [
+      "claude-opus-4-8"
+    ],
+    "firstModel": "claude-opus-4-8",
+    "lastModel": "claude-opus-4-8",
+    "messages": 183,
+    "requested": "sonnet",
+    "downgraded": false,
+    "servedFraction": 0,
+    "at": "2026-07-06T00:37:29.292Z"
+  },
+  {
+    "action": "gate.check",
+    "feature": "0023-remote-node-pty-prebuilt",
+    "phase": "review",
+    "pass": false,
+    "attempts": 1,
+    "totalFailures": 1,
+    "wallClockMs": 3,
+    "failed": [
+      "findings"
+    ],
+    "at": "2026-07-06T00:52:54.584Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0023-remote-node-pty-prebuilt.",
+    "role": "reviewer",
+    "agentType": "orky:reviewer",
+    "transcript": "agent-a54fc640ca0dc94ab",
+    "dir": "C--dev-Termhalla/c111f95c-b2cc-41a0-80c6-0ecb6bce3277/subagents/workflows/wf_5dc5d240-3a2",
+    "served": [
+      "claude-opus-4-8"
+    ],
+    "firstModel": "claude-opus-4-8",
+    "lastModel": "claude-opus-4-8",
+    "messages": 57,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-06T00:52:55.717Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0023-remote-node-pty-prebuilt.",
+    "role": "reviewer",
+    "agentType": "orky:reviewer",
+    "transcript": "agent-a7507da1d60b2dbe0",
+    "dir": "C--dev-Termhalla/c111f95c-b2cc-41a0-80c6-0ecb6bce3277/subagents/workflows/wf_5dc5d240-3a2",
+    "served": [
+      "claude-opus-4-8"
+    ],
+    "firstModel": "claude-opus-4-8",
+    "lastModel": "claude-opus-4-8",
+    "messages": 43,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-06T00:52:55.717Z"
+  },
+  {
+    "action": "gate.check",
+    "feature": "0023-remote-node-pty-prebuilt",
+    "phase": "spec",
+    "pass": true,
+    "attempts": 0,
+    "totalFailures": 1,
+    "wallClockMs": 2,
+    "at": "2026-07-06T01:09:39.086Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0023-remote-node-pty-prebuilt.",
+    "role": "reviewer",
+    "agentType": "orky:reviewer",
+    "transcript": "agent-abc095dbfbf1de3ed",
+    "dir": "C--dev-Termhalla/c111f95c-b2cc-41a0-80c6-0ecb6bce3277/subagents/workflows/wf_5dc5d240-3a2",
+    "served": [
+      "claude-opus-4-8"
+    ],
+    "firstModel": "claude-opus-4-8",
+    "lastModel": "claude-opus-4-8",
+    "messages": 74,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-06T01:09:40.154Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0023-remote-node-pty-prebuilt.",
+    "role": "spec-writer",
+    "agentType": "orky:spec-writer",
+    "transcript": "agent-a2701d9794aa3dc5a",
+    "dir": "C--dev-Termhalla/c111f95c-b2cc-41a0-80c6-0ecb6bce3277/subagents/workflows/wf_c9c04c23-50d",
+    "served": [
+      "claude-fable-5"
+    ],
+    "firstModel": "claude-fable-5",
+    "lastModel": "claude-fable-5",
+    "messages": 18,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-06T01:09:40.154Z"
+  },
+  {
+    "action": "producer.select",
+    "feature": "0023-remote-node-pty-prebuilt",
+    "role": "planner",
+    "phase": "plan",
+    "tier": "low",
+    "model": "sonnet",
+    "effort": "medium",
+    "trigger": "base",
+    "attempts": 0,
+    "at": "2026-07-06T01:10:39.619Z"
+  },
+  {
+    "action": "gate.check",
+    "feature": "0023-remote-node-pty-prebuilt",
+    "phase": "plan",
+    "pass": true,
+    "attempts": 0,
+    "totalFailures": 1,
+    "wallClockMs": 3,
+    "at": "2026-07-06T01:14:12.085Z"
+  },
+  {
+    "action": "gate.check",
+    "feature": "0023-remote-node-pty-prebuilt",
+    "phase": "tests",
+    "pass": true,
+    "attempts": 0,
+    "totalFailures": 1,
+    "wallClockMs": 34376,
+    "at": "2026-07-06T01:29:17.897Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0023-remote-node-pty-prebuilt.",
+    "role": "test-designer",
+    "agentType": "orky:test-designer",
+    "transcript": "agent-a0b806c11ce6cce6a",
+    "dir": "C--dev-Termhalla/c111f95c-b2cc-41a0-80c6-0ecb6bce3277/subagents/workflows/wf_c9c04c23-50d",
+    "served": [
+      "claude-fable-5"
+    ],
+    "firstModel": "claude-fable-5",
+    "lastModel": "claude-fable-5",
+    "messages": 73,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-06T01:29:19.116Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0023-remote-node-pty-prebuilt.",
+    "role": "planner",
+    "agentType": "orky:planner",
+    "transcript": "agent-ab0cda204f2dfad8c",
+    "dir": "C--dev-Termhalla/c111f95c-b2cc-41a0-80c6-0ecb6bce3277/subagents/workflows/wf_c9c04c23-50d",
+    "served": [
+      "claude-sonnet-5"
+    ],
+    "firstModel": "claude-sonnet-5",
+    "lastModel": "claude-sonnet-5",
+    "messages": 20,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-06T01:29:19.116Z"
+  },
+  {
+    "action": "producer.select",
+    "feature": "0023-remote-node-pty-prebuilt",
+    "role": "implementer",
+    "phase": "implement",
+    "tier": "low",
+    "model": "sonnet",
+    "effort": "medium",
+    "trigger": "base",
+    "attempts": 0,
+    "at": "2026-07-06T01:30:21.171Z"
+  },
+  {
+    "action": "producer.select",
+    "feature": "0023-remote-node-pty-prebuilt",
+    "role": "implementer",
+    "phase": "implement",
+    "tier": "low",
+    "model": "sonnet",
+    "effort": "medium",
+    "trigger": "base",
+    "attempts": 0,
+    "at": "2026-07-06T01:31:03.217Z"
+  },
+  {
+    "action": "gate.check",
+    "feature": "0023-remote-node-pty-prebuilt",
+    "phase": "implement",
+    "pass": false,
+    "attempts": 1,
+    "totalFailures": 2,
+    "wallClockMs": 56290,
+    "failed": [
+      "test"
+    ],
+    "at": "2026-07-06T01:50:17.381Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0023-remote-node-pty-prebuilt",
+    "role": "implementer",
+    "agentType": "orky:implementer",
+    "transcript": "agent-ae9b838af96407c11",
+    "dir": "C--dev-Termhalla/c111f95c-b2cc-41a0-80c6-0ecb6bce3277/subagents",
+    "served": [
+      "claude-sonnet-5"
+    ],
+    "firstModel": "claude-sonnet-5",
+    "lastModel": "claude-sonnet-5",
+    "messages": 126,
+    "requested": "sonnet",
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-06T01:50:18.644Z"
+  },
+  {
+    "action": "gate.check",
+    "feature": "0023-remote-node-pty-prebuilt",
+    "phase": "implement",
+    "pass": true,
+    "attempts": 0,
+    "totalFailures": 2,
+    "wallClockMs": 56780,
+    "at": "2026-07-06T01:53:07.728Z"
+  },
+  {
+    "action": "gate.check",
+    "feature": "0023-remote-node-pty-prebuilt",
+    "phase": "review",
+    "pass": false,
+    "attempts": 2,
+    "totalFailures": 3,
+    "wallClockMs": 13,
+    "failed": [
+      "findings"
+    ],
+    "at": "2026-07-06T02:01:49.754Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0023-remote-node-pty-prebuilt.",
+    "role": "reviewer",
+    "agentType": "orky:reviewer",
+    "transcript": "agent-a0534bfe49b37dd70",
+    "dir": "C--dev-Termhalla/c111f95c-b2cc-41a0-80c6-0ecb6bce3277/subagents/workflows/wf_c86c023b-ed7",
+    "served": [
+      "claude-opus-4-8"
+    ],
+    "firstModel": "claude-opus-4-8",
+    "lastModel": "claude-opus-4-8",
+    "messages": 38,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-06T02:02:41.867Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0023-remote-node-pty-prebuilt.",
+    "role": "reviewer",
+    "agentType": "orky:reviewer",
+    "transcript": "agent-a7c3bea8da86d2bd3",
+    "dir": "C--dev-Termhalla/c111f95c-b2cc-41a0-80c6-0ecb6bce3277/subagents/workflows/wf_c86c023b-ed7",
+    "served": [
+      "claude-opus-4-8"
+    ],
+    "firstModel": "claude-opus-4-8",
+    "lastModel": "claude-opus-4-8",
+    "messages": 30,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-06T02:02:41.867Z"
+  },
+  {
+    "action": "gate.check",
+    "feature": "0023-remote-node-pty-prebuilt",
+    "phase": "spec",
+    "pass": true,
+    "attempts": 0,
+    "totalFailures": 3,
+    "wallClockMs": 4,
+    "at": "2026-07-06T02:20:49.108Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0023-remote-node-pty-prebuilt.",
+    "role": "spec-writer",
+    "agentType": "orky:spec-writer",
+    "transcript": "agent-a716077766b20a788",
+    "dir": "C--dev-Termhalla/c111f95c-b2cc-41a0-80c6-0ecb6bce3277/subagents/workflows/wf_9bdca2c9-894",
+    "served": [
+      "claude-fable-5"
+    ],
+    "firstModel": "claude-fable-5",
+    "lastModel": "claude-fable-5",
+    "messages": 20,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-06T02:20:50.821Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0023-remote-node-pty-prebuilt.",
+    "role": "reviewer",
+    "agentType": "orky:reviewer",
+    "transcript": "agent-a6f7ac816366f5412",
+    "dir": "C--dev-Termhalla/c111f95c-b2cc-41a0-80c6-0ecb6bce3277/subagents/workflows/wf_c86c023b-ed7",
+    "served": [
+      "claude-opus-4-8"
+    ],
+    "firstModel": "claude-opus-4-8",
+    "lastModel": "claude-opus-4-8",
+    "messages": 37,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-06T02:20:50.821Z"
+  },
+  {
+    "action": "producer.select",
+    "feature": "0023-remote-node-pty-prebuilt",
+    "role": "planner",
+    "phase": "plan",
+    "tier": "low",
+    "model": "sonnet",
+    "effort": "medium",
+    "trigger": "base",
+    "attempts": 0,
+    "at": "2026-07-06T02:21:48.783Z"
+  },
+  {
+    "action": "gate.check",
+    "feature": "0023-remote-node-pty-prebuilt",
+    "phase": "plan",
+    "pass": true,
+    "attempts": 0,
+    "totalFailures": 3,
+    "wallClockMs": 6,
+    "at": "2026-07-06T02:25:37.288Z"
+  },
+  {
+    "action": "gate.check",
+    "feature": "0023-remote-node-pty-prebuilt",
+    "phase": "tests",
+    "pass": true,
+    "attempts": 0,
+    "totalFailures": 3,
+    "wallClockMs": 777,
+    "at": "2026-07-06T03:22:43.983Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0023-remote-node-pty-prebuilt.",
+    "role": "planner",
+    "agentType": "orky:planner",
+    "transcript": "agent-a4b91bb99eabc1989",
+    "dir": "C--dev-Termhalla/c111f95c-b2cc-41a0-80c6-0ecb6bce3277/subagents/workflows/wf_9bdca2c9-894",
+    "served": [
+      "claude-sonnet-5"
+    ],
+    "firstModel": "claude-sonnet-5",
+    "lastModel": "claude-sonnet-5",
+    "messages": 24,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-06T03:22:44.976Z"
+  },
+  {
+    "action": "producer.select",
+    "feature": "0023-remote-node-pty-prebuilt",
+    "role": "implementer",
+    "phase": "implement",
+    "tier": "low",
+    "model": "sonnet",
+    "effort": "medium",
+    "trigger": "base",
+    "attempts": 0,
+    "at": "2026-07-06T03:23:33.183Z"
+  },
+  {
+    "action": "producer.select",
+    "feature": "0023-remote-node-pty-prebuilt",
+    "role": "implementer",
+    "phase": "implement",
+    "tier": "low",
+    "model": "sonnet",
+    "effort": "medium",
+    "trigger": "base",
+    "attempts": 0,
+    "at": "2026-07-06T03:23:58.401Z"
+  },
+  {
+    "action": "gate.check",
+    "feature": "0023-remote-node-pty-prebuilt",
+    "phase": "implement",
+    "pass": true,
+    "attempts": 0,
+    "totalFailures": 3,
+    "wallClockMs": 57366,
+    "at": "2026-07-06T03:47:26.126Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0023-remote-node-pty-prebuilt",
+    "role": "implementer",
+    "agentType": "orky:implementer",
+    "transcript": "agent-a044f8048b6a1f542",
+    "dir": "C--dev-Termhalla/c111f95c-b2cc-41a0-80c6-0ecb6bce3277/subagents",
+    "served": [
+      "claude-opus-4-8"
+    ],
+    "firstModel": "claude-opus-4-8",
+    "lastModel": "claude-opus-4-8",
+    "messages": 111,
+    "requested": "sonnet",
+    "downgraded": false,
+    "servedFraction": 0,
+    "at": "2026-07-06T03:47:27.389Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0023-remote-node-pty-prebuilt.",
+    "role": "test-designer",
+    "agentType": "orky:test-designer",
+    "transcript": "agent-a856e3fb6c71f58fa",
+    "dir": "C--dev-Termhalla/c111f95c-b2cc-41a0-80c6-0ecb6bce3277/subagents/workflows/wf_9bdca2c9-894",
+    "served": [
+      "claude-fable-5"
+    ],
+    "firstModel": "claude-fable-5",
+    "lastModel": "claude-fable-5",
+    "messages": 218,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-06T03:47:27.389Z"
+  },
+  {
+    "action": "gate.check",
+    "feature": "0023-remote-node-pty-prebuilt",
+    "phase": "review",
+    "pass": false,
+    "attempts": 3,
+    "totalFailures": 4,
+    "wallClockMs": 4,
+    "failed": [
+      "findings"
+    ],
+    "at": "2026-07-06T03:59:51.323Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0023-remote-node-pty-prebuilt.",
+    "role": "reviewer",
+    "agentType": "orky:reviewer",
+    "transcript": "agent-a33291d602ff75562",
+    "dir": "C--dev-Termhalla/c111f95c-b2cc-41a0-80c6-0ecb6bce3277/subagents/workflows/wf_dcaa6f16-63c",
+    "served": [
+      "claude-opus-4-8"
+    ],
+    "firstModel": "claude-opus-4-8",
+    "lastModel": "claude-opus-4-8",
+    "messages": 54,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-06T03:59:52.526Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0023-remote-node-pty-prebuilt.",
+    "role": "reviewer",
+    "agentType": "orky:reviewer",
+    "transcript": "agent-aa278471c7cd7465e",
+    "dir": "C--dev-Termhalla/c111f95c-b2cc-41a0-80c6-0ecb6bce3277/subagents/workflows/wf_dcaa6f16-63c",
+    "served": [
+      "claude-opus-4-8"
+    ],
+    "firstModel": "claude-opus-4-8",
+    "lastModel": "claude-opus-4-8",
+    "messages": 39,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-06T03:59:52.526Z"
+  },
+  {
+    "action": "gate.check",
+    "feature": "0023-remote-node-pty-prebuilt",
+    "phase": "tests",
+    "pass": true,
+    "attempts": 0,
+    "totalFailures": 4,
+    "wallClockMs": 31732,
+    "at": "2026-07-06T04:15:30.602Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0023-remote-node-pty-prebuilt.",
+    "role": "reviewer",
+    "agentType": "orky:reviewer",
+    "transcript": "agent-ab13e8bbbd05b35f8",
+    "dir": "C--dev-Termhalla/c111f95c-b2cc-41a0-80c6-0ecb6bce3277/subagents/workflows/wf_dcaa6f16-63c",
+    "served": [
+      "claude-opus-4-8"
+    ],
+    "firstModel": "claude-opus-4-8",
+    "lastModel": "claude-opus-4-8",
+    "messages": 47,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-06T04:15:31.674Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0023-remote-node-pty-prebuilt.",
+    "role": "test-designer",
+    "agentType": "orky:test-designer",
+    "transcript": "agent-a1b0a78a381a8592d",
+    "dir": "C--dev-Termhalla/c111f95c-b2cc-41a0-80c6-0ecb6bce3277/subagents/workflows/wf_eac23bcd-a17",
+    "served": [
+      "claude-fable-5"
+    ],
+    "firstModel": "claude-fable-5",
+    "lastModel": "claude-fable-5",
+    "messages": 61,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-06T04:15:31.674Z"
+  },
+  {
+    "action": "producer.select",
+    "feature": "0023-remote-node-pty-prebuilt",
+    "role": "implementer",
+    "phase": "implement",
+    "tier": "low",
+    "model": "sonnet",
+    "effort": "medium",
+    "trigger": "base",
+    "attempts": 0,
+    "at": "2026-07-06T04:16:28.862Z"
+  },
+  {
+    "action": "producer.select",
+    "feature": "0023-remote-node-pty-prebuilt",
+    "role": "implementer",
+    "phase": "implement",
+    "tier": "low",
+    "model": "sonnet",
+    "effort": "medium",
+    "trigger": "base",
+    "attempts": 0,
+    "at": "2026-07-06T04:16:44.682Z"
+  },
+  {
+    "action": "gate.check",
+    "feature": "0023-remote-node-pty-prebuilt",
+    "phase": "implement",
+    "pass": true,
+    "attempts": 0,
+    "totalFailures": 4,
+    "wallClockMs": 52725,
+    "at": "2026-07-06T04:22:27.919Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0023-remote-node-pty-prebuilt",
+    "role": "implementer",
+    "agentType": "orky:implementer",
+    "transcript": "agent-ae288aca385040e5a",
+    "dir": "C--dev-Termhalla/c111f95c-b2cc-41a0-80c6-0ecb6bce3277/subagents",
+    "served": [
+      "claude-sonnet-5"
+    ],
+    "firstModel": "claude-sonnet-5",
+    "lastModel": "claude-sonnet-5",
+    "messages": 41,
+    "requested": "sonnet",
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-06T04:22:28.945Z"
+  },
+  {
+    "action": "gate.check",
+    "feature": "0023-remote-node-pty-prebuilt",
+    "phase": "review",
+    "pass": true,
+    "attempts": 0,
+    "totalFailures": 4,
+    "wallClockMs": 3,
+    "at": "2026-07-06T04:34:18.369Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0023-remote-node-pty-prebuilt.",
+    "role": "reviewer",
+    "agentType": "orky:reviewer",
+    "transcript": "agent-a2d9d078083fe64f0",
+    "dir": "C--dev-Termhalla/c111f95c-b2cc-41a0-80c6-0ecb6bce3277/subagents/workflows/wf_2463fcc5-10f",
+    "served": [
+      "claude-opus-4-8"
+    ],
+    "firstModel": "claude-opus-4-8",
+    "lastModel": "claude-opus-4-8",
+    "messages": 41,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-06T04:34:19.354Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0023-remote-node-pty-prebuilt.",
+    "role": "reviewer",
+    "agentType": "orky:reviewer",
+    "transcript": "agent-aee49513fe5e7abc3",
+    "dir": "C--dev-Termhalla/c111f95c-b2cc-41a0-80c6-0ecb6bce3277/subagents/workflows/wf_2463fcc5-10f",
+    "served": [
+      "claude-opus-4-8"
+    ],
+    "firstModel": "claude-opus-4-8",
+    "lastModel": "claude-opus-4-8",
+    "messages": 59,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-06T04:34:19.354Z"
+  },
+  {
+    "action": "gate.check",
+    "feature": "0023-remote-node-pty-prebuilt",
+    "phase": "doc-sync",
+    "pass": true,
+    "attempts": 0,
+    "totalFailures": 4,
+    "wallClockMs": 25,
+    "at": "2026-07-06T04:44:10.482Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0023-remote-node-pty-prebuilt.",
+    "role": "reviewer",
+    "agentType": "orky:reviewer",
+    "transcript": "agent-ad0f137613f5f3fb5",
+    "dir": "C--dev-Termhalla/c111f95c-b2cc-41a0-80c6-0ecb6bce3277/subagents/workflows/wf_2463fcc5-10f",
+    "served": [
+      "claude-opus-4-8"
+    ],
+    "firstModel": "claude-opus-4-8",
+    "lastModel": "claude-opus-4-8",
+    "messages": 52,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-06T04:44:11.446Z"
   }
 ]

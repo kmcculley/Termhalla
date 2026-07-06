@@ -16,7 +16,7 @@ import { OrkyActionAuditLog } from './orky/orky-action-audit'
 import { OrkyActionQueue } from './orky/orky-action-queue'
 import { verifyOrkyContract } from './orky/orky-contract-handshake'
 import { RemoteWorkspaceManager } from './remote/remote-workspace-manager'
-import { MANIFEST_VERSION, resolveAgentArtifactPath } from './remote/agent-artifact'
+import { MANIFEST_VERSION, resolveAgentArtifactPath, resolvePrebuiltRoot } from './remote/agent-artifact'
 import { connectWithProvisioning } from '../remote-client/bootstrap'
 import { loadNamedAgents } from '../remote-client/agents-store'
 import type { ShellInfo } from '@shared/types'
@@ -83,12 +83,21 @@ export function buildServices(): Services {
   // quiet-flush (CONV-036 — the pure module stays timer-free; the composition root injects the
   // scheduler), and the named-agent registry at userData/remote-agents.json (REQ-004).
   const remoteAgentsPath = join(dir, 'remote-agents.json')
+  // Feature 0023 (REQ-005/REQ-018): the same dev/packaged split as the agent artifact resolves
+  // where the release-time-staged node-pty prebuilts live, so a real connect co-provisions the
+  // matching remote target automatically (absent this option, `connectWithProvisioning` behaves
+  // exactly as it did before this feature — REQ-018's strictly-additive rule).
+  const nodePtyPrebuiltRoot = resolvePrebuiltRoot({
+    packaged: app.isPackaged,
+    appRoot: app.getAppPath(),
+    resourcesPath: process.resourcesPath
+  })
   let remoteSend: (channel: string, ...args: unknown[]) => void = () => {}
   const remoteManager = new RemoteWorkspaceManager({
     send: (channel, ...args) => remoteSend(channel, ...args),
     loadAgents: () => loadNamedAgents(remoteAgentsPath),
     connect: ({ agent, version, artifactPath, signal }) =>
-      connectWithProvisioning({ agent, version, artifactPath, signal }),
+      connectWithProvisioning({ agent, version, artifactPath, signal, nodePty: { prebuiltRoot: nodePtyPrebuiltRoot } }),
     version: MANIFEST_VERSION,
     artifactPath: resolveAgentArtifactPath({
       packaged: app.isPackaged,
