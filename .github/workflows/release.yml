@@ -97,17 +97,20 @@ jobs:
         shell: bash
         run: |
           VERSION=$(node -p "require('./package.json').dependencies['node-pty']")
-          npm pack "node-pty@$VERSION" --pack-destination "$RUNNER_TEMP"
-          mkdir -p "$RUNNER_TEMP/node-pty-src"
-          # --force-local: on the windows-latest runner $RUNNER_TEMP is a drive-letter path
-          # (D:\a\_temp), and Git's bundled GNU tar otherwise reads the "D:" as a remote host
-          # (host:path rsync syntax) → "Cannot connect to D: resolve failed".
-          tar --force-local -xzf "$RUNNER_TEMP"/node-pty-*.tgz -C "$RUNNER_TEMP/node-pty-src" --strip-components=1
+          # Relative paths only. The windows-latest runner's $RUNNER_TEMP is a drive-letter
+          # path (D:\a\_temp) that Git's bundled GNU tar mis-parses — the "D:" reads as a
+          # remote host (host:path rsync syntax → "Cannot connect to D:") and the backslashes
+          # mangle -C. Packing + extracting under the repo dir avoids any drive-letter/colon.
+          npm pack "node-pty@$VERSION" --pack-destination .
+          mkdir -p node-pty-src
+          tar --force-local -xzf node-pty-*.tgz -C node-pty-src --strip-components=1
           node scripts/stage-node-pty-prebuild.mjs \
-            --source "$RUNNER_TEMP/node-pty-src" \
+            --source node-pty-src \
             --pty-node artifacts/node-pty-linux-x64-glibc/pty.node \
             --out out/agent/prebuilds \
             --target linux-x64-glibc
+          # Clean the transient pack/extract out of the tree before electron-builder packs.
+          rm -rf node-pty-src node-pty-*.tgz
 
       - name: Verify the node-pty prebuilt bundle (release gate — REQ-003)
         shell: bash
