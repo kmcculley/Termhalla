@@ -84,6 +84,7 @@ describe('TEST-747 REQ-013 the barrel exports exactly the spec public interface 
     expect(Object.keys(protocol).sort()).toEqual([
       'AGENT_V1_CAPABILITIES',
       'CAPABILITY_IDS',
+      'DAEMON_PROTO_COMPAT',
       'DEFAULT_ACK_EVERY_BYTES',
       'DEFAULT_FLOW_WINDOW_BYTES',
       'DEFAULT_MAX_FRAME_BYTES',
@@ -94,6 +95,8 @@ describe('TEST-747 REQ-013 the barrel exports exactly the spec public interface 
       'createAgentHandshake',
       'createClientAckPolicy',
       'createClientHandshake',
+      'createDaemonAgentHandshake',
+      'createDaemonClientHandshake',
       'createFrameDecoder',
       'createRequestTracker',
       'encodeFrame',

@@ -25,10 +25,15 @@
  *  - re-adopts panes on (re)connection through F18's inventory: `pty:sessions` once per
  *    connection, then per tracked pane in SORTED id order `pty:attach` (reset preamble + snapshot
  *    exactly once, status/cwd re-pushed, the RENDERER-recorded dims re-applied when they differ),
- *    a session missing from inventory surfacing as exited. In the SHIPPED v1 the agent is not
- *    daemonized (its owned store dies with the stdio connection), so a real transport drop yields
- *    an empty inventory and every pane exits — stated per CONV-054; the flow is inventory-driven
- *    so agent daemonization lands with no client change (REQ-013).
+ *    a session missing from inventory surfacing as exited. Since feature 0024 (agent
+ *    daemonization) production connects (`services.ts`) opt the F19 bootstrap into the daemon
+ *    flow (`BootstrapOptions.daemon: true` — a persistent unix-domain-socket daemon behind a
+ *    thin ssh-exec bridge, `docs/features/remote-agent.md` § "Daemonization"), so a same-version
+ *    reconnect finds the SAME daemon and inventory, and this inventory-driven re-adoption is what
+ *    makes that reattach work with ZERO change to this file (REQ-013 of 0024): the manager itself
+ *    stays agnostic to whether the wire's other end is a direct-exec agent or a daemon bridge.
+ *    A drifted-version daemon or a genuinely dead endpoint still surface via the ordinary connect
+ *    failure path above (no special-casing needed here either).
  *
  * Electron-free by construction (every impure edge is injected) so the frozen suites drive it
  * in-process — locked decision 1's test posture.
@@ -67,6 +72,11 @@ export type RemoteConnectFn = (opts: {
   version: string
   artifactPath: string
   signal: AbortSignal
+  /** The remote workspace's id — the per-workspace daemon scope (feature 0024, D6′/REQ-018): the
+   *  composition root threads it into `BootstrapOptions.daemon.workspaceId`. Optional in the type
+   *  so the frozen `remote-manager-harness.ts` spy stays assignable; the manager ALWAYS supplies
+   *  it (`ensureConnected` passes `entry.workspaceId`). */
+  workspaceId?: string
 }) => Promise<RemoteConnectResult>
 
 export interface RemoteScheduler {
@@ -149,8 +159,16 @@ export class RemoteWorkspaceManager {
 
   /** Drop the workspace's connection. During `connecting` this is the user-facing CANCEL
    *  (REQ-007); while connected it tears the wire down; either way the state settles
-   *  `disconnected/cancelled` exactly once. */
-  disconnectWorkspace(workspaceId: string): void {
+   *  `disconnected/cancelled` exactly once.
+   *
+   *  `opts.forget` (feature 0024, REQ-019/D10) is the additive close-tab shape: a tab close
+   *  detaches — NEVER kills the workspace's remote panes (teardownWire never sends `pty:kill`) —
+   *  and always forgets this manager's entry even with panes still tracked, so no ghost survives
+   *  in `currentStates()`. The daemon and its PTYs are a SEPARATE process, untouched by forgetting
+   *  local bookkeeping (it idle-reaps on its own once empty, REQ-006). Every pre-0024 caller
+   *  (banner disconnect, cancel) passes no opts and stays byte-identical: an entry with tracked
+   *  panes survives (the banner's frozen-panes state). */
+  disconnectWorkspace(workspaceId: string, opts?: { forget?: boolean }): void {
     const entry = this.entries.get(workspaceId)
     if (!entry) return
     entry.gen++ // any in-flight establish/attach settles inert
@@ -161,7 +179,9 @@ export class RemoteWorkspaceManager {
     // (close/cancel on an empty workspace) — forget the entry so currentStates()/remote:current
     // never serve ghosts. An open workspace with frozen panes keeps its entry (the banner's
     // state); a pane-less open workspace re-renders from the no-state "not connected yet" model.
-    if (entry.panes.size === 0) this.entries.delete(workspaceId)
+    // A close-tab-shaped disconnect (`{ forget: true }`) ALWAYS forgets, even with panes still
+    // tracked — those panes are never killed (detach-then-forget, REQ-019).
+    if (entry.panes.size === 0 || opts?.forget) this.entries.delete(workspaceId)
   }
 
   currentStates(): RemoteWorkspaceState[] {
@@ -311,7 +331,8 @@ export class RemoteWorkspaceManager {
     let res: RemoteConnectResult
     try {
       res = await this.deps.connect({
-        agent, version: this.deps.version, artifactPath: this.deps.artifactPath, signal: ac.signal
+        agent, version: this.deps.version, artifactPath: this.deps.artifactPath, signal: ac.signal,
+        workspaceId: entry.workspaceId
       })
     } catch (e) {
       res = { ok: false, kind: 'fatal', diagnostic: `connect threw: ${msg(e)}` }
@@ -387,8 +408,10 @@ export class RemoteWorkspaceManager {
         rec.adopted = false
         await this.wireSpawn(entry, gen, paneId, rec)
       } else {
-        // Spawned on a previous connection and gone from the agent: the session died with it —
-        // the shipped v1 (no daemonization) reality for EVERY pane after a transport drop.
+        // Spawned on a previous connection and gone from the agent's inventory: whatever the
+        // reason (an idled-out daemon, a version-drift refusal that never reached this session,
+        // a genuinely killed pane), the session is gone and the pane surfaces as exited —
+        // identical handling whether the far end is a direct-exec agent or a daemon (0024).
         this.deps.send(CH.ptyData, paneId, '\r\n[remote session ended]\r\n')
         this.deps.send(CH.ptyExit, paneId, 0)
         this.prunePane(entry, paneId)

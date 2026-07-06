@@ -263,8 +263,99 @@ instant.
   in its interrupted attach window) fed the replay terminal at emission; the winner's
   `pty:attach` snapshot ⊕ subsequent `pty:data` reproduces the full stream byte-exactly
   (F18's composition oracle, re-proven across the steal boundary).
-- **The shipped stdio artifact is unaffected** — one stdio connection per agent process means
-  a steal is unreachable over `termhalla-agent.cjs` in v1; the lease is exercised over the
-  survival composition in-process (the F19/F21 transport wiring makes steals reachable
-  end-to-end; the epic's integration phase proves the composed story). The owned (F16)
-  composition never shares a store, so it can never steal and never emits the evt.
+- **The shipped stdio artifact's default (no-flag) mode is unaffected** — one stdio connection
+  per process means a steal is unreachable there; the owned (F16) composition never shares a
+  store, so it can never steal and never emits the evt. Over `--daemon` mode (feature 0024,
+  below) a steal IS reachable end-to-end: two real client connections against the SAME
+  persistent daemon race exactly this way, and the epic's integration phase proves the composed
+  story over real bridge processes.
+
+## Daemonization (feature 0024-agent-daemonization)
+
+The v1 agent gained a THIRD mode, `--daemon`, that detaches the survival composition above from
+any single client connection (the tmux model): `docs/features/remote-workspaces.md` § "Reconnect
++ daemon survival" tells the client-side half of this story; this section is the on-disk/wire
+contract.
+
+- **CLI modes (additive, `src/agent/args.ts` / `main.ts`):** default (no flag) = the byte-identical
+  F16 stdio agent above; `--daemon` = the persistent listener (this section); `--attach` = the
+  bridge (below). Mutually exclusive; combining them is a usage error (exit 2). `--daemon`/`--attach`
+  each REQUIRE a scope: `--ws=<token>` (`^[A-Za-z0-9_-]{1,64}$` — derives the workspace-keyed
+  socket/metadata/log names, locked D6′) or an explicit `--socket=<path>` (override; a named-pipe
+  path on win32 — the portable test substrate). Both also gain `--idle-timeout-ms=<n>` (positive
+  integer; overrides `DAEMON_IDLE_TIMEOUT_DEFAULT_MS` = 300000, i.e. 5 minutes).
+- **One daemon PER WORKSPACE (locked D6′).** Each remote workspace gets its OWN daemon, socket, and
+  F20 lease — the socket is keyed by a stable `wsToken` derived client-side from the Termhalla
+  workspace id (`deriveWsToken`), so two workspaces pointed at the SAME host+user are fully
+  independent (opening the second never disconnects the first — REQ-018). Reconnecting the same
+  workspace derives the same token and finds the same daemon.
+- **Transport: a unix-domain socket, never a network listener.** `<agentDir>/agent-<wsToken>.sock`
+  (`socketFileName(wsToken)`, version-stable — no app/protocol version digits, so the socket path
+  never changes across an upgrade) lives beside the running artifact (production:
+  `~/.termhalla/agent`, the F19 `DEFAULT_REMOTE_AGENT_DIR`). Owner-only on POSIX (mode 0600, CREATED
+  0600 by a temporarily restrictive `umask(0o077)` around the bind — no chmod-after-listen window);
+  a named pipe on win32 (the test substrate only — v1 remotes are Linux).
+- **Metadata: `<agentDir>/daemon-<wsToken>.json`**, written strictly AFTER the socket is listening
+  (its existence therefore implies a bound listener) and removed on every clean daemon exit under an
+  OWNERSHIP re-check (a superseded daemon never unlinks a successor's endpoint). The shape is
+  CROSS-VERSION FROZEN — exactly `{ formatVersion: 1, pid, version, proto, backend, startedAt }`, no
+  other fields, no secrets, no host identity — so a newer client can always read an older daemon's
+  file (`proto` is the daemon's WIRE-protocol version, decoupled from the app `version` — this is
+  how protocol-drift refusal names the daemon's proto, below).
+- **Log: `<agentDir>/daemon-<wsToken>.log`**, truncated at the start of each daemon generation AND
+  size-capped within a generation at `DAEMON_LOG_MAX_BYTES` (1 MiB — a survival daemon's generation
+  is wall-clock unbounded, so truncate-at-start alone is not a bound), diagnostics only (the
+  detached daemon's stdout/stderr route here too, so an uncaught crash leaves a trace) — NEVER PTY
+  payload bytes or user keystrokes.
+- **Each ssh exec channel is a thin byte-transparent bridge (`--attach`), not the daemon itself.**
+  The daemon-flow remote command is `test -f <path> && exec node <path> --attach --pty=<backend>
+  --ws=<token> || exit 127` (the same absent→127 classification as the F19 direct-exec probe). The
+  bridge: tries the socket; on no-listener, spawns `node <sameArtifact> --daemon --pty=<backend>
+  --ws=<token> [...]` DETACHED (`setsid` semantics — no inherited fds, so the ssh channel closes
+  promptly on disconnect even while the daemon keeps running) and polls the socket bounded by
+  `DAEMON_SPAWN_WAIT_MS` (10 s); emits exactly one machine-parseable stderr line —
+  `TERMHALLA_BRIDGE_V1 {"spawned":bool,"daemonVersion":string|null,"daemonProto":number|null,"daemonPid":number|null}`
+  — before piping a single application byte; then pipes stdin↔socket with ZERO frame inspection. The
+  bridge NEVER removes any file (FINDING-016 — all reclaim lives in the daemon's serialized claim).
+  Exit taxonomy: `0` clean end (either side's EOF, including a lease displacement, propagated by
+  half-closing/ending the other side), `BRIDGE_DAEMON_UNREACHABLE_EXIT` = 96 (could not reach a
+  listening daemon), `2` usage — distinct from every other reserved exit in the remote stack
+  (127/93/94/95/12, the agent's own 0/1/2).
+- **Exactly one daemon per workspace-scoped socket, crash-safe (locked D6′).** A bind race between
+  two concurrent first-connects to ONE workspace resolves to exactly one winner; the loser concedes
+  without touching the winner's socket/metadata. A dead daemon's remnants (socket file + a
+  `daemon-<wsToken>.json` whose pid is no longer alive) are reclaimed INSIDE the daemon's serialized
+  claim (probe → pid-liveness check → remove-proven-remnants → re-bind, one guarded loop) — the
+  recorded pid is ALWAYS checked for liveness before anything is removed, so a live-but-momentarily-
+  busy daemon is retried within the readiness deadline, never reclaimed (known v1 limitation: if the
+  OS reuses a crashed daemon's pid, that path can wedge until manual recovery — the 96 diagnostic
+  names the escape hatch).
+- **Idle self-exit (locked D3).** A REALLY-scheduled timer (`src/agent/daemon-lifecycle.ts`) arms
+  whenever the daemon is empty — ZERO live panes AND ZERO ESTABLISHED CONNECTIONS (a COUNT, never a
+  boolean: with ≥2 connections, one ending must not arm) — and cancels on a protocol establishment
+  or a pane spawn; on fire (or SIGTERM) it runs ONE shared, ownership-checked cleanup: kill remaining
+  panes, dispose the store, remove the socket + metadata files it still owns, exit 0.
+- **Version drift under auto-update: the wire protocol is versioned separately from the app (locked
+  D4′ — survival wins).** Termhalla auto-updates on quit, so close → update → reopen bumps the APP
+  version on the common path. The daemon-flow handshake therefore establishes on WIRE-PROTOCOL
+  compatibility ONLY (`createDaemonAgentHandshake` / `createDaemonClientHandshake`, accepting any
+  peer `proto` within `DAEMON_PROTO_COMPAT`; the app `version` is advisory), so a routine update
+  (proto unchanged) reattaches to the still-running old-app-version daemon and its sessions survive
+  the update. Only a genuinely protocol-BREAKING release drifts: when an upgraded client's handshake
+  fails `proto-mismatch` against an EXISTING daemon (the bridge status line's `spawned: false`), the
+  client classifies a distinct `daemon-protocol-drift` outcome (folded into the existing `fatal`
+  `ConnectFailureKind` — no new client-visible kind): NON-destructive (no kill, no socket removal,
+  no upload, no provision-retry loop — a running process is not a provisionable artifact), naming
+  both proto/version pairs and `daemon-<wsToken>.json`'s recorded pid, and stating the old daemon's
+  live sessions keep running unharmed. Recovery is either the daemon idling out or a manual `kill` of
+  the recorded pid; the NEXT connect after that spawns the new version fresh. A mismatch that follows
+  a FRESH spawn (a torn/wrong artifact at the versioned path) falls through unchanged to F19's
+  existing provisionable `version-mismatch` row. The exact-version machines and the default stdio
+  mode are untouched — the daemon-flow relaxation is strictly additive.
+- **Client change is confined to the launch/transport layer (REQ-013/014).** `BootstrapOptions`
+  gained one optional field, `daemon?: { workspaceId }` (absent ⇒ byte-identical to the pre-0024
+  direct-exec flow — every pre-existing suite runs unedited); node-pty co-provisioning and the F19
+  provision-once upload sequence run BEFORE the daemon launch, unchanged. Zero renderer/preload/
+  IPC/`SCHEMA_VERSION` change; `src/main/services.ts` passes the workspace id as the scope. See
+  `docs/features/remote-workspaces.md` for why the reconnect/reattach client code itself needed
+  no change at all.

@@ -36,6 +36,7 @@ import type { SshExecSeed } from './ssh-command'
 import { spawnSsh, DEFAULT_SSH_PROGRAM } from './ssh-spawn'
 import type { SshProgramOverride } from './ssh-spawn'
 import { classifyConnectOutcome } from './classify'
+import { connectDaemonAgent } from './bootstrap-daemon'
 import {
   buildNodePtyProbeCommand, buildNodePtyInstallCommand, classifyProbeOutcome, deriveLibc,
   selectPrebuiltTarget, decideNodePtyProvision, encodeNodePtyPayload, glibcFloorHint,
@@ -108,6 +109,17 @@ export interface BootstrapOptions {
    *  the fake backend needs no native module). */
   nodePty?: { prebuiltRoot: string }
   onDiagnostic?: (line: string) => void
+  /** Daemon-flow opt-in (feature 0024-agent-daemonization, REQ-013 — locked D6′). Additive:
+   *  ABSENT ⇒ the launch command, exec-channel sequence, and every result stay BYTE-IDENTICAL to
+   *  the pre-0024 flow (`connectAgent`, direct-exec). PRESENT (`{ workspaceId }`) ⇒ the daemon
+   *  flow (`connectDaemonAgent` — spawn-then-attach over a persistent, PER-WORKSPACE
+   *  unix-domain-socket daemon keyed by a token derived from `workspaceId`, so two same-host
+   *  workspaces are fully independent, REQ-018) replaces the direct-exec launch/relaunch legs
+   *  below; node-pty co-provisioning and the provision-once upload sequence keep running BEFORE it,
+   *  in the same order, against the same version-embedded install path. All new failure kinds
+   *  (incl. `daemon-protocol-drift`) surface through the EXISTING `ConnectFailureKind` values —
+   *  this field never widens that union. */
+  daemon?: { workspaceId: string }
 }
 
 const errText = (e: unknown): string => (e instanceof Error ? e.message : String(e))
@@ -770,7 +782,7 @@ async function runRecoveryCycle(
   if (pass.kind === 'final') return pass.result
   const installedNow = installedBefore || pass.engagement.installed
 
-  const relaunch = await connectAgent(opts)
+  const relaunch = await chooseConnect(opts)(opts)
   if (relaunch.ok) return relaunch
   if (relaunch.kind === 'aborted') return relaunch
   const diag = relaunch.kind === 'fatal' ? relaunch.diagnostic : `the agent launch classified "${relaunch.kind}"`
@@ -803,11 +815,19 @@ async function resolveLaunchFatal(
   return { ok: false, kind: 'fatal', diagnostic: withGlibcHint(diagnostic) }
 }
 
+/** Additive routing (feature 0024-agent-daemonization, REQ-013): `opts.daemon` absent ⇒ the
+ *  pre-0024 direct-exec `connectAgent`, byte-identical (the SAME function reference — no new
+ *  branch is taken); `opts.daemon: { workspaceId }` ⇒ the daemon-flow `connectDaemonAgent` (which
+ *  derives the per-workspace scope token from `workspaceId`). */
+const chooseConnect = (opts: BootstrapOptions): typeof connectAgent =>
+  opts.daemon !== undefined ? connectDaemonAgent : connectAgent
+
 /** The bootstrap policy (REQ-014): classify → provision → retry exactly ONCE. Feature 0023
  *  (REQ-016..021) inserts the node-pty co-provision gate BEFORE this sequence — see
  *  `runCoProvisionPass` — plus at most ONE recovery cycle on a module-resolution launch failure.
  *  Absent `opts.nodePty` (or `ptyBackend: 'fake'`), this function's behavior is byte-identical to
- *  the pre-0023 flow (REQ-018). */
+ *  the pre-0023 flow (REQ-018). Absent `opts.daemon`, likewise byte-identical to the pre-0024
+ *  flow (REQ-013). */
 export async function connectWithProvisioning(opts: BootstrapOptions): Promise<ConnectResult> {
   const useNodePty = opts.nodePty !== undefined && (opts.ptyBackend ?? 'node-pty') === 'node-pty'
 
@@ -820,7 +840,7 @@ export async function connectWithProvisioning(opts: BootstrapOptions): Promise<C
     installedEver = engagement.installed
   }
 
-  const first = await connectAgent(opts)
+  const first = await chooseConnect(opts)(opts)
   if (first.ok) return first
   if (first.kind === 'aborted') return first
   if (first.kind === 'fatal') {
@@ -841,7 +861,7 @@ export async function connectWithProvisioning(opts: BootstrapOptions): Promise<C
     }
   }
 
-  const second = await connectAgent(opts)
+  const second = await chooseConnect(opts)(opts)
   if (second.ok) return second
   if (second.kind === 'aborted') return second
   if (second.kind === 'fatal') {

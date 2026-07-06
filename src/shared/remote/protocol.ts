@@ -9,6 +9,17 @@
  *
  * Consumers: the agent runtime (F16+) and vitest; later F21 (client routing) —
  * see TEST-746's retirement path.
+ *
+ * Wire-protocol versioning rule (feature 0024-agent-daemonization, REQ-012 / locked D4′): the
+ * wire protocol version (`WIRE_PROTO`, the hello `proto` field) is versioned SEPARATELY from the
+ * app/bundle version. Any wire-visible protocol change (a frame type, a method, field semantics)
+ * MUST bump `WIRE_PROTO`; an app release that does NOT change the wire MUST NOT. The daemon flow
+ * establishes on protocol compatibility only (`createDaemonAgentHandshake` /
+ * `createDaemonClientHandshake`, accepting any peer `proto` within `DAEMON_PROTO_COMPAT` — which
+ * is DERIVED from `WIRE_PROTO`), so a routine Termhalla auto-update (app version bumps, `proto`
+ * unchanged) reattaches to a still-running old-app-version daemon and its remote sessions survive
+ * the update. The exact-version machines below are unchanged — the daemon-flow relaxation is a
+ * strictly ADDITIVE export.
  */
 export { ProtocolError } from './errors'
 export type { ProtocolFailure, ProtocolReason } from './errors'
@@ -40,6 +51,19 @@ export type {
   AgentHandshakeResult,
   ClientHandshakeResult
 } from './handshake'
+
+// Feature 0024-agent-daemonization (REQ-012 / REQ-014, locked D4′): the ADDITIVE daemon-flow
+// handshake variant (protocol-range acceptance, app version advisory) + the compat range. The
+// exact-version machines above are untouched.
+export { createDaemonAgentHandshake, createDaemonClientHandshake, DAEMON_PROTO_COMPAT } from './daemon-handshake'
+export type {
+  DaemonAgentHandshake,
+  DaemonClientHandshake,
+  DaemonAgentHandshakeInit,
+  DaemonClientHandshakeInit,
+  DaemonAgentHandshakeResult,
+  DaemonClientHandshakeResult
+} from './daemon-handshake'
 
 export { createRequestTracker } from './correlation'
 export type { RequestTracker, SettleResult, FailedRequest, OpenedRequest } from './correlation'

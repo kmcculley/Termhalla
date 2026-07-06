@@ -13,7 +13,7 @@ import type { State, SliceDeps, ClosedWorkspaceInfo } from './store/types'
 import {
   placePane, firstTarget, paneCwd, applyCwds, applyResumeAi, applyViewState, clearPaneRuntime, teardownPanes
 } from './store/internals'
-import { defaultShellId, dispatchAddPane } from './store/pane-ops'
+import { defaultShellId, dispatchAddPane, routeWorkspaceTeardown } from './store/pane-ops'
 import { readPaneSnapshot, stashSnapshot, requestPaneFocus } from './components/terminal-registry'
 import { readExplorerState, stashExplorerState } from './components/explorer-registry'
 import { beginPaneTransit } from './components/pane-transit'
@@ -456,14 +456,21 @@ export const useStore = create<State>((set, get) => {
       const ws = get().workspaces[id]
       if (!ws) return
       const paneIds = Object.keys(ws.panes)
-      // Order is load-bearing (FINDING-002): tear the panes down FIRST (each remote kill prunes
-      // its pane from the manager), THEN disconnect — the manager sees a pane-less entry and
-      // FORGETS it (CONV-011: no ghost in remote:current) — then prune the slice's own entry.
-      teardownPanes(paneIds)
-      if (ws.home) {
-        get().disconnectRemote(id)
-        get().pruneRemoteStates(Object.keys(get().remoteStates).filter(wsId => wsId !== id))
-      }
+      // FINDING-023 (locked D10, REQ-019): a REMOTE workspace close DETACHES — never `pty:kill`s
+      // its panes — so the daemon + PTYs survive for reattach, exactly like quit-app and banner
+      // disconnect. A LOCAL workspace close stays byte-identical to today (one kill per pane).
+      // routeWorkspaceTeardown centralizes the branch; the manager forgets the entry via the
+      // additive `{ forget: true }` (detach-then-forget — no ghost in remote:current, CONV-011).
+      routeWorkspaceTeardown(
+        { isRemote: !!ws.home, paneIds },
+        {
+          kill: (paneId) => teardownPanes([paneId]),
+          detach: () => {
+            get().disconnectRemote(id, { forget: true })
+            get().pruneRemoteStates(Object.keys(get().remoteStates).filter(wsId => wsId !== id))
+          }
+        }
+      )
       set(s => {
         const workspaces = { ...s.workspaces }; delete workspaces[id]
         const order = s.order.filter(x => x !== id)

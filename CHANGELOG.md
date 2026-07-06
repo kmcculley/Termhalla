@@ -7,6 +7,32 @@ All notable changes to Termhalla are recorded here. The format follows
 ## [Unreleased]
 
 ### Added
+- **Agent daemonization (Remote Agent v1, batch 7 — F23).** The remote agent gains a persistent
+  `--daemon` mode (the tmux model): one process **per remote workspace**, listening on a
+  workspace-keyed, version-stable unix-domain socket (`agent-<wsToken>.sock`, created owner-only
+  0600 from the instant it exists via an umask-wrapped bind; `daemon-<wsToken>.json` cross-version-
+  frozen metadata; `daemon-<wsToken>.log` truncated per generation AND size-capped within a
+  generation), reached through a thin byte-transparent `--attach` bridge over each ssh exec channel
+  (spawn-then-attach, detached, race-safe single-instance claim with crash-remnant reclaim owned
+  entirely by the daemon — the bridge never removes a file — and a really-scheduled idle self-exit
+  on an established-connection COUNT). Because the daemon is keyed per workspace, two workspaces
+  pointed at the same host+user are fully independent — opening a second never disconnects the
+  first. This makes the already-shipped F18 inventory/replay reattach path survive a REAL client
+  close/reopen — closing Termhalla no longer kills the agent's session store, so a running
+  `claude` (or any pane) keeps going and reattaches with full scrollback on reconnect — **including
+  across a routine Termhalla auto-update**: the wire protocol is versioned separately from the app,
+  so a routine update (protocol unchanged) reattaches to the still-running old-app-version daemon
+  and sessions survive it; only a genuinely protocol-breaking release drifts, and drift is refused
+  honestly and non-destructively (the old daemon's sessions keep running until it idles out or is
+  manually terminated). All three going-away gestures now share one survival story: quitting the
+  app, the banner's Disconnect, and **closing the workspace tab** all detach rather than kill —
+  closing a remote workspace's tab no longer tears down its remote panes; reopening the same
+  workspace reattaches to the surviving daemon (closing an individual remote pane remains a
+  deliberate kill, unchanged). Client change is opt-in and confined to the launch/transport layer
+  (`BootstrapOptions.daemon?: { workspaceId }`, byte-identical when absent) plus the close-tab
+  detach routing (one additive optional parameter on the existing `remote:disconnect` channel);
+  zero renderer UI, no new IPC channel, no `SCHEMA_VERSION` change. (`docs/features/remote-agent.md`,
+  `docs/features/remote-workspaces.md`)
 - **Remote node-pty prebuilt co-provisioning (Remote Agent v1, batch 6 — F22).** A released
   installer now ships a prebuilt native `node-pty` for the v1 target `linux-x64-glibc` (staged
   and release-gate-verified with a per-file sha-256 manifest, nothing native committed to the

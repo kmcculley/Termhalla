@@ -1,9 +1,9 @@
 {
-  "feature": ".orky/features/0022-client-routing-remote-workspace-ux",
+  "feature": ".orky/features/0024-agent-daemonization",
   "projectRoot": "C:/dev/Termhalla",
   "phase": "driving",
-  "lastTickAt": "2026-07-06T11:19:30.418Z",
-  "lastAction": "feature done",
+  "lastTickAt": "2026-07-06T21:07:01.859Z",
+  "lastAction": "workflow tick",
   "runs": {
     ".orky/features/0017-agent-runtime-skeleton": {
       "phase": "human-review",
@@ -33,6 +33,16 @@
     ".orky/features/0022-client-routing-remote-workspace-ux": {
       "phase": "driving",
       "lastTickAt": "2026-07-05T00:44:32.287Z",
+      "lastAction": "workflow tick"
+    },
+    ".orky/features/0024-agent-daemonization": {
+      "phase": "driving",
+      "lastTickAt": "2026-07-06T21:07:01.859Z",
+      "lastAction": "workflow tick"
+    },
+    ".orky\\features\\0024-agent-daemonization": {
+      "phase": "driving",
+      "lastTickAt": "2026-07-06T19:18:04.390Z",
       "lastAction": "workflow tick"
     }
   }

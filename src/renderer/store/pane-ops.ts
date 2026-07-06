@@ -99,3 +99,20 @@ export function aiState(
   if (!s.aiSessions[paneId]) return null
   return s.statuses[paneId]?.state === 'busy' ? 'working' : 'awaiting'
 }
+
+/** The workspace-close teardown routing core (feature 0024, REQ-019 / locked D10 / FINDING-023):
+ *  a REMOTE workspace close must DETACH — never `pty:kill` any of its panes, over the wire or
+ *  locally — so the daemon and its PTYs survive for the F18 reattach, exactly like the quit-app
+ *  and banner-disconnect gestures. A LOCAL workspace close stays byte-identical to today: one
+ *  kill per pane, in order, no detach. Pure and api-free (the repo's renderer-injection
+ *  convention) — `store.ts`'s `closeWorkspace` supplies the actual kill/detach closures. */
+export function routeWorkspaceTeardown(
+  input: { isRemote: boolean; paneIds: string[] },
+  fns: { kill: (paneId: string) => void; detach: () => void }
+): void {
+  if (input.isRemote) {
+    fns.detach()
+    return
+  }
+  for (const paneId of input.paneIds) fns.kill(paneId)
+}

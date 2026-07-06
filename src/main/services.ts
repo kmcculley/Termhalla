@@ -96,8 +96,18 @@ export function buildServices(): Services {
   const remoteManager = new RemoteWorkspaceManager({
     send: (channel, ...args) => remoteSend(channel, ...args),
     loadAgents: () => loadNamedAgents(remoteAgentsPath),
-    connect: ({ agent, version, artifactPath, signal }) =>
-      connectWithProvisioning({ agent, version, artifactPath, signal, nodePty: { prebuiltRoot: nodePtyPrebuiltRoot } }),
+    connect: ({ agent, version, artifactPath, signal, workspaceId }) =>
+      connectWithProvisioning({
+        agent, version, artifactPath, signal,
+        nodePty: { prebuiltRoot: nodePtyPrebuiltRoot },
+        // Feature 0024-agent-daemonization (REQ-013/REQ-018, locked D6′): production connects opt
+        // into the daemon flow with the workspace id as the scope — a PER-WORKSPACE persistent
+        // unix-domain-socket daemon survives the client closing/reopening (making the SHIPPED F18
+        // inventory/replay reattach path work across a real disconnect), and two same-host
+        // workspaces stay fully independent (each gets its own daemon/socket/lease). The manager
+        // always supplies `workspaceId` (its type is loose only for the frozen test harness).
+        daemon: { workspaceId: workspaceId ?? '' }
+      }),
     version: MANIFEST_VERSION,
     artifactPath: resolveAgentArtifactPath({
       packaged: app.isPackaged,

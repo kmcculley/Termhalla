@@ -6924,5 +6924,792 @@
     "downgraded": false,
     "servedFraction": 1,
     "at": "2026-07-06T04:44:11.446Z"
+  },
+  {
+    "action": "gate.check",
+    "feature": "0024-agent-daemonization",
+    "phase": "spec",
+    "pass": true,
+    "attempts": 0,
+    "totalFailures": 0,
+    "wallClockMs": 8,
+    "at": "2026-07-06T14:23:35.713Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0024-agent-daemonization.",
+    "role": "spec-writer",
+    "agentType": "orky:spec-writer",
+    "transcript": "agent-af399420805a5fafb",
+    "dir": "C--dev-Termhalla/c111f95c-b2cc-41a0-80c6-0ecb6bce3277/subagents/workflows/wf_02df2def-a40",
+    "served": [
+      "claude-fable-5"
+    ],
+    "firstModel": "claude-fable-5",
+    "lastModel": "claude-fable-5",
+    "messages": 53,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-06T14:25:03.243Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0023-remote-node-pty-prebuilt.",
+    "role": "doc-sync",
+    "agentType": "orky:doc-sync",
+    "transcript": "agent-a5adc798e2a50bbec",
+    "dir": "C--dev-Termhalla/c111f95c-b2cc-41a0-80c6-0ecb6bce3277/subagents/workflows/wf_2463fcc5-10f",
+    "served": [
+      "claude-sonnet-5"
+    ],
+    "firstModel": "claude-sonnet-5",
+    "lastModel": "claude-sonnet-5",
+    "messages": 111,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-06T14:25:03.243Z"
+  },
+  {
+    "action": "producer.select",
+    "feature": "0024-agent-daemonization",
+    "role": "planner",
+    "phase": "plan",
+    "tier": "low",
+    "model": "sonnet",
+    "effort": "medium",
+    "trigger": "base",
+    "attempts": 0,
+    "at": "2026-07-06T14:26:10.174Z"
+  },
+  {
+    "action": "gate.check",
+    "feature": "0024-agent-daemonization",
+    "phase": "plan",
+    "pass": true,
+    "attempts": 0,
+    "totalFailures": 0,
+    "wallClockMs": 8,
+    "at": "2026-07-06T14:30:00.507Z"
+  },
+  {
+    "action": "gate.check",
+    "feature": "0024-agent-daemonization",
+    "phase": "tests",
+    "pass": true,
+    "attempts": 0,
+    "totalFailures": 0,
+    "wallClockMs": 157734,
+    "at": "2026-07-06T15:15:29.845Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0024-agent-daemonization.",
+    "role": "test-designer",
+    "agentType": "orky:test-designer",
+    "transcript": "agent-a58a39e81518dec7e",
+    "dir": "C--dev-Termhalla/c111f95c-b2cc-41a0-80c6-0ecb6bce3277/subagents/workflows/wf_02df2def-a40",
+    "served": [
+      "claude-fable-5"
+    ],
+    "firstModel": "claude-fable-5",
+    "lastModel": "claude-fable-5",
+    "messages": 131,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-06T15:15:30.792Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0024-agent-daemonization.",
+    "role": "planner",
+    "agentType": "orky:planner",
+    "transcript": "agent-aadd3978280e3b05d",
+    "dir": "C--dev-Termhalla/c111f95c-b2cc-41a0-80c6-0ecb6bce3277/subagents/workflows/wf_02df2def-a40",
+    "served": [
+      "claude-sonnet-5"
+    ],
+    "firstModel": "claude-sonnet-5",
+    "lastModel": "claude-sonnet-5",
+    "messages": 28,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-06T15:15:30.792Z"
+  },
+  {
+    "action": "producer.select",
+    "feature": "0024-agent-daemonization",
+    "role": "implementer",
+    "phase": "implement",
+    "tier": "low",
+    "model": "sonnet",
+    "effort": "medium",
+    "trigger": "base",
+    "attempts": 0,
+    "at": "2026-07-06T15:16:38.004Z"
+  },
+  {
+    "action": "producer.select",
+    "feature": "0024-agent-daemonization",
+    "role": "implementer",
+    "phase": "implement",
+    "tier": "low",
+    "model": "sonnet",
+    "effort": "medium",
+    "trigger": "base",
+    "attempts": 0,
+    "at": "2026-07-06T15:17:41.145Z"
+  },
+  {
+    "action": "gate.check",
+    "feature": "0024-agent-daemonization",
+    "phase": "implement",
+    "pass": true,
+    "attempts": 0,
+    "totalFailures": 0,
+    "wallClockMs": 67688,
+    "at": "2026-07-06T15:54:36.294Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0024-agent-daemonization",
+    "role": "implementer",
+    "agentType": "orky:implementer",
+    "transcript": "agent-a525fce8378e0a92f",
+    "dir": "C--dev-Termhalla/c111f95c-b2cc-41a0-80c6-0ecb6bce3277/subagents",
+    "served": [
+      "claude-sonnet-5"
+    ],
+    "firstModel": "claude-sonnet-5",
+    "lastModel": "claude-sonnet-5",
+    "messages": 237,
+    "requested": "sonnet",
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-06T15:54:37.505Z"
+  },
+  {
+    "action": "gate.check",
+    "feature": "0024-agent-daemonization",
+    "phase": "implement",
+    "pass": true,
+    "attempts": 0,
+    "totalFailures": 0,
+    "wallClockMs": 194212,
+    "at": "2026-07-06T16:37:54.538Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0024-agent-daemonization",
+    "role": "implementer",
+    "agentType": "orky:implementer",
+    "transcript": "agent-a790cb1c31fef6230",
+    "dir": "C--dev-Termhalla/c111f95c-b2cc-41a0-80c6-0ecb6bce3277/subagents",
+    "served": [
+      "claude-opus-4-8",
+      "<synthetic>"
+    ],
+    "firstModel": "claude-opus-4-8",
+    "lastModel": "<synthetic>",
+    "messages": 157,
+    "switchAtMessage": 157,
+    "requested": "sonnet",
+    "downgraded": false,
+    "servedFraction": 0,
+    "at": "2026-07-06T16:37:59.537Z"
+  },
+  {
+    "action": "gate.check",
+    "feature": "0024-agent-daemonization",
+    "phase": "review",
+    "pass": false,
+    "attempts": 1,
+    "totalFailures": 1,
+    "wallClockMs": 9,
+    "failed": [
+      "findings"
+    ],
+    "at": "2026-07-06T16:54:31.902Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0024-agent-daemonization.",
+    "role": "reviewer",
+    "agentType": "orky:reviewer",
+    "transcript": "agent-a3bbc24c6668a8ee1",
+    "dir": "C--dev-Termhalla/c111f95c-b2cc-41a0-80c6-0ecb6bce3277/subagents/workflows/wf_bdc63274-6cf",
+    "served": [
+      "claude-opus-4-8"
+    ],
+    "firstModel": "claude-opus-4-8",
+    "lastModel": "claude-opus-4-8",
+    "messages": 61,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-06T16:54:34.782Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0024-agent-daemonization.",
+    "role": "reviewer",
+    "agentType": "orky:reviewer",
+    "transcript": "agent-a49b738f829d31b3d",
+    "dir": "C--dev-Termhalla/c111f95c-b2cc-41a0-80c6-0ecb6bce3277/subagents/workflows/wf_bdc63274-6cf",
+    "served": [
+      "claude-opus-4-8"
+    ],
+    "firstModel": "claude-opus-4-8",
+    "lastModel": "claude-opus-4-8",
+    "messages": 46,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-06T16:54:34.783Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0024-agent-daemonization.",
+    "role": "reviewer",
+    "agentType": "orky:reviewer",
+    "transcript": "agent-a6cdea436674f28ab",
+    "dir": "C--dev-Termhalla/c111f95c-b2cc-41a0-80c6-0ecb6bce3277/subagents/workflows/wf_bdc63274-6cf",
+    "served": [
+      "claude-opus-4-8"
+    ],
+    "firstModel": "claude-opus-4-8",
+    "lastModel": "claude-opus-4-8",
+    "messages": 63,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-06T16:54:34.783Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0024-agent-daemonization.",
+    "role": "reviewer",
+    "agentType": "orky:reviewer",
+    "transcript": "agent-af20a6ff055eb38e7",
+    "dir": "C--dev-Termhalla/c111f95c-b2cc-41a0-80c6-0ecb6bce3277/subagents/workflows/wf_bdc63274-6cf",
+    "served": [
+      "claude-opus-4-8"
+    ],
+    "firstModel": "claude-opus-4-8",
+    "lastModel": "claude-opus-4-8",
+    "messages": 62,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-06T16:54:34.783Z"
+  },
+  {
+    "action": "gate.check",
+    "feature": "0024-agent-daemonization",
+    "phase": "spec",
+    "pass": true,
+    "attempts": 0,
+    "totalFailures": 1,
+    "wallClockMs": 5,
+    "at": "2026-07-06T17:17:21.338Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0024-agent-daemonization.",
+    "role": "spec-writer",
+    "agentType": "orky:spec-writer",
+    "transcript": "agent-ab97c187ddcbbbb2d",
+    "dir": "C--dev-Termhalla/c111f95c-b2cc-41a0-80c6-0ecb6bce3277/subagents/workflows/wf_ba6e6872-b05",
+    "served": [
+      "claude-fable-5"
+    ],
+    "firstModel": "claude-fable-5",
+    "lastModel": "claude-fable-5",
+    "messages": 36,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-06T17:17:24.905Z"
+  },
+  {
+    "action": "producer.select",
+    "feature": "0024-agent-daemonization",
+    "role": "planner",
+    "phase": "plan",
+    "tier": "low",
+    "model": "sonnet",
+    "effort": "medium",
+    "trigger": "base",
+    "attempts": 0,
+    "at": "2026-07-06T17:18:49.801Z"
+  },
+  {
+    "action": "gate.check",
+    "feature": "0024-agent-daemonization",
+    "phase": "plan",
+    "pass": true,
+    "attempts": 0,
+    "totalFailures": 1,
+    "wallClockMs": 10,
+    "at": "2026-07-06T17:23:12.319Z"
+  },
+  {
+    "action": "gate.check",
+    "feature": "0024-agent-daemonization",
+    "phase": "tests",
+    "pass": true,
+    "attempts": 0,
+    "totalFailures": 1,
+    "wallClockMs": 114156,
+    "at": "2026-07-06T18:02:49.373Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0024-agent-daemonization.",
+    "role": "planner",
+    "agentType": "orky:planner",
+    "transcript": "agent-a0bdea962930dd2f8",
+    "dir": "C--dev-Termhalla/c111f95c-b2cc-41a0-80c6-0ecb6bce3277/subagents/workflows/wf_ba6e6872-b05",
+    "served": [
+      "claude-sonnet-5"
+    ],
+    "firstModel": "claude-sonnet-5",
+    "lastModel": "claude-sonnet-5",
+    "messages": 32,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-06T18:03:46.017Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0024-agent-daemonization.",
+    "role": "test-designer",
+    "agentType": "orky:test-designer",
+    "transcript": "agent-a30a8eacd5a685cd7",
+    "dir": "C--dev-Termhalla/c111f95c-b2cc-41a0-80c6-0ecb6bce3277/subagents/workflows/wf_ba6e6872-b05",
+    "served": [
+      "claude-fable-5"
+    ],
+    "firstModel": "claude-fable-5",
+    "lastModel": "claude-fable-5",
+    "messages": 124,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-06T18:03:46.017Z"
+  },
+  {
+    "action": "gate.check",
+    "feature": "0024-agent-daemonization",
+    "phase": "tests",
+    "pass": true,
+    "attempts": 0,
+    "totalFailures": 1,
+    "wallClockMs": 114006,
+    "at": "2026-07-06T18:05:11.934Z"
+  },
+  {
+    "action": "producer.select",
+    "feature": "0024-agent-daemonization",
+    "role": "implementer",
+    "phase": "implement",
+    "tier": "low",
+    "model": "sonnet",
+    "effort": "medium",
+    "trigger": "base",
+    "attempts": 0,
+    "at": "2026-07-06T18:06:03.737Z"
+  },
+  {
+    "action": "producer.select",
+    "feature": "0024-agent-daemonization",
+    "role": "implementer",
+    "phase": "implement",
+    "tier": "low",
+    "model": "sonnet",
+    "effort": "medium",
+    "trigger": "base",
+    "attempts": 0,
+    "at": "2026-07-06T18:06:30.135Z"
+  },
+  {
+    "action": "gate.check",
+    "feature": "0024-agent-daemonization",
+    "phase": "implement",
+    "pass": false,
+    "attempts": 1,
+    "totalFailures": 2,
+    "wallClockMs": 72035,
+    "failed": [
+      "test"
+    ],
+    "at": "2026-07-06T18:52:58.201Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0024-agent-daemonization",
+    "role": "implementer",
+    "agentType": "orky:implementer",
+    "transcript": "agent-addea4d42617f5c57",
+    "dir": "C--dev-Termhalla/c111f95c-b2cc-41a0-80c6-0ecb6bce3277/subagents",
+    "served": [
+      "claude-opus-4-8"
+    ],
+    "firstModel": "claude-opus-4-8",
+    "lastModel": "claude-opus-4-8",
+    "messages": 265,
+    "requested": "sonnet",
+    "downgraded": false,
+    "servedFraction": 0,
+    "at": "2026-07-06T18:52:59.557Z"
+  },
+  {
+    "action": "gate.check",
+    "feature": "0024-agent-daemonization",
+    "phase": "tests",
+    "pass": true,
+    "attempts": 0,
+    "totalFailures": 2,
+    "wallClockMs": 148296,
+    "at": "2026-07-06T18:58:17.302Z"
+  },
+  {
+    "action": "gate.check",
+    "feature": "0024-agent-daemonization",
+    "phase": "implement",
+    "pass": true,
+    "attempts": 0,
+    "totalFailures": 2,
+    "wallClockMs": 71506,
+    "at": "2026-07-06T19:01:46.553Z"
+  },
+  {
+    "action": "gate.check",
+    "feature": "0024-agent-daemonization",
+    "phase": "review",
+    "pass": false,
+    "attempts": 2,
+    "totalFailures": 3,
+    "wallClockMs": 4,
+    "failed": [
+      "findings"
+    ],
+    "at": "2026-07-06T19:17:40.950Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0024-agent-daemonization.",
+    "role": "reviewer",
+    "agentType": "orky:reviewer",
+    "transcript": "agent-a129255e659383293",
+    "dir": "C--dev-Termhalla/c111f95c-b2cc-41a0-80c6-0ecb6bce3277/subagents/workflows/wf_425c0054-528",
+    "served": [
+      "claude-opus-4-8"
+    ],
+    "firstModel": "claude-opus-4-8",
+    "lastModel": "claude-opus-4-8",
+    "messages": 59,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-06T19:17:42.044Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0024-agent-daemonization.",
+    "role": "reviewer",
+    "agentType": "orky:reviewer",
+    "transcript": "agent-a21b9f5a15b1fc798",
+    "dir": "C--dev-Termhalla/c111f95c-b2cc-41a0-80c6-0ecb6bce3277/subagents/workflows/wf_425c0054-528",
+    "served": [
+      "claude-opus-4-8"
+    ],
+    "firstModel": "claude-opus-4-8",
+    "lastModel": "claude-opus-4-8",
+    "messages": 56,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-06T19:17:42.044Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0024-agent-daemonization.",
+    "role": "reviewer",
+    "agentType": "orky:reviewer",
+    "transcript": "agent-acf7056d2140fb3ac",
+    "dir": "C--dev-Termhalla/c111f95c-b2cc-41a0-80c6-0ecb6bce3277/subagents/workflows/wf_425c0054-528",
+    "served": [
+      "claude-opus-4-8"
+    ],
+    "firstModel": "claude-opus-4-8",
+    "lastModel": "claude-opus-4-8",
+    "messages": 69,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-06T19:17:42.044Z"
+  },
+  {
+    "action": "gate.check",
+    "feature": "0024-agent-daemonization",
+    "phase": "spec",
+    "pass": true,
+    "attempts": 0,
+    "totalFailures": 3,
+    "wallClockMs": 3,
+    "at": "2026-07-06T19:33:23.319Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0024-agent-daemonization.",
+    "role": "reviewer",
+    "agentType": "orky:reviewer",
+    "transcript": "agent-a3ad818a44a2d4c50",
+    "dir": "C--dev-Termhalla/c111f95c-b2cc-41a0-80c6-0ecb6bce3277/subagents/workflows/wf_425c0054-528",
+    "served": [
+      "claude-opus-4-8"
+    ],
+    "firstModel": "claude-opus-4-8",
+    "lastModel": "claude-opus-4-8",
+    "messages": 83,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-06T19:33:24.461Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0024-agent-daemonization.",
+    "role": "spec-writer",
+    "agentType": "orky:spec-writer",
+    "transcript": "agent-aea28bc772b293b6a",
+    "dir": "C--dev-Termhalla/c111f95c-b2cc-41a0-80c6-0ecb6bce3277/subagents/workflows/wf_6a364b37-cec",
+    "served": [
+      "claude-fable-5"
+    ],
+    "firstModel": "claude-fable-5",
+    "lastModel": "claude-fable-5",
+    "messages": 37,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-06T19:33:24.461Z"
+  },
+  {
+    "action": "producer.select",
+    "feature": "0024-agent-daemonization",
+    "role": "planner",
+    "phase": "plan",
+    "tier": "low",
+    "model": "sonnet",
+    "effort": "medium",
+    "trigger": "base",
+    "attempts": 0,
+    "at": "2026-07-06T19:34:20.225Z"
+  },
+  {
+    "action": "gate.check",
+    "feature": "0024-agent-daemonization",
+    "phase": "plan",
+    "pass": true,
+    "attempts": 0,
+    "totalFailures": 3,
+    "wallClockMs": 4,
+    "at": "2026-07-06T19:38:19.826Z"
+  },
+  {
+    "action": "gate.check",
+    "feature": "0024-agent-daemonization",
+    "phase": "tests",
+    "pass": true,
+    "attempts": 0,
+    "totalFailures": 3,
+    "wallClockMs": 50943,
+    "at": "2026-07-06T20:01:25.387Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0024-agent-daemonization.",
+    "role": "test-designer",
+    "agentType": "orky:test-designer",
+    "transcript": "agent-a0171f3dea3b828d5",
+    "dir": "C--dev-Termhalla/c111f95c-b2cc-41a0-80c6-0ecb6bce3277/subagents/workflows/wf_6a364b37-cec",
+    "served": [
+      "claude-fable-5"
+    ],
+    "firstModel": "claude-fable-5",
+    "lastModel": "claude-fable-5",
+    "messages": 90,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-06T20:01:26.674Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0024-agent-daemonization.",
+    "role": "planner",
+    "agentType": "orky:planner",
+    "transcript": "agent-a1f199434dba05a74",
+    "dir": "C--dev-Termhalla/c111f95c-b2cc-41a0-80c6-0ecb6bce3277/subagents/workflows/wf_6a364b37-cec",
+    "served": [
+      "claude-sonnet-5"
+    ],
+    "firstModel": "claude-sonnet-5",
+    "lastModel": "claude-sonnet-5",
+    "messages": 33,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-06T20:01:26.674Z"
+  },
+  {
+    "action": "producer.select",
+    "feature": "0024-agent-daemonization",
+    "role": "implementer",
+    "phase": "implement",
+    "tier": "low",
+    "model": "sonnet",
+    "effort": "medium",
+    "trigger": "base",
+    "attempts": 0,
+    "at": "2026-07-06T20:02:22.693Z"
+  },
+  {
+    "action": "producer.select",
+    "feature": "0024-agent-daemonization",
+    "role": "implementer",
+    "phase": "implement",
+    "tier": "low",
+    "model": "sonnet",
+    "effort": "medium",
+    "trigger": "base",
+    "attempts": 0,
+    "at": "2026-07-06T20:02:54.016Z"
+  },
+  {
+    "action": "gate.check",
+    "feature": "0024-agent-daemonization",
+    "phase": "implement",
+    "pass": true,
+    "attempts": 0,
+    "totalFailures": 3,
+    "wallClockMs": 73356,
+    "at": "2026-07-06T20:21:59.452Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0024-agent-daemonization",
+    "role": "implementer",
+    "agentType": "orky:implementer",
+    "transcript": "agent-a3bf1b6f3ba1a3399",
+    "dir": "C--dev-Termhalla/c111f95c-b2cc-41a0-80c6-0ecb6bce3277/subagents",
+    "served": [
+      "claude-sonnet-5"
+    ],
+    "firstModel": "claude-sonnet-5",
+    "lastModel": "claude-sonnet-5",
+    "messages": 168,
+    "requested": "sonnet",
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-06T20:22:00.682Z"
+  },
+  {
+    "action": "gate.check",
+    "feature": "0024-agent-daemonization",
+    "phase": "review",
+    "pass": true,
+    "attempts": 0,
+    "totalFailures": 3,
+    "wallClockMs": 5,
+    "at": "2026-07-06T20:34:31.123Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0024-agent-daemonization.",
+    "role": "reviewer",
+    "agentType": "orky:reviewer",
+    "transcript": "agent-a037c8af36523db4d",
+    "dir": "C--dev-Termhalla/c111f95c-b2cc-41a0-80c6-0ecb6bce3277/subagents/workflows/wf_1613b098-418",
+    "served": [
+      "claude-opus-4-8"
+    ],
+    "firstModel": "claude-opus-4-8",
+    "lastModel": "claude-opus-4-8",
+    "messages": 71,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-06T20:34:32.196Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0024-agent-daemonization.",
+    "role": "reviewer",
+    "agentType": "orky:reviewer",
+    "transcript": "agent-a30b79e2bc914a6f3",
+    "dir": "C--dev-Termhalla/c111f95c-b2cc-41a0-80c6-0ecb6bce3277/subagents/workflows/wf_1613b098-418",
+    "served": [
+      "claude-opus-4-8"
+    ],
+    "firstModel": "claude-opus-4-8",
+    "lastModel": "claude-opus-4-8",
+    "messages": 85,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-06T20:34:32.196Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0024-agent-daemonization.",
+    "role": "reviewer",
+    "agentType": "orky:reviewer",
+    "transcript": "agent-abe418809a95fae79",
+    "dir": "C--dev-Termhalla/c111f95c-b2cc-41a0-80c6-0ecb6bce3277/subagents/workflows/wf_1613b098-418",
+    "served": [
+      "claude-opus-4-8"
+    ],
+    "firstModel": "claude-opus-4-8",
+    "lastModel": "claude-opus-4-8",
+    "messages": 68,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-06T20:34:32.196Z"
+  },
+  {
+    "action": "gate.check",
+    "feature": "0024-agent-daemonization",
+    "phase": "doc-sync",
+    "pass": true,
+    "attempts": 0,
+    "totalFailures": 3,
+    "wallClockMs": 29,
+    "at": "2026-07-06T20:40:38.651Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0024-agent-daemonization.",
+    "role": "reviewer",
+    "agentType": "orky:reviewer",
+    "transcript": "agent-a54a069958110dfc1",
+    "dir": "C--dev-Termhalla/c111f95c-b2cc-41a0-80c6-0ecb6bce3277/subagents/workflows/wf_1613b098-418",
+    "served": [
+      "claude-opus-4-8"
+    ],
+    "firstModel": "claude-opus-4-8",
+    "lastModel": "claude-opus-4-8",
+    "messages": 73,
+    "requested": null,
+    "downgraded": false,
+    "servedFraction": 1,
+    "at": "2026-07-06T20:40:39.714Z"
   }
 ]

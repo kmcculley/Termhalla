@@ -14,7 +14,9 @@ export interface RemoteSliceDeps {
   get: () => RemoteSliceState
   remoteCurrent: () => Promise<RemoteWorkspaceState[]>
   remoteConnect: (workspaceId: string, agentId: string) => void
-  remoteDisconnect: (workspaceId: string) => void
+  /** `opts?.forget` is the additive REQ-019 close-tab shape (feature 0024, D10) — threaded
+   *  unchanged; every pre-0024 call site passes no opts (byte-identical). */
+  remoteDisconnect: (workspaceId: string, opts?: { forget?: boolean }) => void
   remoteAgentsList: () => Promise<NamedAgent[]>
   remoteAgentsSave: (agents: NamedAgent[]) => Promise<NamedAgent[]>
   pushToast: (text: string, kind: 'info' | 'success' | 'error') => void
@@ -29,7 +31,7 @@ export interface RemoteSlice {
   ingestRemoteState(s: RemoteWorkspaceState): void
   seedRemoteStates(): Promise<void>
   connectRemote(workspaceId: string, agentId: string): void
-  disconnectRemote(workspaceId: string): void
+  disconnectRemote(workspaceId: string, opts?: { forget?: boolean }): void
   loadNamedAgents(): Promise<void>
   saveNamedAgents(agents: NamedAgent[]): Promise<boolean>
   pruneRemoteStates(liveWorkspaceIds: string[]): void
@@ -95,7 +97,14 @@ export function createRemoteSlice(deps: RemoteSliceDeps): RemoteSlice {
     },
 
     connectRemote: (workspaceId, agentId) => { deps.remoteConnect(workspaceId, agentId) },
-    disconnectRemote: (workspaceId) => { deps.remoteDisconnect(workspaceId) },
+    // No-opts call sites (every pre-0024 caller — banner disconnect, cancel) stay byte-identical:
+    // an explicit `undefined` second positional arg would still change the recorded call shape
+    // (`toHaveBeenCalledWith('ws-1')` pins exactly ONE arg — TEST-2277), so opts is forwarded
+    // only when the caller actually supplied it.
+    disconnectRemote: (workspaceId, opts) => {
+      if (opts !== undefined) deps.remoteDisconnect(workspaceId, opts)
+      else deps.remoteDisconnect(workspaceId)
+    },
 
     loadNamedAgents: async () => {
       try {

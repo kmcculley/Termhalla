@@ -1,16 +1,24 @@
 /**
- * The agent entry — the ONLY impure shell (REQ-003, REQ-011, REQ-013).
+ * The agent entry — the ONLY impure shell (REQ-003, REQ-011, REQ-013 of 0017/0019/0022;
+ * REQ-001 of 0024-agent-daemonization).
  *
- * stdio contract: stdin carries inbound protocol bytes; stdout carries outbound frames and
- * NOTHING else (every diagnostic goes to stderr). Exit codes: 0 clean (stdin ended), 1
- * protocol-fatal (handshake failure / fatal framing / outbound encode-write failure), 2 CLI
- * usage.
+ * Additive CLI modes (REQ-001 of 0024): with NO mode flag the process behaves byte-identically
+ * to the shipped F16 stdio agent (below, unchanged). `--daemon` dispatches to
+ * `daemon-server.ts`'s `runDaemon` (the persistent listener); `--attach` dispatches to
+ * `bridge.ts`'s `runBridge` (the byte-transparent bridge). Usage errors (mutually exclusive mode
+ * flags, a bad `--idle-timeout-ms`, an empty `--socket=`, unknown flags) stay exactly the
+ * existing shape: usage on stderr, exit 2, nothing on stdout.
+ *
+ * Default-mode stdio contract (unchanged): stdin carries inbound protocol bytes; stdout carries
+ * outbound frames and NOTHING else (every diagnostic goes to stderr). Exit codes: 0 clean (stdin
+ * ended), 1 protocol-fatal (handshake failure / fatal framing / outbound encode-write failure),
+ * 2 CLI usage.
  *
  * Shutdown never calls process.exit(): on Windows pipes, std stream writes are asynchronous
  * and process.exit() can drop them (the handshake-failure diagnostic would race the exit).
  * Instead the exit code is set, stdin is destroyed, and the process exits naturally once the
  * pending stdio writes flush (the StatusEngine tick is unref'd; panes were killed by the
- * session's shutdown path).
+ * session's shutdown path). `--daemon`/`--attach` mirror this discipline in their own modules.
  */
 import { createFrameDecoder, encodeFrame } from '@shared/remote/protocol'
 import type { WireFrame } from '@shared/remote/protocol'
@@ -20,14 +28,35 @@ import { createAgentSession } from './session'
 import { createFakePtyBackend } from './fake-backend'
 import { createNodePtyBackend } from './node-pty-backend'
 import type { AgentPtyBackend } from './pty-backend'
+import { runDaemon } from './daemon-server'
+import { runBridge } from './bridge'
+import { BRIDGE_DAEMON_UNREACHABLE_EXIT } from './daemon-constants'
 
 const stderrLine = (text: string): void => { process.stderr.write(`${text}\n`) }
+
+const resolveHomeDir = (): string =>
+  process.env.HOME && process.env.HOME.length > 0 ? process.env.HOME : process.cwd()
 
 const main = async (): Promise<void> => {
   const parsed = parseAgentArgs(process.argv.slice(2))
   if (!parsed.ok) {
     stderrLine(parsed.usage)
     process.exitCode = 2
+    return
+  }
+
+  if (parsed.mode === 'attach') {
+    try {
+      await runBridge({
+        ptyBackend: parsed.ptyBackend,
+        ...(parsed.wsToken !== undefined ? { wsToken: parsed.wsToken } : {}),
+        ...(parsed.socketPath !== undefined ? { socketPath: parsed.socketPath } : {}),
+        ...(parsed.idleTimeoutMs !== undefined ? { idleTimeoutMs: parsed.idleTimeoutMs } : {})
+      })
+    } catch (e) {
+      stderrLine(`bridge failed: ${String(e)}`)
+      process.exitCode = BRIDGE_DAEMON_UNREACHABLE_EXIT
+    }
     return
   }
 
@@ -44,6 +73,25 @@ const main = async (): Promise<void> => {
     }
   }
 
+  if (parsed.mode === 'daemon') {
+    try {
+      await runDaemon({
+        version: AGENT_VERSION,
+        backend,
+        ptyBackendName: parsed.ptyBackend,
+        homeDir: resolveHomeDir(),
+        ...(parsed.wsToken !== undefined ? { wsToken: parsed.wsToken } : {}),
+        ...(parsed.socketPath !== undefined ? { socketPath: parsed.socketPath } : {}),
+        ...(parsed.idleTimeoutMs !== undefined ? { idleTimeoutMs: parsed.idleTimeoutMs } : {})
+      })
+    } catch (e) {
+      stderrLine(`daemon failed: ${String(e)}`)
+      process.exitCode = 1
+    }
+    return
+  }
+
+  // Default mode: the F16 stdio agent, byte-identical.
   let exiting = false
   const finish = (code: number): void => {
     if (exiting) return
@@ -55,7 +103,7 @@ const main = async (): Promise<void> => {
   const session = createAgentSession({
     version: AGENT_VERSION,
     backend,
-    homeDir: process.env.HOME && process.env.HOME.length > 0 ? process.env.HOME : process.cwd(),
+    homeDir: resolveHomeDir(),
     send: (frame: WireFrame) => {
       try {
         process.stdout.write(encodeFrame(frame))

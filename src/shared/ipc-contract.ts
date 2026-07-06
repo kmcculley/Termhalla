@@ -314,8 +314,11 @@ export interface TermhallaApi {
   /** Begin (or retry) the workspace's agent connection. Fire-and-forget: outcomes ride remote:state. */
   remoteConnect(workspaceId: string, agentId: string): void
   /** Drop the workspace's connection — ALSO the user-facing CANCEL of an in-flight connect
-   *  (the F19 FINDING-005 caller-owned-cancellation contract). */
-  remoteDisconnect(workspaceId: string): void
+   *  (the F19 FINDING-005 caller-owned-cancellation contract). `opts.forget` (feature 0024,
+   *  REQ-019/D10) is the additive close-tab shape: the manager forgets the workspace's entry
+   *  even with panes still tracked (detach-then-forget — the daemon + PTYs are untouched, a
+   *  separate process). Every pre-0024 call passes no opts (byte-identical). */
+  remoteDisconnect(workspaceId: string, opts?: { forget?: boolean }): void
   /** Pull ALL current per-workspace connection states (recovers a missed remote:state push). */
   remoteCurrent(): Promise<import('./remote-workspace').RemoteWorkspaceState[]>
   /** Per-workspace connection state push (app-global broadcast; key by workspaceId). */

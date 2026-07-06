@@ -57,18 +57,60 @@ remote panes. Status chips are **agent-sourced** (F16's `pty:status` payload pas
 absent `lastExit` kept an absent key); `pty:cwd` reaches the renderer only (the chip), never the
 local git/usage/indexer hooks.
 
-## Reconnect + the v1 daemonization reality
+## Reconnect + daemon survival (feature 0024-agent-daemonization)
 
 On every (re)connection the manager runs the F18 inventory flow: one `pty:sessions`, then per
 tracked pane in sorted id order — in inventory → `pty:attach` (a `\x1bc` reset preamble + the
 serialize snapshot exactly once, status/cwd re-pushed, the renderer-recorded dims re-applied when
 they differ); tracked-but-never-spawned → first spawn; spawned-and-gone → surfaced as exited.
 
-**Shipped v1 consequence (CONV-054):** the v1 agent is **not daemonized** — its owned session store
-dies with the stdio connection — so after a real transport drop the inventory is empty and every
-pane surfaces as exited. The client flow is inventory-driven so agent daemonization (a recorded
-open question) lands with no client change; live reattach-with-snapshot is exercised in-process
-against the survival composition exactly as F18/F20's suites do.
+**The agent is now daemonized (feature 0024), and this manager needed only a one-line change for
+it** (it threads the workspace id through as the daemon scope). Production connects (`services.ts`)
+pass `BootstrapOptions.daemon: { workspaceId }`, which opts `connectWithProvisioning` into the
+daemon flow (`docs/features/remote-agent.md` § "Daemonization"): a persistent, **per-workspace**
+process listening on a workspace-keyed unix-domain socket (`agent-<wsToken>.sock`) under
+`~/.termhalla/agent/`, reached through a thin ssh-exec bridge, surviving the client
+closing/reopening. One daemon per remote workspace means two workspaces on the **same host** are
+fully independent — opening the second never disconnects the first (locked D6′/REQ-018). Because
+this manager's re-adoption is purely **inventory-driven** — it never assumed the wire's other end
+dies with the connection — a reconnect finds the SAME daemon and the SAME `pty:sessions` inventory:
+live panes reattach with their full scrollback intact (the headline survival story), exactly the
+reattach-with-snapshot path F18/F20's suites already exercised in-process. Survival holds across a
+routine Termhalla **auto-update** too: the wire protocol is versioned separately from the app
+(locked D4′), so close → update → reopen reattaches to the still-running old-app-version daemon and
+its sessions survive the update. Only a genuinely protocol-breaking release drifts, and it is
+refused non-destructively — the old daemon's sessions keep running until it idles out or is manually
+terminated. A protocol-drifted daemon, or a genuinely idled-out/dead endpoint, still surfaces
+through the ordinary connect-failure path above (`disconnected/connect-failed`) — no daemon-specific
+branch exists in this file at all; see remote-agent.md for the full close/reopen story and the
+non-destructive drift refusal.
+
+### Three going-away gestures, one survival story (feature 0024, locked D10 / REQ-019)
+
+Three gestures make a remote workspace's connection go away — quitting the app, the banner's
+Disconnect, and closing the workspace's TAB — and all three now DETACH rather than kill: the wire
+tears down (the same `teardownWire` semantics quit-app and the banner already used) while the
+daemon and its live PTYs keep running, surviving for the F18 reattach. Closing the tab
+(`closeWorkspace` in `store.ts`) used to `pty:kill` every remote pane first — silently destroying
+the very session this feature exists to preserve (FINDING-023) — it now routes through the pure
+`routeWorkspaceTeardown` core (`src/renderer/store/pane-ops.ts`): a REMOTE workspace close issues
+ZERO `pty:kill` calls and exactly one detach (`disconnectRemote(id, { forget: true })`, an additive
+optional param on the EXISTING `remote:disconnect` channel — no new IPC surface); a LOCAL workspace
+close stays byte-identical (one kill per pane, no detach). `RemoteWorkspaceManager
+.disconnectWorkspace`'s `{ forget: true }` always forgets the manager's entry — even with panes
+still tracked — so no ghost state survives in `currentStates()`/`remote:current`
+(detach-then-forget, not kill-then-forget). Reopening the SAME workspace (same `wsToken`)
+reattaches to the surviving daemon exactly as the headline REQ-015 scenario describes. **Disclosed
+consequence (CONV-054/FINDING-027/FINDING-030):** idle-reap requires BOTH zero established
+connections AND zero live panes (REQ-006's `maybeArm` gate) — an unreopened workspace whose panes
+have already ended does idle-reap on its own, but a detach with a STILL-RUNNING pane (the flagship
+survival case — a live `claude`) does NOT idle-reap: the daemon and its live PTYs persist until
+that process exits on its own or is manually terminated (SSH, or reopen the workspace then close
+the individual pane). There is no app-side affordance in v1 to enumerate or reap a detached
+workspace's daemon — closing the tab trades an immediate kill for an invisible, uncapped-lifetime
+remote process until one of those paths ends it; a fleet-visibility/reap follow-up is tracked in
+`docs/superpowers/0024-agent-daemonization-review-followups.md` (FINDING-030). Closing an
+INDIVIDUAL remote pane (not the tab) remains a deliberate kill of that one pane — unchanged.
 
 ## UX
 

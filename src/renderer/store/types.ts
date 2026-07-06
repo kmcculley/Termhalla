@@ -157,7 +157,7 @@ export interface State {
   ingestRemoteState: (s: import('@shared/remote-workspace').RemoteWorkspaceState) => void
   seedRemoteStates: () => Promise<void>
   connectRemote: (workspaceId: string, agentId: string) => void
-  disconnectRemote: (workspaceId: string) => void
+  disconnectRemote: (workspaceId: string, opts?: { forget?: boolean }) => void
   loadNamedAgents: () => Promise<void>
   saveNamedAgents: (agents: import('@shared/remote-agents').NamedAgent[]) => Promise<boolean>
   pruneRemoteStates: (liveWorkspaceIds: string[]) => void

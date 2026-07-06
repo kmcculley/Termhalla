@@ -11,6 +11,29 @@
 // 'npty-race-divergent' rig now runs the interposer in PERSISTENT mode (NPTY_INTERPOSE_EVERY)
 // because the amended REQ-015 rename-first promote REPAIRS a one-shot divergent collision —
 // only a divergent install that reappears after the single replace retry is a genuine 95.
+// AMENDED (sanctioned, CONV-012) — feature 0024-agent-daemonization (phase 4, REQ-016;
+// RE-AMENDED through the revision-2 tests phase after the ESC-001 loop-back, per D6′): the shim
+// recognizes the amended REQ-009 daemon-flow launch shape INCLUDING the workspace scope
+// (test -f P && exec node P --attach --pty=B --ws=T || exit 127) and runs the REAL bridge as a
+// local child with an injected portable --socket path, so the bridge's DETACHED daemon child is
+// a PERSISTENT daemon KEYED BY wsToken per fake home that outlives individual shim invocations
+// (the reconnect-fidelity AND same-host-coexistence substrate — REQ-018: distinct tokens on one
+// fake home get distinct sockets and daemons). Ledger kinds gained: 'daemon-attach' (one per
+// daemon-flow launch, carrying { ws: token }) and 'daemon-spawn' (appended with the token when
+// the bridge's TERMHALLA_BRIDGE_V1 status line reports spawned:true). New env:
+//   FAKE_SSH_DAEMON_SOCKET   explicit daemon socket path override (single-workspace rigs; else
+//                            derived per fake home × wsToken — a \\.\pipe\ name on win32,
+//                            else <home>/.termhalla/agent/agent-<ws>.sock, mirroring the
+//                            production ws-derived name)
+//   FAKE_SSH_DAEMON_IDLE_MS  appended to the bridge argv as --idle-timeout-ms=<n> (forwarded
+//                            by the bridge to any daemon it spawns — the idle-out rigs)
+// The 0024 rigs (stale remnants, never-accepting daemon, the old-APP-version-same-proto
+// AUTO-UPDATE daemon, the proto-drift daemon, concurrent first-connects to ONE workspace, two
+// DISTINCT workspaces on one fake home) are realized by PRE-SEEDING the fake home
+// (daemon-<ws>.json / dummy pids / transformed-bundle artifacts / test-launched persistent
+// daemons) plus these env vars — deterministic, no new FAKE_SSH_RIG switches, existing
+// launch/upload/npty handling byte-identical. Still network-module-free (TEST-2006) and
+// POSIX-shell-free.
 // The shim recognizes the two `node -e` command shapes of the node-pty co-provision wire
 // contract (the REQ-008 probe and the REQ-014 install) and executes their embedded
 // single-quote-free scripts with the LOCAL node for fidelity. Existing launch/upload handling
@@ -93,6 +116,7 @@ import { existsSync, mkdirSync, appendFileSync, writeFileSync, readFileSync, ren
 import { resolve as resolvePath, dirname, join, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { spawn } from 'node:child_process'
+import { createHash } from 'node:crypto'
 
 const die = (code, msg) => {
   if (msg) process.stderr.write(`FAKE-SSH: ${msg}\n`)
@@ -132,14 +156,15 @@ let command = ''
 const PROBE_SENTINEL = 'TERMHALLA_PROBE_V1 '
 
 const kindOf = (cmd) =>
-  cmd.startsWith('test -f ') ? 'launch'
+  cmd.startsWith('test -f ') ? (cmd.includes(' --attach ') ? 'daemon-attach' : 'launch')
     : cmd.startsWith('mkdir -p ') ? 'upload'
       : cmd.startsWith("node -e '") ? (cmd.includes('TERMHALLA_PROBE_V1') ? 'probe' : 'node-pty-install')
         : 'other'
 
 if (process.env.FAKE_SSH_LOG) {
+  const wsMatch = command.match(/ --ws=([A-Za-z0-9_-]{1,64}) /)
   appendFileSync(process.env.FAKE_SSH_LOG,
-    JSON.stringify({ kind: kindOf(command), destination, command }) + '\n')
+    JSON.stringify({ kind: kindOf(command), ...(wsMatch ? { ws: wsMatch[1] } : {}), destination, command }) + '\n')
 }
 
 const rig = process.env.FAKE_SSH_RIG || ''
@@ -153,7 +178,66 @@ if (rig === 'stall') {
   interpret()
 }
 
+/** The per-fake-home × per-WORKSPACE daemon socket (0024, D6′): explicit via
+ *  FAKE_SSH_DAEMON_SOCKET (single-workspace rigs), else a stable name derived from the fake
+ *  home AND the wsToken — a named pipe on win32 (a filesystem path cannot back an AF_UNIX
+ *  socket there), the production-mirroring <home>/.termhalla/agent/agent-<ws>.sock elsewhere.
+ *  Distinct tokens on one home MUST get distinct sockets (REQ-018). */
+function daemonSocketPath(wsToken) {
+  if (process.env.FAKE_SSH_DAEMON_SOCKET) return process.env.FAKE_SSH_DAEMON_SOCKET
+  if (process.platform !== 'win32') return resolvePath(home, '.termhalla', 'agent', `agent-${wsToken}.sock`)
+  const tag = createHash('sha1').update(`${resolvePath(home)}|${wsToken}`).digest('hex').slice(0, 12)
+  return `\\\\.\\pipe\\termhalla-fake-ssh-${tag}`
+}
+
 function interpret() {
+  // ---- 0024 REQ-009 daemon-flow launch (revision 2, D6′):
+  //      test -f P && exec node P --attach --pty=B --ws=T || exit 127
+  // The bridge runs as a LOCAL child with a portable --socket injected (win32 named pipe /
+  // posix path under the fake home) PLUS the forwarded --ws scope, so the daemon it spawns is
+  // DETACHED and persists per home × TOKEN (metadata/log at the ws-keyed names).
+  const daemonLaunch = command.match(/^test -f (\S+) && exec node \1 --attach --pty=(node-pty|fake) --ws=([A-Za-z0-9_-]{1,64}) \|\| exit 127$/)
+  if (daemonLaunch) {
+    const wsToken = daemonLaunch[3]
+    const artifact = resolveRemote(daemonLaunch[1])
+    if (!existsSync(artifact)) die(127, `agent artifact absent at ${daemonLaunch[1]}`)
+    const args = [artifact, '--attach', `--pty=${daemonLaunch[2]}`, `--ws=${wsToken}`, `--socket=${daemonSocketPath(wsToken)}`]
+    if (process.env.FAKE_SSH_DAEMON_IDLE_MS) args.push(`--idle-timeout-ms=${process.env.FAKE_SSH_DAEMON_IDLE_MS}`)
+    const child = spawn(process.execPath, args, {
+      stdio: ['pipe', 'pipe', 'pipe'], windowsHide: true
+    })
+    process.stdin.pipe(child.stdin)
+    child.stdout.pipe(process.stdout)
+    // stderr passes through AND is sniffed once for the bridge status line, so the ledger can
+    // distinguish attach-to-existing from a fresh daemon spawn ('daemon-spawn').
+    let sniff = ''
+    child.stderr.on('data', (c) => {
+      process.stderr.write(c)
+      if (sniff === null) return
+      sniff += c.toString('utf8')
+      const line = sniff.split('\n').find((l) => l.startsWith('TERMHALLA_BRIDGE_V1 '))
+      if (line) {
+        sniff = null
+        try {
+          const status = JSON.parse(line.slice('TERMHALLA_BRIDGE_V1 '.length))
+          if (status.spawned === true && process.env.FAKE_SSH_LOG) {
+            appendFileSync(process.env.FAKE_SSH_LOG,
+              JSON.stringify({ kind: 'daemon-spawn', ws: wsToken, destination, command }) + '\n')
+          }
+        } catch { /* a malformed status line is the client's problem, not the shim's */ }
+      } else if (sniff.length > 65536) {
+        sniff = null
+      }
+    })
+    child.on('close', (code) => {
+      process.exitCode = code === null ? 1 : code
+      process.stdin.unpipe(child.stdin)
+      process.stdin.destroy()
+    })
+    child.on('error', (e) => die(12, `failed to spawn local bridge: ${String(e)}`))
+    return
+  }
+
   // ---- REQ-009 launch probe: test -f P && exec node P --pty=B || exit 127 ----------------
   const launch = command.match(/^test -f (\S+) && exec node \1 --pty=(node-pty|fake) \|\| exit 127$/)
   if (launch) {

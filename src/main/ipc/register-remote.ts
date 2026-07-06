@@ -54,10 +54,17 @@ export function registerRemote(deps: {
     if (typeof a?.workspaceId !== 'string' || typeof a?.agentId !== 'string') return
     void manager.connectWorkspace(a.workspaceId, a.agentId)
   })
-  ipcMain.on(CH.remoteDisconnect, (e, workspaceId: unknown) => {
+  ipcMain.on(CH.remoteDisconnect, (e, workspaceId: unknown, opts?: unknown) => {
     if (!known(e)) return
     if (typeof workspaceId !== 'string') return
-    manager.disconnectWorkspace(workspaceId)
+    // Feature 0024 (REQ-019/D10): the close-tab shape's ONE additive optional param — validated
+    // (an object with an optional boolean `forget`; anything else is treated as ABSENT, never
+    // trusted blindly from the renderer). The disconnect itself always runs regardless.
+    const forget = typeof opts === 'object' && opts !== null && typeof (opts as { forget?: unknown }).forget === 'boolean'
+      ? (opts as { forget: boolean }).forget
+      : undefined
+    if (forget !== undefined) manager.disconnectWorkspace(workspaceId, { forget })
+    else manager.disconnectWorkspace(workspaceId)
   })
 
   return () => {

@@ -136,7 +136,7 @@ const api: TermhallaApi = {
   remoteAgentsList: () => ipcRenderer.invoke(CH.remoteAgentsList),
   remoteAgentsSave: (agents) => ipcRenderer.invoke(CH.remoteAgentsSave, agents),
   remoteConnect: (workspaceId, agentId) => ipcRenderer.send(CH.remoteConnect, { workspaceId, agentId }),
-  remoteDisconnect: (workspaceId) => ipcRenderer.send(CH.remoteDisconnect, workspaceId),
+  remoteDisconnect: (workspaceId, opts) => ipcRenderer.send(CH.remoteDisconnect, workspaceId, opts),
   remoteCurrent: () => ipcRenderer.invoke(CH.remoteCurrent),
   onRemoteState: pushChannel<[import('@shared/remote-workspace').RemoteWorkspaceState]>(CH.remoteState),
 }

@@ -37,6 +37,9 @@ const CONTROL_CHARS = /[\u0000-\u001f\u007f]/
 const SAFE_REMOTE_PATH = /^[A-Za-z0-9._/~-]+$/
 const SAFE_VERSION = /^[0-9A-Za-z.-]+$/
 const SAFE_NONCE = /^[A-Za-z0-9]+$/
+/** The workspace-scope token charset (0024, REQ-009): interpolated into a remote shell command
+ *  AND a filesystem path — this gate is the injection/traversal guard. */
+const SAFE_WS_TOKEN = /^[A-Za-z0-9_-]{1,64}$/
 
 const reject = (field: string, value: unknown, why: string): never => {
   throw new Error(
@@ -119,6 +122,23 @@ export function buildAgentLaunchCommand(installPath: string, ptyBackend: 'node-p
     reject('ptyBackend', ptyBackend, 'must be "node-pty" or "fake" (the F16 agent --pty contract)')
   }
   return `test -f ${installPath} && exec node ${installPath} --pty=${ptyBackend} || exit ${LAUNCH_ABSENT_EXIT}`
+}
+
+/** The daemon-flow launch (feature 0024, REQ-009): identical absent->127 classification as the
+ *  direct-exec probe above, but `exec`s the artifact in `--attach` (bridge) mode carrying the
+ *  WORKSPACE scope `--ws=<token>` (locked D6′). This builder is strictly ADDITIVE — the two-arg
+ *  `buildAgentLaunchCommand` above is untouched (its frozen pins stay byte-identical). The token
+ *  is interpolated into a remote shell command AND a filesystem path, so the charset gate is the
+ *  injection/traversal guard (CONV-001). */
+export function buildDaemonAgentLaunchCommand(installPath: string, ptyBackend: 'node-pty' | 'fake', wsToken: string): string {
+  checkRemotePath('installPath', installPath)
+  if (ptyBackend !== 'node-pty' && ptyBackend !== 'fake') {
+    reject('ptyBackend', ptyBackend, 'must be "node-pty" or "fake" (the F16 agent --pty contract)')
+  }
+  if (typeof wsToken !== 'string' || !SAFE_WS_TOKEN.test(wsToken)) {
+    reject('wsToken', wsToken, `must match ${String(SAFE_WS_TOKEN)} (it is interpolated into a remote shell command and a filesystem path — the injection/traversal guard)`)
+  }
+  return `test -f ${installPath} && exec node ${installPath} --attach --pty=${ptyBackend} --ws=${wsToken} || exit ${LAUNCH_ABSENT_EXIT}`
 }
 
 /** The upload (REQ-012): stream stdin to a nonce-suffixed temp file IN the install dir,

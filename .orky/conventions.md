@@ -320,6 +320,53 @@ to it when a review surfaces a lesson general enough to outlive its feature.
   relying on it silently makes the payload's bytes (and any hash over them) non-reproducible across
   hosts and runs.
   *(from FINDING-008 in 0023-remote-node-pty-prebuilt)*
+- **CONV-064** — A feature that consolidates previously-per-connection server state behind one
+  shared process MUST specify and test how concurrent independent clients coexist (exclusivity
+  granularity / blast radius) — collapsing N processes into one without deciding whether unrelated
+  concurrent clients share a lease, a store, or anything else is a silent regression of prior
+  concurrent-use workflows, not a design decision made explicit.
+  *(from FINDING-013 in 0024-agent-daemonization)*
+- **CONV-065** — A persistence/survival feature MUST analyze its interaction with the app's own
+  auto-updater: close → update → reopen is the default client lifecycle, and a survival design
+  that is only validated against a same-version reconnect can turn the single most common client
+  transition into its own worst-case (a version-drift lockout on the very path the feature exists
+  to serve).
+  *(from FINDING-014 in 0024-agent-daemonization)*
+- **CONV-066** — A size-capped diagnostics/ring log for a long-lived process MUST append
+  incrementally and rotate at the cap, never rewrite the whole capped buffer to disk on every
+  line — a bound on log GROWTH is not a bound on log-append IO cost, and full-buffer-rewrite-per-line
+  turns a bounded-size log into an unbounded write-amplification / disk-thrash vector for the
+  exact long-lived process the cap was meant to protect.
+  *(from FINDING-020 in 0024-agent-daemonization)*
+- **CONV-067** — A headless long-lived daemon/service MUST preserve the previous generation's
+  diagnostics across a restart (never truncate the only crash trace in place — a truncate-at-start
+  policy destroys forensic evidence exactly when a reconnect-triggered respawn is the moment
+  someone goes looking for it) and MUST log its own lifecycle transitions (start/ready/exit-reason),
+  not only error diagnostics — a log that is empty on the healthy path cannot confirm the process
+  ever ran or why it exited.
+  *(from FINDING-021 in 0024-agent-daemonization)*
+- **CONV-068** — A validation guard whose contract is a MUST on a real operation (bind/write/spawn)
+  MUST live on the production code path, not only in a pure seam the tests exercise — a seam-only
+  guard is green in CI and dead in production, silently swallowing exactly the raw platform error
+  (EINVAL/ENAMETOOLONG/etc.) the guard was written to name.
+  *(from FINDING-022 in 0024-agent-daemonization)*
+- **CONV-069** — A survival/persistence feature that detaches-and-forgets on a teardown gesture
+  MUST test that gesture with a LIVE underlying session (not only a pre-killed/empty one) and MUST
+  disclose whether that live session is ever automatically reaped — an idle-reap gated on the
+  session already having ended does not bound accumulation for the surviving-session case the
+  feature exists to create.
+  *(from FINDING-027 in 0024-agent-daemonization)*
+- **CONV-070** — A survival/persistence feature that leaves server-side processes running after
+  the client's default going-away gesture MUST provide, or explicitly defer with disclosure, a way
+  to enumerate and reap those processes from the client — a persistent process the user cannot see
+  or stop from the app is an operability orphan, not a feature benefit.
+  *(from FINDING-030 in 0024-agent-daemonization)*
+- **CONV-071** — Any long-lived `net.Server`/listener (a process meant to outlive individual
+  connections) MUST retain a process-surviving `'error'` handler for its whole serving lifetime —
+  never leave the listener with only its bind-time error handler, removed and never re-attached,
+  so an accept-time error (EMFILE/etc.) cannot crash a process whose entire purpose is outliving
+  any one connection.
+  *(from FINDING-031 in 0024-agent-daemonization)*
 
 ## Principles
 Higher-level stances that inform specs and reviews but are too broad to gate mechanically.

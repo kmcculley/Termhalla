@@ -1,0 +1,207 @@
+{
+  "feature": "0024-agent-daemonization",
+  "phase": "doc-sync",
+  "gates": {
+    "brainstorm": {
+      "passed": true,
+      "at": "2026-07-06T14:05:46.996Z",
+      "evidence": "human (Kevin) confirmed concept 2026-07-06: daemonize the node agent (D1), unix-domain socket transport (D2), idle-timeout-after-last-session lifetime (D3), old-daemon-keeps-running on version drift (D4); no blocking open questions (4 deferred to spec incl. the F15 cross-version reattach handshake).",
+      "external": true
+    },
+    "spec": {
+      "passed": true,
+      "at": "2026-07-06T19:33:23.315Z",
+      "firstAt": "2026-07-06T19:33:23.315Z",
+      "tokens": [
+        {
+          "token": "findings",
+          "pass": true,
+          "evidence": "no open blocking findings (CRITICAL/HIGH or contract-violation) at or before this gate"
+        }
+      ]
+    },
+    "plan": {
+      "passed": true,
+      "at": "2026-07-06T19:38:19.822Z",
+      "firstAt": "2026-07-06T19:38:19.822Z",
+      "tokens": [
+        {
+          "token": "spec-freeze",
+          "pass": true,
+          "evidence": "spec unchanged since the spec gate"
+        },
+        {
+          "token": "traceability-plan",
+          "pass": true,
+          "evidence": "all 19 REQ(s) trace to TASK"
+        },
+        {
+          "token": "findings",
+          "pass": true,
+          "evidence": "no open blocking findings (CRITICAL/HIGH or contract-violation) at or before this gate"
+        }
+      ]
+    },
+    "tests": {
+      "passed": true,
+      "at": "2026-07-06T20:01:25.383Z",
+      "firstAt": "2026-07-06T20:01:25.383Z",
+      "tokens": [
+        {
+          "token": "spec-freeze",
+          "pass": true,
+          "evidence": "spec unchanged since the spec gate"
+        },
+        {
+          "token": "tests-red",
+          "pass": true,
+          "evidence": "tests are RED (exit 1) — freeze snapshot captured"
+        }
+      ]
+    },
+    "implement": {
+      "passed": true,
+      "at": "2026-07-06T20:21:59.448Z",
+      "firstAt": "2026-07-06T20:21:59.448Z",
+      "tokens": [
+        {
+          "token": "spec-freeze",
+          "pass": true,
+          "evidence": "spec unchanged since the spec gate"
+        },
+        {
+          "token": "build",
+          "pass": true,
+          "evidence": "build exited 0"
+        },
+        {
+          "token": "test",
+          "pass": true,
+          "evidence": "test exited 0"
+        },
+        {
+          "token": "test-freeze",
+          "pass": true,
+          "evidence": "test files unchanged since freeze"
+        }
+      ]
+    },
+    "review": {
+      "passed": true,
+      "at": "2026-07-06T20:34:31.120Z",
+      "firstAt": "2026-07-06T20:34:31.120Z",
+      "tokens": [
+        {
+          "token": "spec-freeze",
+          "pass": true,
+          "evidence": "spec unchanged since the spec gate"
+        },
+        {
+          "token": "findings",
+          "pass": true,
+          "evidence": "no open blocking findings (CRITICAL/HIGH or contract-violation) at or before this gate"
+        }
+      ]
+    },
+    "doc-sync": {
+      "passed": true,
+      "at": "2026-07-06T20:40:38.647Z",
+      "firstAt": "2026-07-06T20:40:38.647Z",
+      "tokens": [
+        {
+          "token": "spec-freeze",
+          "pass": true,
+          "evidence": "spec unchanged since the spec gate"
+        },
+        {
+          "token": "traceability",
+          "pass": true,
+          "evidence": "all 19 REQ(s) trace to TASK+TEST"
+        },
+        {
+          "token": "findings",
+          "pass": true,
+          "evidence": "no open blocking findings (CRITICAL/HIGH or contract-violation) at or before this gate"
+        }
+      ]
+    },
+    "human-review": {
+      "passed": true,
+      "at": "2026-07-06T21:06:30.858Z",
+      "evidence": "Kevin approved & finalize at human-review (2026-07-06). All autonomous gates green (spec→doc-sync); 2114 tests + 2 POSIX-skips, build + typecheck green, traceability ok. Every blocking finding fixed (HIGH/contract: 005/008/013/014/016/022 + core-feature 023/D10). 3 review rounds, 4 escalations resolved incl. two human design corrections (per-workspace daemon D6′; decoupled wire-protocol version D4′) + close-tab-detach (D10). 16 non-blocking LOW/MEDIUM deferred to docs/superpowers/0024-agent-daemonization-review-followups.md. A/B implement (winner A; B lost to infra). One sanctioned tests-phase amendment (F15 barrel-pin TEST-747 extended by 3 D4' exports).",
+      "external": true
+    }
+  },
+  "iterations": {
+    "spec": 2,
+    "tests": 1
+  },
+  "escalations": [
+    {
+      "id": "ESC-001",
+      "phase": "review",
+      "reason": "Fix socket permission race: use process.umask(0o077) during listen to create socket 0600 atomically, and add integration test proving the window is closed. Fix idle-lifecycle connection tracking: count connections instead of boolean, arming idle timer only when count===0 AND paneCount===0. Fix same-host workspace coexistence: decide whether lease/daemon should be per-host or per-workspace to allow concurrent attachments (current design breaks pre-0024 multi-window workflow). Fix auto-update interaction: reconcile daemonization with auto-update by choosing compatible protocol range, graceful drain+respawn, or version-scoped socket. Fix bridge-side reclaim race: delete unguarded bridge removeIfExists and let daemon's claimSocket handle all reclaim logic.",
+      "kind": "judgment",
+      "finding": "FINDING-005",
+      "status": "resolved",
+      "at": "2026-07-06T16:55:49.019Z",
+      "decision": "Apply the reviewer-specified fix for FINDING-005 (human Kevin, batched with the review's other 4 blockers): wrap the daemon socket listen() in a temporarily restrictive process.umask(0o077) (save/restore prior umask around listen) so the socket is created 0600 atomically from the instant it exists — in both daemon-server.ts's real listenOnce()/claimSocket() and the pure bootstrapDaemonEndpoint seam; add an integration test proving no >0600 window. Batched design decisions for the same loop-back: FINDING-008 → track an established-connection COUNT (arm idle only when count===0 AND paneCount===0; test with two concurrent connections, one ends, daemon stays alive). FINDING-016 → delete the bridge's unguarded check-then-unlink reclaim; the daemon's race-safe claimSocket owns all reclaim. FINDING-013 → per-WORKSPACE daemon+socket keyed by workspace id (see concept D6′) so same-host workspaces coexist; also resolves FINDING-009. FINDING-014 → decouple the wire-protocol version from the app version; reattach handshake accepts a compatible protocol RANGE (see concept D4′). Loop back to spec to amend the REQs and re-propagate.",
+      "resolvedAt": "2026-07-06T17:05:07.542Z"
+    },
+    {
+      "id": "ESC-002",
+      "phase": "review",
+      "reason": "REQ-003 MUST (socket path over-long guard with named error) is enforced only in test-only seam bootstrapDaemonEndpoint, not in production claimSocket/listenOnce. Production over-long paths throw raw EINVAL/ENAMETOOLONG, get swallowed in the 200-attempt loop, exit silently 0, and bridge reports generic timeout instead of the REQ-003 named error. Decision: move the byte-length guard to production bind path (share via bootstrapDaemonEndpoint or extracted helper) and add POSIX integration test asserting the named error and fast fail, OR accept the contract gap?",
+      "kind": "judgment",
+      "finding": "FINDING-022",
+      "status": "resolved",
+      "at": "2026-07-06T19:18:44.925Z",
+      "decision": "Apply the reviewer-specified fix for FINDING-022 (HIGH/contract, human Kevin): the REQ-003 over-long-socket-path guard (Buffer.byteLength(socketPath,'utf8') > AF_UNIX_PATH_MAX → fail fast with the specific named path-and-limit error, never a raw EINVAL/ENAMETOOLONG or a 200-attempt claim loop) currently lives ONLY in the test-only bootstrapDaemonEndpoint seam. Extract it into a SHARED helper called by BOTH the seam AND the production claimSocket/listenOnce bind path (or route the real bind through the seam), so production emits the named error BEFORE the reclaim loop; add a POSIX integration test asserting the fast named fail. Batched core-feature fix in the same loop-back: FINDING-023 (D10) — closing a remote workspace tab must DETACH (route through teardownWire like quit/disconnect, leaving daemon+PTYs to survive + idle-reap) instead of pty:kill; encode as a REQ + test (local workspaces unchanged). Loop back to spec to amend REQs and re-propagate.",
+      "resolvedAt": "2026-07-06T19:23:44.455Z"
+    }
+  ],
+  "concerns": [
+    "networking",
+    "security",
+    "determinism",
+    "enterprise-arch"
+  ],
+  "attempts": {
+    "spec": 0,
+    "plan": 0,
+    "tests": 0,
+    "implement": 0,
+    "review": 0,
+    "doc-sync": 0
+  },
+  "implementer": {
+    "mode": "claude",
+    "agents": [
+      "orky:implementer@sonnet"
+    ],
+    "winner": "orky:implementer@sonnet",
+    "reason": "Round-2 fix: FINDING-022 extracted checkSocketPathLength shared guard (daemon-guard.ts) called by both the seam AND production runDaemon (fails fast with the named path-and-limit error before claimSocket's loop). FINDING-023 (D10) close-tab detach: pure routeWorkspaceTeardown (pane-ops.ts) — remote closes route through disconnectRemote({forget:true}) not pty:kill, local unchanged; additive {forget?} threaded through remote:disconnect IPC (validated), preserving frozen source-order pins (TEST-2283/2277). Single sonnet (targeted). Gate green (2114 tests + 2 POSIX skips, build, typecheck, freeze).",
+    "at": "2026-07-06T20:22:14.704Z"
+  },
+  "totalFailures": 3,
+  "loopbacks": [
+    {
+      "to": "spec",
+      "from": "review",
+      "reason": "5 HIGH review blockers (005/008/013/014/016 + related 009). Two are concept-level design corrections the human decided (013 per-workspace daemon+socket keyed by wsId — fixes same-host coexistence regression; 014 decouple wire-protocol version from app version + compatible-range reattach handshake — fixes auto-update lockout; both recorded in 01-concept.md D6′/D4′). Three are mechanical contract fixes (005 umask-atomic 0600, 008 connection-count idle gate, 016 daemon-owned reclaim). Amend REQs, re-propagate through plan/tests/implement.",
+      "at": "2026-07-06T17:05:07.703Z"
+    },
+    {
+      "to": "tests",
+      "from": "implement",
+      "reason": "Sanctioned cross-feature barrel-pin extension: TEST-747 (remote-protocol-capabilities.test.ts, owned by F15) exact-lists the @shared/remote/protocol export surface; feature 0024's REQ-014 additively re-exports 3 D4' handshake names (DAEMON_PROTO_COMPAT, createDaemonAgentHandshake, createDaemonClientHandshake) that the feature's OWN frozen TEST-2451/2447/2422 + TEST-752 import from the barrel. The 0024 tests phase's collision survey missed the extension TEST-747's own header documents as the convention (0018 precedent). Implementation is correct + all feature tests green — a tests-phase amendment (+3 sorted names), not an impl change. Green-on-loopback (coverage augmentation; impl already exists).",
+      "at": "2026-07-06T18:54:34.974Z"
+    },
+    {
+      "to": "spec",
+      "from": "review",
+      "reason": "FINDING-022 (HIGH/contract): REQ-003 over-long-path guard is test-only, production loops 200 attempts instead of the named error — extract to a shared helper used by production bind + add integration test. FINDING-023 (core-feature gap, human-decided D10): close-tab must DETACH not pty:kill (survival across all 3 gestures) — new REQ + test. 8 non-blocking findings deferred to followups doc.",
+      "at": "2026-07-06T19:23:44.519Z"
+    }
+  ]
+}
