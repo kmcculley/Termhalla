@@ -99,7 +99,10 @@ jobs:
           VERSION=$(node -p "require('./package.json').dependencies['node-pty']")
           npm pack "node-pty@$VERSION" --pack-destination "$RUNNER_TEMP"
           mkdir -p "$RUNNER_TEMP/node-pty-src"
-          tar xzf "$RUNNER_TEMP"/node-pty-*.tgz -C "$RUNNER_TEMP/node-pty-src" --strip-components=1
+          # --force-local: on the windows-latest runner $RUNNER_TEMP is a drive-letter path
+          # (D:\a\_temp), and Git's bundled GNU tar otherwise reads the "D:" as a remote host
+          # (host:path rsync syntax) → "Cannot connect to D: resolve failed".
+          tar --force-local -xzf "$RUNNER_TEMP"/node-pty-*.tgz -C "$RUNNER_TEMP/node-pty-src" --strip-components=1
           node scripts/stage-node-pty-prebuild.mjs \
             --source "$RUNNER_TEMP/node-pty-src" \
             --pty-node artifacts/node-pty-linux-x64-glibc/pty.node \
