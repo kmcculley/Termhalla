@@ -246,6 +246,7 @@ export interface QuickStore {
   recordByDefault?: boolean
   autoResumeClaude?: boolean     // re-run `claude --resume` in restored terminals that had Claude (default on)
   copyOnSelect?: boolean         // copy a terminal selection to the clipboard as soon as it's made (default on)
+  cleanCopy?: boolean            // normalize copied terminal text (reflow TUI-wrapped lines, trim/collapse blanks) before it hits the clipboard (default on)
   toastsEnabled?: boolean        // show bottom-right toast notifications; toasts render only when strictly true (default off)
   orkyNeedsYouNotifications?: boolean   // app-wide OS notifications when an Orky project needs a decision (feature 0013); default ENABLED — absent ⇒ !== false ⇒ on
   keybindings?: Record<string, string>   // CommandId -> chordKey ("mod+shift+t") | 'none' (unbound)

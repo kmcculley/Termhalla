@@ -11,7 +11,7 @@ import { matchShortcut, resolveBindings } from '@shared/keymap'
 import { useStore, paneCwd } from '../store'
 import { domainAllowed } from '../store/remote-gates'
 import { useResolvedPaneTheme } from '../use-resolved-theme'
-import { handleClipboardKey } from './terminal-clipboard'
+import { handleClipboardKey, normalizeCopiedText } from './terminal-clipboard'
 import { registerSerializer, unregisterSerializer, consumeSnapshot, registerFocuser, unregisterFocuser, registerRedrawer, unregisterRedrawer } from './terminal-registry'
 import { redraw } from './redraw'
 import { shouldAutoResumeClaude } from '../store/pane-ops'
@@ -117,6 +117,10 @@ export function TerminalPane({ paneId, wsId, config }: { paneId: string; wsId: s
     // Paste goes through term.paste() so it honors bracketed-paste mode (multi-line pastes into a
     // shell or TUI don't auto-run); it flows out via the inputDisp onData handler above.
     const paste = async () => { const text = await api.clipboardRead(); if (text) term.paste(text) }
+    // Clean up a terminal selection before it hits the clipboard (reflow TUI-wrapped lines, trim/
+    // collapse blanks) unless the cleanCopy setting is off. Default on.
+    const cleanSel = (s: string) =>
+      useStore.getState().quick.cleanCopy === false ? s : normalizeCopiedText(s)
     term.attachCustomKeyEventHandler(e => {
       // Let app-global shortcuts (command palette, workspace switch, …) reach App's window-level
       // keydown handler instead of being consumed by the terminal. xterm otherwise swallows e.g.
@@ -127,7 +131,7 @@ export function TerminalPane({ paneId, wsId, config }: { paneId: string; wsId: s
       // handleClipboardKey calls e.preventDefault() for copy/paste so the browser's native
       // copy/paste DOM event doesn't ALSO fire xterm's built-in handler (which double-pastes).
       return handleClipboardKey(e, term.hasSelection(), {
-        copy: () => { api.clipboardWrite(term.getSelection()); term.clearSelection() },
+        copy: () => { api.clipboardWrite(cleanSel(term.getSelection())); term.clearSelection() },
         paste: () => { void paste() }
       })
     })
@@ -142,7 +146,7 @@ export function TerminalPane({ paneId, wsId, config }: { paneId: string; wsId: s
     const onMouseUp = () => {
       if (useStore.getState().quick.copyOnSelect === false) return
       const sel = term.getSelection()
-      if (sel) api.clipboardWrite(sel)
+      if (sel) api.clipboardWrite(cleanSel(sel))
     }
     hostRef.current!.addEventListener('mouseup', onMouseUp)
 

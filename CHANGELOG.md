@@ -7,6 +7,17 @@ All notable changes to Termhalla are recorded here. The format follows
 ## [Unreleased]
 
 ### Added
+- **Clean copy — normalize terminal text on copy.** Copying from a TUI (e.g. Claude Code) used to
+  drag in the wrapping and whitespace the app painted into the terminal grid: a paragraph the TUI
+  soft-wrapped at the pane width arrives with a hard newline at every visual row, and stray blank
+  rows from repaints come along too. Termhalla now runs a small heuristic pass over a terminal
+  selection before it reaches the clipboard (both Ctrl+C and copy-on-select): it reflows rows that
+  were soft-wrapped by a TUI back into one logical line (a row is treated as a wrap continuation
+  only when the previous row was near-full AND the next word would not have fit — never across a
+  blank line or into a list / quote / code / indented row), trims trailing whitespace, and collapses
+  blank-line runs. It's a heuristic, so it can occasionally merge two lines you wanted apart —
+  gated behind a **General ▸ "Clean copied text"** toggle (default on). Pure, unit-tested
+  normalizer (`normalizeCopiedText` in `src/renderer/components/terminal-clipboard.ts`).
 - **Agent daemonization (Remote Agent v1, batch 7 — F23).** The remote agent gains a persistent
   `--daemon` mode (the tmux model): one process **per remote workspace**, listening on a
   workspace-keyed, version-stable unix-domain socket (`agent-<wsToken>.sock`, created owner-only
@@ -677,6 +688,18 @@ All notable changes to Termhalla are recorded here. The format follows
   node config, producing 47 spurious errors. A dedicated `tsconfig.e2e.json` (the node config plus
   the DOM lib, scoped to `tests/e2e`) restores them while keeping main-process and `tests/main` code
   DOM-free; a few genuine `tests/main` type slips (a QuickStore cast, a mock signature) were fixed too.
+
+## [0.16.0] - 2026-07-06
+
+Clean copy — normalize terminal text on copy. Copying from a TUI (e.g. Claude Code) no longer
+drags in the wrapping and whitespace the app painted into the terminal grid: a heuristic pass over
+the selection (both Ctrl+C and copy-on-select) reflows rows a TUI soft-wrapped at the pane width
+back into one logical line, trims trailing whitespace, and collapses blank-line runs. Reflow is
+conservative — a row joins only when the previous row was near-full AND the next word wouldn't have
+fit, never across a blank line or into a list/quote/code/indented row — and it's gated behind a
+General ▸ "Clean copied text" toggle (default on) since a heuristic can occasionally merge two
+lines you wanted apart. Pure, unit-tested normalizer; no SCHEMA_VERSION bump. The detailed entry
+stays under [Unreleased] above, per the same convention the 0.9.0–0.15.0 releases recorded.
 
 ## [0.15.0] - 2026-07-06
 

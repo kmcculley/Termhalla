@@ -13,6 +13,8 @@ export function GeneralSettings() {
   const setAutoResumeClaude = useStore(s => s.setAutoResumeClaude)
   const copyOnSelect = useStore(s => s.quick.copyOnSelect)
   const setCopyOnSelect = useStore(s => s.setCopyOnSelect)
+  const cleanCopy = useStore(s => s.quick.cleanCopy)
+  const setCleanCopy = useStore(s => s.setCleanCopy)
   const toastsEnabled = useStore(s => s.quick.toastsEnabled)
   const setToastsEnabled = useStore(s => s.setToastsEnabled)
   const orkyNeedsYouNotifications = useStore(s => s.quick.orkyNeedsYouNotifications)
@@ -39,6 +41,11 @@ export function GeneralSettings() {
         <input data-testid="copy-on-select" type="checkbox" checked={copyOnSelect !== false}
           onChange={e => setCopyOnSelect(e.target.checked)} />
         Copy terminal selection to clipboard on select
+      </label>
+      <label style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+        <input data-testid="clean-copy" type="checkbox" checked={cleanCopy !== false}
+          onChange={e => setCleanCopy(e.target.checked)} />
+        Clean copied text (reflow wrapped lines, trim stray whitespace)
       </label>
       <label style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
         <input data-testid="toasts-enabled" type="checkbox" checked={toastsEnabled === true}

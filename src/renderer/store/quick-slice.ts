@@ -7,7 +7,7 @@ import type { State, SliceDeps } from './types'
 type QuickSlice = Pick<State,
   'saveTemplate' | 'deleteTemplate' | 'newWorkspaceFromTemplate' |
   'saveConnection' | 'deleteConnection' | 'pinDir' | 'unpinDir' |
-  'launchConnection' | 'launchDir' | 'setRecordByDefault' | 'setAutoResumeClaude' | 'setCopyOnSelect' | 'setToastsEnabled' | 'setOrkyNeedsYouNotifications'>
+  'launchConnection' | 'launchDir' | 'setRecordByDefault' | 'setAutoResumeClaude' | 'setCopyOnSelect' | 'setCleanCopy' | 'setToastsEnabled' | 'setOrkyNeedsYouNotifications'>
 
 /** The "quick.json" domain: workspace templates, SSH connection favorites, pinned/recent dirs,
  *  the launch shortcuts that open a favorite as a new terminal pane, and the record-by-default
@@ -97,6 +97,7 @@ export function createQuickSlice({ set, get, scheduleAutosave, scheduleQuickSave
     setRecordByDefault: (on) => { set(s => ({ quick: { ...s.quick, recordByDefault: on } })); scheduleQuickSave() },
     setAutoResumeClaude: (on) => { set(s => ({ quick: { ...s.quick, autoResumeClaude: on } })); scheduleQuickSave() },
     setCopyOnSelect: (on) => { set(s => ({ quick: { ...s.quick, copyOnSelect: on } })); scheduleQuickSave() },
+    setCleanCopy: (on) => { set(s => ({ quick: { ...s.quick, cleanCopy: on } })); scheduleQuickSave() },
     setToastsEnabled: (on) => { set(s => ({ quick: { ...s.quick, toastsEnabled: on } })); scheduleQuickSave() },
     // Feature 0013: the app-wide OS needs-you-notifications opt-in (default enabled). Mirrors
     // setToastsEnabled — the debounced quickSave carries the full payload to main, whose live-refresh

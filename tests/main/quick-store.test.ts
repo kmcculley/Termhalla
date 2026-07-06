@@ -26,7 +26,8 @@ describe('QuickStore', () => {
       themePresets: [],
       recordByDefault: false,
       autoResumeClaude: true,
-      copyOnSelect: true
+      copyOnSelect: true,
+      cleanCopy: true
     }
     await store.save(data)
     expect(await store.load()).toEqual(data)
@@ -50,6 +51,16 @@ describe('QuickStore', () => {
       templates: [], themePresets: []
     })
     expect((await store.load()).copyOnSelect).toBe(true)
+    rmSync(dir, { recursive: true, force: true })
+  })
+
+  it('defaults cleanCopy to true when absent', async () => {
+    const store = new QuickStore(dir)
+    await store.save({
+      connections: [], recentConnections: [], favoriteDirs: [], recentDirs: [],
+      templates: [], themePresets: []
+    })
+    expect((await store.load()).cleanCopy).toBe(true)
     rmSync(dir, { recursive: true, force: true })
   })
 

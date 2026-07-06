@@ -24,6 +24,7 @@ function normalizeQuick(value: unknown): QuickData {
     recordByDefault: typeof v.recordByDefault === 'boolean' ? v.recordByDefault : false,
     autoResumeClaude: typeof v.autoResumeClaude === 'boolean' ? v.autoResumeClaude : true,
     copyOnSelect: typeof v.copyOnSelect === 'boolean' ? v.copyOnSelect : true,
+    cleanCopy: typeof v.cleanCopy === 'boolean' ? v.cleanCopy : true,
     // Additive optional (no SCHEMA_VERSION bump): pass through when present, leave absent on legacy
     // files so the effective state reads as OFF (toasts render only when strictly true).
     toastsEnabled: typeof v.toastsEnabled === 'boolean' ? v.toastsEnabled : undefined,

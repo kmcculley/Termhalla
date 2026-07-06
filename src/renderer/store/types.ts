@@ -180,6 +180,7 @@ export interface State {
   setRecordByDefault: (on: boolean) => void
   setAutoResumeClaude: (on: boolean) => void
   setCopyOnSelect: (on: boolean) => void
+  setCleanCopy: (on: boolean) => void
   setToastsEnabled: (on: boolean) => void
   setOrkyNeedsYouNotifications: (on: boolean) => void
   drafts: Record<string, EditorDraft>
