@@ -1,6 +1,7 @@
-import { readFile, writeFile, readdir, stat, rename } from 'node:fs/promises'
+import { readFile, readdir, stat, rename } from 'node:fs/promises'
 import { join } from 'node:path'
 import type { DirEntry, ReadResult, StatResult } from '@shared/types'
+import { atomicWrite, type AtomicFs } from '../persistence/atomic-write'
 
 const MAX_BYTES = 50 * 1024 * 1024
 
@@ -23,8 +24,11 @@ export async function readTextFile(path: string, maxBytes = MAX_BYTES): Promise<
   return { content: buf.toString('utf8'), tooLarge: false }
 }
 
-export async function writeTextFile(path: string, content: string): Promise<number> {
-  await writeFile(path, content, 'utf8')
+/** Editor save. Atomic (temp + rename) like every other durable write in the app: plain writeFile
+ *  truncates the target before writing, so an app kill mid-save would leave the user's source file
+ *  truncated. Returns the saved file's mtime for the editor's external-change detection. */
+export async function writeTextFile(path: string, content: string, fs?: AtomicFs): Promise<number> {
+  await atomicWrite(path, content, fs)
   return (await stat(path)).mtimeMs
 }
 

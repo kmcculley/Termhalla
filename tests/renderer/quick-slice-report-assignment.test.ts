@@ -8,8 +8,15 @@
 // Headless harness (the quick-slice.test.ts pattern — no ../api import needed).
 // Runs RED today (2026-07-02): the shipped createQuickSlice ignores the injected dep entirely
 // (quick-slice.ts:31-38 never reports), so the spy sees zero calls.
+//
+// AMENDED 2026-07-07 (quality audit Group C #8): the raw reportAssignment SliceDeps dep was
+// superseded by the shared registration ritual (workspace-registration.ts) — the harness now wires
+// the REAL makeRegisterWorkspace over the same spies, so every behavioral assertion below
+// (register + autosave + report-exactly-once ordering, no double-report on the !tpl fallback) is
+// pinned unchanged at the new seam.
 import { describe, it, expect, vi } from 'vitest'
 import { createQuickSlice } from '../../src/renderer/store/quick-slice'
+import { makeRegisterWorkspace } from '../../src/renderer/store/workspace-registration'
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 const R = 'C:\\Dev\\MixedCase\\Proj'
@@ -35,7 +42,8 @@ function harness() {
   const scheduleNotesSave = vi.fn()
   const commitPane = vi.fn()
   const reportAssignment = vi.fn()
-  const slice = createQuickSlice({ set, get, scheduleAutosave, scheduleQuickSave, scheduleNotesSave, commitPane, reportAssignment } as any)
+  const registerWorkspace = makeRegisterWorkspace({ set, scheduleAutosave, reportAssignment })
+  const slice = createQuickSlice({ set, get, scheduleAutosave, scheduleQuickSave, scheduleNotesSave, commitPane, registerWorkspace } as any)
   return { slice: slice as any, get, scheduleAutosave, scheduleQuickSave, reportAssignment }
 }
 

@@ -2,9 +2,11 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest'
 import { mkdtempSync, rmSync, writeFileSync, mkdirSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
+import * as fsp from 'node:fs/promises'
 import {
   readTextFile, writeTextFile, readDirectory, statPath, sortEntries, isBinary
 } from '../../src/main/fs/files'
+import type { AtomicFs } from '../../src/main/persistence/atomic-write'
 
 let dir: string
 beforeEach(() => { dir = mkdtempSync(join(tmpdir(), 'termh-fs-')) })
@@ -37,6 +39,21 @@ describe('files', () => {
     const f = join(dir, 'a.txt'); await writeTextFile(f, 'xy')
     const s = await statPath(f)
     expect(s.size).toBe(2); expect(s.isDir).toBe(false)
+  })
+  // 2026-07-06 quality audit (borderline finding): editor save was the app's ONE non-atomic
+  // durable write — plain writeFile truncates the target before writing, so an app kill mid-save
+  // leaves the user's source file truncated (the exact scenario atomic-write.ts documents).
+  it('a failed save never truncates the existing file (routes through the atomic temp+rename)', async () => {
+    const f = join(dir, 'a.txt')
+    await writeTextFile(f, 'original')
+    const failing: AtomicFs = {
+      mkdir: fsp.mkdir, writeFile: fsp.writeFile, rm: fsp.rm,
+      rename: async () => { throw new Error('injected rename failure') }
+    }
+    await expect(writeTextFile(f, 'replacement', failing)).rejects.toThrow('injected rename failure')
+    expect((await readTextFile(f)).content).toBe('original')
+    // and no temp litter survives the failure
+    expect((await readDirectory(dir)).map(e => e.name)).toEqual(['a.txt'])
   })
   it('sortEntries puts dirs first then alphabetical (pure)', () => {
     const out = sortEntries([

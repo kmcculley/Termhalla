@@ -112,10 +112,12 @@ describe('banner + picker wiring (REQ-016, REQ-015 — anchored source pins)', (
     expect(iFn, 'store.ts defines newRemoteWorkspace').toBeGreaterThanOrEqual(0)
     const iHome = src.indexOf("kind: 'agent'", iFn)
     const iCwd = src.indexOf("cwd: ''", iFn)
-    const iReport = src.indexOf('reportAssignment()', iFn)
+    // AMENDED 2026-07-07 (quality audit Group C #8): the report now rides the shared registration
+    // ritual (store/workspace-registration.ts), which owns autosave + the arrangement report.
+    const iReport = src.indexOf('registerWorkspace(', iFn)
     expect(iHome, 'the created workspace carries an agent home').toBeGreaterThan(iFn)
     expect(iCwd, 'the seeded terminal lands at the agent home dir (empty cwd)').toBeGreaterThan(iFn)
-    expect(iReport, 'reportAssignment() runs (0011 FINDING-001: an unreported workspace is lost)').toBeGreaterThan(iFn)
+    expect(iReport, 'registerWorkspace() runs (0011 FINDING-001: an unreported workspace is lost)').toBeGreaterThan(iFn)
   })
 
   it('TEST-2269 REQ-015 the entry points exist: a TemplatesMenu built-in row and a CommandPalette action', () => {

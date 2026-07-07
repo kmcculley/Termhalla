@@ -234,10 +234,22 @@ changelog `[Unreleased]` → Fixed for full detail:
 - `connectDaemonAgent`'s `stderrRaw` grew for the connection's lifetime →
   accumulation stops at settle (FINDING-010 posture).
 
-**Still open from this audit:** Group C (workspace-registration ritual ×4,
-`bootstrap.ts` ssh-channel scaffold ×4 + 0024 FINDING-001 shared connect pump,
-six hand-rolled popover chromes → `MenuSurface`), the borderline items (atomic
-editor save, remote evt payload validation), and 20 structural Minors (re-run
-`/review-quality` scoped for detail). The 0024 ledger's FINDING-031
-(`net.Server` `'error'` handler) remains explicitly deferred by Kevin
-(2026-07-06) despite being the same family as the watcher fix.
+**Group C #8 + the borderline items: resolved on `main` (2026-07-07)**, see the
+changelog `[Unreleased]`:
+
+- Workspace-registration ritual ×4 (+ `adoptWorkspace` overlap) → the one shared
+  `registerWorkspace` (`src/renderer/store/workspace-registration.ts`, threaded
+  as `SliceDeps.registerWorkspace`; pure-tested, 0011 pins amended to the new
+  seam with assertions intact).
+- Editor save (`writeTextFile`) was the app's one non-atomic durable write →
+  routes through `atomicWrite` (mtime still returned).
+- Remote evt payloads forwarded into renderer IPC on unvalidated casts →
+  `onEvt` type-checks each payload position, drops with one diagnostic
+  (`tests/main/remote-manager-evt-validation.test.ts`).
+
+**Still open from this audit:** Group C #9 (`bootstrap.ts` ssh-channel scaffold
+×4 + 0024 FINDING-001 shared connect pump) and #10 (six hand-rolled popover
+chromes → `MenuSurface`), and 20 structural Minors (re-run `/review-quality`
+scoped for detail). The 0024 ledger's FINDING-031 (`net.Server` `'error'`
+handler) remains explicitly deferred by Kevin (2026-07-06) despite being the
+same family as the watcher fix.

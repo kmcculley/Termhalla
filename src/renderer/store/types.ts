@@ -271,9 +271,11 @@ export interface SliceDeps {
   scheduleQuickSave: () => void
   scheduleNotesSave: (key: string) => void
   commitPane: (wsId: string, cfg: PaneConfig, target: string | null, dir: MosaicDirection, markEditor?: boolean, position?: 'before' | 'after') => string
-  /** The store-root window-arrangement reporter (the existing `winReport` closure, store.ts).
-   *  Threaded to slices per feature 0011's decision-9 repair (FINDING-001) so
-   *  `newWorkspaceFromTemplate` can report the workspace it registers into main's authoritative
-   *  windows[]; kept OFF the public State surface (the FINDING-008 narrow-surface discipline). */
-  reportAssignment: () => void
+  /** The store-root workspace-registration ritual (store.ts / workspace-registration.ts): set the
+   *  record + schedule the autosave + report the arrangement into main's authoritative windows[].
+   *  Threaded to slices (superseding the raw reportAssignment dep of feature 0011's decision-9
+   *  repair, FINDING-001) so `newWorkspaceFromTemplate` registers exactly like every other
+   *  workspace-adding action; kept OFF the public State surface (the FINDING-008 narrow-surface
+   *  discipline). */
+  registerWorkspace: (ws: Workspace) => void
 }

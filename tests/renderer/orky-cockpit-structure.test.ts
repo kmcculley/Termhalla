@@ -22,6 +22,12 @@
 // Runs RED today (2026-07-02): src/shared/orky-cockpit.ts does not exist; store.ts has no
 // newOrkyWorkspace; quick.ts has no 'new-orky-workspace'; no tpl-orky-cockpit row, no
 // decision-queue-open-cockpit button, no F11 picker mount, and SliceDeps has no reportAssignment.
+//
+// AMENDED 2026-07-07 (quality audit Group C #8): the raw reportAssignment SliceDeps dep and the
+// per-site set+autosave+report copies were superseded by the ONE shared registration ritual
+// (store/workspace-registration.ts, threaded as SliceDeps.registerWorkspace). TEST-664/TEST-670
+// now pin the same intent at that seam; the autosave+report-exactly-once ordering itself is pinned
+// by tests/renderer/workspace-registration.test.ts and the amended TEST-663 harness.
 import { describe, it, expect } from 'vitest'
 import { readFileSync, readdirSync, statSync } from 'node:fs'
 import { resolve, join } from 'node:path'
@@ -76,9 +82,9 @@ describe('newOrkyWorkspace rides the ONE coerced seam — structural half of REQ
     for (const banned of ['createWorkspace(', 'addFirstPane', 'splitPane', 'commitPane']) {
       expect(body, `newOrkyWorkspace must never hand-assemble via ${banned}`).not.toContain(banned)
     }
-    // registration matches newWorkspace IN FULL — incl. the load-bearing report
-    expect(body).toContain('scheduleAutosave()')
-    expect(body).toContain('reportAssignment()')
+    // registration matches newWorkspace IN FULL — via the ONE shared ritual, which owns the
+    // load-bearing autosave + arrangement report (Group C #8 amendment)
+    expect(body).toContain('registerWorkspace(')
     // membership via the fold-injected shared equality; shell via the shipped chain
     expect(body).toContain('sameProjectRoot')
     expect(body).toContain('defaultShellId')
@@ -196,8 +202,8 @@ describe('decision-queue group-header caller (REQ-004)', () => {
   })
 })
 
-describe('the decision-9 wiring — SliceDeps gains reportAssignment, State does not (REQ-006 / REQ-007)', () => {
-  it('TEST-670 REQ-006 REQ-007 SliceDeps carries reportAssignment: () => void while the State region has NONE (the FINDING-008/TEST-619 discipline); State gains newOrkyWorkspace/orkyCockpitPickOpen/resolveOrkyCockpitPick; the deps object threads the EXISTING closure; quick-slice destructures it and calls it EXACTLY once — after scheduleAutosave(), before return ws.id, with no quick-save added', () => {
+describe('the decision-9 wiring — SliceDeps carries the registration ritual, State does not (REQ-006 / REQ-007)', () => {
+  it('TEST-670 REQ-006 REQ-007 SliceDeps carries registerWorkspace (the shared set+autosave+report ritual — the Group C #8 successor of the raw reportAssignment dep) while the State region has NEITHER (the FINDING-008/TEST-619 discipline); State gains newOrkyWorkspace/orkyCockpitPickOpen/resolveOrkyCockpitPick; the deps object threads the store-root ritual; quick-slice destructures it and calls it EXACTLY once — before return ws.id, with no quick-save added', () => {
     const types = read('src/renderer/store/types.ts')
     const stateStart = types.indexOf('export interface State')
     const depsStart = types.indexOf('export interface SliceDeps')
@@ -207,30 +213,29 @@ describe('the decision-9 wiring — SliceDeps gains reportAssignment, State does
     const depsRegion = types.slice(depsStart)
     expect(
       stateRegion,
-      'reportAssignment stays OFF the public State surface — it is internal wiring, not a public action (FINDING-008; frozen TEST-619 must stay green)'
+      'registration wiring stays OFF the public State surface — it is internal wiring, not a public action (FINDING-008; frozen TEST-619 must stay green)'
     ).not.toContain('reportAssignment')
-    expect(depsRegion).toMatch(/reportAssignment:\s*\(\)\s*=>\s*void/) // RED until decision 9 lands
+    expect(stateRegion).not.toContain('registerWorkspace')
+    expect(depsRegion).toMatch(/registerWorkspace:\s*\(ws: Workspace\)\s*=>\s*void/)
     // the F11 public surface (spec "Public interface")
     expect(stateRegion).toMatch(/newOrkyWorkspace:\s*\(root\?:\s*string\)\s*=>\s*Promise<string \| null>/)
     expect(stateRegion).toContain('orkyCockpitPickOpen')
     expect(stateRegion).toContain('resolveOrkyCockpitPick')
 
-    // store.ts: the EXISTING closure (defined at store root) enters the deps object literal
+    // store.ts: the store-root ritual enters the deps object literal
     const store = read('src/renderer/store.ts')
-    expect(store).toMatch(/const deps: SliceDeps = \{[^}]*reportAssignment[^}]*\}/)
+    expect(store).toMatch(/const deps: SliceDeps = \{[^}]*registerWorkspace[^}]*\}/)
 
     // quick-slice.ts: destructured from deps; ONE call, positioned on the success path
     const qs = read('src/renderer/store/quick-slice.ts')
-    expect(qs).toMatch(/createQuickSlice\(\{[^)]*reportAssignment[^)]*\}\s*:\s*SliceDeps\)/)
-    const calls = qs.match(/reportAssignment\(\)/g) ?? []
-    expect(calls, 'exactly ONE reportAssignment() call site in quick-slice.ts (the success path)').toHaveLength(1)
+    expect(qs).toMatch(/createQuickSlice\(\{[^)]*registerWorkspace[^)]*\}\s*:\s*SliceDeps\)/)
+    const calls = qs.match(/registerWorkspace\(ws\)/g) ?? []
+    expect(calls, 'exactly ONE registerWorkspace(ws) call site in quick-slice.ts (the success path)').toHaveLength(1)
     const body = block(qs, /newWorkspaceFromTemplate\s*:/, 'newWorkspaceFromTemplate')
-    const iAuto = body.indexOf('scheduleAutosave()')
-    const iRep = body.indexOf('reportAssignment()')
+    const iReg = body.indexOf('registerWorkspace(ws)')
     const iRet = body.indexOf('return ws.id')
-    expect(iAuto).toBeGreaterThanOrEqual(0)
-    expect(iRep, 'the call lives INSIDE newWorkspaceFromTemplate').toBeGreaterThan(iAuto)
-    expect(iRet).toBeGreaterThan(iRep)
+    expect(iReg, 'the call lives INSIDE newWorkspaceFromTemplate').toBeGreaterThanOrEqual(0)
+    expect(iRet).toBeGreaterThan(iReg)
     expect(body).not.toContain('scheduleQuickSave') // the diff adds no quick-save anywhere in the body
   })
 })

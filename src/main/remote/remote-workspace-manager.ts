@@ -511,32 +511,39 @@ export class RemoteWorkspaceManager {
       this.diag(`remote: evt "${channel}" for a pane this connection does not own ("${paneId}") ignored`)
       return
     }
+    // Same posture for the PAYLOAD position (2026-07-06 audit): these args come off the remote
+    // wire, so each position is type-checked before it reaches renderer IPC — an unvalidated cast
+    // would forward whatever the agent sent (a non-string pty:data payload even crashed the ack
+    // accounting on `data.length`). Mismatches drop with one diagnostic and NO side effect.
+    const payload = args[1]
+    const dropMalformed = (expected: string): void =>
+      this.diag(`remote: evt "${channel}" for pane "${paneId}" carried a ${typeof payload} payload (expected ${expected}) — dropped`)
     switch (channel) {
       case CH.ptyData: {
-        const [id, data] = args as [string, string]
-        this.deps.send(CH.ptyData, id, data)
-        const ackFrame = entry.ack?.onData(id, data) ?? null
+        if (typeof payload !== 'string') return dropMalformed('string')
+        this.deps.send(CH.ptyData, paneId, payload)
+        const ackFrame = entry.ack?.onData(paneId, payload) ?? null
         if (ackFrame) this.wireSend(entry, ackFrame)
         this.armAckFlush(entry)
         return
       }
       case CH.ptyStatus: {
-        const [id, status] = args as [string, unknown]
-        this.deps.send(CH.ptyStatus, id, status) // AgentStatusPayload passes through unchanged
+        if (typeof payload !== 'object' || payload === null) return dropMalformed('object')
+        this.deps.send(CH.ptyStatus, paneId, payload) // AgentStatusPayload passes through unchanged
         return
       }
       case CH.ptyCwd: {
-        const [id, cwd] = args as [string, string]
+        if (typeof payload !== 'string') return dropMalformed('string')
         // Renderer-only: the remote cwd feeds the chip, NEVER the local git/usage/indexer hooks.
-        this.deps.send(CH.ptyCwd, id, cwd)
+        this.deps.send(CH.ptyCwd, paneId, payload)
         return
       }
       case CH.ptyExit: {
-        const [id, code] = args as [string, number]
-        this.deps.send(CH.ptyExit, id, code)
-        entry.ack?.paneClosed(id)
-        this.prunePane(entry, id)
-        entry.exited.add(id)
+        if (typeof payload !== 'number') return dropMalformed('number')
+        this.deps.send(CH.ptyExit, paneId, payload)
+        entry.ack?.paneClosed(paneId)
+        this.prunePane(entry, paneId)
+        entry.exited.add(paneId)
         return
       }
       default:

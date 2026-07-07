@@ -10,6 +10,7 @@ import { encodeBroadcast, terminalPaneIds } from '@shared/broadcast'
 import { schedulesWithout } from '@shared/schedule'
 import { api } from './api'
 import type { State, SliceDeps, ClosedWorkspaceInfo } from './store/types'
+import { makeRegisterWorkspace } from './store/workspace-registration'
 import {
   placePane, firstTarget, paneCwd, applyCwds, applyResumeAi, applyViewState, clearPaneRuntime, teardownPanes
 } from './store/internals'
@@ -93,22 +94,19 @@ export const useStore = create<State>((set, get) => {
     api.winReport({ windowId: s.windowId, workspaceIds: s.order, activeId: s.activeId })
   }
 
-  /** Add a fully-formed workspace record to this window: register it (append to order, make active),
-   *  derive its persisted view-state (minimized/maximized) into the runtime maps exactly like
-   *  applyAssignment does, then report the arrangement to main and land focus in its first pane. The
-   *  panes mount on the next commit and spawn fresh PTYs (relaunching at cwd, reconnecting SSH,
-   *  re-running `claude --resume`). Shared by openWorkspaceFromFile and reopenClosedWorkspace. */
+  /** The ONE workspace-registration ritual (2026-07-06 audit, Group C #8): add the record to this
+   *  window (append to order, make active), derive its persisted view-state into the runtime maps,
+   *  schedule the autosave, and report the arrangement into main's authoritative windows[]. Every
+   *  workspace-adding action routes through this — omitting the report shipped a real data-loss
+   *  bug once (0011 FINDING-001). */
+  const registerWorkspace = makeRegisterWorkspace({ set, scheduleAutosave, reportAssignment })
+
+  /** Add a fully-formed workspace record to this window (registerWorkspace above) and land focus in
+   *  its first pane. The panes mount on the next commit and spawn fresh PTYs (relaunching at cwd,
+   *  reconnecting SSH, re-running `claude --resume`). Shared by openWorkspaceFromFile and
+   *  reopenClosedWorkspace. */
   const adoptWorkspace = (ws: Workspace): void => {
-    set(s => {
-      const order = s.order.includes(ws.id) ? s.order : [...s.order, ws.id]
-      const minimized = { ...s.minimized }
-      const maximized = { ...s.maximized }
-      if (ws.minimized?.length) minimized[ws.id] = ws.minimized; else delete minimized[ws.id]
-      if (typeof ws.maximized === 'string') maximized[ws.id] = ws.maximized; else delete maximized[ws.id]
-      return { workspaces: { ...s.workspaces, [ws.id]: ws }, order, activeId: ws.id, minimized, maximized }
-    })
-    scheduleAutosave()
-    reportAssignment()
+    registerWorkspace(ws)
     const target = firstTarget(ws)
     if (target) requestPaneFocus(target)
   }
@@ -121,7 +119,7 @@ export const useStore = create<State>((set, get) => {
   }
   const baseName = (p: string): string => p.split(/[\\/]/).pop() || p
 
-  const deps: SliceDeps = { set, get, scheduleAutosave, scheduleQuickSave, scheduleNotesSave, commitPane, reportAssignment }
+  const deps: SliceDeps = { set, get, scheduleAutosave, scheduleQuickSave, scheduleNotesSave, commitPane, registerWorkspace }
 
   // Monotonic focus-sequence counter for paneFocusSeq (feature 0006, REQ-009): session-scoped
   // recency for the decision queue's click-to-focus MRU pick. Never persisted.
@@ -336,9 +334,7 @@ export const useStore = create<State>((set, get) => {
     // ---- core: workspace management ----
     newWorkspace: (name) => {
       const ws = createWorkspace(name, uuid)
-      set(s => ({ workspaces: { ...s.workspaces, [ws.id]: ws }, order: [...s.order, ws.id], activeId: ws.id }))
-      scheduleAutosave()
-      reportAssignment()
+      registerWorkspace(ws)
       return ws.id
     },
 
@@ -385,9 +381,7 @@ export const useStore = create<State>((set, get) => {
       }
       const tpl = orkyCockpitTemplate({ root: target, shellId: defaultShellId(get()) })
       const ws = workspaceFromTemplate(tpl, uuid(), tpl.name, uuid)
-      set(s => ({ workspaces: { ...s.workspaces, [ws.id]: ws }, order: [...s.order, ws.id], activeId: ws.id }))
-      scheduleAutosave()
-      reportAssignment()
+      registerWorkspace(ws)
       // FINDING-007 (ESC-001 loopback): the explicit cockpit gesture LANDS keyboard focus in the
       // created workspace — the precedent every pane-opening action sets (each ends in a
       // requestPaneFocus so the user can type immediately); CONV-046 sanctions gesture-mounted
@@ -437,9 +431,7 @@ export const useStore = create<State>((set, get) => {
       ws.home = { kind: 'agent', agentId: agent.id, agentName: agent.name }
       ws.panes = { [paneId]: { paneId, config: { kind: 'terminal', shellId: defaultShellId(get()), cwd: '' } } }
       ws.layout = paneId
-      set(s => ({ workspaces: { ...s.workspaces, [ws.id]: ws }, order: [...s.order, ws.id], activeId: ws.id }))
-      scheduleAutosave()
-      reportAssignment()
+      registerWorkspace(ws)
       requestPaneFocus(paneId)
       return ws.id
     },

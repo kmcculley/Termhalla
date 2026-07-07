@@ -12,7 +12,7 @@ type QuickSlice = Pick<State,
 /** The "quick.json" domain: workspace templates, SSH connection favorites, pinned/recent dirs,
  *  the launch shortcuts that open a favorite as a new terminal pane, and the record-by-default
  *  toggle. All persisted via the debounced quick-save (workspace creation also autosaves). */
-export function createQuickSlice({ set, get, scheduleAutosave, scheduleQuickSave, commitPane, reportAssignment }: SliceDeps): QuickSlice {
+export function createQuickSlice({ set, get, scheduleQuickSave, commitPane, registerWorkspace }: SliceDeps): QuickSlice {
   return {
     saveTemplate: (name) => {
       const n = name.trim(); if (!n) return
@@ -32,13 +32,11 @@ export function createQuickSlice({ set, get, scheduleAutosave, scheduleQuickSave
       const tpl = get().quick.templates.find(t => t.id === templateId)
       if (!tpl) return get().newWorkspace(name)
       const ws = workspaceFromTemplate(tpl, uuid(), name, uuid)
-      set(s => ({ workspaces: { ...s.workspaces, [ws.id]: ws }, order: [...s.order, ws.id], activeId: ws.id }))
-      scheduleAutosave()
-      // Feature 0011 (REQ-006 / FINDING-001): report the newly registered workspace into main's
-      // authoritative windows[] over the EXISTING winReport channel — without this the next pushed
-      // assignment silently deletes it and a quit→relaunch loses it. The !tpl fallback above needs
-      // nothing: it routes to newWorkspace, which already reports itself.
-      reportAssignment()
+      // Feature 0011 (REQ-006 / FINDING-001): registration MUST include the arrangement report —
+      // without it the next pushed assignment silently deletes the workspace and a quit→relaunch
+      // loses it. The shared ritual owns that (set + autosave + report). The !tpl fallback above
+      // needs nothing: it routes to newWorkspace, which registers itself.
+      registerWorkspace(ws)
       return ws.id
     },
 

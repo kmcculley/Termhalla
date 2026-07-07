@@ -438,6 +438,18 @@ All notable changes to Termhalla are recorded here. The format follows
   reflowed terminal beneath it.
 
 ### Changed
+- **Workspace registration is now ONE shared ritual.** The set-record + append-order + activate +
+  schedule-autosave + report-arrangement sequence was copy-pasted across `newWorkspace`,
+  `newOrkyWorkspace`, `newRemoteWorkspace`, `newWorkspaceFromTemplate`, and (with its view-state
+  derivation) `adoptWorkspace` — and omitting the arrangement report already shipped a real
+  data-loss bug once (0011 FINDING-001: an unreported workspace is silently deleted by the next
+  pushed assignment). All five sites now route through `registerWorkspace`
+  (`src/renderer/store/workspace-registration.ts`, threaded to slices as
+  `SliceDeps.registerWorkspace`), so a future workspace-adding action cannot forget the
+  load-bearing report. Pure and unit-tested
+  (`tests/renderer/workspace-registration.test.ts`); the 0011 structural/behavioral pins were
+  amended to the new seam with their assertions intact. Behavior-preserving. (2026-07-06 quality
+  audit, Group C #8; 2026-07-07)
 - **Workspace tab strip reworked into equal, scrollable "pipe" tabs.** Every workspace tab is now a
   compact, equal fixed width (`--ws-tab-w`), so tabs stay uniform and no longer resize as names or
   badges change (a name too long for the width scrolls — see below). The status badges (AI sparkle,
@@ -499,6 +511,22 @@ All notable changes to Termhalla are recorded here. The format follows
   failure feedback is never silenced.
 
 ### Fixed
+- **Editor save is atomic — an app kill mid-save can no longer truncate the file being saved.**
+  `writeTextFile` (the `fs:write` behind every editor save) was the app's one remaining non-atomic
+  durable write: plain `writeFile` truncates the target to zero before writing, so a process kill
+  mid-save (e.g. an auto-update installer tearing the app down) could leave the user's source file
+  truncated — the exact failure class `atomic-write.ts` was built for. Saves now route through the
+  same temp-file + rename `atomicWrite` as every other durable write (mtime still returned for the
+  editor's external-change detection); a failed save leaves the previous file byte-intact
+  (`tests/main/fs-files.test.ts`). (2026-07-06 quality audit, borderline finding; 2026-07-07)
+- **Remote agent evt payloads are type-checked before they reach renderer IPC.** The remote
+  workspace manager's `onEvt` guarded WHICH pane a connection may speak about (FINDING-007) but
+  then forwarded the payload positions on unvalidated casts (`args as [string, string]`) — a
+  compromised or buggy remote could push a non-string `pty:data` payload (which crashed the ack
+  accounting on `data.length`), a non-number exit code, or an arbitrary junk status object straight
+  onto the renderer bridge. Each payload position is now type-checked; a mismatch is dropped with
+  one diagnostic and no side effect (no forward, no prune, no ack accounting)
+  (`tests/main/remote-manager-evt-validation.test.ts`). (Borderline finding; 2026-07-07)
 - **The OSC status parsers can no longer be grown without bound by hostile terminal output.**
   `Osc133Parser` and `CwdParser` share `scanOsc`'s carry-over for sequences split across PTY
   chunks — but that carry-over is unbounded when a prefix appears and no terminator ever arrives,
