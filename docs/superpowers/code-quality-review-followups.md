@@ -195,7 +195,7 @@ behavior-preserving changes (pure extractions TDD-covered, +13 new unit tests;
   namespace (`api.pty.*`, `api.fs.*`, …) — deliberately deferred as a large,
   app-wide, mostly-stylistic change.
 
-## Whole-project audit (2026-07-06) — Group A resolved
+## Whole-project audit (2026-07-06) — Groups A + B resolved
 
 A six-reviewer `/review-quality` audit over the whole project (every finding
 adversarially verified) found **0 Critical, 10 Major, 22 Minor**. The working
@@ -220,12 +220,24 @@ changelog `[Unreleased]` → Fixed for full detail:
   on one junk entry) → per-entry normalization (tests in
   `tests/shared/app-state-model.test.ts`).
 
-**Still open from this audit:** Group B (unbounded buffers: OSC scanner
-carry-over bound, image-preview streaming cap/timeout, daemon `stderrRaw`
-growth), Group C (workspace-registration ritual ×4, `bootstrap.ts` ssh-channel
-scaffold ×4 + 0024 FINDING-001 shared connect pump, six hand-rolled popover
-chromes → `MenuSurface`), the borderline items (atomic editor save, remote evt
-payload validation), and 20 structural Minors (re-run `/review-quality` scoped
-for detail). The 0024 ledger's FINDING-031 (`net.Server` `'error'` handler)
-remains explicitly deferred by Kevin (2026-07-06) despite being the same family
-as the watcher fix.
+**Group B — unbounded buffers: resolved on `main` (2026-07-07)**, see the
+changelog `[Unreleased]` → Fixed for full detail:
+
+- `Osc133Parser`/`CwdParser` carry-over via `scanOsc` was unbounded + O(n²) on
+  the StatusEngine hot path → the OrkyOscParser `MAX_PENDING_BYTES` ceiling
+  layered in both `push` methods (`scanOsc` untouched; 512 B / 8 KiB; pinned by
+  `tests/main/osc-pending-bound.test.ts`, marker semantics unchanged).
+- Image preview buffered the whole body before the 25 MB cap, no timeout →
+  streaming `fetchImageBytes` (Content-Length early reject, mid-stream abort at
+  the cap, 15 s `AbortSignal.timeout`; unit-covered in
+  `tests/main/preview.test.ts`).
+- `connectDaemonAgent`'s `stderrRaw` grew for the connection's lifetime →
+  accumulation stops at settle (FINDING-010 posture).
+
+**Still open from this audit:** Group C (workspace-registration ritual ×4,
+`bootstrap.ts` ssh-channel scaffold ×4 + 0024 FINDING-001 shared connect pump,
+six hand-rolled popover chromes → `MenuSurface`), the borderline items (atomic
+editor save, remote evt payload validation), and 20 structural Minors (re-run
+`/review-quality` scoped for detail). The 0024 ledger's FINDING-031
+(`net.Server` `'error'` handler) remains explicitly deferred by Kevin
+(2026-07-06) despite being the same family as the watcher fix.

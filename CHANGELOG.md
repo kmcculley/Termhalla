@@ -499,6 +499,34 @@ All notable changes to Termhalla are recorded here. The format follows
   failure feedback is never silenced.
 
 ### Fixed
+- **The OSC status parsers can no longer be grown without bound by hostile terminal output.**
+  `Osc133Parser` and `CwdParser` share `scanOsc`'s carry-over for sequences split across PTY
+  chunks — but that carry-over is unbounded when a prefix appears and no terminator ever arrives,
+  and it is rescanned on every subsequent chunk (O(n²)) inside `StatusEngine.feed`, the PTY hot
+  path. An accidental `cat` of a binary suffices to trigger it (`CwdParser`'s prefix is the bare
+  `\x1b]`, so ANY unterminated OSC — window title, hyperlink, clipboard write — feeds it). Both
+  parsers now carry the explicit bounded ceiling `OrkyOscParser` already had (its
+  `MAX_PENDING_BYTES` pattern; `scanOsc` itself stays shared and untouched): 512 bytes for the
+  OSC 133 parser (longest legal marker ≈ 21 bytes) and 8192 for the cwd parser (comfortably above
+  PATH_MAX-class file-URL bodies) — no legal in-flight sequence is ever clipped, and marker
+  semantics are unchanged (all existing status/characterization suites untouched). Applies to the
+  local StatusEngine AND the remote agent, which reuses the same stack at the source. Pinned by
+  `tests/main/osc-pending-bound.test.ts`. (2026-07-06 quality audit, Group B #5; 2026-07-07)
+- **Image preview no longer downloads unbounded bodies (and can no longer hang forever).** The
+  terminal-link image preview's URL path buffered the ENTIRE response body into main-process
+  memory before checking the 25 MB cap — a multi-GB "image" URL was fully downloaded — and had no
+  timeout, so a stalling server left the renderer's invoke pending indefinitely. The fetch now
+  early-rejects on a declared `Content-Length` above the cap, otherwise streams the body and
+  aborts the transfer the moment the running total crosses it, all under a 15 s overall timeout
+  (`AbortSignal.timeout` covering headers and body). The streaming/cap/timeout logic is the
+  exported, injectable `fetchImageBytes` with unit coverage in `tests/main/preview.test.ts`.
+  (Group B #6; 2026-07-07)
+- **The daemon connect leg no longer accumulates remote stderr for the connection's lifetime.**
+  `connectDaemonAgent` appended every stderr chunk to the raw `TERMHALLA_BRIDGE_V1` status-line
+  parse buffer (`stderrRaw`) — but that buffer is only ever consulted before the connect settles,
+  while the stream is remote-controlled and an established connection lives for days.
+  Accumulation now stops at settle (the probe-stdout FINDING-010 posture); the bounded
+  `stderrTail` and per-line diagnostics are unchanged. (Group B #7; 2026-07-07)
 - **A file-watcher error can no longer freeze the whole app.** None of the four main-process
   chokidar factories (the explorer's `WatchManager`, the git `.git` watcher, the Orky root engine,
   the usage tracker) had an `'error'` listener. chokidar v4 re-emits non-ENOENT/ENOTDIR watch

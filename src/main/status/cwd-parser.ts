@@ -2,6 +2,15 @@ import { scanOsc } from './osc-scanner'
 
 const OSC = '\x1b]'
 
+/** Maximum retained no-terminator carry-over, in UTF-8 bytes (the OrkyOscParser
+ *  MAX_PENDING_BYTES precedent). This parser's prefix is the bare `\x1b]` — EVERY OSC sequence
+ *  (window titles, hyperlinks, clipboard writes) funnels through its carry-over, so an
+ *  unterminated third-party OSC is routine hostile input that previously grew the buffer forever
+ *  and rescanned it per chunk (O(n²)) on the StatusEngine hot path. The longest legal body this
+ *  parser extracts is a cwd report; 8192 comfortably exceeds PATH_MAX-class (4096-byte) file-URL
+ *  bodies, so no real cwd report is ever clipped. Pinned by tests/main/osc-pending-bound.test.ts. */
+export const MAX_PENDING_BYTES = 8192
+
 /** Convert an OSC 7 file URL body (file://host/<path>) to a Windows path, best-effort. */
 function fileUrlToWindows(data: string): string | null {
   const m = /^file:\/\/[^/]*(\/.*)$/.exec(data)
@@ -35,6 +44,9 @@ export class CwdParser {
     this.buf += chunk
     let cwd: string | null = null
     this.buf = scanOsc(this.buf, OSC, body => { const c = parseOsc(body); if (c !== null && c !== '') cwd = c })
+    // Explicit bounded ceiling on the no-terminator carry-over path, layered on top of scanOsc
+    // (which stays shared and untouched — the OrkyOscParser pattern). Never clips a legal report.
+    if (Buffer.byteLength(this.buf, 'utf8') > MAX_PENDING_BYTES) this.buf = ''
     return cwd
   }
 }

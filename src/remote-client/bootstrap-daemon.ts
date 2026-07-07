@@ -191,7 +191,11 @@ export async function connectDaemonAgent(opts: BootstrapOptions): Promise<Connec
     child.stderr.on('data', (chunk: Buffer) => {
       const text = chunk.toString('utf8')
       const clean = sanitizeStderr(text)
-      stderrRaw += text // RAW, newline-preserving — the bridge status-line parse input (FINDING-017)
+      // RAW, newline-preserving — the bridge status-line parse input (FINDING-017). Consulted
+      // only until the connect settles, so STOP accumulating then: this stream is
+      // remote-controlled and the established connection lives for days (2026-07-06
+      // quality-audit Group B #7 — the probe-stdout FINDING-010 posture).
+      if (!settled) stderrRaw += text
       stderrTail = (stderrTail + clean).slice(-STDERR_TAIL_CHARS)
       // A handshake failure was deferred waiting for the status line — settle it now that it landed.
       if (pendingFail !== null && parseBridgeStatus(stderrRaw) !== null) {
