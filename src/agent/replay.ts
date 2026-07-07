@@ -28,6 +28,8 @@ export interface PaneReplayOpts {
   cols: number
   rows: number
   scrollback: number
+  /** Diagnostics sink for contained serialize failures (degraded snapshots). Default: silent. */
+  diag?: (text: string) => void
 }
 
 export interface PaneReplay {
@@ -61,10 +63,30 @@ export const createPaneReplay = (opts: PaneReplayOpts): PaneReplay => {
   // the headless Terminal (the ^5.5 pair is version-locked in package.json — TEST-1910).
   term.loadAddon(addon as unknown as ITerminalAddon)
 
+  const diag = opts.diag ?? ((): void => {})
   let disposed = false
   let issuedSeq = 0
   let parsedSeq = 0
   let waiters: SnapshotWaiter[] = []
+
+  /** Serialize on a disposed terminal (or a broken addon) would throw inside xterm; answer the
+   *  degraded empty snapshot instead. The waiter-settling paths pass `where` for a diagnostic:
+   *  drain() runs inside xterm's async write callback where NO caller try/catch reaches
+   *  (session-store's FINDING-009 guard covers only the synchronous snapshot() fast path), so a
+   *  propagated throw is an uncaughtException — in the daemon, killing every surviving pane —
+   *  and the ready waiters would hang forever. Mirror feedReplay's containment posture:
+   *  degrade + diagnose, never throw upward. */
+  const addonSafeSerialize = (where?: string): string => {
+    try {
+      return addon.serialize()
+    } catch (e) {
+      if (where) {
+        const msg = String(e instanceof Error ? e.message : e).slice(0, 300)
+        diag(`replay serialize failed ${where}; settling snapshot waiter(s) with a degraded empty snapshot: ${msg}`)
+      }
+      return ''
+    }
+  }
 
   const drain = (): void => {
     if (waiters.length === 0) return
@@ -73,17 +95,8 @@ export const createPaneReplay = (opts: PaneReplayOpts): PaneReplay => {
     waiters = waiters.filter((w) => w.target > parsedSeq)
     // One serialize serves every waiter satisfied at this exact parse point (they requested a
     // snapshot at-or-before this sequence; later chunks are still unparsed here).
-    const snapshot = addon.serialize()
+    const snapshot = addonSafeSerialize('inside the write barrier')
     for (const w of ready) w.resolve(snapshot)
-  }
-
-  /** Serialize on a disposed terminal would throw inside xterm; answer empty instead. */
-  const addonSafeSerialize = (): string => {
-    try {
-      return addon.serialize()
-    } catch {
-      return ''
-    }
   }
 
   return {
@@ -120,7 +133,7 @@ export const createPaneReplay = (opts: PaneReplayOpts): PaneReplay => {
       // (the session-identity race pattern), so a raced attach still reports unknown-pane —
       // this resolution only guarantees no promise hangs and no unhandled rejection (REQ-006b).
       if (waiters.length > 0) {
-        const snapshot = addon.serialize()
+        const snapshot = addonSafeSerialize('at dispose')
         const pending = waiters
         waiters = []
         for (const w of pending) w.resolve(snapshot)

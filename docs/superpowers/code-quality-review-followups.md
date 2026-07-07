@@ -194,3 +194,38 @@ behavior-preserving changes (pure extractions TDD-covered, +13 new unit tests;
 - **IPC contract is a flat 50-method surface;** could be grouped by domain
   namespace (`api.pty.*`, `api.fs.*`, …) — deliberately deferred as a large,
   app-wide, mostly-stylistic change.
+
+## Whole-project audit (2026-07-06) — Group A resolved
+
+A six-reviewer `/review-quality` audit over the whole project (every finding
+adversarially verified) found **0 Critical, 10 Major, 22 Minor**. The working
+fix plan (all medium-and-above findings + recommended fixes, grouped A–C) lives
+in the session handoff; resolution is tracked here.
+
+**Group A — crash/freeze paths: resolved on `main` (2026-07-07)**, see the
+changelog `[Unreleased]` → Fixed for full detail:
+
+- chokidar watchers had no `'error'` listener (×4 factories) → all main-process
+  watchers now go through `safeWatch` (`src/main/safe-watcher.ts`), pinned by a
+  structural test; agent-side siblings (daemon-spawn `'error'`, `process.stdout`
+  `'error'` in bridge + stdio agent) fixed in the same pass.
+- Unguarded `addon.serialize()` in replay `drain()`/`dispose()` (a throw inside
+  xterm's write callback killed the daemon + all surviving panes) → degraded
+  settle + diagnostic (`tests/agent-replay-containment.test.ts`).
+- Notification click captured the raising `BrowserWindow` (destroyed-window
+  `.show()` on an Action Center click) → id captured, re-resolved at click time;
+  `WindowManager.mainWindow()/mainWindowId()` return `undefined` instead of
+  `!`-throwing, making `focusMainWindow`'s guard live.
+- `migrateAppState` blind-cast persisted `windows[]` entries (startup crash-loop
+  on one junk entry) → per-entry normalization (tests in
+  `tests/shared/app-state-model.test.ts`).
+
+**Still open from this audit:** Group B (unbounded buffers: OSC scanner
+carry-over bound, image-preview streaming cap/timeout, daemon `stderrRaw`
+growth), Group C (workspace-registration ritual ×4, `bootstrap.ts` ssh-channel
+scaffold ×4 + 0024 FINDING-001 shared connect pump, six hand-rolled popover
+chromes → `MenuSurface`), the borderline items (atomic editor save, remote evt
+payload validation), and 20 structural Minors (re-run `/review-quality` scoped
+for detail). The 0024 ledger's FINDING-031 (`net.Server` `'error'` handler)
+remains explicitly deferred by Kevin (2026-07-06) despite being the same family
+as the watcher fix.

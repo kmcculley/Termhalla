@@ -118,6 +118,10 @@ const main = async (): Promise<void> => {
   })
 
   const decoder = createFrameDecoder()
+  // stdout write failures surface as an async 'error' event (EPIPE when the client dies), not
+  // via `send`'s try/catch — zero listeners would be an uncaughtException. A dead stdout means
+  // the connection is over: end input, same as the stdin end/error paths below.
+  process.stdout.on('error', () => session.endOfInput())
   session.start() // the agent hello is the first bytes on stdout (REQ-004)
 
   process.stdin.on('data', (chunk: Buffer) => {

@@ -1,5 +1,6 @@
-import chokidar, { type FSWatcher } from 'chokidar'
+import type { FSWatcher } from 'chokidar'
 import { readFile, readdir, stat } from 'node:fs/promises'
+import { safeWatch } from '../safe-watcher'
 import { homedir } from 'node:os'
 import { join } from 'node:path'
 import type { UsageMetrics } from '@shared/types'
@@ -38,7 +39,7 @@ export class UsageTracker {
     if (this.sessions.get(id) !== sess) return // superseded during alias read
     await this.reparse(id, sess) // immediate parse of the current newest transcript
     if (this.sessions.get(id) !== sess) return // superseded during reparse
-    const w = chokidar.watch(sess.dir, {
+    const w = safeWatch(sess.dir, 'usage', {
       ignoreInitial: true,
       depth: 0,
       awaitWriteFinish: { stabilityThreshold: 200, pollInterval: 50 }

@@ -165,6 +165,10 @@ export const runBridge = async (args: BridgeArgs): Promise<void> => {
         ...(args.idleTimeoutMs !== undefined ? { idleTimeoutMs: args.idleTimeoutMs } : {})
       })
       const child = spawnChild(spec.command, spec.args, spec.options)
+      // A spawn-level failure (EPERM/EAGAIN on the node binary) emits 'error' asynchronously;
+      // with zero listeners that is an uncaughtException killing the bridge with a raw stack
+      // instead of the clean 96 path (pollConnect below times out and failUnreachable reports).
+      child.once('error', (err) => { stderrLine(`bridge: failed to spawn the daemon: ${String(err)}`) })
       child.unref()
       if (logFd !== 2) {
         try {
@@ -233,6 +237,10 @@ const pipeBridge = (sock: Socket): void => {
     }
   })
   process.stdin.on('error', () => { /* EPIPE on a dying peer; the socket path reports */ })
+  // stdout write failures surface as an async 'error' event (EPIPE when the ssh channel dies),
+  // not via the try/catch around write() below — zero listeners would be an uncaughtException.
+  // A dead stdout means the client is gone: settle as a clean end, same as the socket paths.
+  process.stdout.on('error', () => finish(0))
 
   sock.on('data', (chunk: Buffer) => {
     try {

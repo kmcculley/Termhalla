@@ -50,7 +50,10 @@ export async function registerHandlers(services: Services, wm: WindowManager): P
   // app-global and broadcasts (REQ-010).
   services.setRemoteSend(send)
 
+  // Startup invariant: prepare() always yields a main window. An explicit throw here beats the
+  // old `!`-assertion crash surfacing later at notify/dialog time.
   const win = wm.mainWindow()
+  if (!win) throw new Error('registerHandlers: no main window — WindowManager.prepare() must run first')
   const { service: git, dispose: disposeGit } = registerGit(send)
   const indexer = new Indexer(searchService)
 

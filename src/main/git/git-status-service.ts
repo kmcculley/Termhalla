@@ -1,6 +1,6 @@
 import path from 'node:path'
-import chokidar from 'chokidar'
 import type { GitStatus } from '@shared/types'
+import { safeWatch } from '../safe-watcher'
 import { resolveGitRoot as defaultResolveRoot, runGitStatus as defaultRunStatus } from './probe'
 import { parseStatus } from './parse-status'
 
@@ -12,7 +12,7 @@ export type WatchFactory = (root: string, onChange: () => void) => Watcher
  *  working-tree edits don't touch .git — those are covered by the command-done re-probe. */
 function defaultWatchFactory(root: string, onChange: () => void): Watcher {
   const gitDir = path.join(root, '.git')
-  const w = chokidar.watch(gitDir, {
+  const w = safeWatch(gitDir, 'git', {
     ignoreInitial: true,
     ignored: (p: string) => /[\\/](?:objects|logs)[\\/]/.test(p),
     awaitWriteFinish: { stabilityThreshold: 50, pollInterval: 10 }

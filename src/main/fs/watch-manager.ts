@@ -1,5 +1,6 @@
-import chokidar, { type FSWatcher } from 'chokidar'
+import type { FSWatcher } from 'chokidar'
 import type { FsChange, FsEvent } from '@shared/types'
+import { safeWatch } from '../safe-watcher'
 
 const EVENTS: FsEvent[] = ['add', 'unlink', 'change', 'addDir', 'unlinkDir']
 
@@ -11,7 +12,7 @@ export class WatchManager {
 
   watch(id: string, path: string): void {
     if (this.watchers.has(id)) this.unwatch(id)
-    const w = chokidar.watch(path, {
+    const w = safeWatch(path, 'fs-watch', {
       ignoreInitial: true, depth: 0,
       awaitWriteFinish: { stabilityThreshold: 50, pollInterval: 10 }
     })

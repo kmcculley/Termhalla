@@ -174,14 +174,16 @@ export class WindowManager {
   /** Re-dock workspaces back to main one at a time — moves must not overlap (they share `inflight`
    *  and the per-pane transit handoff). */
   private async redockAll(workspaceIds: string[]): Promise<void> {
-    for (const wsId of workspaceIds) await this.move(wsId, this.mainWindowId())
+    const mainId = this.mainWindowId()
+    if (mainId === undefined) return   // no main window left to redock into
+    for (const wsId of workspaceIds) await this.move(wsId, mainId)
   }
 
   private onClosed(id: string): void {
     this.wins.delete(id)
     const wasMain = this.core.windows.find(w => w.id === id)?.isMain ?? false
     this.core.windows = this.core.windows.filter(w => w.id !== id)
-    // Never end up main-less if some other window survives (defends mainWindowId()'s `!`); the
+    // Never end up main-less if some other window survives (keeps mainWindowId() resolvable); the
     // promoted window must switch from the floating header to the tab strip, so re-assign it.
     if (wasMain && this.core.windows.length > 0 && !this.core.windows.some(w => w.isMain)) {
       this.core.windows[0].isMain = true
@@ -194,8 +196,13 @@ export class WindowManager {
     if (this.wins.size === 0) { this.ghost.destroy(); for (const cb of this.closedCbs) cb() }
   }
 
-  mainWindow(): BrowserWindow { return this.wins.get(this.mainWindowId())! }
-  private mainWindowId(): string { return this.core.windows.find(w => w.isMain)!.id }
+  /** The live main window, or undefined when none exists (all windows closed / early shutdown).
+   *  Never throws — callers must guard (register.ts's focusMainWindow does). */
+  mainWindow(): BrowserWindow | undefined {
+    const id = this.mainWindowId()
+    return id === undefined ? undefined : this.wins.get(id)
+  }
+  private mainWindowId(): string | undefined { return this.core.windows.find(w => w.isMain)?.id }
 
   // ── Router surface (consumed by registerHandlers' `send`) ─────────────────────────────────────
 
@@ -303,7 +310,10 @@ export class WindowManager {
   private registerIpc(): void {
     ipcMain.on(CH.winDragEnd, (_e, a: WinDragEndArgs) => { void this.onDragEnd(a) })
     ipcMain.on(CH.winDragGhost, (e, a: WinDragGhostArgs | null) => this.onDragGhost(e.sender, a))
-    ipcMain.on(CH.winRedock, (_e, a: WinRedockArgs) => { void this.move(a.workspaceId, this.resolveTarget(a.targetWindowId)) })
+    ipcMain.on(CH.winRedock, (_e, a: WinRedockArgs) => {
+      const target = this.resolveTarget(a.targetWindowId)
+      if (target !== undefined) void this.move(a.workspaceId, target)
+    })
     ipcMain.on(CH.winReport, (_e, a: WinReportArgs) => this.onReport(a))
     ipcMain.on(CH.termSnapshot, (_e, a: TermSnapshotArgs) => this.onSnapshot(a))
     // The renderer signals ready AFTER subscribing to win:assignment, so the first assignment is
@@ -317,7 +327,7 @@ export class WindowManager {
     return undefined
   }
 
-  private resolveTarget(t: string): string { return t === 'main' ? this.mainWindowId() : t }
+  private resolveTarget(t: string): string | undefined { return t === 'main' ? this.mainWindowId() : t }
 
   /** The renderer reports its window's workspace list/active tab whenever the user adds, closes,
    *  reorders, or switches a workspace — keeping main's authoritative arrangement in sync. */

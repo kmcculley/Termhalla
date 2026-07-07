@@ -325,7 +325,12 @@ export const createSessionStore = (init: AgentSessionStoreInit): AgentSessionSto
       // reachable rec ever carries a placeholder replay field.
       let replay: PaneReplay
       try {
-        replay = replayFactory({ cols: args.cols, rows: args.rows, scrollback })
+        replay = replayFactory({
+          cols: args.cols, rows: args.rows, scrollback,
+          // Route the replay's own contained-failure diagnostics (degraded drain/dispose
+          // serialize, Group A #2) onto the store's diag channel, pane-tagged.
+          diag: (t) => diag(`pane "${args.id}": ${t}`)
+        })
       } catch (e) {
         return { ok: false, message: `pty:spawn "${args.id}" failed: ${bounded(e)} - no pane was registered` }
       }

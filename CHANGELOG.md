@@ -499,6 +499,46 @@ All notable changes to Termhalla are recorded here. The format follows
   failure feedback is never silenced.
 
 ### Fixed
+- **A file-watcher error can no longer freeze the whole app.** None of the four main-process
+  chokidar factories (the explorer's `WatchManager`, the git `.git` watcher, the Orky root engine,
+  the usage tracker) had an `'error'` listener. chokidar v4 re-emits non-ENOENT/ENOTDIR watch
+  errors (Windows `EPERM … watch` when a watched directory is deleted under the watcher, inotify
+  ENOSPC on Linux), and an `'error'` emit with zero listeners throws uncaught in the main
+  process — the documented modal-error-dialog app freeze. Every main-process watcher is now
+  created through `safeWatch` (`src/main/safe-watcher.ts`), which guarantees a warn-only
+  listener; a structural test (`tests/main/safe-watcher.test.ts`) pins that `chokidar.watch` is
+  called nowhere else in `src/main`, so a new watch site can't regress. Same family, agent-side:
+  the `--attach` bridge's detached daemon spawn and `process.stdout` in both the bridge pipe and
+  the default stdio agent now carry `'error'` listeners — an async EPIPE (dying ssh channel) or a
+  spawn-level failure was an uncaughtException killing the process with a raw stack; each now
+  settles through its existing clean-end/diagnostic path. (2026-07-06 quality audit, Group A #1;
+  2026-07-07)
+- **A replay serialize failure can no longer kill the remote daemon (and every surviving pane).**
+  The per-pane replay terminal's `drain()` ran `addon.serialize()` inside xterm's async
+  `term.write` callback, where no caller try/catch reaches (the store's FINDING-009 guard covers
+  only the synchronous snapshot fast path) — a throw there was an uncaughtException that would
+  take down the daemon *and every surviving PTY on it*, with the attach hold never released.
+  `drain()` and `dispose()` now settle waiters with a degraded empty snapshot plus a pane-tagged
+  diagnostic on the agent's stderr (the same containment posture as `feedReplay`'s
+  `replayBroken`); the synchronous attach path keeps its established caller-side `internal`
+  error, and the frozen fidelity oracles are untouched. New containment suite:
+  `tests/agent-replay-containment.test.ts`. (Group A #2; 2026-07-07)
+- **Clicking a stale OS notification no longer freezes the app.** The `notify` click handler
+  captured the raising `BrowserWindow` at notify time, but Windows toasts persist in the Action
+  Center past a window's life — clicking one after its floating window was destroyed (redock)
+  called `.show()` on a destroyed window, throwing uncaught in main (modal-freeze failure mode).
+  The handler now captures only the window *id* and re-resolves at click time, falling back to
+  any live window. Related: `WindowManager.mainWindow()`/`mainWindowId()` dropped their `!`
+  assertions (they threw with zero windows, making `focusMainWindow`'s
+  `!mw` guard dead code) — they now return `undefined` and the redock/`win:redock` callers guard
+  explicitly. (Group A #3; 2026-07-07)
+- **A malformed `app-state.json` no longer crash-loops startup.** `migrateAppState` blind-cast
+  persisted `windows[]` entries; a single junk entry (e.g. `null` from a torn write or hand
+  edit) threw inside `WindowManager.prepare()` *before any window existed* — an invisible
+  crash-loop until the file was hand-deleted. Entries are now normalized per-field (non-object
+  entries dropped; `workspaceIds`/`activeId`/`isMain`/`bounds` coerced with fallback bounds), the
+  legacy single-window shape included — the `normalizeViewState` posture applied one file over.
+  (Group A #4; 2026-07-07)
 - **`npm run package` now builds the remote-agent bundle.** The package script ran
   `electron-vite build` directly — which never invokes `vite.agent.config.ts` — so a fresh
   checkout (i.e. the release workflow) would reach electron-builder with no

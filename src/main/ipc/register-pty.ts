@@ -112,10 +112,20 @@ export function registerPty(
 
   ipcMain.on(CH.notify, (e, a: NotifyArgs) => {
     if (!Notification.isSupported()) return
-    // Focus the window that raised the notification (an undocked window, not always main).
-    const target = BrowserWindow.fromWebContents(e.sender) ?? win
+    // Focus the window that raised the notification (an undocked window, not always main) — but
+    // capture only its id, never the BrowserWindow: OS toasts persist in the Action Center past
+    // the window's life (a floating window destroyed on redock), and .show() on a destroyed
+    // window throws uncaught in the click listener — the modal-freeze failure mode. Re-resolve
+    // at click time, falling back to any live window.
+    const raiser = BrowserWindow.fromWebContents(e.sender)
+    const targetId = raiser && !raiser.isDestroyed() ? raiser.id
+      : !win.isDestroyed() ? win.id : null
     const n = new Notification({ title: a.title, body: a.body })
-    n.on('click', () => { target.show(); target.focus() })
+    n.on('click', () => {
+      const t = (targetId !== null ? BrowserWindow.fromId(targetId) : null)
+        ?? BrowserWindow.getAllWindows().find(w => !w.isDestroyed())
+      if (t && !t.isDestroyed()) { t.show(); t.focus() }
+    })
     n.show()
   })
 

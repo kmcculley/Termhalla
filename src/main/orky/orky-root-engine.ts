@@ -1,5 +1,6 @@
-import chokidar, { type FSWatcher } from 'chokidar'
+import type { FSWatcher } from 'chokidar'
 import { readFile, readdir, stat, lstat } from 'node:fs/promises'
+import { safeWatch } from '../safe-watcher'
 import { basename, join } from 'node:path'
 import type { OrkyPaneStatus, OrkyFeatureStatus, OrkyPhase } from '@shared/types'
 import {
@@ -105,7 +106,7 @@ export class OrkyRootEngine {
     const cur = this.roots.get(orkyDir)
     if (cur !== r || r.watcher) return // root torn down, or another consumer already opened the shared watcher
 
-    const w = chokidar.watch(orkyDir, {
+    const w = safeWatch(orkyDir, 'orky', {
       ignoreInitial: true,
       depth: 4, // covers active.json, features/<slug>/{state,findings}.json
       awaitWriteFinish: { stabilityThreshold: 150, pollInterval: 50 }
