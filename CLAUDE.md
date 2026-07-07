@@ -129,10 +129,13 @@ related area:
   (those `api.ptyKill`). Don't add a transit buffer here thinking it's a missing piece.
 - **Overlays opened from inside a mosaic tile must portal to `<body>`.** A `position: fixed` child of a
   react-mosaic tile is positioned/clipped relative to the tile (its transform is a containing block) and
-  stacks *under* the tile toolbar. `PaneContextMenu`, `Modal`, and `SplitMenu` (the combined split/compass
-  popover) `createPortal` to escape it; a menu rendered inline silently mis-positions and intercepts no
-  clicks. Guarded by `tests/e2e/pane-actions.spec.ts` (and `tests/e2e/split-compass.spec.ts` TEST-007 for
-  the split popover).
+  stacks *under* the tile toolbar; a menu rendered inline silently mis-positions and intercepts no clicks.
+  `Modal` portals itself; every popover menu renders through the shared `MenuSurface`
+  (`src/renderer/components/MenuSurface.tsx`, 2026-07-06 audit Group C #10) — it owns the click-catcher,
+  right-click dismiss, Escape dismiss, and the `portal` opt-in, which tile-hosted menus (`PaneContextMenu`,
+  `SplitMenu`, `OrkyPopover`, the explorer context menu) MUST pass. New popovers go through `MenuSurface`,
+  never a hand-rolled backdrop (pinned by `tests/renderer/menu-surface-structure.test.ts`). Guarded by
+  `tests/e2e/pane-actions.spec.ts` (and `tests/e2e/split-compass.spec.ts` TEST-007 for the split popover).
 - **Pane maximize hides siblings, never unmounts them.** `toggleMaximize` sets `maximized[wsId]` — now a
   **persisted** per-workspace view-state field (it rides the workspace record via `applyViewState` and is
   derived back on load in `applyAssignment`, so a maximized pane survives reload). `PaneTile` marks its
