@@ -199,7 +199,7 @@ recorded here and in `02-spec.md`'s Resolved questions as the durable rationale 
 Termhalla must never silently drive an Orky pipeline) future features touching Orky write paths
 should read, rather than promoted as a numbered convention.
 
-## Standing repo-hygiene backlog item (outside this feature's scope)
+## ~~Standing repo-hygiene backlog item (outside this feature's scope)~~ — RESOLVED (verified 2026-07-07: `NUL` no longer tracked nor on disk)
 
 A tracked `NUL` file at the repo root (0 bytes, pre-existing, introduced by feature 0009) is a
 Windows-reserved device name that Win32 file APIs intercept, breaking `git stash`/`checkout` and

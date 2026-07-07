@@ -15,11 +15,10 @@ The items below were judged minor and deferred. Recorded so they aren't lost.
   (the bell rides the needs-input channel, not the border channel), but decide
   deliberately or gate it on `alerts.border` if undesired.
 
-- **`AppState.schemaVersion` hardcoded to 1 and unvalidated (M-2, carries over from
-  Phase 1 M-4).** Workspace schema is now 2 while app-state still writes/reads
-  version 1 with no shape gate. Low priority (app-state gained no fields in Phase 2),
-  but the divergent numbers are confusing — unify and add a validation gate when
-  app-state next changes.
+- ~~**`AppState.schemaVersion` hardcoded to 1 and unvalidated (M-2, carries over from
+  Phase 1 M-4).**~~ **RESOLVED** (verified 2026-07-07): app-state now versions on the shared
+  `SCHEMA_VERSION` and is validated/migrated on load by `migrateAppState`
+  (`src/shared/app-state-model.ts`; Group A #4 of the 2026-07-06 quality audit).
 
 - **bash DEBUG-trap stray `C` flicker (M-3).** `integration-scripts.ts` `__th_preexec`
   guards on `[ "$BASH_COMMAND" = "$PROMPT_COMMAND" ]`, which doesn't match the

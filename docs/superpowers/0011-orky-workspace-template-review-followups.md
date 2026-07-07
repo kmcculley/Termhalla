@@ -176,7 +176,9 @@ loader-only reload check that would have masked the loss (exactly FINDING-001's 
   the sanctioned substitute directly in the spec (the CONV-018 propagation this same REQ already
   received once, for its OTHER half — the registryDetail-spy vehicle, FINDING-002) so the frozen
   spec and the frozen tests stop disagreeing about what green means.
-- **The standing NUL-file backlog (CONV-050).** A Windows-reserved device name (`NUL`) has been
+- ~~**The standing NUL-file backlog (CONV-050).**~~ **RESOLVED — verified 2026-07-07: `NUL` is
+  no longer tracked (`git ls-files NUL` empty) nor present on disk.** Original record follows.
+  A Windows-reserved device name (`NUL`) has been
   tracked at repo root since feature 0009, independently re-noticed by 0008, 0009, 0010, and now
   0011 — four consecutive features. It sits outside any single feature's diff scope and never gets
   swept up by a normal fix cycle. **This is the LAST roadmap feature — recommended action: remove

@@ -154,7 +154,7 @@ current max before this feature):
 - **CONV-040** (from FINDING-016) — a paired arm/cancel lifecycle dependency must be injected as one
   all-or-nothing unit, never two independently-optional fields.
 
-## Standing repo-hygiene backlog item (outside this feature's scope)
+## ~~Standing repo-hygiene backlog item (outside this feature's scope)~~ — RESOLVED (verified 2026-07-07: `NUL` no longer tracked nor on disk)
 
 A tracked `NUL` file at the repo root (0 bytes, pre-existing, introduced by feature 0009,
 `FINDING-023` in 0012's ledger, and re-surfaced again in this feature's review sweep) is a

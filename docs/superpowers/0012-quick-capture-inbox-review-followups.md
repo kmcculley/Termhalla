@@ -133,11 +133,11 @@ as deferred at ship time, each with a documented inheritance path.
   seam, after F9's picker). Deferred as a shared-Modal-seam fix, not F12-scoped; the proposed
   convention (CONV-035, below) makes the gap explicit and future-consuming dialogs are on notice not
   to re-discover it independently.
-- **FINDING-023 (quality, LOW)** — a tracked `NUL` file at the repo root (0 bytes, pre-existing,
-  introduced by feature 0009) is a Windows-reserved device name that Win32 file APIs intercept,
-  breaking `git stash`/`checkout` on Windows. Pre-existing repo debt, unrelated to F12's diff;
-  recorded as a separate repo-hygiene follow-up (`git rm NUL` + a path-component CI guard), outside
-  this feature's scope.
+- ~~**FINDING-023 (quality, LOW)** — a tracked `NUL` file at the repo root~~ — **RESOLVED**
+  (verified 2026-07-07: `NUL` is no longer tracked nor present on disk). Original record: a
+  Windows-reserved device name that Win32 file APIs intercept, breaking `git stash`/`checkout`
+  on Windows; was recorded as a separate repo-hygiene follow-up (`git rm NUL` + a path-component
+  CI guard) outside this feature's scope.
 
 ## Promoted to conventions
 

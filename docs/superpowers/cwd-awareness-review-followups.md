@@ -11,10 +11,10 @@ The minor items below were deferred.
   splits the OSC body on the first `;` to read the OSC number, so a bash cwd like
   `c/de;v` would be silently dropped. OSC 9;9 (PowerShell, the primary path) is
   immune (it slices after the `9;` prefix). Bash-only and rare on Windows; defer.
-- **`cwds` / `statuses` runtime maps are not cleaned up on `closePane`** (`store.ts`).
-  A slow per-session memory leak (UUID keys are unique, so no incorrect reuse).
-  This is **parity** with the existing `statuses` map (already noted in the Phase 2
-  follow-ups); fix both together when convenient.
+- ~~**`cwds` / `statuses` runtime maps are not cleaned up on `closePane`** (`store.ts`).~~
+  **RESOLVED since** (verified 2026-07-07): `closePane` routes every per-pane runtime map
+  (statuses/cwds/procs/usage/…) through the shared `clearPaneRuntime` (the 2026-06-16 store
+  refactor, sub-project C's cleanup-parity fix).
 
 ## Spec/impl note
 

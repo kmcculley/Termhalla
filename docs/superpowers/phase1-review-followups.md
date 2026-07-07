@@ -14,10 +14,10 @@ deferred. Tracked here so they aren't lost.
 - **Dead-pane affordance (M-3).** When a shell exits on its own (`exit`), the pane
   prints `[process exited]` but stays in the layout with no restart affordance. Add
   an auto-close or a "restart" action in a later phase.
-- **app-state validation (M-4).** `loadAppState` casts parsed JSON straight to
-  `AppState` with no shape/version check (workspace files are guarded by
-  `deserializeWorkspace`; app-state is not). Add a `schemaVersion` gate + array
-  validation when app-state grows more fields.
+- ~~**app-state validation (M-4).**~~ **RESOLVED** (verified 2026-07-07): `migrateAppState`
+  (`src/shared/app-state-model.ts`, hardened by the 2026-07-06 quality-audit Group A #4 pass)
+  validates shape + `schemaVersion` on load (per-entry `windows[]` normalization, future-version
+  rejection) and stamps `SCHEMA_VERSION` on save.
 - **PTY env sanitization (M-6).** `PtyManager.spawn` passes the full
   `process.env` to every shell (includes Electron/Node injected vars). Sanitize
   before Phase 2 shell-integration injection, which needs a controlled env.

@@ -22,10 +22,10 @@ The items below were judged minor and deferred.
   editor/explorer panes (no pty with that id); their fs-watch cleanup rides on the
   React unmount effect rather than `closePane`. Works, but couples correctness to
   unmount timing. Consider routing close cleanup by kind.
-- **`AppState.schemaVersion` hardcoded to 1 in `saveAll` (M3, carries over from
-  Phase 1/2).** Workspace schema is now 3 while app-state still writes/reads
-  version 1 with no gate. Cosmetic (app-state has no versioned fields), but the
-  divergence is confusing — unify and add a gate when app-state next changes.
+- ~~**`AppState.schemaVersion` hardcoded to 1 in `saveAll` (M3, carries over from
+  Phase 1/2).**~~ **RESOLVED** (verified 2026-07-07): app-state versions on the shared
+  `SCHEMA_VERSION`, validated/migrated on load by `migrateAppState`
+  (`src/shared/app-state-model.ts`; Group A #4 of the 2026-07-06 quality audit).
 - **fs IPC accepts any absolute path; no sandboxing (M4).** The renderer can ask
   main to read/write any path. **Accepted by design** for a local single-user tool,
   consistent with the existing trust model (the renderer already drives pty spawn

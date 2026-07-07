@@ -7,7 +7,14 @@ Deferred at the human-review boundary per Kevin (2026-07-05). Non-blocking (MEDI
 - **Claim:** src/remote-client/prebuilt.ts duplicates ssh-command.ts's injection-safety validation verbatim: SAFE_REMOTE_PATH = /^[A-Za-z0-9._/~-]+$/ and SAFE_NONCE = /^[A-Za-z0-9]+$/ (identical literals) plus checkAgentDir/checkNonce re-implement checkRemotePath's exact semantics, instead of importing from ssh-command.ts. The stated rationale in the file header ('so this module stays a single, self-contained, dependency-free pure module') doesn't hold in practice: prebuilt.ts is only ever consumed by bootstrap.ts, which already imports ssh-command.ts directly, so no actual decoupling is achieved -- there are now two independently-maintained copies of the security-sensitive remote-path charset.
 - **Proposed fix:** Export checkRemotePath (and the nonce check) from ssh-command.ts (or a small shared validation module) and import them from prebuilt.ts instead of re-declaring the regexes and validators. If purity/no-import is a hard constraint, add a structural test asserting the two charset regexes stay textually identical so drift is caught mechanically instead of by convention.
 
-## FINDING-002 — MEDIUM / quality
+## ~~FINDING-002 — MEDIUM / quality~~ — RESOLVED 2026-07-07
+- **Resolved** by the 2026-07-06 quality-audit Group C pass (#9), exactly as proposed: the
+  spawn/abort/settle-once/teardown shape is now the ONE `runSshExecChannel`
+  (`src/remote-client/exec-channel.ts`) used by upload/probe/install, the connect legs share
+  `runConnectPump` (`connect-pump.ts`), and the whole co-provision gate moved to
+  `src/remote-client/co-provision.ts` — bootstrap.ts is back to the F19 connect/provision-once
+  policy. See CHANGELOG `[Unreleased]` → Changed. (This ledger's line references into the old
+  monolithic bootstrap.ts now resolve into co-provision.ts for the still-open items below.)
 - **Location:** -
 - **Claim:** bootstrap.ts nearly doubled in size (353 -> 673 lines) by bolting the entire node-pty co-provisioning orchestration (runNodePtyProbe, runNodePtyInstall, coProvisionNodePty, readLocalManifest, walkBundleDir, ~330 lines) onto the existing agent-bootstrap module, rather than extracting it into its own file (e.g. node-pty-provision.ts) that bootstrap.ts merely calls. Within that growth, runNodePtyProbe and runNodePtyInstall each re-implement, almost line-for-line, the same spawn+abort-listener+settle-once+kill/destroy-streams-on-failure boilerplate already present twice in the file (connectAgent, provisionAgent) -- the pattern is now duplicated 4x with no shared helper, so a future fix to the abort/teardown logic (e.g. another FINDING-001-class bug) requires patching all four copies correctly.
 - **Proposed fix:** Extract the common 'spawn an ssh exec child, wire an AbortSignal listener, settle exactly once, tear down streams on any non-ok outcome' shape into one parameterized helper (taking argv, an outcome classifier, and an abort-diagnostic factory) used by all four call sites; and move the node-pty co-provisioning gate into its own module under src/remote-client/ so bootstrap.ts stays focused on the F19 connect/provision-once flow.
@@ -57,7 +64,13 @@ Deferred at the human-review boundary per Kevin (2026-07-05). Non-blocking (MEDI
 - **Claim:** PROBE_SRC derives glibc SOLELY from process.report.getReport().header.glibcVersionRuntime, defaulting to null whenever process.report is unavailable or getReport is not a function. deriveLibc then returns non-glibc, so a genuine linux-x64-GLIBC host whose node cannot self-report glibc (an older or restricted node -- precisely the locked-down/offline enterprise hosts this feature exists to serve) is classified linux/x64/non-glibc and rejected as no-match FATAL, with a diagnostic naming libc=non-glibc. REQ-010 lumps musl and unknown together, but a report-incapable glibc host is a THIRD case the no-match wording misreports -- and the escape hatch it suggests (manually install node-pty) would in fact have succeeded on that glibc host. Detection hinges on a runtime self-report the target demographic may not provide, and nothing tests the report-absent-but-glibc path.
 - **Proposed fix:** Add a fallback glibc signal for when process.report is absent (e.g. the probe additionally checks for a glibc marker such as /lib/x86_64-linux-gnu/libc.so.6, or parses ldd --version), and/or make the no-match diagnostic distinguish confirmed-musl from unknown/undetectable-libc so the operator learns the real cause instead of a possibly-false non-glibc. At minimum, name process.report unavailability as a candidate cause in the no-match wording so a genuine glibc host is not turned away by a misleading message.
 
-## FINDING-016 — LOW / quality
+## ~~FINDING-016 — LOW / quality~~ — LARGELY RESOLVED 2026-07-07
+- **Resolved (bootstrap tree)** by the Group C #9 pass: one shared `sanitizeStderr` now lives in
+  `src/remote-client/exec-channel.ts`, used by the exec channels and the connect pump.
+  **Residual (accepted):** `prebuilt.ts` keeps its own copy BY DOCUMENTED DESIGN (it is a
+  deliberately dependency-free pure module), so the harmless double-sanitization across the
+  co-provision → classifyProbeOutcome boundary remains; revisit only if `prebuilt.ts`'s
+  no-import constraint is ever relaxed.
 - **Location:** -
 - **Claim:** prebuilt.ts and bootstrap.ts each independently define their own sanitizeStderr control-character stripper (same character class: 0x00-0x1f, 0x7f-0x9f; built two different ways, a literal regex in bootstrap.ts vs a codes-array-built RegExp in prebuilt.ts) instead of sharing one. Worse than mere duplication: runNodePtyProbe/runNodePtyInstall in bootstrap.ts sanitize each stderr chunk into stderrTail with bootstrap.ts's own sanitizeStderr, then pass that already-clean text as stderrExcerpt into classifyProbeOutcome in prebuilt.ts, whose exit-255/no-sentinel diagnostics call prebuilt.ts's OWN separate sanitizeStderr on it again: redundant double-sanitization across the module boundary, and a second, distinct instance (beyond FINDING-001's SAFE_REMOTE_PATH/SAFE_NONCE duplication) of this feature reimplementing a sibling helper instead of importing it.
 - **Proposed fix:** Export one sanitizeStderr from a shared location (ssh-command.ts or a small shared text-sanitization module) and have both bootstrap.ts and prebuilt.ts import it, so stderr is sanitized exactly once per byte and the two copies cannot silently diverge.
@@ -106,7 +119,9 @@ Deferred at the human-review boundary per Kevin (2026-07-05). Non-blocking (MEDI
 
 ## Round-4 review additions (deferred 2026-07-06, filed at the doc-sync gate — all LOW/MEDIUM, non-blocking)
 
-### FINDING-030 — LOW / quality
+### ~~FINDING-030 — LOW / quality~~ — RESOLVED 2026-07-07
+- **Resolved** incidentally by the Group C #9 rewrite: bootstrap.ts's header now points at
+  `runCoProvisionPass` in `co-provision.ts` (the gate's new home).
 - **Location:** src/remote-client/bootstrap.ts:19-23 (module doc comment)
 - **Claim:** The module-level doc comment still names `coProvisionNodePty` as the entry point for the node-pty co-provisioning gate, but no function of that name exists any more — the ESC-003/ESC-004 loopback fixes split/renamed it into `runCoProvisionPass` (plus `runNodePtyProbe`/`runNodePtyInstall`). Several already-resolved findings (002, 003, 022, 023, 024) also cite the old name, reflecting the name at the time they were filed.
 - **Proposed fix:** Update the doc comment to name `runCoProvisionPass`.
@@ -146,7 +161,7 @@ Deferred at the human-review boundary per Kevin (2026-07-05). Non-blocking (MEDI
 
 ## Round-4 review additions (deferred at human-review 2026-07-06)
 
-### FINDING-030 — LOW / quality
+### ~~FINDING-030 — LOW / quality~~ — RESOLVED 2026-07-07 (duplicate entry; see the annotated copy above)
 - **Location:** -
 - **Claim:** src/remote-client/bootstrap.ts:22's module-level doc comment still names 'coProvisionNodePty' as the entry point for the node-pty co-provisioning gate ('...runs BEFORE the sequence above -- see coProvisionNodePty'), but no function of that name exists anywhere in the file (or the repo) any more -- the ESC-003/ESC-004 loopback fixes split/renamed it into runCoProvisionPass (plus runNodePtyProbe/runNodePtyInstall). Several already-resolved findings on this ledger (FINDING-002, 003, 022, 023, 024) also cite 'coProvisionNodePty' as the symbol under discussion, reflecting the name at the time they were filed -- the top-of-file doc comment was simply never updated to track the rename, so a maintainer grepping the codebase for coProvisionNodePty (as directed by this file's own header) finds nothing.
 - **Proposed fix:** Update the doc comment at bootstrap.ts:19-23 to name the current entry point, runCoProvisionPass (in src/remote-client/bootstrap.ts), instead of the retired coProvisionNodePty name.

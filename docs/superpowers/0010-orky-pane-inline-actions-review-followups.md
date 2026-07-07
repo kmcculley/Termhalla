@@ -231,11 +231,9 @@ deferred per the ESC-001 decision:
   `.orky/features/0008-queue-answer-resume-actions/findings.json`. This F10 finding itself stays
   `status: "open"` per the ESC-001 disposition (the finding records a defect-and-its-fix, not a
   toggle doc-sync flips) — the underlying data is now correct.
-- **FINDING-014 (review, LOW, tracked `NUL` file).** A Windows-reserved device name tracked since
-  feature 0009, at repo root. Standing backlog item, independently noticed by three consecutive
-  features (0012, 0013, 0008, now 0010) — it sits outside every individual feature's diff scope and
-  never gets swept up in a normal fix cycle. **Recommendation unchanged: `git rm --cached NUL` as
-  a deliberate, named hygiene commit — never a silent rider inside a feature commit.**
+- ~~**FINDING-014 (review, LOW, tracked `NUL` file).**~~ — **RESOLVED** (verified 2026-07-07:
+  `NUL` is no longer tracked nor present on disk). Was: a Windows-reserved device name tracked
+  since feature 0009 at repo root, independently noticed by 0012/0013/0008/0010.
 - **FINDING-017 (review, MEDIUM, BUILD-ENVIRONMENT PREREQUISITE — not a code defect).** The
   Playwright e2e terminal-spawn tests (TEST-633 here; F8's TEST-609/610) cannot be witnessed green
   on this checkout because `node-pty`'s `conpty.node` native binding is not built

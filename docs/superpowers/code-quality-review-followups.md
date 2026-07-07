@@ -160,10 +160,11 @@ behavior-preserving changes (pure extractions TDD-covered, +13 new unit tests;
 - **Duplicate vault type: `VaultData` (main `env-vault.ts`) vs `EnvVaultData`
   (`@shared/types`).** Identical shape declared twice; main should import the
   shared type. *(Minor.)*
-- **`AppState.schemaVersion` hardcoded to `1` (store `saveAll`) while
-  `SCHEMA_VERSION` is `3`, and the field is never read in `loadAppState`.**
-  Either wire it to a constant + validate on load, or introduce a dedicated
-  `APP_STATE_VERSION` with a note on why it versions independently. *(Minor.)*
+- ~~**`AppState.schemaVersion` hardcoded to `1` (store `saveAll`) while
+  `SCHEMA_VERSION` is `3`, and the field is never read in `loadAppState`.**~~
+  **Resolved** (verified 2026-07-07): `migrateAppState` (`src/shared/app-state-model.ts`, the
+  2026-07-06 audit Group A #4 rework) now validates `schemaVersion` on load, rejects
+  newer-than-supported values, and stamps `SCHEMA_VERSION` on the normalized output.
 - ~~**Silent write-error swallow in `EnvVault.persist()`.**~~ **Resolved** (review #4,
   `e7173dd`): `persist()` now propagates, and create/set are `invoke` so a failed
   vault write surfaces a toast instead of a false success. The empty `catch` in
@@ -178,8 +179,11 @@ behavior-preserving changes (pure extractions TDD-covered, +13 new unit tests;
 - ~~**`deserializeWorkspace` lets a raw `JSON.parse` `SyntaxError` escape.**~~
   **Resolved** (review #4, `283ce0f`): the parse is wrapped into a friendly
   "Invalid workspace file: not valid JSON" error.
-- **`workspace-model.migrate` is identity for all versions** with no v1/v2 cases
-  though `SCHEMA_VERSION` is 3 — document the no-op or add explicit cases.
+- ~~**`workspace-model.migrate` is identity for all versions** with no v1/v2 cases
+  though `SCHEMA_VERSION` is 3 — document the no-op or add explicit cases.~~
+  **Resolved** (verified 2026-07-07): `migrate` now carries explicit documented per-version
+  steps (v7 view-state backfill; v8/v9 documented identities) plus a newer-than-supported
+  rejection guard.
 - ~~**`preload` listeners use `as never`** to satisfy `ipcRenderer.on`; type with
   `IpcRendererEvent` instead.~~ **Resolved** — every push channel now goes through one
   `pushChannel<A>()` factory that attaches a single `IpcRendererEvent`-typed listener and fans

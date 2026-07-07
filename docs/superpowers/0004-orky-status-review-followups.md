@@ -56,11 +56,12 @@ lost. None is release-blocking; none is a contract violation.
   while the less-actionable slug is always kept. **Recommended fix:** middle-ellipsis the slug (or drop
   the phase word) before dropping the trailing gate/count.
 
-- **Popover has no Escape-to-dismiss / focus management** (FINDING-UX-005,
-  `src/renderer/components/OrkyPopover.tsx:32`). It closes only on backdrop click or chip re-toggle; no
-  keydown(Escape) handler, focus is not moved into the popover on open, Tab leaks to the page behind.
-  Matches the existing Git/Process popovers (not a regression) but Escape is the near-universal
-  dismissal affordance. **Recommended fix:** add a keydown Escape handler calling `onClose`.
+- ~~**Popover has no Escape-to-dismiss / focus management** (FINDING-UX-005)~~ — **RESOLVED
+  2026-07-07** (Escape half): OrkyPopover now renders through the shared `MenuSurface`
+  (2026-07-06 quality-audit Group C #10), which owns Escape-dismiss + right-click dismiss for
+  every popover. The focus-management half (focus moved into the popover, Tab containment)
+  remains the pre-existing Git/Process-popover posture — revisit only if a keyboard-first flow
+  needs it (SplitMenu is the in-repo precedent for a trapped popover).
 
 - **Per-feature reads are sequential** (FINDING-PERF-003, `src/main/orky/orky-tracker.ts:104-115`).
   The reread loop awaits each feature's `state.json` then `findings.json` back-to-back, so total read

@@ -42,21 +42,18 @@ aren't lost. Full records (claim, evidence, fix) live in
   `addTerminal`/`addEditor`/`addExplorer`/`commitPane`/`placePane` and drop the
   always-`'row'` `MosaicDirection` arg. **Promoted to CONV-006.**
 
-- **Combined surface forces one keydown handler over two keyboard models** (FINDING-DEV-003,
-  `SplitMenu.tsx:51-58,82`). The compass and kind selector share one container `onKeyDown`;
-  the conflict is resolved by globally hijacking arrow keys for the compass. Works for the
-  shipped contract but is brittle if the popover gains more interactive controls. Fix:
-  scope key handling per-control (the iteration-2 a11y fix already narrowed it; this tracks
-  fuller separation).
+- ~~**Combined surface forces one keydown handler over two keyboard models** (FINDING-DEV-003)~~
+  — **RESOLVED since** (verified 2026-07-07): arrow handling is now scoped to the compass
+  group's own `onCompassKeyDown`; the container handler owns only the Tab trap (Escape moved to
+  the shared MenuSurface in the 2026-07-06 audit Group C #10 pass).
 
-- **Focus not restored to the trigger on dismiss** (FINDING-UX-003, `SplitMenu.tsx:52,80-81`).
-  Esc / backdrop-click / post-commit dismissal does not return focus to the `split-${paneId}`
-  button that opened the popover, breaking the keyboard-return expectation. Fix: restore
-  focus to the trigger on `onClose`.
+- ~~**Focus not restored to the trigger on dismiss** (FINDING-UX-003)~~ — **RESOLVED since**
+  (verified 2026-07-07): every dismissal (Esc, click-away, commit) routes through `close()`,
+  which focuses the captured trigger before `onClose`.
 
-- **Trigger button exposes no popup semantics** (FINDING-UX-004, `PaneToolbar.tsx:55`). The
-  split button has no `aria-haspopup` and no `aria-expanded` reflecting open/closed state.
-  Fix: add `aria-haspopup="dialog"` (or `menu`) and toggle `aria-expanded`.
+- ~~**Trigger button exposes no popup semantics** (FINDING-UX-004)~~ — **RESOLVED since**
+  (verified 2026-07-07): the split trigger carries `aria-haspopup="dialog"` +
+  `aria-expanded` (`PaneToolbar.tsx`).
 
 - **Disabled Explorer option has no explanation** (FINDING-UX-005, `SplitMenu.tsx:68-74`).
   The Explorer kind is disabled when the source pane has no cwd, but nothing tells the user
@@ -64,16 +61,12 @@ aren't lost. Full records (claim, evidence, fix) live in
 
 ### LOW
 
-- **Popover anchored via `document.querySelector` by testid instead of an anchor ref**
-  (FINDING-SEC-001 + FINDING-QUA-005, `SplitMenu.tsx:36`). The popover positions itself with
-  `document.querySelector(\`[data-testid="split-${paneId}"]\`)`. An unsanitized `paneId`
-  (from a crafted/deserialized workspace file — `deserializeWorkspace` does not validate
-  pane-ID key format) containing CSS-selector metacharacters can throw a `DOMException`
-  (popover silently fails to render) or select the wrong element (mis-anchored popover). It
-  also couples production positioning to the test-only testid contract. Severity LOW
-  (requires a hand-crafted workspace file). Fix: pass a React `RefObject` of the toolbar
-  split button down to `SplitMenu` and position from it, eliminating the DOM query (and as
-  defense-in-depth, validate pane-ID keys as UUIDs in `deserializeWorkspace`).
+- ~~**Popover anchored via `document.querySelector` by testid instead of an anchor ref**
+  (FINDING-SEC-001 + FINDING-QUA-005)~~ — **RESOLVED 2026-07-07** (the DOMException half, via
+  the same mitigation OrkyPopover took for 0004 FINDING-SEC-005): the selector now interpolates
+  `CSS.escape(paneId)`, pinned by `tests/renderer/split-menu-escape.test.ts`. The
+  anchor-via-testid coupling (the RefObject alternative) remains the accepted repo-wide popover
+  anchoring pattern — revisit only if it's changed for all anchored popovers at once.
 
 - **Split button still shows the `⬌` glyph** (FINDING-QOL-002, `PaneToolbar.tsx:55`). The
   single combined button still renders the old left-right double-arrow, signalling a
@@ -81,11 +74,9 @@ aren't lost. Full records (claim, evidence, fix) live in
   tooltip was updated; the visible glyph was not. Fix: use a multi-directional / "split
   menu" glyph (e.g. `✛`, `⊞`, a compass/plus icon), paint-only per REQ-012.
 
-- **Magic anchor offset `r.right - 168`** (FINDING-QOL-003, `SplitMenu.tsx:38`). The
-  horizontal anchor uses a hardcoded `168` while the popover declares `minWidth: 156`; the
-  number is not derived from the rendered width, so a future width restyle silently
-  mis-anchors the popover. Fix: derive the offset from the measured width or a shared named
-  constant referenced by both the math and the style.
+- ~~**Magic anchor offset `r.right - 168`** (FINDING-QOL-003)~~ — **RESOLVED since**
+  (verified 2026-07-07): the anchor math derives from the named, documented `EST_W`/`EST_H`
+  estimate constants (with the clamp/flip logic sharing them), not a bare literal.
 
 - **`splitDirToLayout` has no `default` branch** (FINDING-QOL-004, `workspace-model.ts:53-61`).
   An out-of-type value (untyped IPC/persisted/test input) makes the bare `switch` return
@@ -93,14 +84,13 @@ aren't lost. Full records (claim, evidence, fix) live in
   "Cannot read properties of undefined" naming no value (CONV-001). Fix: add a `default`
   that throws naming the bad value, or an `assertNever` exhaustiveness check.
 
-- **`dirRefs` typed as `Record<string, …>`** (FINDING-QUA-002, `SplitMenu.tsx:32`). Should be
-  `Partial<Record<SplitDir4, …>>` to keep compile-time key-type enforcement.
+- ~~**`dirRefs` typed as `Record<string, …>`** (FINDING-QUA-002)~~ — **RESOLVED since**
+  (verified 2026-07-07): typed `Partial<Record<SplitDir4, HTMLButtonElement | null>>`.
 
-- **Roving tabindex only half-implemented** (FINDING-QUA-003 / FINDING-UX-007,
-  `SplitMenu.tsx:57,60-66`). `tabIndex` is hardcoded so `right` is always the single tab
-  stop and is never updated as the user arrows to another direction, so Tab-away-then-back
-  always re-enters at `right` rather than the last active direction. Fix: update `tabIndex`
-  to follow the active direction.
+- ~~**Roving tabindex only half-implemented** (FINDING-QUA-003 / FINDING-UX-007)~~ —
+  **RESOLVED since** (verified 2026-07-07): `tabIndex` follows the tracked `active` direction
+  (`tabIndex={d === active ? 0 : -1}`), so Tab-away-then-back re-enters at the last active
+  direction.
 
 - **Explorer-without-cwd commit silently closes** (FINDING-QUA-004, `SplitMenu.tsx:44-49`).
   When `kind='explorer'` and cwd is falsy, `commit()` closes the popover without splitting —
@@ -108,8 +98,9 @@ aren't lost. Full records (claim, evidence, fix) live in
   not assert it). Fix: guard/assert the invariant.
 
 - **Popover not focus-trapped, no dialog role/label** (FINDING-UX-008, `SplitMenu.tsx:78-101`).
-  The container has no `role="dialog"`/`region` and `aria-label`, and focus can Tab out of
-  the open popover. Fix: add a dialog role + accessible name and trap focus while open.
+  **PARTIALLY RESOLVED since** (verified 2026-07-07): Tab is now trapped inside the popover
+  (the container `onKeyDown` wraps first↔last). Still open: no `role="dialog"`/`aria-label` on
+  the surface. Fix (remainder): add the dialog role + accessible name.
 
 - **Weak selected-kind indicator** (FINDING-UX-009, `SplitMenu.tsx:68-75`). The visual
   selected-state of the kind buttons is subtle for a control whose goal is "modern and
