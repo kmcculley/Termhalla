@@ -4,7 +4,18 @@ Deferred at the human-review boundary per Kevin (2026-07-06). Non-blocking (MEDI
 
 **Notable MEDIUM items worth a hardening pass:** FINDING-006 (serialize stale-socket reclaim+rebind behind an O_EXCL lockfile — the plan Q3 mechanism — replacing the probe-loop heuristic on the single-instance guard) and FINDING-020 (incremental log append + rotate instead of a full ~1MiB buffer rewrite per line).
 
-## FINDING-001 — MEDIUM / quality
+## ~~FINDING-001 — MEDIUM / quality~~ — RESOLVED 2026-07-07
+- **Resolved** in the 2026-07-06 quality-audit Group C pass (which independently re-rated it
+  **Major** — the copies were already structurally diverging): both connect legs now run through
+  the ONE shared `runConnectPump` (`src/remote-client/connect-pump.ts`), parameterized exactly as
+  proposed (handshake machine, failure classifier, stderr-accumulator hook + line filter for the
+  bridge status line, bounded failure deferral). The same pass extracted `runSshExecChannel`
+  (`exec-channel.ts`) for the three one-shot command channels and moved the node-pty co-provision
+  orchestration to `co-provision.ts` (audit finding #9), and consolidated the duplicated
+  `sanitizeStderr`/diagnostic constants (the Minor below; `prebuilt.ts` keeps its own copy by
+  documented dependency-free design). All behavioral suites pass unmodified; TEST-2005's
+  barrel-reuse pin was retargeted to the pump seam with intent intact. See CHANGELOG
+  `[Unreleased]` → Changed.
 - **Location:** -
 - **Claim:** connectAgent (src/remote-client/bootstrap.ts:126-270) and connectDaemonAgent (src/remote-client/bootstrap-daemon.ts:45-210) duplicate ~140 lines of near-identical SSH-exec-channel spawn/decode/handshake-pump/teardown logic (child spawn, abort wiring, stderr tail tracking, decoder pump, handshake establishment, session handle construction, exit handling) instead of factoring the shared pump into one parameterized helper (varying only the launch-command builder and the outcome classifier). The duplication has already drifted: bootstrap.ts's stderr line filter is 'trimmed.length > 0', while bootstrap-daemon.ts additionally excludes bridge-status lines and separately accumulates stderrAll for bridge-status parsing — a future bugfix to the shared pump (e.g. an abort race, a decoder-dead edge case) has to be remembered and applied twice.
 - **Proposed fix:** Extract the common exec/decode/handshake pump into one shared function in bootstrap.ts (or a new bootstrap-core.ts) parameterized by: the argv/launch-command builder, an outcome classifier fn, and an optional stderr-accumulator hook for bridge-status parsing. Have both connectAgent and connectDaemonAgent call the shared pump so protocol-pump fixes land once.

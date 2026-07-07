@@ -438,6 +438,28 @@ All notable changes to Termhalla are recorded here. The format follows
   reflowed terminal beneath it.
 
 ### Changed
+- **The remote-client ssh plumbing is now shared cores instead of parallel copies.** Two audit
+  findings fixed as one behavior-preserving refactor (2026-07-06 quality audit Group C #9 +
+  the 0024 ledger's FINDING-001, independently re-rated Major): (1) `connectAgent` and
+  `connectDaemonAgent` were ~140-line near-identical copies of the same spawn → decode →
+  F15-handshake → session-handle pump, already structurally diverging (the single-use handshake
+  guard existed only in the daemon copy) — both legs now run through the ONE shared
+  `runConnectPump` (`src/remote-client/connect-pump.ts`), differing only in launch command,
+  handshake machine, failure classifier, and the daemon's stderr status-line plumbing, all
+  injected; the daemon leg incidentally GAINS the pump's hardening it previously lacked nothing
+  of, and the direct-exec leg gains the single-use guard (a no-op there by construction). (2) The
+  one-shot command channels (artifact upload, node-pty probe, node-pty install) each repeated the
+  same ~50-line ssh exec-channel spawn/settle/abort/teardown scaffold — now one
+  `runSshExecChannel` (`src/remote-client/exec-channel.ts`). The node-pty co-provision
+  orchestration (~450 lines of feature-0023 logic) moved out of `bootstrap.ts` into
+  `src/remote-client/co-provision.ts` with the connect leg injected (no runtime cycles), leaving
+  `bootstrap.ts` the connect/provision-once policy it documents. Also consolidates the
+  previously-duplicated `sanitizeStderr`/`RC_NOISE_HINT`/framing-reason constants (0024 ledger
+  Minor; `prebuilt.ts` keeps its own copy by documented design — it is deliberately
+  dependency-free). Every existing behavioral suite (fake-ssh bootstrap, daemon flow, node-pty
+  provision flow incl. recovery cycle and abort/indeterminate vectors, gold real-bundle,
+  daemon-survival, lease integration) passes unmodified; the one structural pin retargeted is
+  TEST-2005 (barrel-reuse, now asserted at the pump seam with the same intent). (2026-07-07)
 - **Workspace registration is now ONE shared ritual.** The set-record + append-order + activate +
   schedule-autosave + report-arrangement sequence was copy-pasted across `newWorkspace`,
   `newOrkyWorkspace`, `newRemoteWorkspace`, `newWorkspaceFromTemplate`, and (with its view-state

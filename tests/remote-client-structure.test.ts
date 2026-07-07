@@ -137,17 +137,26 @@ describe('TEST-2004 REQ-015 remote-client never reads package.json (version is i
 })
 
 describe('TEST-2005 REQ-010 protocol machinery is reused from the barrel, never re-derived', () => {
-  it('bootstrap.ts imports decoder/handshake/encode from @shared/remote/protocol', () => {
-    const p = resolve(root, 'src/remote-client/bootstrap.ts')
-    expect(existsSync(p), 'src/remote-client/bootstrap.ts must exist (REQ-010)').toBe(true)
-    const src = readFileSync(p, 'utf8')
-    // One import statement from the ONE sanctioned barrel, carrying all three symbols.
-    const m = src.match(/import\s*\{([^}]+)\}\s*from\s*['"]@shared\/remote\/protocol['"]/)
-    expect(m, 'bootstrap.ts must import from @shared/remote/protocol (REQ-010)').toBeTruthy()
-    const names = (m as RegExpMatchArray)[1]
-    for (const sym of ['createFrameDecoder', 'createClientHandshake', 'encodeFrame']) {
-      expect(names.includes(sym), `bootstrap.ts must import ${sym} from the barrel (REQ-010)`).toBe(true)
+  // AMENDED 2026-07-07 (quality audit Group C #9 / 0024 FINDING-001): the decoder/encode wire
+  // plumbing moved into the ONE shared connect pump (connect-pump.ts) both connect legs run
+  // through; each leg constructs only its own handshake machine. Intent unchanged: every
+  // protocol primitive still comes from the ONE sanctioned barrel.
+  it('the shared connect pump imports decoder/encode, and each connect leg its handshake machine, from @shared/remote/protocol', () => {
+    const barrelImport = (rel: string): string => {
+      const p = resolve(root, rel)
+      expect(existsSync(p), `${rel} must exist (REQ-010)`).toBe(true)
+      const m = readFileSync(p, 'utf8').match(/import\s*\{([^}]+)\}\s*from\s*['"]@shared\/remote\/protocol['"]/)
+      expect(m, `${rel} must import from @shared/remote/protocol (REQ-010)`).toBeTruthy()
+      return (m as RegExpMatchArray)[1]
     }
+    const pump = barrelImport('src/remote-client/connect-pump.ts')
+    for (const sym of ['createFrameDecoder', 'encodeFrame']) {
+      expect(pump.includes(sym), `connect-pump.ts must import ${sym} from the barrel (REQ-010)`).toBe(true)
+    }
+    expect(barrelImport('src/remote-client/bootstrap.ts').includes('createClientHandshake'),
+      'bootstrap.ts must import createClientHandshake from the barrel (REQ-010)').toBe(true)
+    expect(barrelImport('src/remote-client/bootstrap-daemon.ts').includes('createDaemonClientHandshake'),
+      'bootstrap-daemon.ts must import createDaemonClientHandshake from the barrel (REQ-010)').toBe(true)
   })
 
   it('no remote-client module hand-constructs a hello frame (the handshake machine owns it)', () => {

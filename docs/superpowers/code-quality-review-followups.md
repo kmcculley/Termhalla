@@ -247,9 +247,21 @@ changelog `[Unreleased]`:
   `onEvt` type-checks each payload position, drops with one diagnostic
   (`tests/main/remote-manager-evt-validation.test.ts`).
 
-**Still open from this audit:** Group C #9 (`bootstrap.ts` ssh-channel scaffold
-×4 + 0024 FINDING-001 shared connect pump) and #10 (six hand-rolled popover
-chromes → `MenuSurface`), and 20 structural Minors (re-run `/review-quality`
-scoped for detail). The 0024 ledger's FINDING-031 (`net.Server` `'error'`
-handler) remains explicitly deferred by Kevin (2026-07-06) despite being the
-same family as the watcher fix.
+**Group C #9 + 0024 FINDING-001: resolved on `main` (2026-07-07)** as one
+behavior-preserving refactor, see the changelog `[Unreleased]` → Changed:
+
+- `connectAgent`/`connectDaemonAgent` ~140-line fork → the ONE shared
+  `runConnectPump` (`src/remote-client/connect-pump.ts`).
+- The ssh exec-channel scaffold ×3 (upload/probe/install) →
+  `runSshExecChannel` (`src/remote-client/exec-channel.ts`).
+- Node-pty co-provision orchestration moved out of `bootstrap.ts` →
+  `src/remote-client/co-provision.ts` (connect leg injected, no cycles).
+- Duplicated `sanitizeStderr`/diagnostic constants consolidated (the 0024
+  ledger Minor #25); `prebuilt.ts` keeps its own copy by documented
+  dependency-free design.
+
+**Still open from this audit:** Group C #10 (six hand-rolled popover chromes →
+`MenuSurface`), and 20 structural Minors (re-run `/review-quality` scoped for
+detail). The 0024 ledger's FINDING-031 (`net.Server` `'error'` handler) remains
+explicitly deferred by Kevin (2026-07-06) despite being the same family as the
+watcher fix.
