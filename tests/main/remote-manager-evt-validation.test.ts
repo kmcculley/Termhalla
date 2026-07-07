@@ -30,6 +30,25 @@ async function connected() {
 const evtDiags = (diag: ReturnType<typeof vi.fn>) =>
   diag.mock.calls.map(c => String(c[0])).filter(l => /evt/.test(l))
 
+describe('remote evt pane-membership guard — the 0022 FINDING-007 NEGATIVE case', () => {
+  it('an evt for a pane this connection does NOT own is dropped with one diagnostic — a compromised remote cannot inject output/status/cwd/exit into a guessed pane id', async () => {
+    const { h, diag, w } = await connected()
+    for (const [channel, payload] of [
+      [CH.ptyData, 'evil-bytes'], [CH.ptyStatus, { state: 'idle', since: 1 }],
+      [CH.ptyCwd, '/tmp'], [CH.ptyExit, 0]
+    ] as const) {
+      w.push({ type: 'evt', channel, args: ['p-unowned', payload] })
+    }
+    await settle()
+    for (const ch of [CH.ptyData, CH.ptyStatus, CH.ptyCwd, CH.ptyExit]) {
+      expect(h.sendsOn(ch).filter(a => a[0] === 'p-unowned'), `${ch} for an unowned pane must never reach the renderer`).toEqual([])
+    }
+    expect(diag.mock.calls.map(c => String(c[0])).filter(l => /does not own/.test(l)).length).toBe(4)
+    // the owned pane is untouched by the attempts
+    expect(h.mgr.owns('p-1')).toBe(true)
+  })
+})
+
 describe('remote evt payload validation (onEvt) — malformed positions drop with a diagnostic', () => {
   it('pty:data with a non-string payload is dropped: no forward, one diagnostic', async () => {
     const { h, diag, w } = await connected()

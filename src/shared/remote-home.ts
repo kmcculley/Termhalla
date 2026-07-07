@@ -49,6 +49,18 @@ export function remoteAllowedDomains(
 }
 
 /**
+ * The close-workspace confirm copy (0024 FINDING-028): after REQ-019 a REMOTE workspace's tab
+ * close DETACHES — its terminals keep running on the daemon for reattach — so the warning must
+ * not claim they "will be closed". Local workspaces keep the pre-0024 wording verbatim. ONE
+ * helper for both confirm sites (WorkspaceTabs.tsx tab menu, App.tsx keyboard shortcut).
+ */
+export function closeWorkspaceConfirmText(name: string, home: WorkspaceHome | undefined): string {
+  return home
+    ? `Close workspace "${name}"? Its terminals keep running on the remote agent — reopen the workspace to reattach them.`
+    : `Close workspace "${name}"? Its terminals will be closed.`
+}
+
+/**
  * The cross-home pane-move refusal predicate (REQ-018, locked decision 7): `null` = allowed.
  * A running PTY cannot teleport machines, and even two workspaces homed to the SAME agent hold
  * two distinct connections (one per workspace) in v1 — so only local→local moves are allowed.

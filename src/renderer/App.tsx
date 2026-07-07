@@ -24,6 +24,7 @@ import { RemoteAgentPicker } from './components/RemoteAgentPicker'
 import { ReopenWorkspaceModal } from './components/ReopenWorkspaceModal'
 import { SearchHistory } from './components/SearchHistory'
 import { matchShortcut, resolveBindings } from '@shared/keymap'
+import { closeWorkspaceConfirmText } from '@shared/remote-home'
 import { redrawPane } from './components/terminal-registry'
 import { focusProjectPane, revealQueueGroup } from './components/pane-reveal'
 import { api } from './api'
@@ -152,7 +153,7 @@ export default function App() {
           if (!activeId) break
           const ws = s.workspaces[activeId]
           const ok = !ws || Object.keys(ws.panes).length === 0 ||
-            window.confirm(`Close workspace "${ws.name}"? Its terminals will be closed.`)
+            window.confirm(closeWorkspaceConfirmText(ws.name, ws.home))
           if (ok) s.closeWorkspace(activeId); break
         }
         case 'next-workspace': if (order.length) s.setActive(order[(idx + 1 + order.length) % order.length]); break

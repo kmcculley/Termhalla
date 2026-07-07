@@ -72,7 +72,10 @@ export function SplitMenu(
   // Anchor the portalled popover under the source pane's split button (which lives inside the tile),
   // clamping/flipping BOTH axes so the whole popover stays on-screen even for a bottom-row pane.
   useLayoutEffect(() => {
-    const btn = document.querySelector(`[data-testid="split-${paneId}"]`) as HTMLElement | null
+    // Escape the pane id (the OrkyPopover FINDING-SEC-005 posture, applied here per 0002
+    // FINDING-SEC-001): a CSS-reserved char in the id would throw a DOMException out of this
+    // effect and blank the popover. No reliance on the UUID invariant.
+    const btn = document.querySelector(`[data-testid="split-${CSS.escape(paneId)}"]`) as HTMLElement | null
     triggerRef.current = btn
     const r = btn?.getBoundingClientRect()
     if (!r) return

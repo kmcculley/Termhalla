@@ -549,6 +549,28 @@ All notable changes to Termhalla are recorded here. The format follows
   failure feedback is never silenced.
 
 ### Fixed
+- **Closing a remote workspace's tab now tells the truth.** The confirm dialog warned "Its
+  terminals will be closed." for every workspace — but since agent daemonization a REMOTE
+  workspace's tab close detaches, leaving its terminals running on the daemon for reattach, so
+  the warning misled a user who wanted to end the remote work into believing closing the tab did
+  it. Both confirm sites (tab context menu, keyboard shortcut) now derive their copy from one
+  pure helper (`closeWorkspaceConfirmText`, `@shared/remote-home`): local workspaces keep the
+  original wording verbatim; remote workspaces state the terminals keep running and that
+  reopening the workspace reattaches them. (0024 ledger FINDING-028; 2026-07-07)
+- **Closing a remote workspace's tab no longer leaks pane bookkeeping.** The close-tab detach
+  deleted the manager's workspace entry but never pruned the process-lifetime paneId index, so
+  every detach leaked one entry per pane and `owns()` kept answering true for dead ids (which
+  routes pty ops). The forget branch now prunes the index for every tracked pane — without
+  killing the remote PTYs (the detach semantics are pinned by
+  `tests/main/remote-manager-pane-index.test.ts`, including zero `pty:kill` frames). Also added
+  the long-tracked NEGATIVE vector for the evt pane-membership guard (0022 FINDING-007): an evt
+  for an unowned pane id is dropped on all four channels. (0024 ledger FINDING-029; 2026-07-07)
+- **The split compass can no longer be blanked by a CSS-reserved character in a pane id.**
+  `SplitMenu` anchored itself via a raw `paneId` interpolation into `document.querySelector` —
+  the same class the Orky popover fixed under FINDING-SEC-005; a reserved char would throw a
+  DOMException out of the positioning effect. The selector now interpolates `CSS.escape(paneId)`
+  (pinned by `tests/renderer/split-menu-escape.test.ts`). (0002 ledger FINDING-SEC-001;
+  2026-07-07)
 - **Editor save is atomic — an app kill mid-save can no longer truncate the file being saved.**
   `writeTextFile` (the `fs:write` behind every editor save) was the app's one remaining non-atomic
   durable write: plain `writeFile` truncates the target to zero before writing, so a process kill

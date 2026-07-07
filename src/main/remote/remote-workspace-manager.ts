@@ -27,8 +27,9 @@
  *    exactly once, status/cwd re-pushed, the RENDERER-recorded dims re-applied when they differ),
  *    a session missing from inventory surfacing as exited. Since feature 0024 (agent
  *    daemonization) production connects (`services.ts`) opt the F19 bootstrap into the daemon
- *    flow (`BootstrapOptions.daemon: true` — a persistent unix-domain-socket daemon behind a
- *    thin ssh-exec bridge, `docs/features/remote-agent.md` § "Daemonization"), so a same-version
+ *    flow (`BootstrapOptions.daemon: { workspaceId }` — a persistent, per-workspace
+ *    unix-domain-socket daemon behind a thin ssh-exec bridge,
+ *    `docs/features/remote-agent.md` § "Daemonization"), so a same-version
  *    reconnect finds the SAME daemon and inventory, and this inventory-driven re-adoption is what
  *    makes that reattach work with ZERO change to this file (REQ-013 of 0024): the manager itself
  *    stays agnostic to whether the wire's other end is a direct-exec agent or a daemon bridge.
@@ -180,8 +181,14 @@ export class RemoteWorkspaceManager {
     // never serve ghosts. An open workspace with frozen panes keeps its entry (the banner's
     // state); a pane-less open workspace re-renders from the no-state "not connected yet" model.
     // A close-tab-shaped disconnect (`{ forget: true }`) ALWAYS forgets, even with panes still
-    // tracked — those panes are never killed (detach-then-forget, REQ-019).
-    if (entry.panes.size === 0 || opts?.forget) this.entries.delete(workspaceId)
+    // tracked — those panes are never killed (detach-then-forget, REQ-019). Forgetting includes
+    // the paneId index (0024 FINDING-029): kill() prunes it but is deliberately skipped on this
+    // path, and prunePane() is unreachable once the entry is gone — without this, every close-tab
+    // detach leaked one paneIndex entry per pane and owns() kept routing pty ops to dead ids.
+    if (entry.panes.size === 0 || opts?.forget) {
+      for (const paneId of entry.panes.keys()) this.paneIndex.delete(paneId)
+      this.entries.delete(workspaceId)
+    }
   }
 
   currentStates(): RemoteWorkspaceState[] {

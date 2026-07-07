@@ -21,12 +21,11 @@ this doc tracks what stays open.
 
 ## Deferred remainders of resolved findings
 
-- **FINDING-007 (security, codex) — a dedicated pinned vector for the evt pane-membership guard.**
-  The fix (drop any inbound `pty:*` evt whose id is not in `entry.panes`) is implemented and the
-  existing TEST-2249 (a tracked pane forwards) stays green, but no vector yet asserts the NEGATIVE
-  (an unowned-id evt is dropped). The freeze was already captured this cycle; add
-  `TEST-2284 REQ-010 an evt for a pane this connection does not track is dropped (no send, no ack)`
-  at the next sanctioned tests touch in this epic.
+- ~~**FINDING-007 (security, codex) — a dedicated pinned vector for the evt pane-membership
+  guard.**~~ **RESOLVED 2026-07-07:** the NEGATIVE vector now exists —
+  `tests/main/remote-manager-evt-validation.test.ts` pins that an evt for an unowned pane id is
+  dropped on all four channels (no send, one diagnostic each, owned panes untouched), alongside
+  the same suite's per-position payload type-checks (the 2026-07-06 audit borderline fix).
 
 ## Review notes (no finding filed)
 

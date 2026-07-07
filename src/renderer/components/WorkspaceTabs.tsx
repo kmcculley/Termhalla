@@ -7,6 +7,7 @@ import { useTabDrag } from './use-tab-drag'
 import { TemplatesMenu } from './TemplatesMenu'
 import { MenuSurface } from './MenuSurface'
 import { Z } from './Modal'
+import { closeWorkspaceConfirmText } from '@shared/remote-home'
 
 export function WorkspaceTabs() {
   // Scope the subscription so the always-mounted tab bar doesn't re-render on every per-pane
@@ -180,7 +181,7 @@ export function WorkspaceTabs() {
           <button data-testid="ws-menu-close" onClick={() => {
             const ws = workspaces[menuFor.id]
             const ok = !ws || Object.keys(ws.panes).length === 0 ||
-              window.confirm(`Close workspace "${ws.name}"? Its terminals will be closed.`)
+              window.confirm(closeWorkspaceConfirmText(ws.name, ws.home))
             if (ok) closeWorkspace(menuFor.id)
             setMenuFor(null)
           }}>Close</button>
