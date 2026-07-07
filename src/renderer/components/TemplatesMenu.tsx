@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useStore } from '../store'
-import { Z, SURFACE } from './Modal'
+import { MenuSurface } from './MenuSurface'
 
 export function TemplatesMenu({ onPicked, onClose }: { onPicked: (id: string) => void; onClose: () => void }) {
   const templates = useStore(s => s.quick.templates)
@@ -12,10 +12,9 @@ export function TemplatesMenu({ onPicked, onClose }: { onPicked: (id: string) =>
   const pushToast = useStore(s => s.pushToast)
   const [name, setName] = useState('')
   return (
-    <>
-      <div onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: Z.menu }} />
-      <div data-testid="templates-menu"
-        style={{ ...SURFACE, position: 'fixed', top: 30, left: 4, zIndex: Z.menu + 1, padding: 6, display: 'flex', flexDirection: 'column', gap: 4, minWidth: 220, fontSize: 'var(--font-size, 13px)' }}>
+    // No portal: this menu opens from the tab strip (window chrome, not a mosaic tile).
+    <MenuSurface testid="templates-menu" onClose={onClose}
+      style={{ top: 30, left: 4, padding: 6, gap: 4, minWidth: 220, fontSize: 'var(--font-size, 13px)' }}>
         <div style={{ display: 'flex', gap: 4 }}>
           <input data-testid="tpl-name" placeholder="Template name" value={name}
             onChange={e => setName(e.target.value)} style={{ flex: 1 }} />
@@ -43,7 +42,6 @@ export function TemplatesMenu({ onPicked, onClose }: { onPicked: (id: string) =>
               onClick={() => { deleteTemplate(t.id); pushToast('Template deleted') }}>×</button>
           </div>
         ))}
-      </div>
-    </>
+    </MenuSurface>
   )
 }

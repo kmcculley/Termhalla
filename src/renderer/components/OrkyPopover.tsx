@@ -1,7 +1,7 @@
 import { useLayoutEffect, useState } from 'react'
-import { createPortal } from 'react-dom'
 import type { OrkyPaneStatus, OrkyFeatureStatus } from '@shared/types'
-import { Z, SURFACE } from './Modal'
+import { MenuSurface } from './MenuSurface'
+import { Z } from './Modal'
 
 const EST_W = 320
 const EST_H = 240
@@ -31,20 +31,14 @@ export function OrkyPopover(
   }, [paneId])
 
   if (!pos) return null
-  return createPortal(
-    <>
-      <div onClick={onClose} onContextMenu={e => { e.preventDefault(); onClose() }}
-        style={{ position: 'fixed', inset: 0, zIndex: Z.popover }} />
-      <div data-testid="orky-menu" onClick={e => e.stopPropagation()}
-        style={{ ...SURFACE, position: 'fixed', left: pos.left, top: pos.top, zIndex: Z.popover + 1,
-          padding: 8, maxWidth: EST_W, minWidth: 220, fontSize: 12, fontFamily: 'var(--mono)',
-          display: 'flex', flexDirection: 'column', gap: 6 }}>
-        {status.features.length === 0
-          ? <div style={{ color: 'var(--fg-dim, #aaa)' }}>No active Orky features</div>
-          : status.features.map(f => <OrkyFeatureRow key={f.feature} f={f} />)}
-      </div>
-    </>,
-    document.body
+  return (
+    <MenuSurface testid="orky-menu" onClose={onClose} portal zIndex={Z.popover}
+      style={{ left: pos.left, top: pos.top, padding: 8, maxWidth: EST_W, minWidth: 220,
+        fontSize: 12, fontFamily: 'var(--mono)', gap: 6 }}>
+      {status.features.length === 0
+        ? <div style={{ color: 'var(--fg-dim, #aaa)' }}>No active Orky features</div>
+        : status.features.map(f => <OrkyFeatureRow key={f.feature} f={f} />)}
+    </MenuSurface>
   )
 }
 

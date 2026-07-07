@@ -438,6 +438,22 @@ All notable changes to Termhalla are recorded here. The format follows
   reflowed terminal beneath it.
 
 ### Changed
+- **All six popover menus now share ONE chrome — and every one of them dismisses on Escape.**
+  The workspace-tab context menu, templates menu, explorer context menu, pane context menu, split
+  compass, and Orky status popover each hand-rolled the same full-viewport click-catcher +
+  surface box, and their semantics had drifted: Escape-dismiss existed in only 2 of 6 (a keyboard
+  dismiss left the invisible click-catcher mounted, silently swallowing the next click),
+  right-click-dismiss in 4 of 6. The new shared `MenuSurface`
+  (`src/renderer/components/MenuSurface.tsx`) owns the backdrop, right-click dismiss, Escape
+  dismiss, and the portal-to-`<body>` opt-in (the react-mosaic containing-block gotcha — the
+  explorer's context menu, previously rendered inside its tile, now portals like the other
+  tile-hosted menus, so its position always resolves against the viewport). The split compass
+  keeps its focus-restore and Tab trap (Escape now routes through the shared chrome to the same
+  focus-restoring close). Pinned by `tests/renderer/menu-surface-structure.test.ts` (a new menu
+  can't regress to a hand-rolled backdrop); behavior verified by the pane-actions, split-compass,
+  split-menu, pane-record-menu, workspace-mgmt, explorer, editor, tab-strip, orky-status,
+  minimize-restore, orky-cockpit, workspace-doc, ui-polish, and settings e2e suites. (2026-07-06
+  quality audit, Group C #10; 2026-07-07)
 - **The remote-client ssh plumbing is now shared cores instead of parallel copies.** Two audit
   findings fixed as one behavior-preserving refactor (2026-07-06 quality audit Group C #9 +
   the 0024 ledger's FINDING-001, independently re-rated Major): (1) `connectAgent` and

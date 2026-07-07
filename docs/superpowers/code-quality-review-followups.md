@@ -260,8 +260,15 @@ behavior-preserving refactor, see the changelog `[Unreleased]` → Changed:
   ledger Minor #25); `prebuilt.ts` keeps its own copy by documented
   dependency-free design.
 
-**Still open from this audit:** Group C #10 (six hand-rolled popover chromes →
-`MenuSurface`), and 20 structural Minors (re-run `/review-quality` scoped for
-detail). The 0024 ledger's FINDING-031 (`net.Server` `'error'` handler) remains
-explicitly deferred by Kevin (2026-07-06) despite being the same family as the
-watcher fix.
+**Group C #10: resolved on `main` (2026-07-07)**, see the changelog
+`[Unreleased]` → Changed: the six hand-rolled popover chromes now render
+through one shared `MenuSurface` (backdrop, right-click dismiss, Escape
+dismiss — previously 2 of 6 — and the portal opt-in; the explorer context menu
+gains the tile-escape portal it was missing). Pinned by
+`tests/renderer/menu-surface-structure.test.ts`; menu-touching e2e suites all
+green.
+
+**Still open from this audit:** the 20 structural Minors (re-run
+`/review-quality` scoped for detail). The 0024 ledger's FINDING-031
+(`net.Server` `'error'` handler) remains explicitly deferred by Kevin
+(2026-07-06) despite being the same family as the watcher fix.

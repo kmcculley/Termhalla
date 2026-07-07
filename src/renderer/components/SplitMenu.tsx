@@ -1,8 +1,8 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
-import { createPortal } from 'react-dom'
 import { useStore, paneCwd } from '../store'
 import { domainAllowed, domainDisabledReason } from '../store/remote-gates'
-import { Z, SURFACE } from './Modal'
+import { MenuSurface } from './MenuSurface'
+import { Z } from './Modal'
 import type { SplitDir4 } from '@shared/types'
 
 type Kind = 'terminal' | 'editor' | 'explorer' | 'orky'
@@ -107,10 +107,9 @@ export function SplitMenu(
     close()
   }
 
-  // Container-level keys: Esc closes from anywhere within the popover; Tab is trapped so focus cannot
-  // escape behind the click-away overlay.
+  // Container-level keys: Tab is trapped so focus cannot escape behind the click-away overlay.
+  // (Escape lives on the shared MenuSurface, routed to `close` so focus still returns to the trigger.)
   const onKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Escape') { e.preventDefault(); close(); return }
     if (e.key !== 'Tab') return
     const root = popoverRef.current
     if (!root) return
@@ -166,31 +165,28 @@ export function SplitMenu(
   )
 
   if (!pos) return null
-  return createPortal(
-    <>
-      <div onClick={close} onContextMenu={e => { e.preventDefault(); close() }}
-        style={{ position: 'fixed', inset: 0, zIndex: Z.popover }} />
-      <div ref={popoverRef} data-testid="split-menu" onKeyDown={onKeyDown} onClick={e => e.stopPropagation()}
-        style={{ ...SURFACE, position: 'fixed', left: pos.left, top: pos.top, zIndex: Z.popover + 1,
-          padding: 6, display: 'flex', flexDirection: 'column', gap: 6, minWidth: 156 }}>
-        <div role="group" aria-label="Split direction" onKeyDown={onCompassKeyDown}
-          style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 28px)', gridTemplateRows: 'repeat(3, 28px)',
-            gap: 2, justifyContent: 'center' }}>
-          {dirButton('up', '1 / 2 / 2 / 3')}
-          {dirButton('left', '2 / 1 / 3 / 2')}
-          {dirButton('right', '2 / 3 / 3 / 4')}
-          {dirButton('down', '3 / 2 / 4 / 3')}
-        </div>
-        <div role="group" aria-label="Split kind"
-          style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-          {kindButton('terminal')}
-          {kindButton('editor')}
-          {kindButton('explorer')}
-          {kindButton('orky')}
-        </div>
+  // portal: the popover opens from a pane toolbar inside a react-mosaic tile (the MenuSurface
+  // containing-block gotcha). Escape/click-away both route through `close` (focus restore).
+  return (
+    <MenuSurface testid="split-menu" onClose={close} portal zIndex={Z.popover}
+      surfaceRef={popoverRef} onKeyDown={onKeyDown}
+      style={{ left: pos.left, top: pos.top, padding: 6, gap: 6, minWidth: 156 }}>
+      <div role="group" aria-label="Split direction" onKeyDown={onCompassKeyDown}
+        style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 28px)', gridTemplateRows: 'repeat(3, 28px)',
+          gap: 2, justifyContent: 'center' }}>
+        {dirButton('up', '1 / 2 / 2 / 3')}
+        {dirButton('left', '2 / 1 / 3 / 2')}
+        {dirButton('right', '2 / 3 / 3 / 4')}
+        {dirButton('down', '3 / 2 / 4 / 3')}
       </div>
-    </>,
-    document.body
+      <div role="group" aria-label="Split kind"
+        style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+        {kindButton('terminal')}
+        {kindButton('editor')}
+        {kindButton('explorer')}
+        {kindButton('orky')}
+      </div>
+    </MenuSurface>
   )
 }
 

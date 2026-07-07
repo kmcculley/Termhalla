@@ -5,7 +5,7 @@ import { applyDirChange } from './explorer-tree'
 import { basename as base, relativeTo } from '@shared/paths'
 import type { DirEntry, ExplorerConfig } from '@shared/types'
 import { INDENT_PX } from '../ui-tokens'
-import { Z, SURFACE } from './Modal'
+import { MenuSurface } from './MenuSurface'
 import { registerExplorerState, unregisterExplorerState, consumeExplorerState } from './explorer-registry'
 
 export function ExplorerPane({ paneId, wsId, config }: { paneId: string; wsId: string; config: ExplorerConfig }) {
@@ -151,20 +151,17 @@ export function ExplorerPane({ paneId, wsId, config }: { paneId: string; wsId: s
       <div style={{ padding: '4px 6px', color: 'var(--fg-dim, #aaa)' }}>{base(config.root)}</div>
       {renderDir(config.root, 0)}
       {menu && (
-        <>
-          <div onClick={() => setMenu(null)} onContextMenu={ev => { ev.preventDefault(); setMenu(null) }}
-            style={{ position: 'fixed', inset: 0, zIndex: Z.menu }} />
-          <div data-testid="explorer-menu"
-            style={{ ...SURFACE, position: 'fixed', left: menu.x, top: menu.y, zIndex: Z.menu + 1, padding: 4,
-              display: 'flex', flexDirection: 'column', gap: 2, fontSize: 'var(--font-size, 13px)' }}>
-            {!menu.entry.isDir && <button data-testid="explorer-open" onClick={() => { openFileInEditor(wsId, menu.entry.path); setMenu(null) }}>Open</button>}
-            <button data-testid="explorer-reveal" onClick={() => { void api.fsRevealItem(menu.entry.path); setMenu(null) }}>Reveal in File Explorer</button>
-            <button data-testid="explorer-copy-path" onClick={() => { api.clipboardWrite(menu.entry.path); pushToast('Path copied'); setMenu(null) }}>Copy path</button>
-            <button data-testid="explorer-copy-rel" onClick={() => { api.clipboardWrite(relativeTo(config.root, menu.entry.path)); pushToast('Path copied'); setMenu(null) }}>Copy relative path</button>
-            <button data-testid="explorer-rename" onClick={() => { setRenameText(menu.entry.name); setRenaming(menu.entry.path); setMenu(null) }}>Rename</button>
-            <button data-testid="explorer-delete" onClick={() => void del(menu.entry)}>Delete</button>
-          </div>
-        </>
+        // portal: the explorer lives inside a react-mosaic tile (the MenuSurface containing-block
+        // gotcha) — the clientX/clientY coords must resolve against the viewport, not the tile.
+        <MenuSurface testid="explorer-menu" portal onClose={() => setMenu(null)}
+          style={{ left: menu.x, top: menu.y, padding: 4, gap: 2, fontSize: 'var(--font-size, 13px)' }}>
+          {!menu.entry.isDir && <button data-testid="explorer-open" onClick={() => { openFileInEditor(wsId, menu.entry.path); setMenu(null) }}>Open</button>}
+          <button data-testid="explorer-reveal" onClick={() => { void api.fsRevealItem(menu.entry.path); setMenu(null) }}>Reveal in File Explorer</button>
+          <button data-testid="explorer-copy-path" onClick={() => { api.clipboardWrite(menu.entry.path); pushToast('Path copied'); setMenu(null) }}>Copy path</button>
+          <button data-testid="explorer-copy-rel" onClick={() => { api.clipboardWrite(relativeTo(config.root, menu.entry.path)); pushToast('Path copied'); setMenu(null) }}>Copy relative path</button>
+          <button data-testid="explorer-rename" onClick={() => { setRenameText(menu.entry.name); setRenaming(menu.entry.path); setMenu(null) }}>Rename</button>
+          <button data-testid="explorer-delete" onClick={() => void del(menu.entry)}>Delete</button>
+        </MenuSurface>
       )}
     </div>
   )

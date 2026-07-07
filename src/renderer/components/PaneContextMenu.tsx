@@ -1,10 +1,9 @@
-import { useEffect, useState } from 'react'
-import { createPortal } from 'react-dom'
+import { useState } from 'react'
 import { useShallow } from 'zustand/react/shallow'
 import { useStore } from '../store'
 import { api } from '../api'
 import { resolveBindings, formatChord } from '@shared/keybindings'
-import { Z, SURFACE } from './Modal'
+import { MenuSurface } from './MenuSurface'
 
 /** Right-click menu for a pane's title bar: Rename, Move to workspace ▸ (other workspaces this
  *  window hosts, plus New Workspace), Settings, Close. Mirrors the WorkspaceTabs menu chrome. */
@@ -32,30 +31,16 @@ export function PaneContextMenu(
   const minTitle = minChord ? `Minimize pane (${formatChord(minChord)})` : 'Minimize pane'
   const [view, setView] = useState<'root' | 'move'>('root')
 
-  // Dismiss on Escape (keyboard parity with the click-outside backdrop). Without this the menu's
-  // full-viewport backdrop stays mounted and intercepts the next click after a keyboard dismiss.
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') { e.preventDefault(); onClose() } }
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-  }, [onClose])
-
   // Terminals open the terminal section (name + alerts + env); editors/explorers have no terminal
   // settings, so open Appearance — the section that applies to every pane kind.
   const settingsSection = kind === 'terminal' ? 'terminal' as const : 'appearance' as const
   const others = order.filter(id => id !== wsId)
-  const menuStyle = { ...SURFACE, position: 'fixed' as const, left: x, top: y, zIndex: Z.menu + 1, padding: 4, display: 'flex', flexDirection: 'column' as const, gap: 2, minWidth: 160, fontSize: 'var(--font-size, 13px)' }
 
-  // Portal to <body>: this menu opens from a pane's title bar, which lives inside a react-mosaic
-  // tile whose transform establishes a containing block — a `position: fixed` child would be
-  // positioned/clipped relative to that tile (and stack under the toolbar) instead of the viewport.
-  // Portalling escapes it so the clientX/clientY coords and z-index resolve against the page (same
-  // reason Modal portals). See Modal.tsx.
-  return createPortal(
-    <>
-      <div onClick={onClose} onContextMenu={e => { e.preventDefault(); onClose() }}
-        style={{ position: 'fixed', inset: 0, zIndex: Z.menu }} />
-      <div data-testid="pane-menu" style={menuStyle}>
+  // portal: this menu opens from a pane's title bar, inside a react-mosaic tile (the MenuSurface
+  // containing-block gotcha) — clientX/clientY coords and z-index must resolve against the page.
+  return (
+    <MenuSurface testid="pane-menu" onClose={onClose} portal
+      style={{ left: x, top: y, padding: 4, gap: 2, minWidth: 160, fontSize: 'var(--font-size, 13px)' }}>
         {view === 'root' ? (
           <>
             <button data-testid="pane-menu-rename" onClick={() => { onClose(); onRename() }}>Rename</button>
@@ -81,8 +66,6 @@ export function PaneContextMenu(
               onClick={() => { moveToNew(paneId, wsId); onClose() }}>New Workspace ＋</button>
           </>
         )}
-      </div>
-    </>,
-    document.body
+    </MenuSurface>
   )
 }

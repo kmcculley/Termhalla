@@ -5,7 +5,8 @@ import type { PaneKind } from '../store/pane-ops'
 import { tabBadge } from './tab-badge'
 import { useTabDrag } from './use-tab-drag'
 import { TemplatesMenu } from './TemplatesMenu'
-import { Z, SURFACE } from './Modal'
+import { MenuSurface } from './MenuSurface'
+import { Z } from './Modal'
 
 export function WorkspaceTabs() {
   // Scope the subscription so the always-mounted tab bar doesn't re-render on every per-pane
@@ -171,22 +172,19 @@ export function WorkspaceTabs() {
       <button data-testid="save-workspace" style={{ flexShrink: 0 }} onClick={() => saveAll()}>Save</button>
 
       {menuFor && (
-        <>
-          <div onClick={() => setMenuFor(null)} onContextMenu={e => { e.preventDefault(); setMenuFor(null) }}
-            style={{ position: 'fixed', inset: 0, zIndex: Z.menu }} />
-          <div data-testid="ws-menu"
-            style={{ ...SURFACE, position: 'fixed', left: menuFor.x, top: menuFor.y, zIndex: Z.menu + 1, padding: 4, display: 'flex', flexDirection: 'column', gap: 2, fontSize: 'var(--font-size, 13px)' }}>
-            <button data-testid="ws-menu-rename" onClick={() => startRename(menuFor.id)}>Rename</button>
-            <button data-testid="ws-menu-save" onClick={() => { void saveAll(); setMenuFor(null) }}>Save</button>
-            <button data-testid="ws-menu-close" onClick={() => {
-              const ws = workspaces[menuFor.id]
-              const ok = !ws || Object.keys(ws.panes).length === 0 ||
-                window.confirm(`Close workspace "${ws.name}"? Its terminals will be closed.`)
-              if (ok) closeWorkspace(menuFor.id)
-              setMenuFor(null)
-            }}>Close</button>
-          </div>
-        </>
+        // No portal: the tab strip is window chrome, not a mosaic tile.
+        <MenuSurface testid="ws-menu" onClose={() => setMenuFor(null)}
+          style={{ left: menuFor.x, top: menuFor.y, padding: 4, gap: 2, fontSize: 'var(--font-size, 13px)' }}>
+          <button data-testid="ws-menu-rename" onClick={() => startRename(menuFor.id)}>Rename</button>
+          <button data-testid="ws-menu-save" onClick={() => { void saveAll(); setMenuFor(null) }}>Save</button>
+          <button data-testid="ws-menu-close" onClick={() => {
+            const ws = workspaces[menuFor.id]
+            const ok = !ws || Object.keys(ws.panes).length === 0 ||
+              window.confirm(`Close workspace "${ws.name}"? Its terminals will be closed.`)
+            if (ok) closeWorkspace(menuFor.id)
+            setMenuFor(null)
+          }}>Close</button>
+        </MenuSurface>
       )}
       {ghost && (
         <div data-testid="tab-ghost"
