@@ -1,5 +1,18 @@
 import { defineConfig } from '@playwright/test'
 
+// Don't interrupt the developer. Electron's `win.show()` raises AND activates each window, and the
+// suite launches one app per spec — ~190 windows popping over whatever you're working on (including
+// an installed Termhalla) across a ~13 minute run. So main never shows them: the windows are created,
+// laid out, and fully scriptable, they are simply never presented. Layout-measuring specs (Monaco,
+// xterm's FitAddon, the toolbar boxes) are unaffected — layout does not require presentation — and
+// `backgroundThrottling: false` keeps the renderer's timers/rAF alive so xterm still paints its rows.
+// `showInactive()` is NOT enough: it withholds keyboard focus but still raises the window.
+// Every spec inherits this env — implicitly, or via `{ ...process.env }` — and each Playwright worker
+// re-loads this file, so the assignment reaches every launch.
+//   TERMHALLA_E2E_WINDOW=inactive npx playwright test   # visible, never focused
+//   TERMHALLA_E2E_WINDOW=show     npx playwright test   # production behavior; watch the run
+process.env.TERMHALLA_E2E_WINDOW ??= 'hidden'
+
 export default defineConfig({
   testDir: './tests/e2e',
   timeout: 60_000,
