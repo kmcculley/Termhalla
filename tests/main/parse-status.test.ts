@@ -83,4 +83,36 @@ describe('parseStatus', () => {
     expect(s.staged).toBe(0)
     expect(s.unstaged).toBe(0)
   })
+
+  // Baseline KNOWN BUG #3 (fixed 2026-07-09): a porcelain-v2 unmerged (`u`) entry used to
+  // increment `unstaged` and nothing else — a repo mid-merge surfaced no conflict signal at all.
+  it('counts unmerged entries as CONFLICTED, distinct from staged/unstaged', () => {
+    const midMerge = [
+      '# branch.oid 5555555555555555555555555555555555555555',
+      '# branch.head main',
+      '# branch.upstream origin/main',
+      '# branch.ab +0 -0',
+      'u UU N... 100644 100644 100644 100644 aaa bbb ccc conflicted.txt',
+      'u AA N... 100644 100644 100644 100644 ddd eee fff both-added.txt',
+      '1 M. N... 100644 100644 100644 aaa bbb resolved-and-staged.txt',
+      '? scratch.txt',
+      ''
+    ].join('\n')
+    const s = parseStatus(midMerge)
+    expect(s.conflicted).toBe(2)
+    expect(s.staged).toBe(1)      // the resolved file — no longer masked by the u entries
+    expect(s.unstaged).toBe(0)    // a conflict is not an "unstaged change"
+    expect(s.untracked).toBe(1)
+    expect(s.dirty).toBe(true)    // conflicts alone make the repo dirty
+  })
+  it('a conflict-only repo is dirty', () => {
+    const out = [
+      '# branch.oid 6666666666666666666666666666666666666666',
+      '# branch.head main',
+      'u UU N... 100644 100644 100644 100644 aaa bbb ccc only.txt',
+      ''
+    ].join('\n')
+    const s = parseStatus(out)
+    expect(s).toMatchObject({ conflicted: 1, staged: 0, unstaged: 0, untracked: 0, dirty: true })
+  })
 })

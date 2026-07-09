@@ -11,6 +11,7 @@ export function parseStatus(stdout: string): Omit<GitStatus, 'root'> {
   let behind = 0
   let staged = 0
   let unstaged = 0
+  let conflicted = 0
   let untracked = 0
 
   for (const line of stdout.split('\n')) {
@@ -25,7 +26,9 @@ export function parseStatus(stdout: string): Omit<GitStatus, 'root'> {
       if (xy[0] !== '.') staged++
       if (xy[1] !== '.') unstaged++
     } else if (line.startsWith('u ')) {
-      unstaged++
+      // Unmerged = its own category (baseline KNOWN BUG #3, fixed 2026-07-09): counting it as
+      // `unstaged` surfaced no conflict signal and misread a mid-merge repo's real counts.
+      conflicted++
     } else if (line.startsWith('? ')) {
       untracked++
     }
@@ -33,6 +36,6 @@ export function parseStatus(stdout: string): Omit<GitStatus, 'root'> {
 
   const detached = head === '(detached)'
   const branch = detached ? (oid ? oid.slice(0, 7) : '(detached)') : head
-  const dirty = staged + unstaged + untracked > 0
-  return { branch, detached, upstream, ahead, behind, staged, unstaged, untracked, dirty }
+  const dirty = staged + unstaged + conflicted + untracked > 0
+  return { branch, detached, upstream, ahead, behind, staged, unstaged, conflicted, untracked, dirty }
 }

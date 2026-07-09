@@ -12,7 +12,8 @@ import { useStore, paneCwd } from '../store'
 import { domainAllowed } from '../store/remote-gates'
 import { useResolvedPaneTheme } from '../use-resolved-theme'
 import { handleClipboardKey, normalizeCopiedText } from './terminal-clipboard'
-import { registerSerializer, unregisterSerializer, consumeSnapshot, registerFocuser, unregisterFocuser, registerRedrawer, unregisterRedrawer } from './terminal-registry'
+import { registerSerializer, unregisterSerializer, consumeSnapshot, registerFocuser, unregisterFocuser, registerRedrawer, unregisterRedrawer, registerRespawner, unregisterRespawner, respawnPane } from './terminal-registry'
+import { SURFACE } from './Modal'
 import { redraw } from './redraw'
 import { syncGrid, type GridSyncDeps } from './grid-sync'
 import { shouldAutoResumeClaude } from '../store/pane-ops'
@@ -47,6 +48,9 @@ export function TerminalPane({ paneId, wsId, config }: { paneId: string; wsId: s
   const hostRef = useRef<HTMLDivElement>(null)
   const termRef = useRef<Terminal | null>(null)
   const fitRef = useRef<FitAddon | null>(null)
+  const exited = useStore(s => !!s.exited[paneId])
+  const isRemote = useStore(s => !!s.workspaces[wsId]?.home)
+  const closePane = useStore(s => s.closePane)
   /** The grid the PTY was last told about. Shared by every `fit()` site (the ResizeObserver, the
    *  font/theme effect, the redraw command) so none of them can re-grid xterm without telling the
    *  PTY — an unpaired fit desyncs the two and renders garbled. See `grid-sync.ts`. */
@@ -188,6 +192,22 @@ export function TerminalPane({ paneId, wsId, config }: { paneId: string; wsId: s
     // Repaint xterm from its own buffer — fixes xterm-side render glitches WITHOUT changing the grid,
     // so it can never desync xterm's size from the remote (which would jumble a TUI like tmux).
     const repaint = () => term.refresh(0, term.rows - 1)
+
+    // The dead-pane restart (phase1 M-3): a shell that exited on its own leaves the pane mounted
+    // with its scrollback — a restart is a fresh PTY into the same xterm, re-issuing this pane's
+    // own spawn with the LIVE grid and the pane's last known cwd. pty:spawn's dead-id path
+    // re-registers trackers and spawns fresh (pty.has(id) is false after exit). LOCAL panes only:
+    // a remote connection's id-reuse defense (0018 FINDING-004) refuses a re-seen pane id, so the
+    // overlay never offers Restart on a remote pane.
+    registerRespawner(paneId, () => {
+      if (disposed || home) return
+      useStore.getState().setExited(paneId, false)
+      void api.ptySpawn({
+        id: paneId, shellId: config.shellId,
+        cwd: paneCwd(useStore.getState(), paneId) || config.cwd,
+        cols: term.cols, rows: term.rows, launch: config.launch, envId: config.envId
+      })
+    })
     // Manual "Redraw terminal" (Ctrl+Shift+L): the aggressive path — re-fit + repaint xterm, a real
     // cross-tick SIGWINCH nudge, and a Ctrl+L to the program so a garbled TUI (Claude, tmux, …)
     // re-emits a clean frame. Logic + rationale live in the injectable `redraw()` so it's unit-tested.
@@ -253,6 +273,7 @@ export function TerminalPane({ paneId, wsId, config }: { paneId: string; wsId: s
       unregisterSerializer(paneId)
       unregisterFocuser(paneId)
       unregisterRedrawer(paneId)
+      unregisterRespawner(paneId)
       if (settle) clearTimeout(settle)
       if (resumeTimer) clearTimeout(resumeTimer)
       if (altTimer) clearTimeout(altTimer)
@@ -280,5 +301,29 @@ export function TerminalPane({ paneId, wsId, config }: { paneId: string; wsId: s
     syncGrid(gridDeps(term, fit, gridRef, paneId))
   }, [theme, paneId])
 
-  return <div data-testid={`terminal-${paneId}`} ref={hostRef} style={{ width: '100%', height: '100%' }} />
+  // The host div keeps its exact box (layout-measuring specs read it; the ResizeObserver watches
+  // it); the wrapper only provides the positioning context for the exited overlay, which is
+  // absolutely positioned and can never change the terminal's geometry.
+  return (
+    <div style={{ position: 'relative', width: '100%', height: '100%' }}>
+      <div data-testid={`terminal-${paneId}`} ref={hostRef} style={{ width: '100%', height: '100%' }} />
+      {exited && (
+        // The dead-pane affordance (phase1 M-3): the shell exited on its own; the pane keeps its
+        // scrollback under this small overlay instead of sitting there with no next action.
+        // Restart is local-only (a remote connection refuses a re-seen pane id — 0018 FINDING-004).
+        <div data-testid={`exited-overlay-${paneId}`}
+          style={{ ...SURFACE, position: 'absolute', left: '50%', bottom: 12, transform: 'translateX(-50%)',
+            zIndex: 5, display: 'flex', alignItems: 'center', gap: 8, padding: '5px 10px',
+            borderRadius: 6, fontSize: 12, whiteSpace: 'nowrap' }}>
+          <span style={{ color: 'var(--fg-dim, #aaa)' }}>process exited</span>
+          {!isRemote && (
+            <button type="button" data-testid={`restart-${paneId}`}
+              onClick={() => respawnPane(paneId)}>Restart</button>
+          )}
+          <button type="button" data-testid={`close-exited-${paneId}`}
+            onClick={() => closePane(wsId, paneId)}>Close pane</button>
+        </div>
+      )}
+    </div>
+  )
 }

@@ -103,6 +103,10 @@ describe('CHAR-017 languageForPath', () => {
 })
 
 describe('CHAR-018 git parseStatus (porcelain v2)', () => {
+  // AMENDED 2026-07-09 (baseline KNOWN BUG #3 fix, quality/polish batch — the deliberate
+  // change-record this CHAR exists for): the shape gained `conflicted` (porcelain-v2 `u`
+  // entries, previously folded into `unstaged`). The pinned counts below are unchanged; only
+  // the new field was added to the toEqual shape.
   it('parses branch, ahead/behind, and staged/unstaged/untracked counts', () => {
     const out = [
       '# branch.oid abc1234',
@@ -115,7 +119,7 @@ describe('CHAR-018 git parseStatus (porcelain v2)', () => {
     ].join('\n')
     expect(parseStatus(out)).toEqual({
       branch: 'main', detached: false, upstream: 'origin/main',
-      ahead: 2, behind: 1, staged: 1, unstaged: 1, untracked: 1, dirty: true
+      ahead: 2, behind: 1, staged: 1, unstaged: 1, conflicted: 0, untracked: 1, dirty: true
     })
   })
   it('reports a detached HEAD as the short oid', () => {

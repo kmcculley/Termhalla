@@ -97,7 +97,8 @@ test.describe.serial('marker-less launch-override pane (the native-ssh status pa
     await expect(win.locator('[data-status="needs-input"]')).toHaveCount(0, { timeout: 10_000 })
   })
 
-  test('TEST-QA13 exit ends the pane without wedging status', async () => {
+  test('TEST-QA13 exit surfaces the restart affordance; Restart revives the SAME pane', async () => {
+    test.setTimeout(60_000)
     await win.locator('.xterm-screen').click()
     await win.keyboard.type('exit')
     await win.keyboard.press('Enter')
@@ -105,5 +106,18 @@ test.describe.serial('marker-less launch-override pane (the native-ssh status pa
     // onPtyExit); node-pty withholds the exit event ~1s (FLUSH_DATA_INTERVAL), hence the margin.
     await expect(win.locator('.xterm-rows')).toContainText('[process exited]', { timeout: 15_000 })
     await expect(win.locator('[data-status="busy"]')).toHaveCount(0, { timeout: 15_000 })
+
+    // The dead-pane affordance (phase1 M-3): an overlay with Restart, not a dead end.
+    await expect(win.getByTestId('exited-overlay-p1')).toBeVisible()
+    await win.getByTestId('restart-p1').click()
+    await expect(win.getByTestId('exited-overlay-p1')).toHaveCount(0, { timeout: 10_000 })
+    // A fresh PTY into the SAME mounted pane. Note ConPTY clears the screen (and scrollback) as
+    // part of attaching the new client — fresh-shell semantics, measured, so the old transcript
+    // is NOT asserted here; the revival proof is the new banner + a live round-trip.
+    await expect(win.locator('.xterm-rows')).toContainText('fakebox marker-less shell', { timeout: 15_000 })
+    await win.locator('.xterm-screen').click()
+    await win.keyboard.type('echo revived-8812')
+    await win.keyboard.press('Enter')
+    await expect(win.locator('.xterm-rows')).toContainText('revived-8812', { timeout: 15_000 })
   })
 })

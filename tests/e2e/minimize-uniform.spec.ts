@@ -3,6 +3,14 @@
 // pane (with an unsaved draft) and an Explorer pane and proves both minimize/restore with state
 // intact, and that the minimize affordance renders on non-terminal kinds (not terminal-gated).
 // Runs RED until the feature ships. Requires `npm run build` first.
+//
+// SANCTIONED AMENDMENT (2026-07-09, launch-env only — no assertion changed): this spec's app runs
+// under TERMHALLA_E2E_WINDOW=inactive, the presentation gate's designed fallback. Under `hidden`,
+// Monaco in THIS seeded editor+explorer layout stops re-rendering typed edits — the MODEL receives
+// the text (a Ctrl+S writes it to disk) but `.view-lines` stays on the old frame, so line 43's
+// draft assertion fails deterministically. Measured on the released v0.16.1 build too (this was
+// the suite's known TEST-030 "flake", not a regression), and `inactive` re-renders correctly.
+// Full characterization in docs/deferred.md ("hidden-window Monaco re-render stall").
 import { test, expect, _electron as electron, ElectronApplication } from '@playwright/test'
 import { execSync } from 'child_process'
 import { mkdtempSync, writeFileSync } from 'node:fs'
@@ -14,7 +22,10 @@ function killTree(pid: number | undefined): void {
   if (pid && process.platform === 'win32') { try { execSync(`taskkill /F /T /PID ${pid}`, { stdio: 'ignore' }) } catch {} }
 }
 const launch = (userData: string): Promise<ElectronApplication> =>
-  electron.launch({ args: ['out/main/index.js', '--no-sandbox', '--disable-gpu', `--user-data-dir=${userData}`] })
+  electron.launch({
+    args: ['out/main/index.js', '--no-sandbox', '--disable-gpu', `--user-data-dir=${userData}`],
+    env: { ...process.env, TERMHALLA_E2E_WINDOW: 'inactive' }
+  })
 
 // TEST-030 — REQ-012: Editor + Explorer minimize/restore with state intact; affordance on all kinds.
 test('TEST-030 REQ-012 editor (draft) and explorer minimize/restore with state intact', async () => {

@@ -113,3 +113,22 @@ export function redrawPane(paneId: string): boolean {
   fn()
   return true
 }
+
+/**
+ * Per-pane respawn hooks (the dead-pane restart affordance, phase1 M-3). When a shell exits on
+ * its own the pane keeps its xterm and scrollback mounted — a restart is just a fresh PTY into
+ * the same terminal, so a mounted TerminalPane registers a callback that re-issues its own
+ * pty:spawn with the live grid. Kept here with the other imperative hooks.
+ */
+const respawners = new Map<string, () => void>()
+export function registerRespawner(paneId: string, fn: () => void): void { respawners.set(paneId, fn) }
+export function unregisterRespawner(paneId: string): void { respawners.delete(paneId) }
+
+/** Respawn a dead pane's shell now. Returns false if it has no live respawner (not mounted /
+ *  not a terminal). */
+export function respawnPane(paneId: string): boolean {
+  const fn = respawners.get(paneId)
+  if (!fn) return false
+  fn()
+  return true
+}

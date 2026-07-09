@@ -15,6 +15,13 @@ export function GitPopover({ status }: { status: GitStatus }) {
       <div style={{ color: 'var(--fg-dim, #aaa)' }}>
         staged {status.staged} · unstaged {status.unstaged} · untracked {status.untracked}
       </div>
+      {/* Only mid-merge: a conflict is the popover's most urgent fact, in the needs-attention
+          tint (paint-only). Absent entirely for the everyday no-conflict case. */}
+      {status.conflicted > 0 && (
+        <div style={{ color: 'var(--status-needs, #ff8f00)' }}>
+          conflicted {status.conflicted}
+        </div>
+      )}
     </div>
   )
 }

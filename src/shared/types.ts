@@ -392,7 +392,8 @@ export interface ProcInfo {
 }
 
 /** Live git status for a pane's repo root. Runtime-only (not persisted). `branch` holds the
- *  short commit sha when `detached` is true. `dirty` = staged + unstaged + untracked > 0. */
+ *  short commit sha when `detached` is true. `dirty` = staged + unstaged + conflicted +
+ *  untracked > 0. */
 export interface GitStatus {
   root: string
   branch: string
@@ -402,6 +403,9 @@ export interface GitStatus {
   behind: number
   staged: number
   unstaged: number
+  /** Porcelain-v2 unmerged (`u`) entries — a mid-merge conflict is its own category, neither
+   *  staged nor unstaged (baseline KNOWN BUG #3, fixed 2026-07-09). */
+  conflicted: number
   untracked: number
   dirty: boolean
 }

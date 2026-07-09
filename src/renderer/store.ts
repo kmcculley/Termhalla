@@ -221,7 +221,10 @@ export const useStore = create<State>((set, get) => {
       remoteDisconnect: (wsId) => api.remoteDisconnect(wsId),
       remoteAgentsList: () => api.remoteAgentsList(),
       remoteAgentsSave: (agents) => api.remoteAgentsSave(agents),
-      pushToast: (text, kind) => get().pushToast(text, kind)
+      pushToast: (text, kind) => get().pushToast(text, kind),
+      // FINDING-006: only the window hosting the workspace (= the one rendering its banner)
+      // toasts a disconnect; other windows ingest the broadcast state silently.
+      hostsWorkspace: (wsId) => !!get().workspaces[wsId]
     }),
     ...createOrkyPaneSlice({
       set,

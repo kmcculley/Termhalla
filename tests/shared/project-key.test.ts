@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest'
 import { resolveProjectKey } from '../../src/shared/project-key'
 import type { GitStatus, Workspace } from '../../src/shared/types'
 
-const git = (root: string): GitStatus => ({ root, branch: 'main', detached: false, upstream: null, ahead: 0, behind: 0, staged: 0, unstaged: 0, untracked: 0, dirty: false })
+const git = (root: string): GitStatus => ({ root, branch: 'main', detached: false, upstream: null, ahead: 0, behind: 0, staged: 0, unstaged: 0, conflicted: 0, untracked: 0, dirty: false })
 
 function state(over: Partial<{ gitStatus: Record<string, GitStatus>; cwds: Record<string, string>; workspaces: Record<string, Workspace> }> = {}) {
   return { gitStatus: {}, cwds: {}, workspaces: {}, ...over }

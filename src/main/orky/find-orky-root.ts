@@ -1,6 +1,13 @@
 import { statSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 
+/** The default ancestor-walk bound. 8 was a real user-facing cliff (FINDING-DA-006, fixed
+ *  2026-07-09): a pane >8 dirs below the project root — unremarkable in a monorepo — showed NO
+ *  Orky chrome at all, purely as a function of cwd depth. 32 exceeds any real tree while keeping
+ *  the walk finite and its worst-case cost bounded (each level is one statSync; the walk also
+ *  stops at the filesystem root regardless). */
+export const DEFAULT_ORKY_ROOT_MAX_DEPTH = 32
+
 /** From `cwd`, find the first directory (cwd or a BOUNDED number of ancestors) that contains a
  *  `.orky/` directory, or `null`. The walk is deterministic and capped — it never climbs to the
  *  filesystem root unbounded (risk #1). Resolves the spec's "a directory whose tree contains `.orky/`"
@@ -12,7 +19,7 @@ import { dirname, join } from 'node:path'
  *  process (Node 22 `--unhandled-rejections=throw`). */
 export function findOrkyRoot(cwd: string, opts: { maxDepth?: number } = {}): string | null {
   if (typeof cwd !== 'string') return null
-  const maxDepth = opts.maxDepth ?? 8
+  const maxDepth = opts.maxDepth ?? DEFAULT_ORKY_ROOT_MAX_DEPTH
   let dir = cwd
   for (let i = 0; i <= maxDepth; i++) {
     try {

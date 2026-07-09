@@ -20,6 +20,12 @@ export interface RemoteSliceDeps {
   remoteAgentsList: () => Promise<NamedAgent[]>
   remoteAgentsSave: (agents: NamedAgent[]) => Promise<NamedAgent[]>
   pushToast: (text: string, kind: 'info' | 'success' | 'error') => void
+  /** Whether THIS window hosts the workspace (0022 FINDING-006, fixed 2026-07-09). `remote:state`
+   *  is an app-global broadcast, so in a multi-window session every window's slice ingests the
+   *  same disconnected transition — gating the toast on hosting makes exactly the window showing
+   *  the banner raise it. Optional so the slice's pinned single-window contract is unchanged:
+   *  absent (the frozen harness) ⇒ every ingest toasts, exactly as before. */
+  hostsWorkspace?: (workspaceId: string) => boolean
 }
 
 export interface RemoteSliceState {
@@ -69,9 +75,12 @@ export function createRemoteSlice(deps: RemoteSliceDeps): RemoteSlice {
   const ingest = (next: RemoteWorkspaceState): void => {
     const prev = get().remoteStates[next.workspaceId]
     // Toast policy: exactly one error toast per transition INTO a toast-worthy disconnect —
-    // never on an identical re-ingest (a recovery pull echoing the same state must not re-toast).
+    // never on an identical re-ingest (a recovery pull echoing the same state must not re-toast),
+    // and only in the window that HOSTS the workspace (the banner's window — FINDING-006: the
+    // app-global broadcast otherwise raised one toast per open window for a single moment).
     if (next.phase === 'disconnected' && next.reason && TOASTED_REASONS.has(next.reason) &&
-        !sameDisconnect(prev, next)) {
+        !sameDisconnect(prev, next) &&
+        (deps.hostsWorkspace?.(next.workspaceId) ?? true)) {
       deps.pushToast(toastText(next), 'error')
     }
     set(s => ({ remoteStates: { ...s.remoteStates, [next.workspaceId]: next } }))
