@@ -8,16 +8,14 @@ this doc tracks what stays open.
 
 ## Open (LOW, deliberate deferral)
 
-- **FINDING-006 (ux) — multi-window duplicate disconnect toasts.** `remote:state` is an app-global
-  broadcast, so in a multi-window session EVERY window's `remote-slice` ingests the same
-  disconnected transition and each toasts it (the CONV-038 class, in-app variant — one moment,
-  duplicate uncoordinated surfacings). The banner itself is correctly single-sourced (only the
-  window hosting the workspace renders it), so the duplication is toast-only and low-impact.
-  **Candidate fix:** gate the failure toast on the ingesting window actually hosting the workspace
-  (`get().workspaces[next.workspaceId]` present) so exactly the window showing the banner also
-  raises the toast; needs its own pinned vector (the slice harness would inject a `workspaces`
-  view). Deferred rather than slipped in silently because the single-window path (the shipped v1
-  common case) is already correct and the fix changes the slice's tested contract.
+- ~~**FINDING-006 (ux) — multi-window duplicate disconnect toasts.**~~ — **RESOLVED 2026-07-09**
+  (quality/polish batch), via the recorded candidate fix with one refinement: the hosting check is
+  an OPTIONAL injected dep (`hostsWorkspace?`, wired in store.ts as
+  `!!get().workspaces[wsId]`), absent ⇒ toast — so the FROZEN single-window contract
+  (tests/renderer/remote-slice.test.ts, whose harness injects no such dep) runs byte-identical,
+  answering the very concern that deferred this. Pinned vectors in
+  `tests/renderer/remote-slice-host-toast.test.ts` (hosting window toasts, non-hosting ingests
+  silently with state intact, absent dep = old behavior, per-workspace-id consultation).
 
 ## Deferred remainders of resolved findings
 

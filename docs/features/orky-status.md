@@ -93,8 +93,10 @@ validates its args (a non-string `id`/`cwd` is a no-op, never an unhandled rejec
 `orky:watch` / `orky:unwatch` is scoped to its owning `BrowserWindow`. It tolerates missing / empty /
 malformed state without throwing: an unreadable feature is skipped and the rest still report.
 
-The `.orky/` discovery is a deterministic, bounded upward walk (`findOrkyRoot`, default cap 8 ancestors)
-from the pane's tracked cwd — it never climbs to the filesystem root unbounded, and a non-string cwd
+The `.orky/` discovery is a deterministic, bounded upward walk (`findOrkyRoot`, default cap
+`DEFAULT_ORKY_ROOT_MAX_DEPTH` = 32 ancestors — raised from 8 on 2026-07-09, FINDING-DA-006: the old
+cap made a pane's Orky chrome vanish purely as a function of cwd depth in a monorepo) from the
+pane's tracked cwd — it never climbs to the filesystem root unbounded, and a non-string cwd
 degrades to `null` rather than throwing. When the cwd has no `.orky/` ancestor (or the pane closes), the
 tracker emits a cleared `orky:status` (`null`) and the renderer reverts the border/chip to the pure
 byte-derived status.

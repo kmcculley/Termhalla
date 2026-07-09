@@ -35,12 +35,14 @@ lost. None is release-blocking; none is a contract violation.
 
 ### LOW
 
-- **Ancestor-walk depth cap of 8 yields a location-dependent blank** (FINDING-DA-006,
-  `src/main/orky/find-orky-root.ts:9`, REQ-012). A pane whose cwd is more than 8 directories below the
-  project root (deep monorepo / nested package) resolves to `findOrkyRoot === null`, so the pane
-  silently shows NO Orky chrome even though it is inside an Orky project — the status disappears purely
-  as a function of cwd depth. **Recommended fix:** stop on a project-root marker (`.git`) rather than a
-  fixed depth, or raise the cap meaningfully, and document the bound in the feature doc.
+- ~~**Ancestor-walk depth cap of 8 yields a location-dependent blank** (FINDING-DA-006,
+  `src/main/orky/find-orky-root.ts`, REQ-012)~~ — **RESOLVED 2026-07-09** (quality/polish batch),
+  via the raise-the-cap option: the default is `DEFAULT_ORKY_ROOT_MAX_DEPTH` = 32, documented in
+  the feature doc, still finite and still stopping at the filesystem root. Pinned by
+  `tests/main/find-orky-root-depth.test.ts`; the frozen 0004 suite passes explicit depths
+  everywhere it cares and pins nothing about the default. (The stop-on-`.git` alternative was
+  rejected: `.orky/` can legitimately sit above a nested git repo, and stopping at the first
+  `.git` would blind those panes.)
 
 - **Redundant non-active ternary in the `isStalled` call** (FINDING-QUAL-007,
   `src/shared/orky-status.ts:133`). `isStalled(isActive ? f.feature : null, f, isActive ? lastTickAt :

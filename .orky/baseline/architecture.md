@@ -207,12 +207,13 @@ features. Fixing each becomes a deliberate, gated change (with its CHAR test upd
 phase), never a silent edit. The relevant CHAR test currently pins the *buggy* current behavior, so each
 fix's tests-phase update is the auditable record of the intended change.
 
-1. **[KNOWN BUG — confirmed]** **AI-detection substrings are unanchored** (`ai/classify-ai.ts`,
-   `AI_TOOLS`). The alternatives `claude-code` and `@openai[\\/]codex` (and `@anthropic-ai[\\/]claude`)
-   are plain substrings with no word boundary, so a command line merely *containing* `claude-code` as a
-   substring — e.g. a directory named `claude-codebase` or `my-claude-code-notes` — would be classified
-   as a live Claude session. The `.exe/.cmd/.bat/.ps1`-only guard protects the bare-`claude` alternative
-   but not these. *Fix touches REQ-011 / CHAR-008.*
+1. **[KNOWN BUG — FIXED 2026-07-09]** ~~**AI-detection substrings are unanchored**~~
+   (`ai/classify-ai.ts`, `AI_TOOLS`). The `claude-code` / `@anthropic-ai[\\/]claude` /
+   `@openai[\\/]codex` alternatives were plain substrings; fixed in the 2026-07-09 quality/polish
+   batch (user-directed, outside the Orky pipeline): every alternative is boundary-anchored, the
+   bare `claude`/`codex` patterns byte-identical. New pins in `tests/main/classify-ai.test.ts`
+   (`claude-codebase`, `my-claude-code-notes`, `@anthropic-ai/claudette` all null). CHAR-008
+   needed no amendment — it never pinned the false positive (verified green post-fix).
 2. **[KNOWN BUG — FIXED 2026-07-09]** ~~**Generic input-prompt catch-all is whitespace-strict**~~
    (`status/needs-input.ts`, `DEFAULT_NEEDS_INPUT_PATTERNS`). The fallback pattern was `/\?\s$/` —
    a question-style prompt ending in `?` with **no** trailing space (common — the cursor sits right
@@ -220,10 +221,12 @@ fix's tests-phase update is the auditable record of the intended change.
    quality/polish batch (user-directed, outside the Orky pipeline): the pattern is now `/\?\s*$/`,
    pinned by new cases in `tests/main/needs-input.test.ts`. CHAR-002 needed no amendment — it never
    pinned the negative case (verified green post-fix); this note is the auditable record.
-3. **[KNOWN BUG — confirmed]** **Merge-conflict (`u`) entries are counted only as `unstaged`**
-   (`git/parse-status.ts`). A porcelain-v2 unmerged entry increments `unstaged` but never `staged`, and
-   there is no distinct conflict count, so a repo mid-merge underreports staged changes and surfaces no
-   "conflicted" signal. *Fix touches REQ-016 / CHAR-018.*
+3. **[KNOWN BUG — FIXED 2026-07-09]** ~~**Merge-conflict (`u`) entries are counted only as
+   `unstaged`**~~ (`git/parse-status.ts`). Fixed in the 2026-07-09 quality/polish batch
+   (user-directed, outside the Orky pipeline): `u` entries are a distinct `conflicted` count on
+   `GitStatus` (runtime-only, no schema), included in `dirty`, surfaced in the git popover while
+   non-zero. CHAR-018 amended as the deliberate change-record — the `toEqual` shape gained
+   `conflicted: 0`, every pinned count unchanged.
 4. **[KNOWN BUG — confirmed, fix with care]** **`isPureControl` can suppress real output that begins
    with a cursor-home sequence** (`status/needs-input.ts`, `CURSOR_HOME_RE`). Any chunk that *starts*
    with a cursor-home escape is treated as a screen repaint and excluded from the status tail / quiet

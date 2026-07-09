@@ -31,6 +31,19 @@ be starved, fall back to `TERMHALLA_E2E_WINDOW=inactive` as the default (windows
 but never focused) or add the `--disable-renderer-backgrounding` /
 `--disable-background-timer-throttling` Chromium switches.
 
+**First confirmed instance (2026-07-09): hidden-window Monaco re-render stall.** The predicted
+risk materialized — for MONACO, not xterm. In `minimize-uniform.spec.ts` TEST-030's seeded
+editor+explorer layout, typing into the focused Monaco editor under `hidden` updates the MODEL
+(the keystrokes land — a Ctrl+S writes them to disk) but `.view-lines` never re-renders, so the
+draft assertion fails deterministically. Measured on the released v0.16.1 build as well — this
+was TEST-030's long-standing "flake", not a session regression — and the same probe under
+`inactive` re-renders correctly. Notably `editor.spec.ts` (single-editor seed, same
+click→Ctrl+Home→type idiom) passes under `hidden`, so the trigger is layout/timing-sensitive, not
+a blanket Monaco rule. Disposition: TEST-030's spec now forces `TERMHALLA_E2E_WINDOW=inactive`
+for its own launch (a sanctioned launch-env-only amendment, assertions untouched). If more
+Monaco-typing specs start stalling under `hidden`, revisit the default per the fallback above
+rather than amending specs one by one.
+
 ### `git-status.spec.ts` is intermittently flaky
 **Added 2026-07-08.** Observed once in a full run: the pane's git chip stayed on `main` and never
 showed the `●` dirty marker within the 25 s timeout, after a `Set-Content extra.txt hi`. Passed on
@@ -46,9 +59,10 @@ first understanding which of the two it is.
 ## Known bugs recorded elsewhere
 
 `.orky/baseline/architecture.md` records four confirmed known bugs as candidate Orky features;
-**#2 (the whitespace-strict needs-input question catch-all) was FIXED 2026-07-09** in the
-quality/polish batch (see the baseline's own entry for the audit trail), leaving #1 (unanchored
-AI-detection substrings), #3 (merge-conflict count), and #4 open.
+**#1 (unanchored AI-detection substrings), #2 (the whitespace-strict needs-input question
+catch-all), and #3 (merge-conflict count) were FIXED 2026-07-09** in the quality/polish batch
+(see the baseline's own entries for the audit trail), leaving only #4 open — deliberately: it is
+the load-bearing one below.
 One of them — the cursor-home `CURSOR_HOME_RE` catch-all (#4) — **widened** on 2026-07-08:
 because a marker-less pane's busy rule now also sits behind `isPureControl`, a full-screen TUI over
 ssh whose frames begin with cursor-home (`top`, `vim`) reads *idle* rather than flapping. That was

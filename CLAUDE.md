@@ -57,6 +57,14 @@ npm run package      # build + pack a Windows NSIS installer + latest.yml into d
     (`undock.spec.ts` did, and broke). Assert on a specific window's visibility instead. Likewise,
     `hidden` is slower to settle: focus the terminal with a `.xterm-screen` click before typing, and
     don't assume a rotating widget still shows the frame you saw a moment ago.
+  - **Monaco can stop RE-RENDERING under `hidden` while its model still updates** — typed keys reach
+    the buffer (Ctrl+S saves them) but `.view-lines` stays on the old frame, so a rendered-text
+    assertion fails while the app is actually fine. Measured in `minimize-uniform.spec.ts` TEST-030's
+    editor+explorer seed (its long-standing "flake"; deterministic 2026-07-09, reproduced on the
+    released v0.16.1 build); `editor.spec.ts`'s single-editor seed is unaffected, so it's
+    layout/timing-sensitive. Such a spec forces `TERMHALLA_E2E_WINDOW=inactive` in its OWN
+    `electron.launch` env (the designed fallback — presented, never activated) rather than weakening
+    assertions; details in `docs/deferred.md` ("hidden-window Monaco re-render stall").
 - **Remote/ssh integration e2e rides a second env-gated seam.** `TERMHALLA_E2E_REMOTE_SSH`
   (JSON `{program, prefixArgs}`, read ONLY by `src/main/e2e-remote.ts` — same structural-test
   discipline as the presentation gate; `services.ts` spreads it into `connectWithProvisioning`

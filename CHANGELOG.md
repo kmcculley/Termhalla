@@ -25,6 +25,12 @@ All notable changes to Termhalla are recorded here. The format follows
   record to disk indefinitely with zero on-screen cue (0002 FINDING-DEV-001/UX-006). The pane
   title now carries a persistent `⏺ ` prefix while recording (paint-only — the toolbar box never
   changes; the 🔔 needs-input bell's mechanism, via the new unit-tested `paneTitle` composer).
+- **Dead-pane restart.** When a shell exits on its own, the pane no longer strands at
+  `[process exited]` with no next action (phase1 M-3): a small overlay offers **Restart** — a
+  fresh PTY into the same mounted pane (ConPTY clears the screen as part of attaching, so it
+  reads like a fresh shell) — and **Close pane**. Restart is local-only: a remote connection's
+  id-reuse defense refuses a re-seen pane id (0018 FINDING-004). Exercised end-to-end by
+  `marker-less-pane.spec.ts` TEST-QA13.
 
 - **Clean copy — normalize terminal text on copy.** Copying from a TUI (e.g. Claude Code) used to
   drag in the wrapping and whitespace the app painted into the terminal grid: a paragraph the TUI
@@ -601,6 +607,29 @@ All notable changes to Termhalla are recorded here. The format follows
 - **A resolved escalation row's decision was clipped and could dangle.** The Orky pane's escalation
   row now mirrors the `— decision:` affix into its hover title and renders no dangling label for an
   empty-string decision (0015 FINDING-017 — the finding row's earlier fix, applied to its sibling).
+- **A directory named `claude-codebase` no longer reads as a live Claude session** (baseline KNOWN
+  BUG #1, `classify-ai.ts`). The `claude-code` / `@anthropic-ai/claude` / `@openai/codex`
+  alternatives were plain substrings; every alternative is now boundary-anchored. The bare
+  `claude`/`codex` patterns (and the `claude.md` false-positive guard) are byte-identical.
+- **A repo mid-merge now surfaces its conflicts** (baseline KNOWN BUG #3, `git/parse-status.ts`).
+  Porcelain-v2 unmerged (`u`) entries were folded into `unstaged` — no conflict signal anywhere,
+  and resolved-and-staged files were masked. They are now a distinct `conflicted` count, shown in
+  the git popover (needs-attention tint) only while non-zero. CHAR-018 amended (the deliberate
+  change-record): the shape gained the field, every pinned count unchanged.
+- **Orky chrome no longer vanishes for panes deep in a monorepo** (0004 FINDING-DA-006).
+  `findOrkyRoot`'s default ancestor cap was 8, so a pane >8 dirs below the project root silently
+  lost all Orky status purely as a function of cwd depth; the documented default is now 32
+  (`DEFAULT_ORKY_ROOT_MAX_DEPTH`), still finite and still stopping at the filesystem root.
+- **Undocked windows no longer show stale env-vault state or skip the cloud focus-refresh**
+  (window-management follow-up). The vault's initial state now also re-emits on every window's
+  `win:ready` signal (main's one-time `did-finish-load` emit was the only seed), and the cloud
+  focus-refresh hooks the app-level `browser-window-focus` (any window, one shared debounce)
+  instead of main's focus only.
+- **A remote disconnect toasts once, in the window that hosts the workspace** (0022 FINDING-006).
+  `remote:state` is an app-global broadcast, so every open window used to raise the same error
+  toast for one disconnect; the toast is now gated on the ingesting window actually hosting the
+  workspace — exactly the window showing the banner. Single-window behavior is byte-identical
+  (the gate is an optional injected dep; the frozen slice suite runs unchanged).
 - **A maximized terminal no longer jumps to the top of its scrollback when you switch workspaces.**
   The maximized tile's fill (`inset`/`width`/`height` `!important`, which overrides react-mosaic's
   inline tile geometry) was declared in the same CSS rule as the `visibility: visible` punch-through

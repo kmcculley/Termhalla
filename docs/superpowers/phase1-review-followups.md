@@ -11,9 +11,12 @@ deferred. Tracked here so they aren't lost.
   (so restore opens in the home dir, not where the shell actually was). Capturing
   live cwd needs shell integration (OSC 7 / OSC 133), which lands in Phase 2's
   status engine — wire cwd capture in at the same time.
-- **Dead-pane affordance (M-3).** When a shell exits on its own (`exit`), the pane
-  prints `[process exited]` but stays in the layout with no restart affordance. Add
-  an auto-close or a "restart" action in a later phase.
+- ~~**Dead-pane affordance (M-3).**~~ — **RESOLVED 2026-07-09** (quality/polish batch): an
+  exited pane shows a small absolute-positioned overlay (never a box change) with **Restart** —
+  a fresh PTY into the same mounted pane via the terminal-registry `respawnPane` hook (ConPTY
+  clears the screen as part of attaching; measured) — and **Close pane**. Restart is local-only
+  (a remote connection's id-reuse defense refuses a re-seen pane id, 0018 FINDING-004).
+  Exercised end-to-end by `tests/e2e/marker-less-pane.spec.ts` TEST-QA13.
 - ~~**app-state validation (M-4).**~~ **RESOLVED** (verified 2026-07-07): `migrateAppState`
   (`src/shared/app-state-model.ts`, hardened by the 2026-07-06 quality-audit Group A #4 pass)
   validates shape + `schemaVersion` on load (per-entry `windows[]` normalization, future-version

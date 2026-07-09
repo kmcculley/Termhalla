@@ -16,11 +16,13 @@ and are covered by `tests/e2e/undock.spec.ts`). These are minor multi-window pol
 
 ## Deferred
 
-- **Initial `env:state` in undocked windows.** `register-env.ts` emits the one-time vault state on
-  the *main* window's `did-finish-load` only; a floating window's env UI shows stale state until the
-  next vault mutation re-broadcasts. Fix: re-emit app-global state (env, cloud) to a window when it
-  signals `win:ready`, or have the renderer pull it on ready via `invoke`. Same shape would also
-  cover **cloud focus-refresh** (`register-cloud.ts` `win.on('focus')` fires only for main).
+- ~~**Initial `env:state` in undocked windows.**~~ — **RESOLVED 2026-07-09** (quality/polish
+  batch), exactly as recorded: `register-env.ts` re-emits the vault state on every `win:ready`
+  signal (the broadcast `send` + idempotent renderer state make the re-emit harmless everywhere;
+  main's `did-finish-load` emit kept), pinned by `tests/main/register-env-winready.test.ts`; and
+  `register-cloud.ts`'s focus-refresh now rides the app-level `browser-window-focus` (any window,
+  one shared debounce) instead of main's `win.on('focus')`. Cloud INITIAL state per window was
+  already covered — every window's renderer pulls `cloud:current` on boot.
 - **One-time bounds reset on upgrade.** `loadAppState` seeds the lifted main window's bounds from
   `DEFAULT_WINDOW_STATE` rather than the legacy `window-state.json`, so an upgrading user's main
   window jumps to 1200×800 once. To preserve it, read `loadWindowState()` and pass it as
