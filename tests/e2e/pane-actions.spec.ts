@@ -126,6 +126,50 @@ test('a maximized pane stays hidden when another (empty) workspace is active', a
   const pid = app.process().pid; await app.close().catch(() => {}); killTree(pid)
 })
 
+/** A maximized pane must keep its BOX when its workspace goes inactive. The fill CSS once lived in
+ *  the `[data-active="true"]`-scoped rule alongside the visibility punch-through, so switching
+ *  workspaces dropped it and the tile snapped back to react-mosaic's inline percentage geometry.
+ *  That is a real box change on a still-mounted terminal: TerminalPane's ResizeObserver (which has no
+ *  visibility guard) refits xterm and resizes the PTY, and the full-screen ConPTY repaint throws the
+ *  viewport to the top of the scrollback. Measure through `evaluate` — the tile is `visibility:
+ *  hidden` while its workspace is inactive, so `boundingBox()` would refuse it. */
+test('a maximized pane keeps its size while its workspace is inactive (no refit, no repaint)', async () => {
+  test.setTimeout(40_000)
+  const { app, paneId: a } = await launchWithTerminal()
+  const win = await app.firstWindow()
+  const boxOf = (id: string) => win.locator(`[data-testid="tile-${id}"]`).evaluate((el) => {
+    const r = el.getBoundingClientRect()
+    return { w: Math.round(r.width), h: Math.round(r.height) }
+  })
+
+  // Two panes, so the maximized tile's own geometry differs from its filled geometry (with a single
+  // pane the mosaic tile already spans the workspace and the bug is invisible).
+  await win.getByTestId(`split-${a}`).click()
+  await win.getByTestId(`split-kind-terminal-${a}`).click()
+  await win.getByTestId(`split-dir-right-${a}`).click()
+  await expect(win.locator('[data-testid^="tile-"]')).toHaveCount(2, { timeout: 10_000 })
+
+  const halved = await boxOf(a)
+  await win.getByTestId(`max-${a}`).click()
+  await expect(win.getByTestId(`tile-${a}`)).toBeVisible()
+  const filled = await boxOf(a)
+  expect(filled.w, 'maximizing must actually widen the tile').toBeGreaterThan(halved.w)
+
+  // Switch away: hidden, still mounted, and — the invariant — still the same size.
+  await win.getByTestId('new-workspace').click()
+  await win.keyboard.press('Escape')
+  await expect(win.getByTestId('add-first-terminal')).toBeVisible({ timeout: 10_000 })
+  await expect(win.getByTestId(`tile-${a}`)).not.toBeVisible()
+  expect(await boxOf(a), 'the maximized tile shrank when its workspace went inactive').toEqual(filled)
+
+  // ...and switching back changes nothing either.
+  await win.locator('[data-tab-id]').first().click()
+  await expect(win.getByTestId(`tile-${a}`)).toBeVisible({ timeout: 10_000 })
+  expect(await boxOf(a)).toEqual(filled)
+
+  const pid = app.process().pid; await app.close().catch(() => {}); killTree(pid)
+})
+
 test('TEST-023 REQ-014 maximize hides siblings; restore brings them back', async () => {
   test.setTimeout(40_000)
   const { app, paneId: a } = await launchWithTerminal()

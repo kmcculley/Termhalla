@@ -363,13 +363,21 @@ option {
    pane gets one legitimate resize. data-max is set imperatively by PaneTile. */
 .ws-max .mosaic-tile { visibility: hidden; pointer-events: none; }
 .ws-max .mosaic-split { visibility: hidden; pointer-events: none; }
-/* The punch-through is scoped to the ACTIVE workspace host: `visibility: visible` on a descendant
-   overrides `visibility: hidden` on ANY ancestor, so an unscoped rule would keep an inactive
-   workspace's maximized tile painting through the hidden host — visibly bleeding under a
+/* GEOMETRY is deliberately NOT scoped to the active workspace. A maximized tile fills its workspace
+   whether or not that workspace is on screen. Scoping the fill to [data-active="true"] made the tile
+   snap back to react-mosaic's inline percentage geometry every time you switched away — a real box
+   change on a mounted terminal, so the ResizeObserver refit xterm, resized the PTY, and forced a
+   full-screen ConPTY repaint that threw the viewport to the top of the scrollback (and, per the
+   status-tail gotcha, can evict the prompt). Keep-mounted means keep-sized. */
+.ws-max .mosaic-tile[data-max="1"] {
+  inset: 0 !important; width: 100% !important; height: 100% !important; z-index: 3;
+}
+/* Only the PAINT punch-through is scoped to the ACTIVE workspace host: `visibility: visible` on a
+   descendant overrides `visibility: hidden` on ANY ancestor, so an unscoped rule would keep an
+   inactive workspace's maximized tile painting through the hidden host — visibly bleeding under a
    transparent (e.g. brand-new empty) active workspace. Guarded by pane-actions.spec.ts. */
 [data-testid="workspace-host"][data-active="true"] .ws-max .mosaic-tile[data-max="1"] {
   visibility: visible; pointer-events: auto;
-  inset: 0 !important; width: 100% !important; height: 100% !important; z-index: 3;
 }
 
 /* Minimized-pane tray: a workspace-body sibling of the mosaic (NOT inside a tile, so it needs no
