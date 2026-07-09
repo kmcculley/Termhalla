@@ -145,3 +145,15 @@ The renderer keeps ZERO Node/Electron imports; the protocol + `remote-client` st
 TEST-2201..TEST-2280 (unit; `tests/{shared,main,renderer}/remote-*`, `tests/docs-feature-0022.test.ts`)
 + `tests/e2e/remote-workspace.spec.ts` (TEST-2272..2275, `npm run e2e` only — witnessed per
 CONV-052). The frozen-pin amendment record lives in the feature dir's `04-tests.md`.
+
+Since the 2026-07-09 quality/polish batch the **connected** path also runs in-app (the spec above
+deliberately connects to a `.invalid` host and pins only the failure surface): the env-gated
+`TERMHALLA_E2E_REMOTE_SSH` seam (`src/main/e2e-remote.ts`, structurally pinned single reader)
+routes production connects through `tests/fixtures/fake-ssh.mjs` with `--pty=fake` forced, and
+`tests/e2e/remote-connected.spec.ts` (TEST-QA01..03: provision → banner clears → live round-trip →
+connected caps) + `tests/e2e/remote-reconnect.spec.ts` (TEST-QA20..21: transport kill →
+connection-lost banner → reattach to the SAME daemon with history intact exactly once) drive the
+real agent/bridge/daemon under production wiring. Shared plumbing + the load-bearing teardown
+order live in `tests/e2e/remote-harness.ts`. That first in-app green run caught two real bugs: the
+dev artifact path doubling under entry-file launches (`services.ts` devAppRoot) and the fake
+backend's missing CR line-terminator handling.

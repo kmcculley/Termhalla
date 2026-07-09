@@ -815,3 +815,40 @@ xterm textarea had focus — no OS focus ever settles it under `hidden`, so they
 `undock.spec.ts` asserted exactly one **visible** window, which is zero under `hidden`. Assert on a
 specific window's visibility, never on a count. The tear-off drag ghost is deliberately *not* gated:
 it shows only when the drag cursor leaves every window's bounds, which a Playwright drag never does.
+
+### [2026-07-09] The connected remote stack is e2e-tested in-app through a second env-gated seam
+
+**Context:** Every layer of the remote stack was well tested in vitest — real agent/bridge/daemon
+processes over the `fake-ssh.mjs` shim — but the production composition (renderer → preload →
+`register-remote` → `RemoteWorkspaceManager` → `connectWithProvisioning`) had never once run green
+in the app: the only in-app remote spec deliberately connects to an RFC 6761 `.invalid` host, and a
+Playwright spec can reach neither a real ssh host nor the Linux-only native pty backend. Native-ssh
+(marker-less launch-override) panes had no in-app coverage at all.
+**Decision:** `TERMHALLA_E2E_REMOTE_SSH` (JSON `{program, prefixArgs}`) is read by exactly ONE
+module, `src/main/e2e-remote.ts` — the `e2e-presentation.ts` discipline, with the same structural
+test forbidding other readers across `src/main` AND `src/remote-client` — and `services.ts` spreads
+the parsed override into `connectWithProvisioning` with `ptyBackend: 'fake'` FORCED, never
+configurable. Unset (the product default), the spread is `undefined` and production connects are
+byte-identical. Marker-less panes are driven by seeding a workspace whose terminal `launch` runs a
+tiny deterministic Node fixture verbatim — the exact spawn path an SSH favorite rides, no product
+seam needed.
+**Rationale:** The shim, not a mock: the specs exercise the real out/agent bundle, real framing,
+real provisioning, and the real per-workspace daemon. The backend is forced to `fake` because a
+native backend under the harness has no Windows target and its failure mode is a silent hang, not a
+red assertion. The seam earned its keep on its first green run, catching two composition bugs
+nothing else could see: the dev artifact path doubling under entry-file launches
+(`app.getAppPath()` is `out/main` there, fixed via a bundle-derived devAppRoot), and the fake
+backend not recognizing the CR a real keyboard sends (every programmatic writer sends `\n`).
+**Measured, not assumed:** with a live daemon, `app.close()` hangs the Playwright worker's full
+teardown timeout with ZERO surviving app children — the detached daemon inherits Playwright's
+control-pipe handles down the Windows spawn chain (Electron → shim → bridge → daemon), so the
+runner never sees EOF; kill the daemon first and close() resolves in milliseconds. And
+`app.process().pid` is a launcher process, not the Electron main that spawns the wire — a
+`ParentProcessId`-filtered transport kill matches nothing; match the shim's command line. Both
+rules live in `tests/e2e/remote-harness.ts`.
+**Consequences:** `remote-connected.spec.ts`, `remote-reconnect.spec.ts`, and
+`marker-less-pane.spec.ts` pin the connected surface, daemon-reattach survival (history exactly
+once — replay, not duplication), and the marker-less status story (no busy⇄idle oscillation)
+against production wiring. The daemon's idle self-exit never arms while it holds a live pane (0024
+FINDING-027, deliberately deferred), so the harness reaps its own daemons per run — if that ledger
+item is ever fixed, the reap becomes belt-and-braces, not wrong.

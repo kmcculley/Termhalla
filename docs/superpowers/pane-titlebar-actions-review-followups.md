@@ -25,8 +25,9 @@ workspace all work and are covered by `tests/e2e/pane-actions.spec.ts` plus the 
 
 ## Deferred
 
-- **`focusedPaneId` is only set on pane mouse-down.** `Ctrl+Shift+M` (maximize the focused pane) is a
-  silent no-op in a workspace the user hasn't clicked into yet — focus isn't seeded on workspace
-  switch or initial mount. Harmless (the maximize *button* always works, and `App.tsx` guards the
-  shortcut), but the keyboard path would feel more reliable if focus were also set on tab switch / when
-  a pane mounts as the sole pane. Minor UX polish.
+- ~~**`focusedPaneId` is only set on pane mouse-down.** `Ctrl+Shift+M` (maximize the focused pane) is a
+  silent no-op in a workspace the user hasn't clicked into yet~~ — **RESOLVED 2026-07-09**
+  (quality/polish batch), via a chord-time fallback rather than focus seeding (narrower — no change
+  to focus/`paneFocusSeq` semantics): the maximize AND minimize chords now target
+  `chordPaneTarget(ws, focusedPaneId)` (`pane-ops.ts`, unit-tested) — the focused pane when it
+  belongs to the active workspace, else the workspace's first pane.

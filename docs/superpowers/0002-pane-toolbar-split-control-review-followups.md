@@ -17,16 +17,11 @@ aren't lost. Full records (claim, evidence, fix) live in
 
 ### MEDIUM
 
-- **Lost ambient recording indicator** (FINDING-DEV-001 / FINDING-UX-006,
-  `PaneToolbar.tsx` + `PaneContextMenu.tsx`). Moving Record out of the always-visible
-  toolbar (REQ-001/002) deleted the only at-a-glance cue that a terminal is actively
-  recording — the old toolbar `⏺` rendered a persistent red glyph; recording state now
-  shows *only* inside the right-click menu label ("Stop recording"). A session can record
-  indefinitely, accumulating files on disk, with zero on-screen indication. Rationale for
-  deferral: REQ-001/002 as specified mandate only the *move*, not a replacement indicator —
-  this is a spec gap (`phase_of_origin: spec`). Fix: add an unobtrusive persistent
-  indicator (e.g. a small red dot on the pane title bar / proc chip, or a `data-recording`
-  attribute styled paint-only per REQ-012).
+- ~~**Lost ambient recording indicator** (FINDING-DEV-001 / FINDING-UX-006,
+  `PaneToolbar.tsx` + `PaneContextMenu.tsx`)~~ — **RESOLVED 2026-07-09** (quality/polish batch):
+  the pane title carries a persistent `⏺ ` prefix while recording, via the unit-tested
+  `paneTitle` composer in `pane-status.ts` — the same paint-only title-text mechanism as the 🔔
+  needs-input bell (REQ-012: no box change). Pinned by `tests/renderer/pane-title.test.ts`.
 
 - **Dead `dir`/`'row'` parameter — collapse to a single SplitDir4 source of truth**
   (FINDING-QUA-001 / FINDING-QOL-001, `SplitMenu.tsx:45-47` + `store.ts`,
@@ -55,9 +50,11 @@ aren't lost. Full records (claim, evidence, fix) live in
   (verified 2026-07-07): the split trigger carries `aria-haspopup="dialog"` +
   `aria-expanded` (`PaneToolbar.tsx`).
 
-- **Disabled Explorer option has no explanation** (FINDING-UX-005, `SplitMenu.tsx:68-74`).
-  The Explorer kind is disabled when the source pane has no cwd, but nothing tells the user
-  why. Fix: add a tooltip / `aria-description` ("needs a working directory").
+- ~~**Disabled Explorer option has no explanation** (FINDING-UX-005, `SplitMenu.tsx`)~~ —
+  **RESOLVED 2026-07-09** (quality/polish batch): every disabled split-kind cause now carries a
+  reason in both the accessible name and the hover `title` ("needs a folder — this pane has no
+  known working directory yet"; the orky causes got titles too, keeping their pinned aria-label
+  wording byte-identical).
 
 ### LOW
 
@@ -68,11 +65,9 @@ aren't lost. Full records (claim, evidence, fix) live in
   anchor-via-testid coupling (the RefObject alternative) remains the accepted repo-wide popover
   anchoring pattern — revisit only if it's changed for all anchored popovers at once.
 
-- **Split button still shows the `⬌` glyph** (FINDING-QOL-002, `PaneToolbar.tsx:55`). The
-  single combined button still renders the old left-right double-arrow, signalling a
-  horizontal-only split and undercutting discoverability of the four-way compass. The
-  tooltip was updated; the visible glyph was not. Fix: use a multi-directional / "split
-  menu" glyph (e.g. `✛`, `⊞`, a compass/plus icon), paint-only per REQ-012.
+- ~~**Split button still shows the `⬌` glyph** (FINDING-QOL-002, `PaneToolbar.tsx`)~~ —
+  **RESOLVED 2026-07-09** (quality/polish batch): the trigger now renders `✛` (four-way),
+  paint-only per REQ-012.
 
 - ~~**Magic anchor offset `r.right - 168`** (FINDING-QOL-003)~~ — **RESOLVED since**
   (verified 2026-07-07): the anchor math derives from the named, documented `EST_W`/`EST_H`

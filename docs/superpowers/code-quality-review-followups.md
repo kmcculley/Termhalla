@@ -174,8 +174,10 @@ behavior-preserving changes (pure extractions TDD-covered, +13 new unit tests;
 
 - **`proc-tree.buildProcInfo` builds `childrenMap(rows)` twice** per poll
   (in `descendantsOf` and `pickForeground`); build once and pass `byParent` down.
-- **`buildPaletteItems` favorite dedup is case-sensitive** while `nextRecentDirs`
-  dedups via `normDir` — on Windows a dir can appear as both favorite and recent.
+- ~~**`buildPaletteItems` favorite dedup is case-sensitive** while `nextRecentDirs`
+  dedups via `normDir` — on Windows a dir can appear as both favorite and recent.~~
+  **RESOLVED 2026-07-09** (quality/polish batch): one exported `sameDir` comparator
+  (`shared/quick.ts`) now backs the palette merge and `pinDir`/`unpinDir`.
 - ~~**`deserializeWorkspace` lets a raw `JSON.parse` `SyntaxError` escape.**~~
   **Resolved** (review #4, `283ce0f`): the parse is wrapped into a friendly
   "Invalid workspace file: not valid JSON" error.

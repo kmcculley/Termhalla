@@ -78,7 +78,9 @@ Per-terminal config is persisted on `TerminalConfig.alerts` (`AlertConfig`); abs
 - **needs-input mute** is applied in one place: `effectiveStatus` downgrades needs-input → busy before storage when a terminal's `needsInput` toggle is off, so all consumers (border, tab badge, notification) see the effective state.
 - **OS notifications** fire only on the idle→needs-input *transition*, only when the window is unfocused, and only if `osNotification` is enabled; clicking shows + focuses the window.
 - **Change-debounced emit:** `StatusEngine.emit` only calls `onStatus` when the `state|lastExit` key changes, so steady busy output produces no IPC churn.
-- **Known limitation (M-1, deferred):** the 🔔 title prefix rides the needs-input channel, gated on `state === 'needs-input'`, not on `alerts.border`; muting only the border still shows the title bell. See [phase2 review follow-ups](../superpowers/phase2-review-followups.md).
+- **Title bell vs border mute (M-1, decided 2026-07-09):** the 🔔 title prefix deliberately rides the needs-input channel — it is suppressed by the per-pane `needsInput` alert toggle (via `effectiveStatus` above), never by `border`, which governs only the border paint. See [phase2 review follow-ups](../superpowers/phase2-review-followups.md).
+- **Question catch-all (fixed 2026-07-09, baseline known bug #2):** the input-prompt catch-all is `/\?\s*$/` — a last line ending in `?` needs no trailing space to flip needs-input (TUIs commonly park the cursor right after the `?`). Mid-line questions still don't match (the pattern set applies to the tail's last non-blank line only).
+- **Marker-less status has an in-app e2e now:** `tests/e2e/marker-less-pane.spec.ts` drives a genuinely marker-less launch-override pane (the exact path an `ssh` favorite rides) through busy→idle, oscillation-absence sampling, needs-input on a `[y/N]` tail, and exit.
 - **Known limitation (M-3, deferred):** the bash DEBUG trap can emit a stray `C` during prompt rendering (a brief busy flicker, immediately cleared by the next `A`); contained to bash.
 
 ## Testing

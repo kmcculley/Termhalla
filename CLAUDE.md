@@ -57,6 +57,19 @@ npm run package      # build + pack a Windows NSIS installer + latest.yml into d
     (`undock.spec.ts` did, and broke). Assert on a specific window's visibility instead. Likewise,
     `hidden` is slower to settle: focus the terminal with a `.xterm-screen` click before typing, and
     don't assume a rotating widget still shows the frame you saw a moment ago.
+- **Remote/ssh integration e2e rides a second env-gated seam.** `TERMHALLA_E2E_REMOTE_SSH`
+  (JSON `{program, prefixArgs}`, read ONLY by `src/main/e2e-remote.ts` — same structural-test
+  discipline as the presentation gate; `services.ts` spreads it into `connectWithProvisioning`
+  with the fake pty backend FORCED) routes in-app remote connects through
+  `tests/fixtures/fake-ssh.mjs`, so `remote-connected` / `remote-reconnect` / `marker-less-pane`
+  specs drive the REAL agent bundle, bridge, and per-workspace daemon as local child processes —
+  no network, no native pty. Unset ⇒ production connects byte-identical. Two hard-won rules live
+  in `tests/e2e/remote-harness.ts`: (1) reap the detached daemon BEFORE `app.close()` — on Windows
+  it inherits Playwright's control-pipe handles down the spawn chain, so close() hangs the
+  worker's full teardown timeout while the daemon lives (its idle self-exit never arms with a live
+  pane, 0024 FINDING-027); (2) never target the transport child by `ParentProcessId` of
+  `app.process().pid` — that pid is a launcher, not the Electron main that spawns the wire; match
+  the shim's command line instead.
 
 ## Architecture in one breath
 

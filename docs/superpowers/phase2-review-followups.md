@@ -9,11 +9,12 @@ The items below were judged minor and deferred. Recorded so they aren't lost.
 
 ## Minor follow-ups
 
-- **Pane-title needs-input bell ignores the `border` toggle (M-1).**
-  `WorkspaceView.tsx` gates the `🔔 ` title prefix on `state === 'needs-input'` only,
-  not on `alerts.border`. Muting the border still shows the title bell. Defensible
-  (the bell rides the needs-input channel, not the border channel), but decide
-  deliberately or gate it on `alerts.border` if undesired.
+- ~~**Pane-title needs-input bell ignores the `border` toggle (M-1).**~~ — **DECIDED 2026-07-09**
+  (quality/polish batch): intended behavior, kept. The bell rides the needs-input CHANNEL — it is
+  already suppressed by the per-pane `needsInput` alert toggle (`effectiveStatus` downgrades the
+  state before the tile ever sees it), while `border` governs only the border paint. Muting the
+  border for aesthetics must not silently remove the attention affordance; users who want no bell
+  turn off the needs-input alert itself.
 
 - ~~**`AppState.schemaVersion` hardcoded to 1 and unvalidated (M-2, carries over from
   Phase 1 M-4).**~~ **RESOLVED** (verified 2026-07-07): app-state now versions on the shared

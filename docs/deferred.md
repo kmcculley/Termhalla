@@ -45,8 +45,11 @@ first understanding which of the two it is.
 
 ## Known bugs recorded elsewhere
 
-`.orky/baseline/architecture.md` records four confirmed known bugs as candidate Orky features.
-One of them — the whitespace-strict `CURSOR_HOME_RE` catch-all (#4) — **widened** on 2026-07-08:
+`.orky/baseline/architecture.md` records four confirmed known bugs as candidate Orky features;
+**#2 (the whitespace-strict needs-input question catch-all) was FIXED 2026-07-09** in the
+quality/polish batch (see the baseline's own entry for the audit trail), leaving #1 (unanchored
+AI-detection substrings), #3 (merge-conflict count), and #4 open.
+One of them — the cursor-home `CURSOR_HOME_RE` catch-all (#4) — **widened** on 2026-07-08:
 because a marker-less pane's busy rule now also sits behind `isPureControl`, a full-screen TUI over
 ssh whose frames begin with cursor-home (`top`, `vim`) reads *idle* rather than flapping. That was
 the deliberate trade over an oscillating pane; see

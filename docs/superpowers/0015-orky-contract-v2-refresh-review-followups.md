@@ -67,18 +67,11 @@ is release-blocking; none is a contract violation.
   once per located path per process lifetime)" — no code change, the binding decision keeps the
   cache.
 
-- **The sibling escalation row still has both defect classes the finding-row fix (FINDING-001/003)
-  just closed** (FINDING-017, ux, `src/renderer/components/OrkyPane.tsx:258-267`). The
-  resolved-escalation `— decision: …` affix — the very precedent amended REQ-110 cites for the
-  finding row's fix — still (a) mirrors only `esc.reason` into the row `title`, so a long reason on
-  the nowrap/ellipsis row clips the ENTIRE decision affix with no hover fallback, and (b) guards
-  only on `decision !== null`, so an empty-string decision renders a dangling `— decision:` label.
-  This predates 0015 (it is 0009/0010-era behavior) and was out of this feature's scope (REQ-110
-  names only the finding row), but the descent now leaves two adjacent rows in the same expanded
-  pane behaving inconsistently for the identical clipping/empty-string scenario. **Recommended
-  fix:** apply the finding-row pattern (CONV-057) to the escalation row: guard on
-  `decision !== null && decision !== ''`, compose the affix once, and mirror `reason + affix` into
-  the row `title` whenever the affix renders.
+- ~~**The sibling escalation row still has both defect classes the finding-row fix (FINDING-001/003)
+  just closed** (FINDING-017, ux, `src/renderer/components/OrkyPane.tsx`)~~ — **RESOLVED
+  2026-07-09** (quality/polish batch), exactly as recommended: the escalation row now applies the
+  finding-row pattern (CONV-057) — guards on `decision !== null && decision !== ''`, composes the
+  affix once, and mirrors `reason + affix` into the row `title` whenever the affix renders.
 
 ## Promoted to conventions
 

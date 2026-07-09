@@ -213,12 +213,13 @@ fix's tests-phase update is the auditable record of the intended change.
    substring — e.g. a directory named `claude-codebase` or `my-claude-code-notes` — would be classified
    as a live Claude session. The `.exe/.cmd/.bat/.ps1`-only guard protects the bare-`claude` alternative
    but not these. *Fix touches REQ-011 / CHAR-008.*
-2. **[KNOWN BUG — confirmed]** **Generic input-prompt catch-all is whitespace-strict**
-   (`status/needs-input.ts`, `DEFAULT_NEEDS_INPUT_PATTERNS`). The fallback pattern `/\?\s$/` requires the
-   line to end in `?` *followed by exactly one whitespace char*. A question-style prompt ending in `?`
-   with **no** trailing space (common — the cursor sits right after `?`) is not matched by the catch-all
-   and only caught if it also matches a specific pattern (`continue?`, `[y/n]`, …). Such prompts may not
-   flip to `needs-input`. *Fix touches REQ-005 / CHAR-002.*
+2. **[KNOWN BUG — FIXED 2026-07-09]** ~~**Generic input-prompt catch-all is whitespace-strict**~~
+   (`status/needs-input.ts`, `DEFAULT_NEEDS_INPUT_PATTERNS`). The fallback pattern was `/\?\s$/` —
+   a question-style prompt ending in `?` with **no** trailing space (common — the cursor sits right
+   after `?`) never matched the catch-all and could wedge busy. Fixed in the 2026-07-09
+   quality/polish batch (user-directed, outside the Orky pipeline): the pattern is now `/\?\s*$/`,
+   pinned by new cases in `tests/main/needs-input.test.ts`. CHAR-002 needed no amendment — it never
+   pinned the negative case (verified green post-fix); this note is the auditable record.
 3. **[KNOWN BUG — confirmed]** **Merge-conflict (`u`) entries are counted only as `unstaged`**
    (`git/parse-status.ts`). A porcelain-v2 unmerged entry increments `unstaged` but never `staged`, and
    there is no distinct conflict count, so a repo mid-merge underreports staged changes and surfaces no

@@ -7,6 +7,25 @@ All notable changes to Termhalla are recorded here. The format follows
 ## [Unreleased]
 
 ### Added
+- **In-app remote/ssh integration e2e harness.** The connected remote-workspace surface finally
+  runs end-to-end in the real app: a new env-gated seam (`TERMHALLA_E2E_REMOTE_SSH`, read only by
+  `src/main/e2e-remote.ts` — the `e2e-presentation.ts` discipline, structurally pinned) routes
+  `connectWithProvisioning` through the vitest suites' `tests/fixtures/fake-ssh.mjs` shim with the
+  fake pty backend FORCED, so a Playwright spec drives the REAL out/agent bundle, bridge, and
+  per-workspace daemon as local processes — no network, no native pty. Three new specs:
+  `remote-connected.spec.ts` (single-gesture create → provision → banner clears → live echo/resize
+  round-trip → connected capability set), `remote-reconnect.spec.ts` (kill the transport process →
+  connection-lost banner → Reconnect reattaches the SAME daemon with history intact exactly once),
+  and `marker-less-pane.spec.ts` (a genuinely marker-less launch-override pane — the native-ssh
+  status path: busy→idle progression, no busy⇄idle oscillation, needs-input on a `[y/N]` tail,
+  clean exit). Unset, the seam is inert — production connects are byte-identical. Teardown order
+  is load-bearing and documented in `tests/e2e/remote-harness.ts` (the detached daemon inherits
+  Playwright's control-pipe handles on Windows and must be reaped before `app.close()`).
+- **Recording indicator restored.** Since Record moved into the right-click menu, a session could
+  record to disk indefinitely with zero on-screen cue (0002 FINDING-DEV-001/UX-006). The pane
+  title now carries a persistent `⏺ ` prefix while recording (paint-only — the toolbar box never
+  changes; the 🔔 needs-input bell's mechanism, via the new unit-tested `paneTitle` composer).
+
 - **Clean copy — normalize terminal text on copy.** Copying from a TUI (e.g. Claude Code) used to
   drag in the wrapping and whitespace the app painted into the terminal grid: a paragraph the TUI
   soft-wrapped at the pane width arrives with a hard newline at every visual row, and stray blank
@@ -549,6 +568,39 @@ All notable changes to Termhalla are recorded here. The format follows
   failure feedback is never silenced.
 
 ### Fixed
+- **Dev remote connects resolved the agent artifact to a doubled path.** `app.getAppPath()` is the
+  repo root only when Electron is launched with the app directory; launched by entry file
+  (`electron out/main/index.js` — the e2e convention, and a dev-mode shape) it is `out/main`, so
+  provisioning looked for `out/main/out/agent/termhalla-agent.cjs` and failed with ENOENT. The
+  artifact/prebuilt resolvers now get a bundle-derived dev app root (`services.ts` devAppRoot).
+  Caught by the new connected-workspace e2e the first time the green path ran in-app.
+- **The fake pty backend never ran a command typed at a real keyboard.** xterm sends CR (`\r`) on
+  Enter; the backend's line parser recognized only `\n` (every vitest writer sends `\n`), so an
+  in-app keystroke round-trip against `--pty=fake` silently did nothing. The scripted-command
+  contract now accepts `\n`, `\r`, and `\r\n` (frozen suites untouched, new CR pins added).
+- **A question prompt with no trailing space never flipped needs-input** (baseline KNOWN BUG #2,
+  `needs-input.ts`). The catch-all pattern was whitespace-strict (`/\?\s$/`), so a TUI prompt whose
+  cursor sits directly after the `?` wedged the pane in busy until the hard-idle fallback misread
+  it as done. Now `/\?\s*$/` — mid-line questions still don't match.
+- **`Ctrl+Shift+M` / minimize chord were silent no-ops before the first click in a workspace.**
+  `focusedPaneId` is only seeded on pane mouse-down; the maximize/minimize chords now fall back to
+  the workspace's first pane (new `chordPaneTarget` helper) instead of doing nothing on fresh boot
+  or after a tab switch.
+- **The Orky pane chip clipped its most actionable tail first.** The fixed-width chip end-ellipsized
+  the whole `feature · phase · gate N/M · ●k open` label, hiding the gate progress and open count
+  while always keeping the slug (0004 FINDING-UX-004). The slug now shrink-clips in its own span;
+  the tail never shrinks, and the full label mirrors into the hover title.
+- **Favorite vs recent directory dedup was case-sensitive.** On Windows the same dir could appear
+  twice in the palette (a favorite plus a differently-cased/trailing-slashed recent), and pin/unpin
+  compared verbatim strings. One `sameDir` comparator now backs all three sites.
+- **The split button read as horizontal-only.** It kept the old `⬌` glyph after the 4-way compass
+  shipped (0002 FINDING-QOL-002); now `✛`.
+- **A disabled split kind explains itself.** The Explorer option greyed with no reason when the
+  pane had no known working directory (0002 FINDING-UX-005); every disabled cause now carries both
+  an accessible name and a hover title.
+- **A resolved escalation row's decision was clipped and could dangle.** The Orky pane's escalation
+  row now mirrors the `— decision:` affix into its hover title and renders no dangling label for an
+  empty-string decision (0015 FINDING-017 — the finding row's earlier fix, applied to its sibling).
 - **A maximized terminal no longer jumps to the top of its scrollback when you switch workspaces.**
   The maximized tile's fill (`inset`/`width`/`height` `!important`, which overrides react-mosaic's
   inline tile geometry) was declared in the same CSS rule as the `visibility: visible` punch-through
