@@ -70,6 +70,11 @@ export const RECENT_CONN_CAP = 20
 
 const normDir = (p: string): string => p.replace(/[\\/]+$/, '').toLowerCase()
 
+/** Directory identity for favorites/recents: case- and trailing-slash-insensitive (Windows
+ *  paths). ONE comparator for every dir-dedup site — pinDir/unpinDir and the palette merge used
+ *  to compare verbatim strings, so the same dir could appear twice (favorite + recent). */
+export const sameDir = (a: string, b: string): boolean => normDir(a) === normDir(b)
+
 /** MRU for directories: skip empty + the home dir, de-dupe case/trailing-slash-insensitively.
  *  The most recent visited form wins — `dir` is stored verbatim, replacing any prior casing. */
 export function nextRecentDirs(
@@ -116,7 +121,7 @@ export function buildPaletteItems(q: QuickStore, currentCwd: string): PaletteIte
     items.push({ kind: 'dir', path: d, favorite: true, search: d.toLowerCase() })
   }
   for (const d of q.recentDirs) {
-    if (q.favoriteDirs.includes(d)) continue
+    if (q.favoriteDirs.some(f => sameDir(f, d))) continue
     items.push({ kind: 'dir', path: d, favorite: false, search: d.toLowerCase() })
   }
 

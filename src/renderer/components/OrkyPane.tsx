@@ -255,18 +255,27 @@ export function OrkyPane(
                 </div>
               )
             })}
-            {f.escalations.map((esc, i) => (
-              <div key={esc.id ?? `escalation-${i}`} data-testid="orky-pane-escalation"
-                data-escalation-id={esc.id ?? ''} title={esc.reason}
-                style={{ fontSize: 11, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                <span style={{ fontWeight: 600 }}>{esc.id ?? '(no id)'}</span>{' '}
-                <span style={{ color: 'var(--fg-dim, #aaa)' }}>{esc.status ?? ''}</span>{' '}
-                <span>{esc.reason}</span>
-                {esc.status === 'resolved' && esc.decision !== null && (
-                  <span style={{ color: 'var(--fg-dim, #aaa)' }}> — decision: {esc.decision}</span>
-                )}
-              </div>
-            ))}
+            {f.escalations.map((esc, i) => {
+              // The finding row's resolved-affix idiom, applied to its sibling (0015 FINDING-017):
+              // the affix is composed ONCE and mirrored into `title` (a clipped nowrap/ellipsis
+              // row stays fully reachable on hover), and an empty-string decision renders no
+              // dangling `— decision:` label.
+              const showDecision = esc.status === 'resolved' && esc.decision !== null && esc.decision !== ''
+              const decisionAffix = showDecision ? ` — decision: ${esc.decision}` : ''
+              const rowTitle = showDecision ? `${esc.reason}${decisionAffix}` : esc.reason
+              return (
+                <div key={esc.id ?? `escalation-${i}`} data-testid="orky-pane-escalation"
+                  data-escalation-id={esc.id ?? ''} title={rowTitle}
+                  style={{ fontSize: 11, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  <span style={{ fontWeight: 600 }}>{esc.id ?? '(no id)'}</span>{' '}
+                  <span style={{ color: 'var(--fg-dim, #aaa)' }}>{esc.status ?? ''}</span>{' '}
+                  <span>{esc.reason}</span>
+                  {showDecision && (
+                    <span style={{ color: 'var(--fg-dim, #aaa)' }}>{decisionAffix}</span>
+                  )}
+                </div>
+              )
+            })}
           </div>
         )}
       </div>

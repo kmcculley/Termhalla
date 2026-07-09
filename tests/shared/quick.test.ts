@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { buildSshArgs, tmuxOptionCommands, pushRecent, nextRecentDirs, buildPaletteItems, filterPaletteItems } from '@shared/quick'
+import { buildSshArgs, tmuxOptionCommands, pushRecent, nextRecentDirs, sameDir, buildPaletteItems, filterPaletteItems } from '@shared/quick'
 import type { SshConnection } from '@shared/types'
 import type { QuickStore } from '@shared/types'
 
@@ -122,6 +122,13 @@ describe('pushRecent', () => {
   })
 })
 
+describe('sameDir', () => {
+  it('compares case- and trailing-slash-insensitively', () => {
+    expect(sameDir('C:\\Proj\\', 'c:\\proj')).toBe(true)
+    expect(sameDir('C:\\a', 'C:\\ab')).toBe(false)
+  })
+})
+
 describe('nextRecentDirs', () => {
   const home = 'C:\\Users\\kev'
   it('prepends a visited dir and de-dupes case-insensitively', () => {
@@ -162,6 +169,13 @@ describe('buildPaletteItems', () => {
       { kind: 'dir', path: 'C:\\proj', favorite: true, search: 'c:\\proj' },
       { kind: 'dir', path: 'C:\\work', favorite: false, search: 'c:\\work' }
     ])
+  })
+  it('de-dupes a recent against a favorite case/trailing-slash-insensitively (Windows paths)', () => {
+    // The recents MRU already dedupes with normDir, but the favorites-vs-recents filter compared
+    // verbatim strings — on Windows the same dir showed twice (favorite + differently-cased recent).
+    const q = { ...quick, favoriteDirs: ['C:\\Proj'], recentDirs: ['c:\\proj\\', 'C:\\work'] }
+    const dirs = buildPaletteItems(q, '').filter(i => i.kind === 'dir') as { path: string }[]
+    expect(dirs.map(d => d.path)).toEqual(['C:\\Proj', 'C:\\work'])
   })
   it('always offers New SSH connection, and Pin only when a cwd is known', () => {
     const withCwd = buildPaletteItems(quick, 'C:\\cwd').filter(i => i.kind === 'action')

@@ -1,5 +1,5 @@
 import { v4 as uuid } from 'uuid'
-import { buildSshArgs, pushRecent, RECENT_CONN_CAP } from '@shared/quick'
+import { buildSshArgs, pushRecent, sameDir, RECENT_CONN_CAP } from '@shared/quick'
 import { templateFromWorkspace, workspaceFromTemplate } from '@shared/workspace-model'
 import { firstTarget, defaultShellId } from './pane-ops'
 import type { State, SliceDeps } from './types'
@@ -59,13 +59,13 @@ export function createQuickSlice({ set, get, scheduleQuickSave, commitPane, regi
 
     pinDir: (dir) => {
       const q = get().quick
-      if (!dir || q.favoriteDirs.includes(dir)) return
+      if (!dir || q.favoriteDirs.some(f => sameDir(f, dir))) return
       set(s => ({ quick: { ...s.quick, favoriteDirs: [...s.quick.favoriteDirs, dir] } }))
       scheduleQuickSave()
     },
 
     unpinDir: (dir) => {
-      set(s => ({ quick: { ...s.quick, favoriteDirs: s.quick.favoriteDirs.filter(d => d !== dir) } }))
+      set(s => ({ quick: { ...s.quick, favoriteDirs: s.quick.favoriteDirs.filter(d => !sameDir(d, dir)) } }))
       scheduleQuickSave()
     },
 

@@ -72,6 +72,16 @@ describe('computeNeedsInput', () => {
     expect(computeNeedsInput(11000, 'compiled ok\nProceed? [y/N] ', cfg())).toBe(true)
     expect(computeNeedsInput(11000, 'Proceed? [y/N] \nnevermind, more logs', cfg())).toBe(false)
   })
+  // KNOWN BUG #2 (baseline architecture.md): the question catch-all was whitespace-strict
+  // (`/\?\s$/`), so a prompt whose cursor sits directly after the `?` never flipped needs-input
+  // and the pane wedged in busy until the hard-idle fallback misread it as done.
+  it('fires on a question prompt with NO trailing space', () => {
+    expect(computeNeedsInput(11000, 'Are you sure you want to proceed?', cfg())).toBe(true)
+    expect(computeNeedsInput(11000, 'Delete 3 files?\n', cfg())).toBe(true) // blank tail lines skipped
+  })
+  it('still ignores a question mid-line', () => {
+    expect(computeNeedsInput(11000, 'what? more logs follow', cfg())).toBe(false)
+  })
 })
 
 describe('looksLikePrompt', () => {

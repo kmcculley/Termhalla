@@ -24,6 +24,7 @@ import { RemoteAgentPicker } from './components/RemoteAgentPicker'
 import { ReopenWorkspaceModal } from './components/ReopenWorkspaceModal'
 import { SearchHistory } from './components/SearchHistory'
 import { matchShortcut, resolveBindings } from '@shared/keymap'
+import { chordPaneTarget } from './store/pane-ops'
 import { closeWorkspaceConfirmText } from '@shared/remote-home'
 import { redrawPane } from './components/terminal-registry'
 import { focusProjectPane, revealQueueGroup } from './components/pane-reveal'
@@ -160,14 +161,17 @@ export default function App() {
         case 'prev-workspace': if (order.length) s.setActive(order[(idx - 1 + order.length) % order.length]); break
         case 'jump-workspace': if (order[sc.index]) s.setActive(order[sc.index]); break
         case 'open-settings': s.openSettings({ section: 'general' }); break
+        // chordPaneTarget: the focused pane when it's in THIS workspace, else the first pane —
+        // focusedPaneId is only seeded on mouse-down, so the chord must not be a silent no-op
+        // in a workspace the user hasn't clicked into yet (or after a tab switch).
         case 'toggle-maximize-pane': {
-          const pane = s.focusedPaneId
-          if (pane && activeId && s.workspaces[activeId]?.panes[pane]) s.toggleMaximize(activeId, pane)
+          const pane = chordPaneTarget(activeId ? s.workspaces[activeId] : undefined, s.focusedPaneId)
+          if (pane && activeId) s.toggleMaximize(activeId, pane)
           break
         }
         case 'toggle-minimize-pane': {
-          const pane = s.focusedPaneId
-          if (pane && activeId && s.workspaces[activeId]?.panes[pane]) s.toggleMinimize(activeId, pane)
+          const pane = chordPaneTarget(activeId ? s.workspaces[activeId] : undefined, s.focusedPaneId)
+          if (pane && activeId) s.toggleMinimize(activeId, pane)
           break
         }
         case 'toggle-notes': s.setNotesOpen(!s.notesOpen); break

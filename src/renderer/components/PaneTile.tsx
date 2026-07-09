@@ -17,7 +17,7 @@ import { RunCommandsMenu } from './RunCommandsMenu'
 import { SplitMenu } from './SplitMenu'
 import { OrkyPopover } from './OrkyPopover'
 import { setTileSize, clearTileSize } from './pane-geometry'
-import { paneBorderStatus } from './pane-status'
+import { paneBorderStatus, paneTitle } from './pane-status'
 
 export type PaneMenu = 'proc' | 'cwd' | 'schedule' | 'git' | 'run' | 'split' | 'orky'
 
@@ -35,6 +35,7 @@ export function PaneTile({ wsId, paneId, path }: { wsId: string; paneId: string;
   const cwd = useStore(s => paneCwd(s, paneId))
   const gitStatus = useStore(s => s.gitStatus[paneId])
   const orky = useStore(s => s.orky[paneId])
+  const recording = useStore(s => !!s.recording[paneId])
   const shells = useStore(s => s.shells)
   const isMax = useStore(s => s.maximized[wsId] === paneId)
   const setFocusedPane = useStore(s => s.setFocusedPane)
@@ -76,7 +77,7 @@ export function PaneTile({ wsId, paneId, path }: { wsId: string; paneId: string;
   const statusClass = alerts.border ? `term-status term-${state}${failed ? ' term-failure' : ''}` : ''
   const needsInput = state === 'needs-input'
   const baseName = pane?.config.name ?? pane?.config.kind ?? 'Pane'
-  const title = (needsInput ? '🔔 ' : '') + baseName
+  const title = paneTitle(baseName, { needsInput, recording })
 
   // Maximize: mark this pane's mosaic tile so CSS can fill it and hide siblings. The attribute is
   // not React-managed, so it survives react-mosaic re-renders; !important CSS overrides the inline

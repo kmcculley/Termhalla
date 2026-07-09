@@ -2,6 +2,7 @@ import { useStore } from '../store'
 import { api } from '../api'
 import type { GitStatus, OrkyPaneStatus } from '@shared/types'
 import { resolveBindings, formatChord } from '@shared/keybindings'
+import { splitChipLabel } from './pane-status'
 import type { PaneMenu } from './PaneTile'
 
 /** The MosaicWindow toolbar for one pane: the process/usage chip, per-terminal action buttons, the
@@ -42,12 +43,22 @@ export function PaneToolbar(
           <button type="button" data-testid={`proc-chip-${paneId}`} title="Running process"
             style={{ maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
             onClick={() => toggle('proc')}>{chipText}</button>
-          {orky && orky.chipFeature && (
-            <button type="button" data-testid={`orky-chip-${paneId}`} title="Orky pipeline status"
-              data-needs-human={orky.needsHuman ? '' : undefined} data-failed={orky.failed ? '' : undefined}
-              style={{ maxWidth: 240, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
-              onClick={() => toggle('orky')}>{orky.needsHuman ? '🔔 ' : ''}{orky.label}</button>
-          )}
+          {orky && orky.chipFeature && (() => {
+            // Shrink-clip the SLUG span, never the actionable tail (` · phase · N/M · ●k open`) —
+            // a whole-button end-ellipsis hid the at-a-glance signal first (FINDING-UX-004).
+            // Paint/flow only inside the button: its box (and the toolbar's) is unchanged.
+            const { slug, tail } = splitChipLabel(orky.label, orky.chipFeature)
+            return (
+              <button type="button" data-testid={`orky-chip-${paneId}`} title={`Orky pipeline status — ${orky.label}`}
+                data-needs-human={orky.needsHuman ? '' : undefined} data-failed={orky.failed ? '' : undefined}
+                style={{ maxWidth: 240, display: 'inline-flex', alignItems: 'baseline', whiteSpace: 'nowrap', overflow: 'hidden' }}
+                onClick={() => toggle('orky')}>
+                {orky.needsHuman && <span style={{ flexShrink: 0 }}>🔔&nbsp;</span>}
+                <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', minWidth: 0 }}>{slug}</span>
+                {tail && <span style={{ flexShrink: 0 }}>{tail}</span>}
+              </button>
+            )
+          })()}
           <button type="button" data-testid={`run-chip-${paneId}`} title="Run commands"
             onClick={() => toggle('run')}>▷</button>
           <button type="button" data-testid={`schedule-chip-${paneId}`} title="Schedule a command"

@@ -24,6 +24,18 @@ export function firstTarget(ws: Workspace): string | null {
   return ws.layout ? Object.keys(ws.panes)[0] : null
 }
 
+/** The pane a pane-scoped chord (Ctrl+Shift+M maximize / minimize) targets: the focused pane when
+ *  it belongs to this workspace, else the workspace's first pane. `focusedPaneId` is only seeded
+ *  on pane mouse-down, so before the first click in a workspace (fresh boot, tab switch) it is
+ *  null or points into ANOTHER workspace — the chord used to be a silent no-op in both cases. */
+export function chordPaneTarget(
+  ws: Workspace | undefined, focusedPaneId: string | null
+): string | null {
+  if (!ws) return null
+  if (focusedPaneId && ws.panes[focusedPaneId]) return focusedPaneId
+  return firstTarget(ws)
+}
+
 /** Add a pane of `kind` to `wsId`, splitting off its first existing pane. No-ops for a missing
  *  workspace; the explorer branch prompts for a folder first (and skips if cancelled), and the
  *  orky branch (feature 0009, REQ-004) prompts through its OWN injected, api-free root-picker

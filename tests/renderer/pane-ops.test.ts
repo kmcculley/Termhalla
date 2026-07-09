@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { defaultShellId, firstTarget, dispatchAddPane, type PaneActions } from '../../src/renderer/store/pane-ops'
+import { defaultShellId, firstTarget, chordPaneTarget, dispatchAddPane, type PaneActions } from '../../src/renderer/store/pane-ops'
 
 const ws = (over: Record<string, unknown> = {}) =>
   ({ id: 'w', name: 'W', layout: null, panes: {}, ...over }) as never
@@ -22,6 +22,23 @@ describe('firstTarget', () => {
   })
   it('is the first pane id when a layout exists', () => {
     expect(firstTarget(ws({ layout: 'p1', panes: { p1: {}, p2: {} } }))).toBe('p1')
+  })
+})
+
+describe('chordPaneTarget', () => {
+  const w = ws({ layout: 'p1', panes: { p1: {}, p2: {} } })
+  it('targets the focused pane when it belongs to the workspace', () => {
+    expect(chordPaneTarget(w, 'p2')).toBe('p2')
+  })
+  it('falls back to the first pane before any click seeds focus (the Ctrl+Shift+M no-op)', () => {
+    expect(chordPaneTarget(w, null)).toBe('p1')
+  })
+  it('falls back when the focused pane belongs to ANOTHER workspace (stale after tab switch)', () => {
+    expect(chordPaneTarget(w, 'other-ws-pane')).toBe('p1')
+  })
+  it('is null for a missing or empty workspace', () => {
+    expect(chordPaneTarget(undefined, 'p1')).toBeNull()
+    expect(chordPaneTarget(ws({ layout: null }), null)).toBeNull()
   })
 })
 

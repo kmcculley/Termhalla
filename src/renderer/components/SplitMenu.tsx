@@ -46,11 +46,12 @@ export function SplitMenu(
   // registry error (no snapshot) names that third state rather than mis-describing either.
   const registryLoading = useStore(s => s.registrySnapshot === null && s.registryError === null)
   const registryFailed = useStore(s => s.registrySnapshot === null && s.registryError !== null)
-  const orkyDisabledName = registryLoading
-    ? 'Orky (waiting: tracked Orky projects are still loading…)'
+  const orkyReason = registryLoading
+    ? 'waiting: tracked Orky projects are still loading…'
     : registryFailed
-      ? 'Orky (disabled: the tracked Orky projects could not be read)'
-      : 'Orky (disabled: no tracked Orky project yet — open a terminal in a project containing .orky/ to track one)'
+      ? 'disabled: the tracked Orky projects could not be read'
+      : 'disabled: no tracked Orky project yet — open a terminal in a project containing .orky/ to track one'
+  const orkyDisabledName = `Orky (${orkyReason})`
   const cwd = useStore(s => paneCwd(s, paneId))
   // Remote capability gates (feature 0022, REQ-017): editor/explorer ride the fs domain, the orky
   // kind rides the orky domain — in a remote-home workspace they are DISABLED (not hidden) with an
@@ -153,11 +154,22 @@ export function SplitMenu(
   const remoteGated = (k: Kind): boolean =>
     ((k === 'editor' || k === 'explorer') && !fsAllowed) || (k === 'orky' && !orkyDomainAllowed)
   const remoteReason = (k: Kind): string => (k === 'orky' ? orkyDomainReason : fsReason)
+  // EVERY disabled cause carries a reason, in both the accessible name and the hover title —
+  // the explorer's no-cwd disable used to be a bare greyed button (FINDING-UX-005): nothing told
+  // the user it just needs a pane with a known working directory.
+  const explorerNoCwdReason = 'needs a folder — this pane has no known working directory yet'
+  const localReason = (k: Kind): string =>
+    k === 'explorer' && !cwd ? explorerNoCwdReason
+      : k === 'orky' && !hasOrkyMember ? orkyReason
+        : ''
   const kindButton = (k: Kind) => (
     <button key={k} type="button" data-testid={`split-kind-${k}-${paneId}`}
       aria-pressed={kind === k}
-      aria-label={remoteGated(k) ? `${KIND_LABEL[k]} (disabled: ${remoteReason(k)})` : k === 'orky' && !hasOrkyMember ? orkyDisabledName : KIND_LABEL[k]}
-      title={remoteGated(k) ? remoteReason(k) : undefined}
+      aria-label={remoteGated(k) ? `${KIND_LABEL[k]} (disabled: ${remoteReason(k)})`
+        : k === 'orky' && !hasOrkyMember ? orkyDisabledName
+          : k === 'explorer' && !cwd ? `Explorer (disabled: ${explorerNoCwdReason})`
+            : KIND_LABEL[k]}
+      title={remoteGated(k) ? remoteReason(k) : (localReason(k) || undefined)}
       disabled={remoteGated(k) || (k === 'explorer' && !cwd) || (k === 'orky' && !hasOrkyMember)}
       onClick={() => setKind(k)}
       style={{

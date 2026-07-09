@@ -13,7 +13,10 @@ export const DEFAULT_NEEDS_INPUT_PATTERNS: RegExp[] = [
   /\(yes\/no\)\s*[:?]?\s*$/i,
   /press any key/i,
   /continue\?\s*$/i,
-  /\?\s$/
+  // The question catch-all: a last line ENDING in `?`, trailing whitespace optional. It was
+  // whitespace-strict (`/\?\s$/`) — a prompt whose cursor sits directly after the `?` (common in
+  // TUIs) never flipped needs-input and wedged busy (baseline KNOWN BUG #2, fixed 2026-07-09).
+  /\?\s*$/
 ]
 
 // Matches any ANSI/VT escape sequence (CSI, OSC, SS3, etc.)
