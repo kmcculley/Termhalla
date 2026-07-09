@@ -904,6 +904,23 @@ All notable changes to Termhalla are recorded here. The format follows
   the DOM lib, scoped to `tests/e2e`) restores them while keeping main-process and `tests/main` code
   DOM-free; a few genuine `tests/main` type slips (a QuickStore cast, a mock signature) were fixed too.
 
+## [0.16.1] - 2026-07-09
+
+Maintenance release — fixes and hardening, no new features. Terminal fixes: SSH/agent panes no
+longer oscillate between busy and idle (a 1px status-border resize fed a ConPTY repaint loop);
+Ctrl+L reliably clears a garbled terminal (xterm and the PTY can no longer disagree on the grid
+after a pane is adopted across minimize/restore, workspace moves, or undock); a maximized terminal
+no longer jumps to the top of its scrollback on workspace switch; editor save is atomic. The
+2026-07-06 whole-project quality audit is fully resolved: crash/freeze paths closed (file-watcher
+errors, stale notification clicks, malformed `app-state.json`, a replay serialize failure on the
+remote daemon), hostile/hot streams bounded (OSC status parsers, image preview download, daemon
+stderr), and load-bearing duplication extracted into shared cores (one `MenuSurface` for all six
+popovers — every menu now dismisses on Escape — one workspace-registration ritual, one
+remote-client ssh connect pump). Remote workspace tab-close now tells the truth and leaks no pane
+bookkeeping. Dev-facing: an e2e run puts nothing on screen — no window, no desktop toast. The
+detailed entries stay under [Unreleased] above, per the same convention the 0.9.0–0.16.0 releases
+recorded.
+
 ## [0.16.0] - 2026-07-06
 
 Clean copy — normalize terminal text on copy. Copying from a TUI (e.g. Claude Code) no longer
