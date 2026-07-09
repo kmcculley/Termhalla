@@ -21,6 +21,10 @@ test('Redraw-terminal command keeps the terminal alive and usable', async () => 
   const win = await app.firstWindow()
   await win.getByTestId('add-first-terminal').click()
   await expect(win.locator('[data-testid^="terminal-"]')).toBeVisible({ timeout: 15_000 })
+  // Focus the terminal before typing (and before the Ctrl+Shift+L chord below, which the comment
+  // there already assumes). The pane renders before the xterm textarea takes focus, and under the
+  // default TERMHALLA_E2E_WINDOW=hidden no OS focus arrives to settle it, so keystrokes are lost.
+  await win.locator('.xterm-screen').click()
   await win.keyboard.type('echo redraw-marker-5566')
   await win.keyboard.press('Enter')
   await expect(win.locator('.xterm-rows')).toContainText('redraw-marker-5566', { timeout: 15_000 })

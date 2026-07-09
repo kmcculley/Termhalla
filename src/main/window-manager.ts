@@ -13,6 +13,7 @@ import {
   type CoreState, type Strip
 } from './window-manager-core'
 import { DragGhost } from './drag-ghost'
+import { presentationMode, presentsWindows } from './e2e-presentation'
 import { coordinateFlush } from './quit-flush'
 
 /** Height (px) of the main window's tab strip — the drop zone for re-docking a torn-off tab. */
@@ -137,23 +138,21 @@ export class WindowManager {
         contextIsolation: true, nodeIntegration: false, sandbox: false,
         // A never-shown window is a background window: Chromium would throttle its timers/rAF,
         // which the terminal's render loop rides. Only relevant to the e2e 'hidden' mode.
-        ...(process.env.TERMHALLA_E2E_WINDOW === 'hidden' ? { backgroundThrottling: false } : {})
+        ...(presentsWindows() ? {} : { backgroundThrottling: false })
       }
     })
-    if (bounds.maximized) win.maximize()
+    // `maximize()` "will also show (but not focus) the window if it isn't being displayed already"
+    // (Electron docs) — the one presentation path that does not run through 'ready-to-show'. No spec
+    // seeds a maximized window today, so skipping it under 'hidden' costs nothing and keeps the
+    // never-presented invariant true for anyone who later relaunches against a maximized app-state.
+    if (bounds.maximized && presentsWindows()) win.maximize()
     this.wins.set(id, win)
     // The e2e suite launches its own app per spec (~190 of them), and `show()` raises AND focuses
     // each window — 190 interruptions on top of whatever you're doing, including an installed
-    // Termhalla. `TERMHALLA_E2E_WINDOW` lets the harness present the window differently; unset (the
-    // product default) is untouched.
-    //   'hidden'   — never shown at all. The e2e default: a raised window is the interruption, and
-    //                `showInactive()` still raises (it only withholds keyboard focus). The window is
-    //                still laid out and fully scriptable, so layout-measuring specs are unaffected;
-    //                `backgroundThrottling: false` (above) keeps its timers/rAF alive.
-    //   'inactive' — shown, never activated. Visible, so it still covers your work.
-    //   anything else / unset — production behavior: show and focus.
+    // Termhalla. The harness picks the presentation mode; unset (the product default) is untouched.
+    // See src/main/e2e-presentation.ts for what each mode means.
     win.once('ready-to-show', () => {
-      const mode = process.env.TERMHALLA_E2E_WINDOW
+      const mode = presentationMode()
       if (mode === 'hidden') return
       if (mode === 'inactive') win.showInactive()
       else win.show()

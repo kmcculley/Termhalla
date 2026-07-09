@@ -1,5 +1,6 @@
 import { Notification } from 'electron'
 import type { Services } from '../services'
+import { raisesOsSurfaces } from '../e2e-presentation'
 import type { WindowManager } from '../window-manager'
 import type { PtyManager } from '../pty/pty-manager'
 import type { OrkyPaneStatus, OrkyRegistrySnapshot } from '@shared/types'
@@ -126,8 +127,10 @@ export async function registerHandlers(services: Services, wm: WindowManager): P
   const focusMainWindow = (root: string | null): void => {
     const mw = wm.mainWindow()
     if (!mw || mw.isDestroyed()) return
-    mw.show()
-    mw.focus()
+    // Raising is the one thing an e2e run must not do: TEST-573 invokes this very handler through
+    // the notify spy below, and `show()` would present a window the harness deliberately never
+    // presented. The drawer handoff underneath is the behavior under test; the raise is not.
+    if (raisesOsSurfaces()) { mw.show(); mw.focus() }
     if (!mw.webContents.isDestroyed()) mw.webContents.send(CH.orkyNotifyFocus, root)
   }
   // TEST-ONLY seam (the TERMHALLA_SAVE_PATH e2e-hook precedent, register-fs.ts): when
@@ -145,16 +148,19 @@ export async function registerHandlers(services: Services, wm: WindowManager): P
   const needsYouNotifier = new OrkyNeedsYouNotifier({
     now: () => Date.now(),
     shouldNotify: () => needsYouNotificationsMirror,
+    // The spy check stays FIRST: it is the observable surface TEST-573/574 assert on, and it already
+    // returns before constructing a real toast. `raisesOsSurfaces` then keeps every OTHER e2e spec —
+    // any that seeds a needs-you root without arming the spy — from raising a real desktop toast.
     notifyOne: ({ title, body, projectRoot }) => {
       if (notifySpy) { notifySpy.push({ title, body, projectRoot, click: () => focusMainWindow(projectRoot) }); return }
-      if (!Notification.isSupported()) return
+      if (!raisesOsSurfaces() || !Notification.isSupported()) return
       const n = new Notification({ title, body })
       n.on('click', () => focusMainWindow(projectRoot))
       n.show()
     },
     notifyDigest: ({ title, body, projectCount }) => {
       if (notifySpy) { notifySpy.push({ title, body, projectCount, click: () => focusMainWindow(null) }); return }
-      if (!Notification.isSupported()) return
+      if (!raisesOsSurfaces() || !Notification.isSupported()) return
       const n = new Notification({ title, body })
       n.on('click', () => focusMainWindow(null))
       n.show()

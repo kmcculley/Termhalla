@@ -1,6 +1,7 @@
 import { ipcMain, Notification, BrowserWindow, type WebContents } from 'electron'
 import { CH, type PtySpawnArgs, type PtyWriteArgs, type PtyResizeArgs, type NotifyArgs } from '@shared/ipc-contract'
 import type { ShellInfo } from '@shared/types'
+import { raisesOsSurfaces } from '../e2e-presentation'
 import { PtyManager } from '../pty/pty-manager'
 import { needsGridReconcile } from '../pty/grid-reconcile'
 import { StatusEngine } from '../status/status-engine'
@@ -126,7 +127,10 @@ export function registerPty(
   ipcMain.on(CH.ptyTransitBegin, (e, id: string) => deps.beginTransit?.(id, e.sender))
 
   ipcMain.on(CH.notify, (e, a: NotifyArgs) => {
-    if (!Notification.isSupported()) return
+    // Never raise a desktop toast during an e2e run. Defense in depth: the renderer asks for one only
+    // when the window is unfocused, and Playwright's focus emulation keeps document.hasFocus() true,
+    // so this path is not currently reachable under test. Don't rely on that. Inert in production.
+    if (!raisesOsSurfaces() || !Notification.isSupported()) return
     // Focus the window that raised the notification (an undocked window, not always main) — but
     // capture only its id, never the BrowserWindow: OS toasts persist in the Action Center past
     // the window's life (a floating window destroyed on redock), and .show() on a destroyed

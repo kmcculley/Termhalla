@@ -8,10 +8,13 @@ import { checkForUpdatesInteractive } from './updater'
  * (Check for Updates, About). Call once after the windows start.
  */
 export function installAppMenu(): void {
-  // Fire a File-menu intent at the focused window (falling back to the first window when none is
-  // focused — e.g. a headless e2e clicking a menu item programmatically). The renderer owns live
-  // workspace state, so the menu only signals; the renderer performs the New/Open/Save action.
-  const fileSend = (channel: string): void => {
+  // Fire a menu intent at the focused window, falling back to the first window when none is focused.
+  // The fallback is load-bearing for more than tidiness: an e2e clicking a menu item programmatically
+  // has NO focused window (`TERMHALLA_E2E_WINDOW=hidden` never presents one, so
+  // `BrowserWindow.getFocusedWindow()` is null), and in production a menu click always has a window
+  // to land on anyway. The renderer owns live workspace state, so the menu only signals; the renderer
+  // performs the New/Open/Save/Settings action.
+  const menuSend = (channel: string): void => {
     const win = BrowserWindow.getFocusedWindow() ?? BrowserWindow.getAllWindows()[0]
     win?.webContents.send(channel)
   }
@@ -19,13 +22,13 @@ export function installAppMenu(): void {
     {
       label: 'File',
       submenu: [
-        { id: 'file-new', label: 'New Workspace', click: () => fileSend(CH.fileNew) },
+        { id: 'file-new', label: 'New Workspace', click: () => menuSend(CH.fileNew) },
         { type: 'separator' },
-        { id: 'file-open', label: 'Open Workspace…', click: () => fileSend(CH.fileOpen) },
-        { id: 'file-reopen', label: 'Reopen Closed Workspace…', click: () => fileSend(CH.fileReopen) },
+        { id: 'file-open', label: 'Open Workspace…', click: () => menuSend(CH.fileOpen) },
+        { id: 'file-reopen', label: 'Reopen Closed Workspace…', click: () => menuSend(CH.fileReopen) },
         { type: 'separator' },
-        { id: 'file-save', label: 'Save Workspace', click: () => fileSend(CH.fileSave) },
-        { id: 'file-save-as', label: 'Save Workspace As…', click: () => fileSend(CH.fileSaveAs) },
+        { id: 'file-save', label: 'Save Workspace', click: () => menuSend(CH.fileSave) },
+        { id: 'file-save-as', label: 'Save Workspace As…', click: () => menuSend(CH.fileSaveAs) },
         { type: 'separator' },
         { id: 'file-exit', role: 'quit', label: 'Exit' },
       ],
@@ -36,9 +39,9 @@ export function installAppMenu(): void {
         {
           label: 'Settings…',
           accelerator: 'CmdOrCtrl+,',
-          // Open the renderer Settings modal; the focused window's renderer subscribes via
+          // Open the renderer Settings modal; the target window's renderer subscribes via
           // onOpenSettings and opens at the General section. Sends on no other channel.
-          click: () => BrowserWindow.getFocusedWindow()?.webContents.send(CH.openSettings),
+          click: () => menuSend(CH.openSettings),
         },
       ],
     },

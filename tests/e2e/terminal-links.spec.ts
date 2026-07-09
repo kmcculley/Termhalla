@@ -25,6 +25,12 @@ test('Ctrl+click a local image path opens the lightbox; Esc closes it', async ()
   await win.getByTestId('add-first-terminal').click()
   await expect(win.locator('[data-testid^="terminal-"]')).toBeVisible({ timeout: 15_000 })
 
+  // Focus the terminal before typing. `add-first-terminal` renders the pane but the xterm textarea
+  // is not the focused element yet, and under the default TERMHALLA_E2E_WINDOW=hidden no OS focus
+  // ever arrives to settle it — keystrokes then land nowhere and the echo never reaches the PTY.
+  // Clicking the screen is the idiom the other terminal specs (env-vars, window-presentation) use.
+  await win.locator('.xterm-screen').click()
+
   // Echo the absolute image path so it renders in the buffer, then Ctrl+click it.
   await win.keyboard.type(`echo ${imgPath}`)
   await win.keyboard.press('Enter')

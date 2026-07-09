@@ -22,21 +22,28 @@ test('tear-off ghost window appears outside the app and dies on drag end', async
   const main = await app.firstWindow()
   await expect(main.getByTestId('workspace-tabs')).toBeVisible({ timeout: 15_000 })
   const windowCount = () => app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows().length)
+  // Assert on the GHOST's own visibility, never on a count of all visible windows: under the default
+  // TERMHALLA_E2E_WINDOW=hidden the app windows are never presented, so such a count is 0 regardless
+  // of the ghost (this assertion used to expect 1 and broke when `hidden` became the default). The
+  // ghost is the only alwaysOnTop window main ever creates.
+  const ghostVisible = () => app.evaluate(({ BrowserWindow }) =>
+    BrowserWindow.getAllWindows().filter(w => w.isAlwaysOnTop()).map(w => w.isVisible()))
 
   // A drag position far outside every window → the ghost window is created and shown.
   await main.evaluate(() => (window as unknown as { termhalla: { winDragGhost(a: unknown): void } })
     .termhalla.winDragGhost({ x: 30_000, y: 30_000, name: 'Ghost WS' }))
   await expect.poll(windowCount, { timeout: 10_000 }).toBe(2)
+  await expect.poll(ghostVisible, { timeout: 10_000 }).toEqual([true])
 
-  // Back inside the app window → hidden (not visible), but drag still ongoing.
+  // Back inside the app window → hidden (not visible), but drag still ongoing (window survives).
   const inside = await main.evaluate(() => {
     const g = globalThis as unknown as { screenX: number; screenY: number }
     return { x: g.screenX + 200, y: g.screenY + 200 }
   })
   await main.evaluate((p) => (window as unknown as { termhalla: { winDragGhost(a: unknown): void } })
     .termhalla.winDragGhost({ ...p, name: 'Ghost WS' }), inside)
-  await expect.poll(() => app.evaluate(({ BrowserWindow }) =>
-    BrowserWindow.getAllWindows().filter(w => w.isVisible()).length), { timeout: 10_000 }).toBe(1)
+  await expect.poll(ghostVisible, { timeout: 10_000 }).toEqual([false])
+  expect(await windowCount()).toBe(2)
 
   // Drag end (null) → the ghost window is destroyed.
   await main.evaluate(() => (window as unknown as { termhalla: { winDragGhost(a: unknown): void } })
