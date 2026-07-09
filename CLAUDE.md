@@ -31,6 +31,13 @@ npm run package      # build + pack a Windows NSIS installer + latest.yml into d
 - e2e is pinned to `workers: 1`. Don't parallelize it: concurrent Electron windows
   each run busy-gated CIM/WMI process polls and starve each other into flaky
   cwd/proc/ai detection. The product is single-instance; serial models reality.
+- **e2e windows never steal focus.** `win.show()` raises *and activates*, so a run used to yank
+  focus ~190 times. `playwright.config.ts` defaults `TERMHALLA_E2E_WINDOW=inactive`, and
+  `window-manager.ts` honors it with `showInactive()` — windows still render and are fully
+  scriptable, so layout-measuring specs (Monaco, xterm FitAddon, toolbar boxes) are unaffected.
+  `TERMHALLA_E2E_WINDOW=hidden` never shows them at all (zero visual noise, but a background window,
+  so slower — it also turns `backgroundThrottling` off); `=show` restores the old behavior when you
+  want to watch. Product behavior is untouched — the var is unset outside the test harness.
 
 ## Architecture in one breath
 
@@ -89,6 +96,37 @@ related area:
   swallows that (dead-pty resize is meaningless); never let a pty op throw uncaught
   in an `ipcMain.on` listener — Electron's default handler raises a **modal error
   dialog that freezes the whole app**.
+- **…but every `fit()` MUST be paired with a `ptyResize`.** The dual of the rule above.
+  `FitAddon.fit()` calls `term.resize()` internally and *nothing listens to `term.onResize`*,
+  so an unpaired `fit()` silently desyncs xterm's grid from the program's: the program keeps
+  drawing at the old width into a terminal of a new width and renders garbled. **Ctrl+L cannot
+  fix that** (the program just redraws at the same wrong width) — only a real resize can, which
+  is why maximizing the pane *appears* to cure it. Both renderer fit sites go through `syncGrid`
+  (`src/renderer/components/grid-sync.ts`) sharing one `gridRef`; the font/theme effect is a fit
+  site too (a new cell size re-grids xterm). On the main side, `pty:spawn` short-circuits on
+  `pty.has(id)` and **drops the renderer's cols/rows**, so an ADOPTED pty (minimize/restore,
+  cross-workspace move, undock) keeps its old tile's grid while the remounted pane seeds its
+  ResizeObserver guard from xterm — the difference would never be corrected. `register-pty`
+  reconciles at adopt time via `needsGridReconcile` (`src/main/pty/grid-reconcile.ts`), which
+  also upholds the no-redundant-resize rule. Guarded by `tests/e2e/font-zoom.spec.ts`.
+- **A pane's status may change how chrome is PAINTED, never the size of its box.** The
+  `.mosaic-window-toolbar` is content-box with a fixed `height: 30px` (react-mosaic scopes
+  `box-sizing: border-box` to `.mosaic > *`, which never reaches it), and it is a flex *sibling*
+  of the terminal host — the same coupling as the editor tab strip below. A `border-bottom` on
+  the idle-only rule made the idle bar 31px against busy's 30px, so every status flip resized the
+  terminal host by 1px → refit xterm → resize the PTY → full-screen repaint → which re-marked the
+  pane **busy** (see the `StatusTracker` note below) → border gone → resize again: a permanent
+  busy⇄idle oscillation on ssh/agent panes. Use an inset `box-shadow` for a hairline, never a
+  border/padding/height. Pinned by `tests/renderer/pane-status-css.test.ts` + a real-box
+  measurement in `tests/e2e/status.spec.ts`.
+- **A marker-less pane treats output as the only busy signal — so a repaint must stay inert.**
+  `hasMarkers` is false forever for `ssh` launches (a launch override runs verbatim with **no**
+  shell-integration injection, `spawn-spec.ts`) and for remote-agent panes (`src/agent/` injects
+  none), so `StatusTracker.onOutput`'s `!hasMarkers → busy` rule is their only busy signal. It
+  MUST stay inside the `isPureControl` guard: a screen repaint leaves `lastOutputAt` untouched,
+  so marking it busy would idle it again on the very next `tick()` — and because the busy/idle
+  chrome once perturbed the pane's size, that resize provoked the next repaint. Local integrated
+  shells are immune (marker-driven), which is why this only ever bit SSH.
 - **Long-lived child processes must be abortable + `unref()`'d.** An in-flight
   `execFile`/spawn child (cloud probes) otherwise keeps the Electron main process
   alive and hangs `app.close()` / the e2e suite. Pattern: `AbortController` in the
@@ -263,8 +301,10 @@ related area:
 This project was built with the superpowers flow (brainstorm → spec → plan →
 subagent-driven implementation → review → merge). Specs and plans live in
 `docs/superpowers/`; per-feature deferred work is tracked in
-`docs/superpowers/*-review-followups.md`. When you finish a unit of work, update
-the [changelog](CHANGELOG.md) and the relevant feature/follow-up doc.
+`docs/superpowers/*-review-followups.md`, and repo-wide deferred work that belongs
+to no single feature in [`docs/deferred.md`](docs/deferred.md). When you finish a
+unit of work, update the [changelog](CHANGELOG.md) and the relevant
+feature/follow-up doc.
 
 ### Orky baseline (`.orky/`)
 

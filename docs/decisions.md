@@ -687,3 +687,99 @@ known wart. The proper fix (deferred) is to make the `docs-feature-NNNN` guards 
 CHANGELOG (or the feature's own version section) instead of only `[Unreleased]`, after which released
 bullets can be moved out normally. Tracked in
 [`docs/superpowers/0002-pane-toolbar-split-control-review-followups.md`].
+
+---
+
+### [2026-07-08] A pane's status may change how chrome is painted, never the size of its box
+
+**Context:** SSH/agent terminals oscillated between busy and idle forever. The idle
+toolbar rule declared a `border-bottom: 1px solid` the busy and needs-input rules did
+not, and `.mosaic-window-toolbar` is content-box with a fixed `height: 30px`
+(react-mosaic scopes `box-sizing: border-box` to `.mosaic, .mosaic > *`, which never
+reaches the nested toolbar). The idle bar was 31px, the busy bar 30px. Being a flex
+sibling of the terminal host, each status flip resized the host by 1px → refit xterm →
+resize the PTY → full-screen repaint → which re-marked the pane busy → border gone →
+resize again.
+**Decision:** The idle hairline is an inset `box-shadow`, not a border. Any status-keyed
+toolbar rule is paint-only (`background`/`color`/`border-radius`/`box-shadow`); a
+box-changing property there is a bug. Pinned structurally by
+`tests/renderer/pane-status-css.test.ts` and behaviorally by a real-box measurement in
+`tests/e2e/status.spec.ts`.
+**Rationale:** Two fixes were available. Adding `box-sizing: border-box` to the toolbar
+would also have equalized the heights, but it silently changes react-mosaic's intended
+30px *content* box and would leave the next `padding`/`border` addition free to
+reintroduce the coupling. The inset shadow is visually identical, changes no box in any
+state, and states the invariant the CSS should have had all along — the same one CLAUDE.md
+already records for the editor tab strip, and that this file's own `.term-failure` rule
+already asserted ("Paint-only: a red toolbar accent, never a box change").
+**Consequences:** The hairline can no longer be given a width, and a future toolbar tweak
+that needs real spacing must apply it to *all* status states at once, or to a child. The
+guard test fails loudly otherwise.
+
+### [2026-07-08] A marker-less pane goes busy on real output only — never on a repaint
+
+**Context:** `StatusTracker.onOutput`'s `!hasMarkers → busy` rule sat *outside* the
+`isPureControl` guard that exists to keep screen repaints from touching status. So a
+repaint marked the pane busy while leaving `lastOutputAt` untouched, and the next 500ms
+`tick()` idled it straight back. Combined with the box change above, that closed the
+oscillation. `hasMarkers` is false for the whole life of an `ssh` pane (a launch override
+runs verbatim with no shell-integration injection) and of every remote-agent pane
+(`src/agent` injects none), which is why only those panes looped.
+**Decision:** The marker-less busy rule moved inside the `!isPureControl` branch, next to
+the tail and quiet-timer updates it belongs with.
+**Rationale:** A repaint is not evidence a program is working; treating it as such gives a
+pane a busy signal whose own timer immediately contradicts it. The CSS fix alone would have
+broken the *loop* (a real prompt repaint is not `isPureControl`, so the tracker was still
+wrong), but this rule was independently incorrect and contradicted the comment three lines
+above it.
+**Consequences:** A full-screen TUI over ssh whose frames *begin* with a cursor-home
+sequence (`top`, `vim`) now reads **idle** rather than flapping busy/idle. That widens the
+blast radius of known bug #4 (the `CURSOR_HOME_RE` catch-all in
+`.orky/baseline/architecture.md`) and is the deliberate trade over an oscillating pane —
+a marker-less pane simply cannot distinguish a redrawing TUI from a quiet one. AI sessions
+are unaffected: `AGENT_WORKING_RE` is scanned on all output, before the pure-control check.
+
+### [2026-07-08] Every `fit()` is paired with a `ptyResize`, and an adopted PTY is reconciled
+
+**Context:** Ctrl+L could not clear a garbled terminal, but maximizing the pane could.
+`FitAddon.fit()` calls `term.resize()` internally and nothing listens to `term.onResize`,
+so an unpaired `fit()` left the PTY on the old grid — the program drew at the old width
+into a terminal of a new width. Ctrl+L just makes the program redraw at the *same wrong
+width*; only a real resize re-syncs them. Two sites were unpaired: the font/theme effect
+(a new cell size re-grids xterm), and PTY adoption, where `pty:spawn` short-circuits on
+`pty.has(id)` and drops the renderer's cols/rows while the remounted pane seeds its
+ResizeObserver guard from xterm — so the discrepancy was never corrected.
+**Decision:** Both renderer fit sites go through `syncGrid` (`grid-sync.ts`) sharing one
+`gridRef`; main reconciles an adopted pty at adopt time via `needsGridReconcile`
+(`grid-reconcile.ts`).
+**Rationale:** The no-redundant-resize rule (a redundant resize forces a ConPTY repaint
+that can evict the status tail) is exactly what hid these: a guard seeded from xterm can
+never notice that the *PTY* disagrees. Routing every fit through one place keeps the guard
+while making the pairing structural rather than a thing each call site must remember. The
+adopt-time probe compares against `pty.sizeOf(id)` — the PTY's real grid — so it upholds the
+same rule from the only vantage point that can see the difference.
+**Consequences:** Adoption can now emit one resize (and therefore one repaint) when a pane
+lands in a differently-sized tile. That is the correct, previously-missing behavior; it is
+suppressed when the grids already agree. The remote manager already did this on reconnect
+(`remote-workspace-manager.ts`), so the paths now agree.
+
+### [2026-07-08] The e2e suite never presents its Electron windows
+
+**Context:** The suite launches its own app per spec (~190) and `win.show()` raises **and**
+focuses each window, so a ~13 minute run interrupts the developer ~190 times — including
+over an installed Termhalla.
+**Decision:** `playwright.config.ts` defaults `TERMHALLA_E2E_WINDOW=hidden`;
+`window-manager.ts` skips presentation entirely on `ready-to-show` and sets
+`backgroundThrottling: false`. `=inactive` and `=show` remain available. The variable is
+unset outside the harness, so product behavior is untouched.
+**Rationale:** `showInactive()` was tried first and is *not* sufficient: it withholds
+keyboard focus but still raises the window, so it still covers your work. A window does not
+need to be presented to be laid out, so the layout-measuring specs (Monaco, xterm's
+FitAddon, toolbar boxes) are unaffected — verified. Throttling is disabled because a
+never-shown window is a background window and xterm paints its rows on `requestAnimationFrame`.
+**Consequences:** Presentation is now a test-controlled seam in `createBrowserWindow` — a
+small amount of test-awareness in product code, chosen over the alternative of a separate
+window factory. `hidden` is not yet validated across the whole suite (see
+[`deferred.md`](deferred.md)); the runtime `show()` sites (notification click,
+`orkyNotify:focus`) still raise a window when a spec exercises them, which is at most twice
+per run.

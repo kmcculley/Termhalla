@@ -549,6 +549,33 @@ All notable changes to Termhalla are recorded here. The format follows
   failure feedback is never silenced.
 
 ### Fixed
+- **SSH/agent terminals no longer oscillate between busy and idle.** A pane's status border was not
+  paint-only: the idle toolbar rule carried a `border-bottom: 1px solid` that the busy and
+  needs-input rules did not, and `.mosaic-window-toolbar` is content-box with a fixed `height: 30px`
+  (react-mosaic scopes `box-sizing: border-box` to `.mosaic > *`, which never reaches it). So the
+  idle bar stood 31px against the busy bar's 30px, and every status flip shrank the terminal host by
+  1px → refit xterm → resize the PTY → full-screen ConPTY/SIGWINCH repaint. That repaint then
+  re-marked the pane **busy**, removing the border, growing the host, resizing again — forever. Only
+  SSH and remote-agent panes looped, because they alone have no OSC 133 markers (an `ssh` launch
+  runs verbatim with no shell-integration injection, and the agent injects none either), so for them
+  *any* output means busy. Two fixes: the idle hairline is now an inset `box-shadow` (paint-only,
+  zero box change), and `StatusTracker.onOutput`'s marker-less "output means busy" rule moved inside
+  the existing `isPureControl` guard, so a screen repaint can never resurrect busy — it left the
+  quiet timer untouched, so the next tick idled it right back. Guarded by a structural CSS test
+  (`tests/renderer/pane-status-css.test.ts`) and an e2e that measures the real toolbar box across a
+  busy→idle transition.
+- **Ctrl+L now clears a garbled terminal (xterm and the PTY can no longer disagree on the grid).**
+  `FitAddon.fit()` resizes xterm internally and nothing listens to `term.onResize`, so any `fit()`
+  not paired with a `ptyResize` silently left the PTY on the old grid — the program kept drawing at
+  the old width into a terminal of a new width. Ctrl+L could not fix that (the program simply redraws
+  at the same wrong width); only a real resize could, which is why **maximizing** the pane appeared
+  to cure it. Two unpaired sites are closed: a **font/theme change** (Ctrl+wheel zoom re-grids xterm
+  because the cell size changed) now pushes the new grid to the PTY, and **adopting a live PTY**
+  (minimize/restore, cross-workspace move, undock) now reconciles it to the grid the remounting pane
+  fitted to — `pty:spawn` short-circuited on `pty.has(id)` and dropped the renderer's cols/rows,
+  while the pane seeded its ResizeObserver guard from xterm, so the difference was never corrected.
+  Both paths route through one place (`syncGrid`, `needsGridReconcile`) that preserves the
+  no-redundant-resize rule.
 - **Closing a remote workspace's tab now tells the truth.** The confirm dialog warned "Its
   terminals will be closed." for every workspace — but since agent daemonization a REMOTE
   workspace's tab close detaches, leaving its terminals running on the daemon for reattach, so
