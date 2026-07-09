@@ -8,7 +8,8 @@
  * flush in order). It ships inside the agent deliberately, so CI exercises the EXACT artifact
  * `npm run build` produces — selection is an explicit opt-in flag, never a default.
  *
- * Scripted command contract (each command is a `\n`-terminated line; no tty echo):
+ * Scripted command contract (each command is a line terminated by `\n`, `\r`, or `\r\n` — a real
+ * terminal sends CR on Enter, programmatic writers send LF; no tty echo):
  *   echo <text>       -> C marker, `<text>\r\n`, D;0, A
  *   cwd <path>        -> C marker, OSC 9;9;<path>, D;0, A     (drives the real CwdParser)
  *   pwd               -> C marker, resolved spawn cwd, D;0, A (makes REQ-007 cwd resolution visible)
@@ -167,12 +168,15 @@ const createFakeHandle = (opts: AgentSpawnOpts): AgentPtyHandle => {
     write(data: string): void {
       if (dead || closing) return // a deferred scripted exit leaves no shell to type at
       line += data
-      let nl = line.indexOf('\n')
+      // Terminators: \n, \r, or \r\n as ONE. A real terminal (xterm in the app) sends a bare \r
+      // on Enter — recognizing only \n meant an in-app keystroke round-trip never ran a command.
+      let nl = line.search(/[\r\n]/)
       while (nl !== -1 && !dead && !closing) {
         const raw = line.slice(0, nl)
-        line = line.slice(nl + 1)
-        run(raw.endsWith('\r') ? raw.slice(0, -1) : raw)
-        nl = line.indexOf('\n')
+        const after = line[nl] === '\r' && line[nl + 1] === '\n' ? nl + 2 : nl + 1
+        line = line.slice(after)
+        run(raw)
+        nl = line.search(/[\r\n]/)
       }
     },
     resize(newCols: number, newRows: number): void {

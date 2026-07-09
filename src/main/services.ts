@@ -1,4 +1,4 @@
-import { join } from 'node:path'
+import { join, resolve } from 'node:path'
 import { app } from 'electron'
 import { detectShells } from './pty/shells'
 import { writeIntegrationScripts } from './status/integration-scripts'
@@ -18,6 +18,7 @@ import { verifyOrkyContract } from './orky/orky-contract-handshake'
 import { RemoteWorkspaceManager } from './remote/remote-workspace-manager'
 import { MANIFEST_VERSION, resolveAgentArtifactPath, resolvePrebuiltRoot } from './remote/agent-artifact'
 import { connectWithProvisioning } from '../remote-client/bootstrap'
+import { e2eRemoteOverride } from './e2e-remote'
 import { loadNamedAgents } from '../remote-client/agents-store'
 import type { ShellInfo } from '@shared/types'
 
@@ -83,13 +84,22 @@ export function buildServices(): Services {
   // quiet-flush (CONV-036 — the pure module stays timer-free; the composition root injects the
   // scheduler), and the named-agent registry at userData/remote-agents.json (REQ-004).
   const remoteAgentsPath = join(dir, 'remote-agents.json')
+  // The dev app root for the artifact resolvers. NOT `app.getAppPath()`: that is the repo root
+  // only when Electron is launched with the app DIRECTORY (`electron .`). Launched by entry file
+  // (`electron out/main/index.js` — the e2e harness convention, and how electron-vite dev can
+  // launch too) it is `out/main`, and the dev artifact path silently doubles to
+  // `out/main/out/agent/...` — a remote connect then fails at provisioning with ENOENT (caught by
+  // remote-connected.spec.ts the first time the green path ran in-app). The bundle's own location
+  // is authoritative in every launch shape: out/main → the repo root is two levels up. Packaged
+  // builds never consult appRoot (they resolve under resourcesPath).
+  const devAppRoot = resolve(import.meta.dirname, '..', '..')
   // Feature 0023 (REQ-005/REQ-018): the same dev/packaged split as the agent artifact resolves
   // where the release-time-staged node-pty prebuilts live, so a real connect co-provisions the
   // matching remote target automatically (absent this option, `connectWithProvisioning` behaves
   // exactly as it did before this feature — REQ-018's strictly-additive rule).
   const nodePtyPrebuiltRoot = resolvePrebuiltRoot({
     packaged: app.isPackaged,
-    appRoot: app.getAppPath(),
+    appRoot: devAppRoot,
     resourcesPath: process.resourcesPath
   })
   let remoteSend: (channel: string, ...args: unknown[]) => void = () => {}
@@ -99,6 +109,10 @@ export function buildServices(): Services {
     connect: ({ agent, version, artifactPath, signal, workspaceId }) =>
       connectWithProvisioning({
         agent, version, artifactPath, signal,
+        // The e2e harness's transport substitution (fake-ssh shim + forced fake backend) — an
+        // undefined spread outside the harness, so production connects are untouched. Gated
+        // through e2e-remote.ts exactly like window presentation (never read the env var here).
+        ...e2eRemoteOverride(),
         nodePty: { prebuiltRoot: nodePtyPrebuiltRoot },
         // Feature 0024-agent-daemonization (REQ-013/REQ-018, locked D6′): production connects opt
         // into the daemon flow with the workspace id as the scope — a PER-WORKSPACE persistent
@@ -111,7 +125,7 @@ export function buildServices(): Services {
     version: MANIFEST_VERSION,
     artifactPath: resolveAgentArtifactPath({
       packaged: app.isPackaged,
-      appRoot: app.getAppPath(),
+      appRoot: devAppRoot,
       resourcesPath: process.resourcesPath
     }),
     scheduler: { setTimeout: (fn, ms) => setTimeout(fn, ms), clearTimeout: (t) => clearTimeout(t as ReturnType<typeof setTimeout>) }

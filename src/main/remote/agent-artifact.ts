@@ -7,7 +7,9 @@
  * this same package.json at build time) — never hand-typed, never a second source.
  *
  * Electron-free (deps injected) so it unit-tests under plain vitest; the composition root
- * (services.ts) supplies the real `app.isPackaged` / `app.getAppPath()` / `process.resourcesPath`.
+ * (services.ts) supplies the real `app.isPackaged` / `process.resourcesPath` and a bundle-derived
+ * dev app root (NOT `app.getAppPath()`, which is `out/main` under an entry-file launch — see the
+ * devAppRoot note in services.ts).
  */
 import { join } from 'node:path'
 import { version } from '../../../package.json'
@@ -17,7 +19,7 @@ export const MANIFEST_VERSION: string = version
 
 export interface ArtifactPathOpts {
   packaged: boolean
-  /** The app root in dev (electron `app.getAppPath()` / the repo root). */
+  /** The app root in dev (the repo root — bundle-derived; see services.ts devAppRoot). */
   appRoot: string
   /** Electron's `process.resourcesPath`; required when packaged. */
   resourcesPath?: string
