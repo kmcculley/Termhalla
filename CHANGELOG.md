@@ -549,6 +549,38 @@ All notable changes to Termhalla are recorded here. The format follows
   failure feedback is never silenced.
 
 ### Fixed
+- **A maximized terminal no longer jumps to the top of its scrollback when you switch workspaces.**
+  The maximized tile's fill (`inset`/`width`/`height` `!important`, which overrides react-mosaic's
+  inline tile geometry) was declared in the same CSS rule as the `visibility: visible` punch-through
+  — and that rule is scoped to `[data-active="true"]`. So leaving the workspace dropped the fill and
+  the tile snapped back to its original small mosaic box. That is a genuine box change on a terminal
+  that is still mounted, so `TerminalPane`'s ResizeObserver (which has no visibility guard) refit
+  xterm, `syncGrid` resized the PTY, and the resulting full-screen ConPTY repaint threw the viewport
+  to the top of the scrollback; switching back did it again in reverse. Only the *paint* needs the
+  active scope — geometry is now unscoped, so a maximized pane keeps its size whether or not its
+  workspace is on screen. Keep-mounted means keep-sized, the same reason inactive workspaces use
+  `visibility: hidden` rather than `display: none`.
+- **An e2e run no longer raises desktop notifications, and the five specs the `hidden` default had
+  silently broken are fixed.** Making the harness stop *presenting windows* left paths that still
+  reached the screen. The Orky needs-you notifier runs entirely in main and consults no window, so it
+  raised a real Windows toast for every spec that seeds a needs-you root without arming the notify
+  spy; its click handler then called `show()` on the main window (and `orky-notify.spec.ts` invokes
+  that handler directly). `win.maximize()` is a third path — Electron documents it as showing an
+  undisplayed window. All are now gated on one `raisesOsSurfaces()` / `presentsWindows()` pair in the
+  new `src/main/e2e-presentation.ts`, with a structural test forbidding any other `src/main` file from
+  reading `TERMHALLA_E2E_WINDOW` and another pinning every `new Notification(` to the gate.
+  A full-suite run then exposed four genuine failures on the default. `Edit ▸ Settings…` sent nothing
+  because `BrowserWindow.getFocusedWindow()` is null when no window is ever presented — it now falls
+  back to the first window, exactly as the File-menu items already did. `redraw` and `terminal-links`
+  typed before the xterm textarea held focus (no OS focus arrives to settle it under `hidden`) and now
+  click the terminal first, the idiom the passing terminal specs already used. `statusbar-tips` raced
+  the status bar's 7-second tip rotation across a longer-than-7-second settings interaction, and now
+  polls for the tip to come back around. `undock.spec.ts` asserted that exactly one window was
+  *visible*, which is zero under `hidden`; it now asserts on the drag ghost's own visibility. The
+  ghost is otherwise left alone — it only shows when the drag cursor leaves every window's bounds,
+  which a Playwright drag never does. New `tests/e2e/window-presentation.spec.ts` pins both halves of
+  the invariant: nothing is ever presented, and a hidden window still paints real terminal output —
+  the `backgroundThrottling: false` guarantee the mode depends on.
 - **SSH/agent terminals no longer oscillate between busy and idle.** A pane's status border was not
   paint-only: the idle toolbar rule carried a `border-bottom: 1px solid` that the busy and
   needs-input rules did not, and `.mosaic-window-toolbar` is content-box with a fixed `height: 30px`

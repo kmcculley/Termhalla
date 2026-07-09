@@ -779,7 +779,39 @@ FitAddon, toolbar boxes) are unaffected — verified. Throttling is disabled bec
 never-shown window is a background window and xterm paints its rows on `requestAnimationFrame`.
 **Consequences:** Presentation is now a test-controlled seam in `createBrowserWindow` — a
 small amount of test-awareness in product code, chosen over the alternative of a separate
-window factory. `hidden` is not yet validated across the whole suite (see
-[`deferred.md`](deferred.md)); the runtime `show()` sites (notification click,
-`orkyNotify:focus`) still raise a window when a spec exercises them, which is at most twice
-per run.
+window factory. The runtime `show()` sites (notification click, `orkyNotify:focus`) were
+left raising a window when a spec exercises them, judged "at most twice per run" — that
+judgement was wrong, and both it and the whole-suite validation are settled by the next entry.
+
+### [2026-07-08] …and it raises no desktop notifications either
+
+**Context:** Suppressing window presentation did not make an e2e run invisible. The Orky needs-you
+notifier (`register.ts`) runs entirely in main and consults no window, so it raised a real Windows
+toast for every spec that seeds a needs-you root without arming `TERMHALLA_E2E_NOTIFY_SPY`; its
+click handler then called `mw.show()` on the main window — and `orky-notify.spec.ts` invokes that
+handler directly through the spy. `win.maximize()` is a third path: Electron documents it as showing
+an undisplayed window.
+**Decision:** One predicate, `raisesOsSurfaces()` (true only for `show`/unset), gates both
+`Notification` sites and the click-time window raise; `presentsWindows()` (false only for `hidden`)
+gates presentation, including `maximize()`. Both live in `src/main/e2e-presentation.ts`; a structural
+test forbids any other `src/main` file from reading `TERMHALLA_E2E_WINDOW`, and another pins every
+`new Notification(` to the gate. `menu.ts`'s Settings… item joins the File items in falling back to
+the first window when none is focused.
+**Rationale:** Keyed on the *mode*, not on `hidden` alone: `inactive` presents a window but never
+activates it, so `BrowserWindow.getFocusedWindow()` is still null and a raise would still steal the
+foreground. `show` is left alone so production reaches the toast by the same code path. The spy check
+in `register.ts` stays ahead of the gate, since it is the surface TEST-573/574 assert on.
+**Measured, not assumed:** an earlier draft of this entry claimed the *renderer's* needs-input toast
+also fired, reasoning that an unpresented window can never report focus. It is wrong. Playwright
+enables CDP focus emulation, so `document.hasFocus()` is **true in every mode** and the product's own
+`!document.hasFocus()` guard already closes that path; the `register-pty.ts` gate is defense in depth
+only. Main-process focus is the opposite — `getFocusedWindow()` really is null under `hidden`. Probe
+before theorizing about focus; the two focuses are unrelated.
+**Consequences:** Four specs failed on the default and are fixed. `edit-menu-settings` TEST-014 was a
+real gap (no focused window ⇒ the menu sent nothing). `redraw` and `terminal-links` typed before the
+xterm textarea had focus — no OS focus ever settles it under `hidden`, so they now click
+`.xterm-screen` first, the idiom the passing terminal specs already used. `statusbar-tips` raced the
+7s tip rotation across a >7s settings interaction and now polls for the tip to come around.
+`undock.spec.ts` asserted exactly one **visible** window, which is zero under `hidden`. Assert on a
+specific window's visibility, never on a count. The tear-off drag ghost is deliberately *not* gated:
+it shows only when the drag cursor leaves every window's bounds, which a Playwright drag never does.

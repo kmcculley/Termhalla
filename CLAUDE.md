@@ -31,13 +31,32 @@ npm run package      # build + pack a Windows NSIS installer + latest.yml into d
 - e2e is pinned to `workers: 1`. Don't parallelize it: concurrent Electron windows
   each run busy-gated CIM/WMI process polls and starve each other into flaky
   cwd/proc/ai detection. The product is single-instance; serial models reality.
-- **e2e windows never steal focus.** `win.show()` raises *and activates*, so a run used to yank
-  focus ~190 times. `playwright.config.ts` defaults `TERMHALLA_E2E_WINDOW=inactive`, and
-  `window-manager.ts` honors it with `showInactive()` — windows still render and are fully
-  scriptable, so layout-measuring specs (Monaco, xterm FitAddon, toolbar boxes) are unaffected.
-  `TERMHALLA_E2E_WINDOW=hidden` never shows them at all (zero visual noise, but a background window,
-  so slower — it also turns `backgroundThrottling` off); `=show` restores the old behavior when you
-  want to watch. Product behavior is untouched — the var is unset outside the test harness.
+- **An e2e run puts nothing on screen — no window, no desktop toast.** `win.show()` raises *and
+  activates*, so a run used to yank focus ~190 times. `playwright.config.ts` defaults
+  `TERMHALLA_E2E_WINDOW=hidden`; windows are created, laid out, and fully scriptable but never
+  presented, so layout-measuring specs (Monaco, xterm FitAddon, toolbar boxes) are unaffected.
+  `showInactive()` is *not* enough — it withholds keyboard focus but still raises — so `=inactive`
+  is only a fallback; `=show` restores production behavior when you want to watch. Every mode
+  decision goes through `src/main/e2e-presentation.ts` (a structural test forbids reading the env
+  var anywhere else in `src/main`). Product behavior is untouched — the var is unset outside the
+  harness. Two non-obvious consequences, each already a real bug:
+  - **A never-shown window is a *background* window**, so Chromium throttles the timers/rAF that
+    xterm's render loop rides. `backgroundThrottling: false` is what keeps rows painting; without
+    it every spec that reads rendered xterm output hangs. Pinned by
+    `tests/e2e/window-presentation.spec.ts`.
+  - **Presentation is not the only thing that reaches the screen.** The Orky needs-you notifier lives
+    in main and consults no window, so it raised real desktop toasts for every spec that seeds a
+    needs-you root without arming `TERMHALLA_E2E_NOTIFY_SPY`; its click handler then called `show()`
+    on the main window. Both `Notification` sites and the click-time raise are gated on
+    `raisesOsSurfaces()` (true only for `show`), as is `win.maximize()`, which Electron documents as
+    showing an undisplayed window. Note `document.hasFocus()` is **true** in every mode (Playwright
+    emulates renderer focus), so the *renderer's* `!document.hasFocus()` toast guard is already
+    closed under test — but `BrowserWindow.getFocusedWindow()` is **null** under `hidden`, which is
+    why `menu.ts` must fall back to the first window.
+  - **Never assert an e2e invariant on a count of *visible* windows** — it is zero under `hidden`
+    (`undock.spec.ts` did, and broke). Assert on a specific window's visibility instead. Likewise,
+    `hidden` is slower to settle: focus the terminal with a `.xterm-screen` click before typing, and
+    don't assume a rotating widget still shows the frame you saw a moment ago.
 
 ## Architecture in one breath
 
@@ -180,10 +199,17 @@ related area:
   tile with a `data-max` attribute (imperatively, so react-mosaic re-renders don't strip it) and CSS fills
   it with `!important` while siblings get `visibility: hidden` (the keep-mounted pattern — `display:none`
   would thrash xterm). Swapping `ws.layout` to maximize would unmount siblings and dispose their
-  scrollback/TUIs — don't. The maximized tile's `visibility: visible` punch-through MUST stay scoped to
+  scrollback/TUIs — don't. **Scope the PAINT, never the GEOMETRY.** The maximized tile's
+  `visibility: visible` punch-through MUST stay scoped to
   `[data-testid="workspace-host"][data-active="true"]`: a descendant's `visible` overrides `hidden` on ANY
   ancestor, so unscoped it bleeds an inactive workspace's maximized pane through a transparent active one
-  (workspace hosts also carry an opaque `var(--bg)` background as a mask — keep both).
+  (workspace hosts also carry an opaque `var(--bg)` background as a mask — keep both). But the fill itself
+  (`inset`/`width`/`height` `!important`, which overrides react-mosaic's inline tile geometry) must stay
+  **unscoped**: bundled into the active-scoped rule, it dropped on every workspace switch and the tile
+  snapped back to its small mosaic box — a real box change on a mounted terminal, so `TerminalPane`'s
+  ResizeObserver (which has no visibility guard) refit xterm and resized the PTY, and the full-screen
+  ConPTY repaint threw the viewport to the top of the scrollback. Keep-mounted means keep-sized. Guarded by
+  `tests/renderer/pane-maximize-css.test.ts` + a real box measurement in `tests/e2e/pane-actions.spec.ts`.
 - **Pane minimize prunes the *visible* tree but keeps the body mounted off-layout.** Unlike maximize (CSS
   hides siblings in place), minimize must let the survivors **reflow**: `WorkspaceView` feeds `<Mosaic>`
   `computeVisibleLayout(ws)` (`workspace-model.ts`) — `ws.layout` with every `minimized` leaf removed — so
