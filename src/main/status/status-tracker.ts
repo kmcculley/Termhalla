@@ -61,8 +61,14 @@ export class StatusTracker {
       // those were kept, slice(-400) would evict the real prompt and break needs-input.
       this.tail = (this.tail + stripAnsi(text)).slice(-400)
       if (this.state === 'needs-input') this.set('busy', now)
+      // A pane with no integration markers (an `ssh` launch gets no shell-integration injection,
+      // and the remote agent injects none either) has no command-start signal, so printable output
+      // is the ONLY thing that can mark it busy. This MUST stay inside the !pure guard: a screen
+      // repaint leaves lastOutputAt untouched, so marking it busy would idle it again on the very
+      // next tick — and since the busy/idle pane chrome perturbs the terminal's size, that resize
+      // provokes the next repaint. That closed loop was the ssh busy<->idle oscillation.
+      if (!this.hasMarkers && this.state !== 'busy') this.set('busy', now)
     }
-    if (!this.hasMarkers && this.state !== 'busy') this.set('busy', now)
     return this.status()
   }
 

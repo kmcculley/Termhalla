@@ -86,6 +86,28 @@ describe('StatusTracker (heuristic, no markers)', () => {
     expect(t.tick(8000).state).toBe('busy')        // silent but not a prompt -> stays busy (marker A will idle it)
   })
 
+  it('a screen repaint does NOT resurrect busy on a marker-less pane (busy<->idle oscillation)', () => {
+    // The busy<->idle loop reported on ssh/agent panes. A marker-less pane (an `ssh` launch gets no
+    // shell-integration injection, and the remote agent injects none either, so hasMarkers stays
+    // false forever) idles at its prompt; the idle pane chrome resizes the terminal by a hair, the
+    // PTY is resized, and the shell answers with a full-screen repaint. That repaint must be inert:
+    // it is `isPureControl`, so it never touched lastOutputAt — marking it busy would idle it again
+    // on the very next tick, and around forever.
+    const t = new StatusTracker(0, cfg())
+    expect(t.onOutput('build finished\r\nuser@host:~$ ', 0).state).toBe('busy')
+    expect(t.tick(6000).state).toBe('idle')        // sustained silence at a prompt -> idle
+    // A SIGWINCH/ConPTY repaint: begins with cursor-home, so it is a redraw, not real output.
+    expect(t.onOutput('\x1b[H\x1b[2Juser@host:~$ ', 6100).state).toBe('idle')
+    expect(t.tick(6600).state).toBe('idle')        // and it stays idle — no oscillation
+  })
+
+  it('still marks a marker-less pane busy on REAL printable output', () => {
+    // The guard above must not deafen the only signal a marker-less pane has.
+    const t = new StatusTracker(0, cfg())
+    expect(t.tick(6000).state).toBe('idle')
+    expect(t.onOutput('npm run build\r\n', 6100).state).toBe('busy')
+  })
+
   it('an AI session goes idle (awaiting) once quiet, despite markers + a non-shell-prompt tail', () => {
     // Reproduces "claude always shows active": the shell emits C when `claude` launches (busy,
     // hasMarkers) and won't emit D until claude exits; claude's TUI tail is not a shell prompt,

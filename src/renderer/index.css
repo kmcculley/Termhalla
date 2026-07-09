@@ -78,10 +78,17 @@ body { background: var(--bg, #1e1e1e); color: var(--fg, #eee); font-family: var(
 /* The react-mosaic (blueprint) window toolbar defaults to a light bar that
    clashes with the dark app. Theme the idle toolbar (bar, title, buttons); the
    busy/needs-input rules above still win for those alert states. */
+/* PAINT-ONLY, like every other status rule above (see .term-failure). The bottom hairline is an
+   inset shadow, NEVER a border: this toolbar is content-box with a fixed height: 30px (react-mosaic
+   scopes box-sizing: border-box to `.mosaic > *`, which does not reach it), so a 1px border here
+   made the idle bar 31px against the busy bar's 30px. Every status flip then resized the terminal
+   host by 1px -> refit xterm -> resize the PTY -> full-screen repaint -> which re-marked a
+   marker-less (ssh/agent) pane busy -> border gone -> resize again: a busy<->idle oscillation.
+   The inset shadow also replaces blueprint's outer drop shadow, as `box-shadow: none` used to.
+   Guarded by tests/renderer/pane-status-css.test.ts. */
 .mosaic-blueprint-theme .mosaic-window:not(.term-busy):not(.term-needs-input):not(.term-failure) .mosaic-window-toolbar {
   background: var(--panel, #1e1e1e) !important;
-  box-shadow: none;
-  border-bottom: 1px solid var(--border, #444);
+  box-shadow: inset 0 -1px 0 var(--border, #444);
 }
 .mosaic-blueprint-theme .mosaic-window:not(.term-busy):not(.term-needs-input) .mosaic-window-title {
   color: var(--fg, #eee) !important;

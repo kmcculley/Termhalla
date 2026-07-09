@@ -39,6 +39,32 @@ test('a running command shows busy then returns to idle', async ({ app }) => {
   await expect(win.locator('[data-status="idle"]')).toHaveCount(1, { timeout: 15_000 })
 })
 
+// The busy<->idle oscillation on ssh/agent panes. The idle toolbar rule carried a `border-bottom:
+// 1px` the busy rule lacked; the toolbar is content-box with a fixed height, so idle stood 31px to
+// busy's 30px. Each status flip resized the terminal host by 1px -> refit xterm -> resized the PTY ->
+// full-screen repaint -> re-marked a marker-less pane busy -> border gone -> resized again, forever.
+// A pane's status must be PAINT-only. Measured here on the real box; the CSS is also pinned
+// structurally by tests/renderer/pane-status-css.test.ts.
+test('the pane toolbar is exactly the same size busy and idle (no status-driven reflow)', async ({ app }) => {
+  const win = await app.firstWindow()
+  await openTerminal(win)
+  const toolbar = win.locator('.mosaic-window-toolbar').first()
+  const host = win.locator('[data-testid^="terminal-"]').first()
+
+  await win.keyboard.type('Start-Sleep -Seconds 3; "done"')
+  await win.keyboard.press('Enter')
+  await expect(win.locator('[data-status="busy"]')).toHaveCount(1, { timeout: 5_000 })
+  const busyToolbar = await toolbar.boundingBox()
+  const busyHost = await host.boundingBox()
+
+  await expect(win.locator('[data-status="idle"]')).toHaveCount(1, { timeout: 20_000 })
+  const idleToolbar = await toolbar.boundingBox()
+  const idleHost = await host.boundingBox()
+
+  expect(idleToolbar!.height, 'idle toolbar must not be taller than the busy one').toBe(busyToolbar!.height)
+  expect(idleHost!.height, 'the terminal host must not be resized by a status change').toBe(busyHost!.height)
+})
+
 test('a y/N prompt triggers needs-input and a tab badge', async ({ app }) => {
   test.setTimeout(40_000)
   const win = await app.firstWindow()

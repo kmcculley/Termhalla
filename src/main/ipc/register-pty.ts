@@ -2,6 +2,7 @@ import { ipcMain, Notification, BrowserWindow, type WebContents } from 'electron
 import { CH, type PtySpawnArgs, type PtyWriteArgs, type PtyResizeArgs, type NotifyArgs } from '@shared/ipc-contract'
 import type { ShellInfo } from '@shared/types'
 import { PtyManager } from '../pty/pty-manager'
+import { needsGridReconcile } from '../pty/grid-reconcile'
 import { StatusEngine } from '../status/status-engine'
 import type { OrkyHeartbeat } from '../status/orky-osc-parser'
 import { ProcessTracker } from '../proc/process-tracker'
@@ -78,7 +79,13 @@ export function registerPty(
       // A pane already tracked on the live connection is a same-process remount (minimize/restore,
       // cross-workspace move, undock) — flush its transit buffer and adopt, exactly the local
       // pty.has branch below; otherwise the manager attach-or-spawns against its inventory.
-      if (deps.remote?.isAdoptable(a.id)) { deps.replayInto?.(a.id); return true }
+      if (deps.remote?.isAdoptable(a.id)) {
+        deps.replayInto?.(a.id)
+        // …then reconcile the adopted pty to the grid the remounting pane fitted to (see below).
+        // `remote.resize` drops a resize whose grid already matches, so this is never redundant.
+        deps.remote.resize(a.id, a.cols, a.rows)
+        return true
+      }
       return deps.remote ? deps.remote.spawn(a) : false
     }
     // Moved pane: adopt the live pty, don't respawn. Adoption also re-delivers the pane's sticky
@@ -86,7 +93,15 @@ export function registerPty(
     // tracker's set-only dedup never re-emits for a QUIET agent, so an undocked Claude pane's
     // destination window would otherwise stay ✨-dark for the session's remainder (the survival
     // observable undock-resume.spec.ts pins; see AiSessionTracker.reemit).
-    if (pty.has(a.id)) { deps.replayInto?.(a.id); ai.reemit(a.id); return true }
+    if (pty.has(a.id)) {
+      deps.replayInto?.(a.id); ai.reemit(a.id)
+      // The remounted pane has already fitted xterm to its new tile, but the adopted pty still
+      // carries the grid of the tile it left — and the pane's ResizeObserver guard is seeded from
+      // xterm, so it will never correct the difference. Replay first (the snapshot was serialized
+      // at the old grid), then re-sync, so the program repaints itself at the true size.
+      if (needsGridReconcile(pty.sizeOf(a.id), a)) pty.resize(a.id, a.cols, a.rows)
+      return true
+    }
     const shell = shells.find(s => s.id === a.shellId) ?? shells[0]
     tracker.register(a.id)   // register BEFORE spawn: a failed spawn calls onExit->unregister synchronously, keeping the registry clean
     pty.spawn(a.id, shell, a.cwd, a.cols, a.rows, a.launch, envVault.envFor(a.envId))

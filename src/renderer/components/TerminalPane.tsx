@@ -14,6 +14,7 @@ import { useResolvedPaneTheme } from '../use-resolved-theme'
 import { handleClipboardKey, normalizeCopiedText } from './terminal-clipboard'
 import { registerSerializer, unregisterSerializer, consumeSnapshot, registerFocuser, unregisterFocuser, registerRedrawer, unregisterRedrawer } from './terminal-registry'
 import { redraw } from './redraw'
+import { syncGrid, type GridSyncDeps } from './grid-sync'
 import { shouldAutoResumeClaude } from '../store/pane-ops'
 import { registerTerminalLinks } from '../terminal/links'
 
@@ -29,10 +30,27 @@ const RESUME_QUIET_MS = 700
 /** Output-quiet window after entering the alternate screen (tmux/TUI launch) before a one-shot repaint. */
 const ALT_SCREEN_REFRESH_MS = 200
 
+/** Bind `syncGrid`'s injected side effects to this pane. Module-level (not a hook) so both fit sites
+ *  — the ResizeObserver and the font/theme effect — can share it without perturbing either effect's
+ *  hand-curated dependency array. `gridRef` is the single baseline of what the PTY was last told. */
+const gridDeps = (
+  term: Terminal, fit: FitAddon, gridRef: { current: { cols: number; rows: number } }, paneId: string
+): GridSyncDeps => ({
+  fit: () => fit.fit(),
+  dims: () => ({ cols: term.cols, rows: term.rows }),
+  last: () => gridRef.current,
+  setLast: (g) => { gridRef.current = g },
+  resize: (g) => api.ptyResize({ id: paneId, cols: g.cols, rows: g.rows })
+})
+
 export function TerminalPane({ paneId, wsId, config }: { paneId: string; wsId: string; config: TerminalConfig }) {
   const hostRef = useRef<HTMLDivElement>(null)
   const termRef = useRef<Terminal | null>(null)
   const fitRef = useRef<FitAddon | null>(null)
+  /** The grid the PTY was last told about. Shared by every `fit()` site (the ResizeObserver, the
+   *  font/theme effect, the redraw command) so none of them can re-grid xterm without telling the
+   *  PTY — an unpaired fit desyncs the two and renders garbled. See `grid-sync.ts`. */
+  const gridRef = useRef({ cols: 0, rows: 0 })
 
   useEffect(() => {
     const t0 = resolveTheme(useStore.getState().quick.theme, useStore.getState().workspaces[wsId]?.theme, config.theme)
@@ -53,6 +71,11 @@ export function TerminalPane({ paneId, wsId, config }: { paneId: string; wsId: s
     termRef.current = term; fitRef.current = fit
     term.open(hostRef.current!)
     fit.fit()
+    // The spawn below carries this grid, so it is what the PTY knows. (On ADOPTION main reconciles
+    // the live pty to it — see needsGridReconcile — because the pty still carries its old tile's grid.)
+    gridRef.current = { cols: term.cols, rows: term.rows }
+    /** Re-fit xterm and push the new grid to the PTY iff it actually changed. */
+    const sync = () => syncGrid(gridDeps(term, fit, gridRef, paneId))
 
     // A cross-workspace move stashed this pane's prior scrollback; write it before spawn so it lands
     // ahead of any live output. For a fresh terminal this is '' (no-op). The PTY itself is re-adopted
@@ -172,7 +195,9 @@ export function TerminalPane({ paneId, wsId, config }: { paneId: string; wsId: s
       fit: () => fit.fit(),
       repaint,
       dims: () => ({ cols: term.cols, rows: term.rows }),
-      resize: ({ cols, rows }) => api.ptyResize({ id: paneId, cols, rows }),
+      // Track the grid the PTY now holds (redraw's shrink→restore pair ends on the fitted grid), so a
+      // later ResizeObserver fire doesn't read a stale baseline and issue a redundant resize.
+      resize: ({ cols, rows }) => { gridRef.current = { cols, rows }; api.ptyResize({ id: paneId, cols, rows }) },
       write: (data) => api.ptyWrite({ id: paneId, data }),
       schedule: (fn) => setTimeout(fn, 0),
     })
@@ -207,18 +232,13 @@ export function TerminalPane({ paneId, wsId, config }: { paneId: string; wsId: s
     })
     const offWriteParsed = term.onWriteParsed(() => bumpAlt())  // debounce the one-shot until output quiets
 
-    let lastCols = term.cols, lastRows = term.rows
     let settle: ReturnType<typeof setTimeout> | undefined
     const ro = new ResizeObserver(() => {
-      fit.fit()
-      // Only resize the PTY when the grid actually changed. A redundant resize makes
+      // Fits, then resizes the PTY only when the grid actually changed. A redundant resize makes
       // ConPTY repaint, which can corrupt the status tail and break needs-input detection.
-      if (term.cols !== lastCols || term.rows !== lastRows) {
-        lastCols = term.cols; lastRows = term.rows
-        api.ptyResize({ id: paneId, cols: term.cols, rows: term.rows })
-      }
+      sync()
       // After the user stops dragging, repaint once so xterm rendering self-corrects. Repaint only —
-      // the RO above already fit + resized the PTY; calling fit() again here without a matching
+      // the sync above already fit + resized the PTY; calling fit() again here without a matching
       // ptyResize could desync xterm's grid from the remote and jumble a TUI (e.g. tmux over ssh).
       if (settle) clearTimeout(settle)
       settle = setTimeout(repaint, RESIZE_SETTLE_MS)
@@ -248,12 +268,17 @@ export function TerminalPane({ paneId, wsId, config }: { paneId: string; wsId: s
   const theme = useResolvedPaneTheme(wsId, config.theme)
   useEffect(() => {
     const term = termRef.current
-    if (!term) return
+    const fit = fitRef.current
+    if (!term || !fit) return
     term.options.theme = { background: theme.termBg, foreground: theme.termFg }
     term.options.fontFamily = theme.termFontFamily
     term.options.fontSize = theme.termFontSize
-    fitRef.current?.fit()
-  }, [theme])
+    // A new font size means a new cell size, so this fit() RE-GRIDS xterm — and `fit()` resizes
+    // xterm without anyone telling the PTY (nothing listens to term.onResize). Left unpaired, a
+    // Ctrl+wheel zoom leaves the program drawing at the old width into a terminal of a new one:
+    // garbled output that Ctrl+L can't fix, only a real resize (e.g. maximizing) can. So sync.
+    syncGrid(gridDeps(term, fit, gridRef, paneId))
+  }, [theme, paneId])
 
   return <div data-testid={`terminal-${paneId}`} ref={hostRef} style={{ width: '100%', height: '100%' }} />
 }
