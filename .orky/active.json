@@ -1,9 +1,9 @@
 {
-  "feature": "features/0025-cursor-home-output-suppression",
+  "feature": ".orky/features/0022-client-routing-remote-workspace-ux",
   "projectRoot": "C:/dev/Termhalla",
-  "phase": "doc-sync",
-  "lastTickAt": "2026-07-10T02:31:44.709Z",
-  "lastAction": "dispatch: doc-sync (F-021 fix + F-020 deferral records + reconciliation)",
+  "phase": "driving",
+  "lastTickAt": "2026-07-10T02:36:35.249Z",
+  "lastAction": "feature done",
   "runs": {
     ".orky/features/0017-agent-runtime-skeleton": {
       "phase": "human-review",
@@ -34,11 +34,6 @@
       "phase": "driving",
       "lastTickAt": "2026-07-05T00:44:32.287Z",
       "lastAction": "workflow tick"
-    },
-    "features/0025-cursor-home-output-suppression": {
-      "phase": "doc-sync",
-      "lastTickAt": "2026-07-10T02:31:44.709Z",
-      "lastAction": "dispatch: doc-sync (F-021 fix + F-020 deferral records + reconciliation)"
     }
   }
 }
