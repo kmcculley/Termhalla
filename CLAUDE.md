@@ -127,7 +127,13 @@ related area:
   chars of output for needs-input detection as `stripAnsi(text)`, and
   `needs-input.ts` skips trailing blank lines. Any terminal **layout change**
   triggers a full-screen ConPTY repaint whose trailing erase-line bytes would
-  otherwise evict the prompt from the tail and wedge a terminal in "busy."
+  otherwise evict the prompt from the tail and wedge a terminal in "busy." Since
+  feature 0025-cursor-home-output-suppression, a repaint chunk's printable text IS
+  admitted to the tail with the same append-and-cap discipline as real output (it
+  is only excluded from the quiet timer and all direct state effects, per the
+  marker-less-pane bullet below) — this closed baseline known bug #4, where a TUI
+  that redrew the screen and printed a fresh prompt in one home-prefixed chunk
+  wedged busy forever.
 - **Avoid redundant PTY resizes.** Only call `ptyResize` when cols/rows actually
   change (`TerminalPane` guards this); a redundant resize forces a ConPTY repaint.
   Also: a resize can legally race a pty's exit — node-pty withholds the exit event
@@ -163,10 +169,13 @@ related area:
   `hasMarkers` is false forever for `ssh` launches (a launch override runs verbatim with **no**
   shell-integration injection, `spawn-spec.ts`) and for remote-agent panes (`src/agent/` injects
   none), so `StatusTracker.onOutput`'s `!hasMarkers → busy` rule is their only busy signal. It
-  MUST stay inside the `isPureControl` guard: a screen repaint leaves `lastOutputAt` untouched,
-  so marking it busy would idle it again on the very next `tick()` — and because the busy/idle
-  chrome once perturbed the pane's size, that resize provoked the next repaint. Local integrated
-  shells are immune (marker-driven), which is why this only ever bit SSH.
+  MUST stay gated to real, non-repaint output only (`isRepaintChunk(text)` false): a screen
+  repaint leaves `lastOutputAt` untouched, so marking it busy would idle it again on the very
+  next `tick()` — and because the busy/idle chrome once perturbed the pane's size, that resize
+  provoked the next repaint. Local integrated shells are immune (marker-driven), which is why
+  this only ever bit SSH. Since feature 0025-cursor-home-output-suppression a repaint's
+  printable text IS admitted to the needs-input tail (see the bullet above) — only the busy
+  rule, the quiet timer, and the needs-input→busy reset stay repaint-exempt.
 - **Long-lived child processes must be abortable + `unref()`'d.** An in-flight
   `execFile`/spawn child (cloud probes) otherwise keeps the Electron main process
   alive and hangs `app.close()` / the e2e suite. Pattern: `AbortController` in the
@@ -370,4 +379,6 @@ this baseline.
 - **`.orky/baseline/architecture.md` records four confirmed known bugs** (unanchored
   AI-detection substrings, whitespace-strict input-prompt catch-all, undercounted
   git merge-conflict entries, cursor-home output suppression) as candidate Orky
-  features. Issue #4 is load-bearing (ConPTY repaint-eviction guard) — fix with care.
+  features — all four are now FIXED (#4 by feature 0025-cursor-home-output-suppression,
+  which admitted a repaint's printable text to the needs-input tail without reopening the
+  load-bearing ConPTY repaint-eviction guard).

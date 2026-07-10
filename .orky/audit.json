@@ -7711,5 +7711,682 @@
     "downgraded": false,
     "servedFraction": 1,
     "at": "2026-07-06T20:40:39.714Z"
+  },
+  {
+    "action": "producer.select",
+    "feature": "0025-cursor-home-output-suppression",
+    "role": "spec-writer",
+    "phase": "spec",
+    "tier": "high",
+    "model": "fable",
+    "effort": "xhigh",
+    "trigger": "pinned",
+    "attempts": 0,
+    "at": "2026-07-10T00:25:23.359Z"
+  },
+  {
+    "action": "gate.check",
+    "feature": "0025-cursor-home-output-suppression",
+    "phase": "spec",
+    "pass": true,
+    "attempts": 0,
+    "totalFailures": 0,
+    "wallClockMs": 2,
+    "at": "2026-07-10T00:30:26.047Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0024-agent-daemonization.",
+    "role": "doc-sync",
+    "agentType": "orky:doc-sync",
+    "transcript": "agent-a92db76af1b84455f",
+    "dir": "C--dev-Termhalla/c111f95c-b2cc-41a0-80c6-0ecb6bce3277/subagents/workflows/wf_1613b098-418",
+    "served": [
+      "claude-sonnet-5"
+    ],
+    "firstModel": "claude-sonnet-5",
+    "lastModel": "claude-sonnet-5",
+    "messages": 61,
+    "requested": null,
+    "downgraded": false,
+    "mismatch": null,
+    "servedFraction": 1,
+    "tokens": {
+      "input": 2593,
+      "output": 20094,
+      "cacheRead": 7175352,
+      "cacheCreation": 516554
+    },
+    "tokensByModel": {
+      "claude-sonnet-5": {
+        "input": 2593,
+        "output": 20094,
+        "cacheRead": 7175352,
+        "cacheCreation": 516554
+      }
+    },
+    "at": "2026-07-10T00:31:08.202Z"
+  },
+  {
+    "action": "producer.select",
+    "feature": "0025-cursor-home-output-suppression",
+    "role": "planner",
+    "phase": "plan",
+    "tier": "low",
+    "model": "sonnet",
+    "effort": "medium",
+    "trigger": "base",
+    "attempts": 0,
+    "at": "2026-07-10T00:31:39.892Z"
+  },
+  {
+    "action": "gate.check",
+    "feature": "0025-cursor-home-output-suppression",
+    "phase": "plan",
+    "pass": true,
+    "attempts": 0,
+    "totalFailures": 0,
+    "wallClockMs": 3,
+    "at": "2026-07-10T00:33:50.672Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0025-cursor-home-output-suppression.",
+    "role": "spec-writer",
+    "agentType": "orky:spec-writer",
+    "transcript": "agent-a64caf062b1ea9488",
+    "dir": "C--dev-Termhalla/48f54242-e55c-4620-81ad-e568cb2ac79c/subagents/workflows/wf_99444c49-9d5",
+    "served": [
+      "claude-fable-5"
+    ],
+    "firstModel": "claude-fable-5",
+    "lastModel": "claude-fable-5",
+    "messages": 25,
+    "requested": null,
+    "downgraded": false,
+    "mismatch": null,
+    "servedFraction": 1,
+    "tokens": {
+      "input": 50,
+      "output": 17791,
+      "cacheRead": 878959,
+      "cacheCreation": 289008
+    },
+    "tokensByModel": {
+      "claude-fable-5": {
+        "input": 50,
+        "output": 17791,
+        "cacheRead": 878959,
+        "cacheCreation": 289008
+      }
+    },
+    "at": "2026-07-10T00:33:51.888Z"
+  },
+  {
+    "action": "producer.select",
+    "feature": "0025-cursor-home-output-suppression",
+    "role": "test-designer",
+    "phase": "tests",
+    "tier": "high",
+    "model": "fable",
+    "effort": "xhigh",
+    "trigger": "pinned",
+    "attempts": 0,
+    "at": "2026-07-10T00:34:24.447Z"
+  },
+  {
+    "action": "gate.check",
+    "feature": "0025-cursor-home-output-suppression",
+    "phase": "tests",
+    "pass": true,
+    "attempts": 0,
+    "totalFailures": 0,
+    "wallClockMs": 59930,
+    "at": "2026-07-10T00:53:07.263Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0025-cursor-home-output-suppression.",
+    "role": "planner",
+    "agentType": "orky:planner",
+    "transcript": "agent-a2b1012e154cb393c",
+    "dir": "C--dev-Termhalla/48f54242-e55c-4620-81ad-e568cb2ac79c/subagents/workflows/wf_99444c49-9d5",
+    "served": [
+      "claude-sonnet-5"
+    ],
+    "firstModel": "claude-sonnet-5",
+    "lastModel": "claude-sonnet-5",
+    "messages": 33,
+    "requested": null,
+    "downgraded": false,
+    "mismatch": null,
+    "servedFraction": 1,
+    "tokens": {
+      "input": 1044,
+      "output": 3980,
+      "cacheRead": 1148380,
+      "cacheCreation": 130498
+    },
+    "tokensByModel": {
+      "claude-sonnet-5": {
+        "input": 1044,
+        "output": 3980,
+        "cacheRead": 1148380,
+        "cacheCreation": 130498
+      }
+    },
+    "at": "2026-07-10T00:53:08.446Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0025-cursor-home-output-suppression.",
+    "role": "test-designer",
+    "agentType": "orky:test-designer",
+    "transcript": "agent-a3b4a12b02be47241",
+    "dir": "C--dev-Termhalla/48f54242-e55c-4620-81ad-e568cb2ac79c/subagents/workflows/wf_99444c49-9d5",
+    "served": [
+      "claude-fable-5"
+    ],
+    "firstModel": "claude-fable-5",
+    "lastModel": "claude-fable-5",
+    "messages": 63,
+    "requested": null,
+    "downgraded": false,
+    "mismatch": null,
+    "servedFraction": 1,
+    "tokens": {
+      "input": 126,
+      "output": 68792,
+      "cacheRead": 5190009,
+      "cacheCreation": 468469
+    },
+    "tokensByModel": {
+      "claude-fable-5": {
+        "input": 126,
+        "output": 68792,
+        "cacheRead": 5190009,
+        "cacheCreation": 468469
+      }
+    },
+    "at": "2026-07-10T00:53:08.446Z"
+  },
+  {
+    "action": "producer.select",
+    "feature": "0025-cursor-home-output-suppression",
+    "role": "implementer",
+    "phase": "implement",
+    "tier": "low",
+    "model": "sonnet",
+    "effort": "medium",
+    "trigger": "base",
+    "attempts": 0,
+    "at": "2026-07-10T00:53:39.856Z"
+  },
+  {
+    "action": "producer.select",
+    "feature": "0025-cursor-home-output-suppression",
+    "role": "implementer",
+    "phase": "implement",
+    "tier": "low",
+    "model": "sonnet",
+    "effort": "medium",
+    "trigger": "base",
+    "attempts": 0,
+    "at": "2026-07-10T00:56:45.068Z"
+  },
+  {
+    "action": "producer.select",
+    "feature": "0025-cursor-home-output-suppression",
+    "role": "implementer",
+    "phase": "implement",
+    "tier": "low",
+    "model": "sonnet",
+    "effort": "medium",
+    "trigger": "base",
+    "attempts": 0,
+    "at": "2026-07-10T00:56:45.156Z"
+  },
+  {
+    "action": "gate.check",
+    "feature": "0025-cursor-home-output-suppression",
+    "phase": "implement",
+    "pass": true,
+    "attempts": 0,
+    "totalFailures": 0,
+    "wallClockMs": 73445,
+    "at": "2026-07-10T01:17:23.346Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0025-cursor-home-output-suppression",
+    "role": "implementer",
+    "agentType": "orky:implementer",
+    "transcript": "agent-ab85b5b755249a886",
+    "dir": "C--dev-Termhalla/48f54242-e55c-4620-81ad-e568cb2ac79c/subagents",
+    "served": [
+      "claude-opus-4-8"
+    ],
+    "firstModel": "claude-opus-4-8",
+    "lastModel": "claude-opus-4-8",
+    "messages": 95,
+    "requested": "sonnet",
+    "requestedTier": "low",
+    "requestedAt": "2026-07-10T00:56:45.156Z",
+    "downgraded": false,
+    "mismatch": "upgrade",
+    "servedFraction": 0,
+    "tokens": {
+      "input": 190,
+      "output": 33256,
+      "cacheRead": 8553679,
+      "cacheCreation": 500651
+    },
+    "tokensByModel": {
+      "claude-opus-4-8": {
+        "input": 190,
+        "output": 33256,
+        "cacheRead": 8553679,
+        "cacheCreation": 500651
+      }
+    },
+    "at": "2026-07-10T01:17:24.645Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0025-cursor-home-output-suppression",
+    "role": "implementer",
+    "agentType": "orky:implementer",
+    "transcript": "agent-af04b31c392e69803",
+    "dir": "C--dev-Termhalla/48f54242-e55c-4620-81ad-e568cb2ac79c/subagents",
+    "served": [
+      "claude-sonnet-5"
+    ],
+    "firstModel": "claude-sonnet-5",
+    "lastModel": "claude-sonnet-5",
+    "messages": 105,
+    "requested": "sonnet",
+    "requestedTier": "low",
+    "requestedAt": "2026-07-10T00:56:45.156Z",
+    "downgraded": false,
+    "mismatch": null,
+    "servedFraction": 1,
+    "tokens": {
+      "input": 1188,
+      "output": 21699,
+      "cacheRead": 9279214,
+      "cacheCreation": 377890
+    },
+    "tokensByModel": {
+      "claude-sonnet-5": {
+        "input": 1188,
+        "output": 21699,
+        "cacheRead": 9279214,
+        "cacheCreation": 377890
+      }
+    },
+    "at": "2026-07-10T01:17:24.645Z"
+  },
+  {
+    "action": "gate.check",
+    "feature": "0025-cursor-home-output-suppression",
+    "phase": "review",
+    "pass": false,
+    "attempts": 1,
+    "totalFailures": 1,
+    "wallClockMs": 8,
+    "failed": [
+      "findings"
+    ],
+    "at": "2026-07-10T01:35:31.104Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0025-cursor-home-output-suppression.",
+    "role": "reviewer",
+    "agentType": "orky:reviewer",
+    "transcript": "agent-a35995d080e130a4d",
+    "dir": "C--dev-Termhalla/48f54242-e55c-4620-81ad-e568cb2ac79c/subagents/workflows/wf_0a12b762-09c",
+    "served": [
+      "claude-fable-5"
+    ],
+    "firstModel": "claude-fable-5",
+    "lastModel": "claude-fable-5",
+    "messages": 78,
+    "requested": null,
+    "downgraded": false,
+    "mismatch": null,
+    "servedFraction": 1,
+    "tokens": {
+      "input": 3052,
+      "output": 30804,
+      "cacheRead": 6945966,
+      "cacheCreation": 446815
+    },
+    "tokensByModel": {
+      "claude-fable-5": {
+        "input": 3052,
+        "output": 30804,
+        "cacheRead": 6945966,
+        "cacheCreation": 446815
+      }
+    },
+    "at": "2026-07-10T01:35:35.177Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0025-cursor-home-output-suppression.",
+    "role": "reviewer",
+    "agentType": "orky:reviewer",
+    "transcript": "agent-a4877803f04c9fbb8",
+    "dir": "C--dev-Termhalla/48f54242-e55c-4620-81ad-e568cb2ac79c/subagents/workflows/wf_0a12b762-09c",
+    "served": [
+      "claude-fable-5"
+    ],
+    "firstModel": "claude-fable-5",
+    "lastModel": "claude-fable-5",
+    "messages": 45,
+    "requested": null,
+    "downgraded": false,
+    "mismatch": null,
+    "servedFraction": 1,
+    "tokens": {
+      "input": 90,
+      "output": 21991,
+      "cacheRead": 2942727,
+      "cacheCreation": 347776
+    },
+    "tokensByModel": {
+      "claude-fable-5": {
+        "input": 90,
+        "output": 21991,
+        "cacheRead": 2942727,
+        "cacheCreation": 347776
+      }
+    },
+    "at": "2026-07-10T01:35:35.177Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0025-cursor-home-output-suppression.",
+    "role": "reviewer",
+    "agentType": "orky:reviewer",
+    "transcript": "agent-aa55b0009de897359",
+    "dir": "C--dev-Termhalla/48f54242-e55c-4620-81ad-e568cb2ac79c/subagents/workflows/wf_0a12b762-09c",
+    "served": [
+      "claude-fable-5"
+    ],
+    "firstModel": "claude-fable-5",
+    "lastModel": "claude-fable-5",
+    "messages": 56,
+    "requested": null,
+    "downgraded": false,
+    "mismatch": null,
+    "servedFraction": 1,
+    "tokens": {
+      "input": 112,
+      "output": 23970,
+      "cacheRead": 4094076,
+      "cacheCreation": 351909
+    },
+    "tokensByModel": {
+      "claude-fable-5": {
+        "input": 112,
+        "output": 23970,
+        "cacheRead": 4094076,
+        "cacheCreation": 351909
+      }
+    },
+    "at": "2026-07-10T01:35:35.177Z"
+  },
+  {
+    "action": "gate.check",
+    "feature": "0025-cursor-home-output-suppression",
+    "phase": "tests",
+    "pass": true,
+    "attempts": 0,
+    "totalFailures": 1,
+    "wallClockMs": 165765,
+    "at": "2026-07-10T01:44:32.066Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0025-cursor-home-output-suppression.",
+    "role": "reviewer",
+    "agentType": "orky:reviewer",
+    "transcript": "agent-ab3b5e79e3f3b22dc",
+    "dir": "C--dev-Termhalla/48f54242-e55c-4620-81ad-e568cb2ac79c/subagents/workflows/wf_0a12b762-09c",
+    "served": [
+      "claude-fable-5"
+    ],
+    "firstModel": "claude-fable-5",
+    "lastModel": "claude-fable-5",
+    "messages": 95,
+    "requested": null,
+    "downgraded": false,
+    "mismatch": null,
+    "servedFraction": 1,
+    "tokens": {
+      "input": 3080,
+      "output": 50334,
+      "cacheRead": 10597814,
+      "cacheCreation": 465108
+    },
+    "tokensByModel": {
+      "claude-fable-5": {
+        "input": 3080,
+        "output": 50334,
+        "cacheRead": 10597814,
+        "cacheCreation": 465108
+      }
+    },
+    "at": "2026-07-10T01:44:33.365Z"
+  },
+  {
+    "action": "gate.check",
+    "feature": "0025-cursor-home-output-suppression",
+    "phase": "implement",
+    "pass": true,
+    "attempts": 0,
+    "totalFailures": 1,
+    "wallClockMs": 72740,
+    "at": "2026-07-10T01:50:13.811Z"
+  },
+  {
+    "action": "gate.check",
+    "feature": "0025-cursor-home-output-suppression",
+    "phase": "review",
+    "pass": false,
+    "attempts": 2,
+    "totalFailures": 2,
+    "wallClockMs": 3,
+    "failed": [
+      "findings"
+    ],
+    "at": "2026-07-10T01:55:10.712Z"
+  },
+  {
+    "action": "gate.check",
+    "feature": "0025-cursor-home-output-suppression",
+    "phase": "review",
+    "pass": false,
+    "attempts": 3,
+    "totalFailures": 3,
+    "wallClockMs": 3,
+    "failed": [
+      "findings"
+    ],
+    "at": "2026-07-10T02:01:57.289Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0025-cursor-home-output-suppression.",
+    "role": "reviewer",
+    "agentType": "orky:reviewer",
+    "transcript": "agent-a3aad5659ebb18289",
+    "dir": "C--dev-Termhalla/48f54242-e55c-4620-81ad-e568cb2ac79c/subagents/workflows/wf_625c867d-023",
+    "served": [
+      "claude-fable-5"
+    ],
+    "firstModel": "claude-fable-5",
+    "lastModel": "claude-fable-5",
+    "messages": 61,
+    "requested": null,
+    "downgraded": false,
+    "mismatch": null,
+    "servedFraction": 1,
+    "tokens": {
+      "input": 122,
+      "output": 31055,
+      "cacheRead": 5366239,
+      "cacheCreation": 409886
+    },
+    "tokensByModel": {
+      "claude-fable-5": {
+        "input": 122,
+        "output": 31055,
+        "cacheRead": 5366239,
+        "cacheCreation": 409886
+      }
+    },
+    "at": "2026-07-10T02:01:58.373Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0025-cursor-home-output-suppression.",
+    "role": "reviewer",
+    "agentType": "orky:reviewer",
+    "transcript": "agent-a667d8b89c95cba2c",
+    "dir": "C--dev-Termhalla/48f54242-e55c-4620-81ad-e568cb2ac79c/subagents/workflows/wf_625c867d-023",
+    "served": [
+      "claude-fable-5"
+    ],
+    "firstModel": "claude-fable-5",
+    "lastModel": "claude-fable-5",
+    "messages": 33,
+    "requested": null,
+    "downgraded": false,
+    "mismatch": null,
+    "servedFraction": 1,
+    "tokens": {
+      "input": 66,
+      "output": 9345,
+      "cacheRead": 1737799,
+      "cacheCreation": 228771
+    },
+    "tokensByModel": {
+      "claude-fable-5": {
+        "input": 66,
+        "output": 9345,
+        "cacheRead": 1737799,
+        "cacheCreation": 228771
+      }
+    },
+    "at": "2026-07-10T02:01:58.373Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0025-cursor-home-output-suppression.",
+    "role": "reviewer",
+    "agentType": "orky:reviewer",
+    "transcript": "agent-ac599614039a34395",
+    "dir": "C--dev-Termhalla/48f54242-e55c-4620-81ad-e568cb2ac79c/subagents/workflows/wf_625c867d-023",
+    "served": [
+      "claude-fable-5"
+    ],
+    "firstModel": "claude-fable-5",
+    "lastModel": "claude-fable-5",
+    "messages": 59,
+    "requested": null,
+    "downgraded": false,
+    "mismatch": null,
+    "servedFraction": 1,
+    "tokens": {
+      "input": 118,
+      "output": 17930,
+      "cacheRead": 4413561,
+      "cacheCreation": 338763
+    },
+    "tokensByModel": {
+      "claude-fable-5": {
+        "input": 118,
+        "output": 17930,
+        "cacheRead": 4413561,
+        "cacheCreation": 338763
+      }
+    },
+    "at": "2026-07-10T02:01:58.373Z"
+  },
+  {
+    "action": "gate.check",
+    "feature": "0025-cursor-home-output-suppression",
+    "phase": "spec",
+    "pass": true,
+    "attempts": 0,
+    "totalFailures": 3,
+    "wallClockMs": 2,
+    "at": "2026-07-10T02:07:05.435Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0025-cursor-home-output-suppression.",
+    "role": "reviewer",
+    "agentType": "orky:reviewer",
+    "transcript": "agent-a2443b9f080d1a672",
+    "dir": "C--dev-Termhalla/48f54242-e55c-4620-81ad-e568cb2ac79c/subagents/workflows/wf_625c867d-023",
+    "served": [
+      "claude-fable-5"
+    ],
+    "firstModel": "claude-fable-5",
+    "lastModel": "claude-fable-5",
+    "messages": 80,
+    "requested": null,
+    "downgraded": false,
+    "mismatch": null,
+    "servedFraction": 1,
+    "tokens": {
+      "input": 8784,
+      "output": 36060,
+      "cacheRead": 6917024,
+      "cacheCreation": 446639
+    },
+    "tokensByModel": {
+      "claude-fable-5": {
+        "input": 8784,
+        "output": 36060,
+        "cacheRead": 6917024,
+        "cacheCreation": 446639
+      }
+    },
+    "at": "2026-07-10T02:07:06.480Z"
+  },
+  {
+    "action": "gate.check",
+    "feature": "0025-cursor-home-output-suppression",
+    "phase": "plan",
+    "pass": true,
+    "attempts": 0,
+    "totalFailures": 3,
+    "wallClockMs": 3,
+    "at": "2026-07-10T02:07:32.957Z"
+  },
+  {
+    "action": "gate.check",
+    "feature": "0025-cursor-home-output-suppression",
+    "phase": "tests",
+    "pass": true,
+    "attempts": 0,
+    "totalFailures": 3,
+    "wallClockMs": 51204,
+    "at": "2026-07-10T02:09:24.964Z"
+  },
+  {
+    "action": "gate.check",
+    "feature": "0025-cursor-home-output-suppression",
+    "phase": "implement",
+    "pass": true,
+    "attempts": 0,
+    "totalFailures": 3,
+    "wallClockMs": 71667,
+    "at": "2026-07-10T02:14:26.972Z"
   }
 ]

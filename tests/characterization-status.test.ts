@@ -25,10 +25,18 @@ describe('CHAR-001 needs-input: ANSI stripping & pure-control detection', () => 
     expect(stripAnsi('\x1b[31mhi\x1b[0m')).toBe('hi')
     expect(stripAnsi('plain')).toBe('plain')
   })
-  it('isPureControl: true for ANSI-only and cursor-home redraws, false for real text', () => {
+  // AMENDED at the tests phase of feature 0025-cursor-home-output-suppression (REQ-010) —
+  // a recorded, deliberate change, never a silent edit: baseline REQ-007's clause "a chunk
+  // beginning with a cursor-home sequence is excluded from the tail" is intentionally
+  // superseded (baseline KNOWN BUG #4). `isPureControl` is now pure "no printable content"
+  // detection — a cursor-home redraw that CARRIES printable text is no longer pure control
+  // (its text is admitted to the status tail; quiet-timer/state inertness rides the new
+  // `isRepaintChunk`, pinned in tests/main/needs-input-classifier.test.ts).
+  it('TEST-2526 isPureControl: true only for no-printable-content chunks; false once printable text appears (0025 amendment)', () => {
     expect(isPureControl('\x1b[2J')).toBe(true)          // erase-screen only
     expect(isPureControl('   \r\n')).toBe(true)          // whitespace only
-    expect(isPureControl('\x1b[Hreal text')).toBe(true)  // BEGINS with cursor-home => screen repaint
+    expect(isPureControl('\x1b[H\x1b[K\r\n')).toBe(true) // cursor-home redraw with NO printable content
+    expect(isPureControl('\x1b[Hreal text')).toBe(false) // 0025: printable repaint text is no longer pure (was pinned true at baseline)
     expect(isPureControl('hello')).toBe(false)
     expect(isPureControl('cleared \x1b[Hmid')).toBe(false) // home NOT at start => real output
   })

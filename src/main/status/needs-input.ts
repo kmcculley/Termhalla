@@ -23,7 +23,7 @@ export const DEFAULT_NEEDS_INPUT_PATTERNS: RegExp[] = [
 const ANSI_RE = /\x1b(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~]|\][^\x07]*\x07|\][^\x1b]*\x1b\\)/g
 
 // A chunk that BEGINS with a cursor-home sequence is a terminal screen redraw
-// (e.g. PSReadLine repainting the input area), not real program output.
+// (e.g. PSReadLine repainting the input area), not real program output — see `isRepaintChunk`.
 // Anchored at start so that output merely *containing* a home sequence (clear, vim, less) is NOT misclassified.
 const CURSOR_HOME_RE = /^(?:\x1b\[\?25[lh])*\x1b\[(?:H|1;1H)/
 
@@ -33,13 +33,31 @@ export function stripAnsi(s: string): string {
 }
 
 /**
- * Returns true if the string contains no printable characters (only control codes, ANSI escapes,
- * whitespace) OR if it starts with a cursor-home sequence (indicating a terminal screen redraw
- * rather than real program output).
+ * Returns true if the string contains no printable characters at all (only control codes, ANSI
+ * escapes, whitespace). A repaint chunk (see `isRepaintChunk`) that carries no printable text
+ * still returns true here — it has nothing to admit either way. A repaint chunk that DOES carry
+ * printable text now returns false (0025-cursor-home-output-suppression, amending baseline
+ * REQ-007): its text is real, admissible content for the needs-input tail — the repaint axis
+ * (whether it should touch the quiet timer / tracker state) is decided separately by
+ * `isRepaintChunk`, not folded into this "nothing printable" check.
  */
 export function isPureControl(s: string): boolean {
-  if (CURSOR_HOME_RE.test(s)) return true
   return stripAnsi(s).replace(/[\x00-\x1f\x7f\s]/g, '').length === 0
+}
+
+/**
+ * Returns true if the chunk is a terminal screen redraw: it begins (after optional cursor
+ * show/hide prefixes `\x1b[?25l`/`\x1b[?25h`) with a cursor-home sequence (`\x1b[H` or
+ * `\x1b[1;1H`). Anchored at start so output merely *containing* a home sequence (clear, vim,
+ * less) is NOT misclassified — a home sequence not at the start is real output.
+ *
+ * Decoupled from `isPureControl`: a repaint chunk may or may not carry printable text.
+ * `StatusTracker.onOutput` uses this to admit a repaint's printable text to the needs-input tail
+ * while withholding every other real-output effect (quiet timer, needs-input->busy reset, the
+ * marker-less busy rule) — see status-tracker.ts.
+ */
+export function isRepaintChunk(s: string): boolean {
+  return CURSOR_HOME_RE.test(s)
 }
 
 function lastLine(tail: string): string {

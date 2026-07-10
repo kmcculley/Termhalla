@@ -61,11 +61,14 @@ first understanding which of the two it is.
 `.orky/baseline/architecture.md` records four confirmed known bugs as candidate Orky features;
 **#1 (unanchored AI-detection substrings), #2 (the whitespace-strict needs-input question
 catch-all), and #3 (merge-conflict count) were FIXED 2026-07-09** in the quality/polish batch
-(see the baseline's own entries for the audit trail), leaving only #4 open — deliberately: it is
-the load-bearing one below.
-One of them — the cursor-home `CURSOR_HOME_RE` catch-all (#4) — **widened** on 2026-07-08:
-because a marker-less pane's busy rule now also sits behind `isPureControl`, a full-screen TUI over
-ssh whose frames begin with cursor-home (`top`, `vim`) reads *idle* rather than flapping. That was
-the deliberate trade over an oscillating pane; see
-[decisions: a marker-less pane goes busy on real output only](decisions.md). A fix for #4 must
-re-verify the repaint-eviction scenario **and** this busy-detection case.
+(see the baseline's own entries for the audit trail). **#4 (the cursor-home `CURSOR_HOME_RE`
+catch-all) was FIXED 2026-07-09 by feature 0025-cursor-home-output-suppression** — all four are
+now fixed.
+Historical note: #4 had **widened** on 2026-07-08, before its own fix — because a marker-less
+pane's busy rule sat behind `isPureControl`, a full-screen TUI over ssh whose frames began with
+cursor-home (`top`, `vim`) read *idle* rather than flapping, the deliberate trade over an
+oscillating pane at the time; see
+[decisions: a marker-less pane goes busy on real output only](decisions.md). Feature 0025 kept
+that busy-detection trade **verbatim** (via the dedicated `isRepaintChunk` check) while fixing
+the tail-admission bug: a repaint's printable text is now admitted to the needs-input tail
+without reopening the repaint-eviction scenario.

@@ -108,9 +108,16 @@ describe('isPureControl', () => {
     expect(isPureControl('\x1b[2K\r\n')).toBe(true)
     expect(isPureControl('   \r\n')).toBe(true)
   })
-  it('is true for a chunk that BEGINS with a screen-redraw (cursor-home)', () => {
-    expect(isPureControl('\x1b[?25l\x1b[HPS C:\\> ')).toBe(true)
-    expect(isPureControl('\x1b[Hrepainted prompt')).toBe(true)
+  // AMENDED at the 0025 tests phase (0025-cursor-home-output-suppression, REQ-009/REQ-010;
+  // resolved as a tests-phase collision per CONV-059): this block used to pin the OLD
+  // classification — a home-prefixed redraw was "pure control" even when it carried printable
+  // text (baseline KNOWN BUG #4, baseline REQ-007's tail-exclusion clause). `isPureControl`
+  // is now pure "no printable content" detection; the repaint axis moved to the new
+  // `isRepaintChunk` (see tests/main/needs-input-classifier.test.ts).
+  it('TEST-2527 is true for a home-prefixed redraw only while it carries NO printable text (0025 amendment)', () => {
+    expect(isPureControl('\x1b[?25l\x1b[H\x1b[2K')).toBe(true)     // control-only redraw: still pure
+    expect(isPureControl('\x1b[?25l\x1b[HPS C:\\> ')).toBe(false)  // 0025: printable repaint text is real text
+    expect(isPureControl('\x1b[Hrepainted prompt')).toBe(false)
   })
   it('is FALSE for ordinary output that merely CONTAINS a cursor-home mid-stream', () => {
     expect(isPureControl('Building...\x1b[Hmore')).toBe(false)

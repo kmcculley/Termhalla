@@ -1,0 +1,155 @@
+{
+  "feature": "0025-cursor-home-output-suppression",
+  "phase": "implement",
+  "gates": {
+    "brainstorm": {
+      "passed": true,
+      "at": "2026-07-10T00:22:51.651Z",
+      "evidence": "human confirmed concept 2026-07-09: needs-input-only scope, full tail admission, unit-simulated eviction re-verification; 01-concept.md",
+      "external": true
+    },
+    "spec": {
+      "passed": true,
+      "at": "2026-07-10T02:07:05.431Z",
+      "firstAt": "2026-07-10T02:07:05.431Z",
+      "tokens": [
+        {
+          "token": "findings",
+          "pass": true,
+          "evidence": "no open blocking findings (CRITICAL/HIGH or contract-violation) at or before this gate"
+        }
+      ]
+    },
+    "plan": {
+      "passed": true,
+      "at": "2026-07-10T02:07:32.954Z",
+      "firstAt": "2026-07-10T02:07:32.954Z",
+      "tokens": [
+        {
+          "token": "spec-freeze",
+          "pass": true,
+          "evidence": "spec unchanged since the spec gate"
+        },
+        {
+          "token": "traceability-plan",
+          "pass": true,
+          "evidence": "all 11 REQ(s) trace to TASK"
+        },
+        {
+          "token": "findings",
+          "pass": true,
+          "evidence": "no open blocking findings (CRITICAL/HIGH or contract-violation) at or before this gate"
+        }
+      ]
+    },
+    "tests": {
+      "passed": true,
+      "at": "2026-07-10T02:09:24.959Z",
+      "firstAt": "2026-07-10T02:09:24.959Z",
+      "tokens": [
+        {
+          "token": "spec-freeze",
+          "pass": true,
+          "evidence": "spec unchanged since the spec gate"
+        },
+        {
+          "token": "tests-red",
+          "pass": true,
+          "evidence": "tests are GREEN on a tests loopback (coverage augmentation; implementation already exists) — freeze re-captured"
+        }
+      ]
+    },
+    "implement": {
+      "passed": true,
+      "at": "2026-07-10T02:14:26.966Z",
+      "firstAt": "2026-07-10T02:14:26.966Z",
+      "tokens": [
+        {
+          "token": "spec-freeze",
+          "pass": true,
+          "evidence": "spec unchanged since the spec gate"
+        },
+        {
+          "token": "build",
+          "pass": true,
+          "evidence": "build exited 0"
+        },
+        {
+          "token": "test",
+          "pass": true,
+          "evidence": "test exited 0"
+        },
+        {
+          "token": "test-freeze",
+          "pass": true,
+          "evidence": "test files unchanged since freeze"
+        }
+      ]
+    }
+  },
+  "iterations": {
+    "tests": 1,
+    "spec": 1
+  },
+  "escalations": [
+    {
+      "id": "ESC-001",
+      "phase": "review",
+      "reason": "Should we amend baseline REQ-007 in .orky/baseline/inferred-spec.md to correct the stale tail-exclusion clause (isPureControl now false for home+text) with a 0025 supersession note and update the acceptance vector, plus add isRepaintChunk to architecture.md exports and extend TEST-2532 banned list?",
+      "kind": "judgment",
+      "finding": "FINDING-004",
+      "status": "resolved",
+      "at": "2026-07-10T01:36:16.716Z",
+      "decision": "Human (2026-07-09): amend the baseline. Loop back to tests; extend TEST-2532 banned list to cover inferred-spec.md's retired phrasing; amend .orky/baseline/inferred-spec.md REQ-007 (supersession note + corrected acceptance vector) and add isRepaintChunk to baseline architecture.md exports. Also human-approved: defer FINDING-011/012 with doc disclosure (followups ledger); fix LOW doc findings 005/006/008/009 in the same pass; defer 001/002/003 to followups.",
+      "resolvedAt": "2026-07-10T01:40:23.237Z"
+    },
+    {
+      "id": "ESC-002",
+      "phase": "review",
+      "reason": "Decide whether to propagate the ESC-001 loopback's comment amendments into the frozen artifacts (02-spec.md/04-tests.md) through a sanctioned loopback as CONV-018 requires, or revert the comments to restore byte-parity with the frozen spec.",
+      "kind": "judgment",
+      "finding": "FINDING-018",
+      "status": "resolved",
+      "at": "2026-07-10T02:02:46.641Z",
+      "decision": "Human (2026-07-09): propagate ESC-001 into the frozen artifacts (CONV-018). Loopback to spec: amend REQ-003/REQ-008 acceptance wording to 'assertion-bodies unchanged; ESC-001 comment-only vocabulary amendments recorded and permitted', update 04-tests.md (byte-unchanged claims + TEST-2532 eight-regex reality, FINDING-019) and the in-file describe header. Also human-approved: FINDING-011 deferral STANDS with corrected disclosure (FINDING-017: recovery is command-lifetime on marker-driven panes, next-command-start marker); fix all five new LOWs (013/014/015/016/019) in this pass.",
+      "resolvedAt": "2026-07-10T02:06:14.234Z"
+    }
+  ],
+  "concerns": [
+    "determinism",
+    "qol",
+    "doc-drift"
+  ],
+  "attempts": {
+    "spec": 0,
+    "plan": 0,
+    "tests": 0,
+    "implement": 0,
+    "review": 3
+  },
+  "implementer": {
+    "mode": "ab",
+    "agents": [
+      "orky:implementer@sonnet",
+      "orky:implementer@opus"
+    ],
+    "winner": "orky:implementer@sonnet",
+    "reason": "codex:codex-rescue not dispatchable on this box; A/B ran as two Claude implementers (sonnet vs opus). Both produced byte-identical CODE (same plan shape: isPureControl split + isRepaintChunk, two-axis onOutput); winner chosen on doc correctness: A fixed the stale CLAUDE.md baseline-bugs bullet and the status-engine module table (CONV-008), and witnessed the e2e regression nets (marker-less-pane 4/4 incl TEST-QA11, status.spec 4/4). Worktree-level gatekeeper checks failed on env (setup npm install clobbered junctioned node_modules); arbiter = both candidates' witnessed green suites + the main-tree implement gate check after apply.",
+    "at": "2026-07-10T01:15:36.029Z"
+  },
+  "totalFailures": 3,
+  "loopbacks": [
+    {
+      "to": "tests",
+      "from": "review",
+      "reason": "ESC-001 resolved: baseline amendment requires a frozen-test change (TEST-2532 banned-list extension) — sanctioned only through the tests phase; doc amendments follow in implement",
+      "at": "2026-07-10T01:40:23.387Z"
+    },
+    {
+      "to": "spec",
+      "from": "review",
+      "reason": "ESC-002 resolved: CONV-018 propagation of the ESC-001 arbitration into 02-spec.md REQ-003/REQ-008 + 04-tests.md + the in-file pin header",
+      "at": "2026-07-10T02:06:14.292Z"
+    }
+  ]
+}

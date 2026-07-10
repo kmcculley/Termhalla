@@ -73,14 +73,27 @@ AI: `(9000,box,true,cfg,{aiActive:true,aiWorkingRecent:false})===true`, `…,tru
 `AGENT_WORKING_GRACE_MS`)
 **Characterized-by:** CHAR-003
 
-### REQ-007 — Status tail is ANSI-stripped and screen-repaints are excluded
-The status tail and quiet-timer use printable text only: `stripAnsi` removes VT/CSI/OSC escapes, and a
-chunk that **begins** with a cursor-home sequence is treated as a screen repaint (`isPureControl` true)
-and excluded, so a full-screen ConPTY repaint cannot evict the real prompt from the ~400-char tail.
-**Acceptance:** `stripAnsi('\x1b[31mhi\x1b[0m')==='hi'`; `isPureControl('\x1b[Hreal text')===true`;
+### REQ-007 — Status tail is ANSI-stripped; screen-repaints are state-inert (amended by 0025)
+> **Superseded in part by feature 0025-cursor-home-output-suppression (2026-07-09, fixing baseline
+> KNOWN BUG #4).** The original clause read: a chunk beginning with a cursor-home sequence is a
+> screen repaint, `isPureControl` true, and fully excluded from the tail. That tail-exclusion half
+> suppressed real output (a TUI that redraws AND prints a fresh prompt in one home-prefixed chunk
+> could never reach needs-input) and was retired; the eviction protection it existed for is carried
+> by ANSI-stripping + `lastLine`'s trailing-blank skip, re-verified by 0025's regression vectors.
+
+The status tail and quiet-timer use printable text only: `stripAnsi` removes VT/CSI/OSC escapes. A
+chunk that **begins** with a cursor-home sequence is a screen repaint (`isRepaintChunk` true — the
+repaint axis, split out of `isPureControl` by 0025): its printable text **is admitted to the tail**
+with the same append-and-cap discipline as real output, while the repaint touches neither the quiet
+timer, the needs-input→busy reset, nor the marker-less busy rule. `isPureControl` is now purely
+"no printable content". A full-screen ConPTY repaint still cannot evict the real prompt from the
+~400-char tail (the tail is stored ANSI-stripped and `lastLine` skips trailing blanks).
+**Acceptance:** `stripAnsi('\x1b[31mhi\x1b[0m')==='hi'`; `isPureControl('\x1b[Hreal text')===false`
+and `isRepaintChunk('\x1b[Hreal text')===true` (amended by 0025; pinned by CHAR-001/TEST-2526);
 `isPureControl('hello')===false`.
-**Source:** `src/main/status/needs-input.ts` (`stripAnsi`, `isPureControl`, `CURSOR_HOME_RE`)
-**Characterized-by:** CHAR-001
+**Source:** `src/main/status/needs-input.ts` (`stripAnsi`, `isPureControl`, `isRepaintChunk`,
+`CURSOR_HOME_RE`)
+**Characterized-by:** CHAR-001 (amended through 0025's tests phase)
 
 ### REQ-008 — cwd extraction from OSC sequences
 The cwd parser extracts a working directory from OSC 9;9 (PowerShell `…;9;<path>`) and OSC 7

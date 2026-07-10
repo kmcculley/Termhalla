@@ -739,6 +739,21 @@ blast radius of known bug #4 (the `CURSOR_HOME_RE` catch-all in
 a marker-less pane simply cannot distinguish a redrawing TUI from a quiet one. AI sessions
 are unaffected: `AGENT_WORKING_RE` is scanned on all output, before the pure-control check.
 
+**Update (2026-07-09, feature 0025-cursor-home-output-suppression):** known bug #4 is now
+fixed — `isPureControl` dropped its `CURSOR_HOME_RE` early-return, so a repaint chunk that
+carries printable text is no longer "pure control": that text IS now admitted to the
+needs-input tail with the same append-and-cap discipline as real output. This decision's own
+policy is preserved **verbatim**: the marker-less busy rule (and the quiet timer, and the
+needs-input→busy reset) moved to a dedicated `isRepaintChunk` check, decoupled from "has
+printable content", so a repaint still never marks a marker-less pane busy and a full-screen
+TUI over ssh still reads idle rather than flapping. The *intended* change is needs-input
+reachability; because the tail is shared state also read by `computeIdleFallback`, two residual
+consequences were disclosed and deferred (a repaint-painted prompt-shaped last line can idle a
+busy marker-driven pane for the command's remainder, and a repaint-delivered needs-input has no
+exit path for raw-mode TUIs until the next real-output chunk) — see
+[status-engine](features/status-engine.md) → Behaviors and the
+[0025 review follow-ups](superpowers/0025-cursor-home-output-suppression-review-followups.md).
+
 ### [2026-07-08] Every `fit()` is paired with a `ptyResize`, and an adopted PTY is reconciled
 
 **Context:** Ctrl+L could not clear a garbled terminal, but maximizing the pane could.

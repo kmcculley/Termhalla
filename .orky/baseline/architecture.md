@@ -56,6 +56,7 @@ thin around it. That pure core is what this baseline characterizes (see CHAR ids
 - **`status/cwd-parser.ts`** — extracts cwd from OSC 9;9 (PowerShell) and OSC 7 `file://` URLs,
   translating DOS / msys (`/c/…`) / WSL (`/mnt/c/…`) forms to Windows paths. *(CHAR-005)*
 - **`status/needs-input.ts`** — pure status heuristics: `stripAnsi`, `isPureControl`,
+  `isRepaintChunk` (the repaint axis, split out of `isPureControl` by feature 0025),
   `tailMatchesInputPrompt`, `computeNeedsInput`, `looksLikePrompt`, `computeIdleFallback`, plus the
   `AGENT_WORKING_RE` ("esc to interrupt") AI indicator. *(CHAR-001, CHAR-002, CHAR-003)*
 - **`status/status-tracker.ts`** — `StatusTracker` state machine combining markers + output silence +
@@ -227,15 +228,17 @@ fix's tests-phase update is the auditable record of the intended change.
    `GitStatus` (runtime-only, no schema), included in `dirty`, surfaced in the git popover while
    non-zero. CHAR-018 amended as the deliberate change-record — the `toEqual` shape gained
    `conflicted: 0`, every pinned count unchanged.
-4. **[KNOWN BUG — confirmed, fix with care]** **`isPureControl` can suppress real output that begins
-   with a cursor-home sequence** (`status/needs-input.ts`, `CURSOR_HOME_RE`). Any chunk that *starts*
-   with a cursor-home escape is treated as a screen repaint and excluded from the status tail / quiet
-   timer, even if it carries new printable text (e.g. a TUI that redraws then prints a fresh prompt in
-   one chunk). **Load-bearing:** this guard exists to avoid prompt eviction on ConPTY full-screen
-   repaints (see `CLAUDE.md` → "Status tail must be ANSI-stripped"). A fix must distinguish a pure
-   repaint from a repaint-that-also-emits-a-new-prompt **without** reopening the eviction bug — so its
-   feature must re-verify the repaint-eviction scenario, not just the new case. *Fix touches REQ-007 /
-   CHAR-001.*
+4. **[KNOWN BUG — FIXED 2026-07-09]** ~~**`isPureControl` can suppress real output that begins
+   with a cursor-home sequence**~~ (`status/needs-input.ts`, `CURSOR_HOME_RE`). Fixed by feature
+   0025-cursor-home-output-suppression: `isPureControl` dropped the `CURSOR_HOME_RE` early-return
+   (it is now pure "no printable content" detection) and a new exported `isRepaintChunk` carries
+   the repaint axis. `StatusTracker.onOutput` now admits a repaint chunk's printable text to the
+   needs-input tail with the same append-and-cap discipline as real output, while the quiet timer,
+   the needs-input→busy reset, and the marker-less `!hasMarkers → busy` rule stay gated to real,
+   non-repaint output only — the load-bearing ConPTY repaint-eviction guard (see `CLAUDE.md` →
+   "Status tail must be ANSI-stripped") was re-verified and stays closed. CHAR-001's
+   `isPureControl('\x1b[Hreal text')` pin was amended `true` → `false` as the recorded, deliberate
+   change (TEST-2526). *Fixed REQ-007 / CHAR-001 per this feature's spec.*
 
 ## Not characterized (coverage boundary)
 Surface that cannot be pinned headlessly with the vitest profile — no CHAR test exists for it; it needs

@@ -1,0 +1,174 @@
+{
+  "REQ-001": {
+    "tasks": [
+      "TASK-002",
+      "TASK-004"
+    ],
+    "tests": [
+      "TEST-2501",
+      "TEST-2502"
+    ],
+    "files": [
+      "src/main/status/status-tracker.ts",
+      "tests/main/status-tracker.test.ts"
+    ]
+  },
+  "REQ-002": {
+    "tasks": [
+      "TASK-002",
+      "TASK-004"
+    ],
+    "tests": [
+      "TEST-2503",
+      "TEST-2504"
+    ],
+    "files": [
+      "src/main/status/status-tracker.ts",
+      "tests/main/status-tracker.test.ts"
+    ]
+  },
+  "REQ-003": {
+    "tasks": [
+      "TASK-002",
+      "TASK-004"
+    ],
+    "tests": [
+      "TEST-2505",
+      "TEST-2506",
+      "TEST-2507"
+    ],
+    "files": [
+      "src/main/status/status-tracker.ts",
+      "tests/main/status-tracker.test.ts"
+    ]
+  },
+  "REQ-004": {
+    "tasks": [
+      "TASK-002",
+      "TASK-005"
+    ],
+    "tests": [
+      "TEST-2515",
+      "TEST-2516"
+    ],
+    "files": [
+      "src/main/status/status-tracker.ts",
+      "tests/main/status-tracker.test.ts",
+      "tests/characterization-status.test.ts"
+    ]
+  },
+  "REQ-005": {
+    "tasks": [
+      "TASK-002",
+      "TASK-004"
+    ],
+    "tests": [
+      "TEST-2508"
+    ],
+    "files": [
+      "src/main/status/status-tracker.ts",
+      "tests/main/status-tracker.test.ts"
+    ]
+  },
+  "REQ-006": {
+    "tasks": [
+      "TASK-002",
+      "TASK-004"
+    ],
+    "tests": [
+      "TEST-2509",
+      "TEST-2510",
+      "TEST-2511",
+      "TEST-2512"
+    ],
+    "files": [
+      "src/main/status/status-tracker.ts",
+      "tests/main/status-tracker.test.ts"
+    ]
+  },
+  "REQ-007": {
+    "tasks": [
+      "TASK-002",
+      "TASK-004"
+    ],
+    "tests": [
+      "TEST-2513",
+      "TEST-2514"
+    ],
+    "files": [
+      "src/main/status/status-tracker.ts",
+      "tests/main/status-tracker.test.ts"
+    ]
+  },
+  "REQ-008": {
+    "tasks": [
+      "TASK-006"
+    ],
+    "tests": [
+      "TEST-2541"
+    ],
+    "files": [
+      "tests/e2e/marker-less-pane.spec.ts",
+      "tests/fixtures/fake-remote-shell.mjs",
+      "tests/e2e/status.spec.ts",
+      "tests/renderer/pane-status-css.test.ts",
+      "tests/regression-net-0025.test.ts"
+    ]
+  },
+  "REQ-009": {
+    "tasks": [
+      "TASK-001",
+      "TASK-003"
+    ],
+    "tests": [
+      "TEST-2521",
+      "TEST-2522",
+      "TEST-2523",
+      "TEST-2524",
+      "TEST-2525",
+      "TEST-2527"
+    ],
+    "files": [
+      "src/main/status/needs-input.ts",
+      "tests/characterization-status.test.ts",
+      "tests/main/needs-input-classifier.test.ts",
+      "tests/main/needs-input.test.ts"
+    ]
+  },
+  "REQ-010": {
+    "tasks": [
+      "TASK-003"
+    ],
+    "tests": [
+      "TEST-2524",
+      "TEST-2526",
+      "TEST-2527"
+    ],
+    "files": [
+      "tests/characterization-status.test.ts",
+      "tests/main/needs-input-classifier.test.ts",
+      "tests/main/needs-input.test.ts"
+    ]
+  },
+  "REQ-011": {
+    "tasks": [
+      "TASK-007"
+    ],
+    "tests": [
+      "TEST-2531",
+      "TEST-2532",
+      "TEST-2533",
+      "TEST-2534"
+    ],
+    "files": [
+      "CLAUDE.md",
+      "docs/decisions.md",
+      ".orky/baseline/architecture.md",
+      "docs/deferred.md",
+      "docs/features/status-engine.md",
+      "CHANGELOG.md",
+      "tests/docs-feature-0025.test.ts",
+      ".orky/baseline/inferred-spec.md"
+    ]
+  }
+}

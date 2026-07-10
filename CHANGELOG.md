@@ -984,6 +984,17 @@ All notable changes to Termhalla are recorded here. The format follows
   node config, producing 47 spurious errors. A dedicated `tsconfig.e2e.json` (the node config plus
   the DOM lib, scoped to `tests/e2e`) restores them while keeping main-process and `tests/main` code
   DOM-free; a few genuine `tests/main` type slips (a QuickStore cast, a mock signature) were fixed too.
+- **A TUI that redraws its screen and prints a fresh prompt in one chunk no longer wedges busy**
+  (baseline KNOWN BUG #4, `status/needs-input.ts`). `isPureControl` treated ANY cursor-home-prefixed
+  chunk as a screen repaint excluded from the needs-input tail entirely, even when it carried new
+  printable text — so a program that redrew then asked a question in the same chunk never reached
+  `needs-input`. `isPureControl` now detects only "no printable content"; a new `isRepaintChunk`
+  carries the repaint axis, and `StatusTracker.onOutput` admits a repaint's printable text to the
+  tail with the same append-and-cap discipline as real output, while the quiet timer, the
+  needs-input→busy reset, and the marker-less `!hasMarkers → busy` rule stay gated to real,
+  non-repaint output only — the ConPTY repaint-eviction guard and the LOCKED "a marker-less pane
+  goes busy on real output only" decision are both preserved verbatim (feature
+  0025-cursor-home-output-suppression). CHAR-001's pin was amended as the recorded, deliberate change.
 
 ## [0.16.1] - 2026-07-09
 
