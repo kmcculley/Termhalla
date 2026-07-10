@@ -368,6 +368,13 @@ to it when a review surfaces a lesson general enough to outlive its feature.
   any one connection.
   *(from FINDING-031 in 0024-agent-daemonization)*
 
+- **CONV-072** — A loopback that amends a frozen test (comment or assertion) or extends a frozen
+  REQ's file scope MUST update, in that SAME loopback, every phase artifact that records the frozen
+  state as unmodified/enumerated (the tests-phase artifact's test descriptions and byte-unchanged
+  claims, `traceability.json` AND its human-readable mirror) — a loopback that edits only the
+  frozen files themselves leaves the phase record describing a suite that no longer exists.
+  *(from FINDING-019 in 0025-cursor-home-output-suppression)*
+
 ## Principles
 Higher-level stances that inform specs and reviews but are too broad to gate mechanically.
 - Prefer explicit, total functions over ones that depend on ambient state or throw on ordinary input.

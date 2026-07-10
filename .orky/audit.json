@@ -8388,5 +8388,91 @@
     "totalFailures": 3,
     "wallClockMs": 71667,
     "at": "2026-07-10T02:14:26.972Z"
+  },
+  {
+    "action": "gate.check",
+    "feature": "0025-cursor-home-output-suppression",
+    "phase": "review",
+    "pass": true,
+    "attempts": 0,
+    "totalFailures": 3,
+    "wallClockMs": 4,
+    "at": "2026-07-10T02:26:51.285Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "status-engine.md",
+    "role": "reviewer",
+    "agentType": "orky:reviewer",
+    "transcript": "agent-abe399e72fe1c5642",
+    "dir": "C--dev-Termhalla/48f54242-e55c-4620-81ad-e568cb2ac79c/subagents",
+    "served": [
+      "claude-fable-5"
+    ],
+    "firstModel": "claude-fable-5",
+    "lastModel": "claude-fable-5",
+    "messages": 45,
+    "requested": null,
+    "downgraded": false,
+    "mismatch": null,
+    "servedFraction": 1,
+    "tokens": {
+      "input": 634,
+      "output": 19825,
+      "cacheRead": 3088163,
+      "cacheCreation": 445536
+    },
+    "tokensByModel": {
+      "claude-fable-5": {
+        "input": 634,
+        "output": 19825,
+        "cacheRead": 3088163,
+        "cacheCreation": 445536
+      }
+    },
+    "at": "2026-07-10T02:26:52.356Z"
+  },
+  {
+    "action": "gate.check",
+    "feature": "0025-cursor-home-output-suppression",
+    "phase": "doc-sync",
+    "pass": true,
+    "attempts": 0,
+    "totalFailures": 3,
+    "wallClockMs": 28,
+    "at": "2026-07-10T02:35:17.421Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "status-engine.md",
+    "role": "reviewer",
+    "agentType": "orky:reviewer",
+    "transcript": "agent-a572ba91ee691bcae",
+    "dir": "C--dev-Termhalla/48f54242-e55c-4620-81ad-e568cb2ac79c/subagents",
+    "served": [
+      "claude-fable-5"
+    ],
+    "firstModel": "claude-fable-5",
+    "lastModel": "claude-fable-5",
+    "messages": 48,
+    "requested": null,
+    "downgraded": false,
+    "mismatch": null,
+    "servedFraction": 1,
+    "tokens": {
+      "input": 96,
+      "output": 27903,
+      "cacheRead": 3320722,
+      "cacheCreation": 303669
+    },
+    "tokensByModel": {
+      "claude-fable-5": {
+        "input": 96,
+        "output": 27903,
+        "cacheRead": 3320722,
+        "cacheCreation": 303669
+      }
+    },
+    "at": "2026-07-10T02:35:18.548Z"
   }
 ]

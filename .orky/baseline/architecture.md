@@ -239,6 +239,24 @@ fix's tests-phase update is the auditable record of the intended change.
    "Status tail must be ANSI-stripped") was re-verified and stays closed. CHAR-001's
    `isPureControl('\x1b[Hreal text')` pin was amended `true` → `false` as the recorded, deliberate
    change (TEST-2526). *Fixed REQ-007 / CHAR-001 per this feature's spec.*
+5. **[KNOWN BUG — confirmed, deferred]** **`ANSI_RE`'s OSC-terminator alternatives are unreachable
+   dead code, so OSC payloads are never stripped from PTY output** (`status/needs-input.ts:23`,
+   `ANSI_RE`). The first alternative's char class `[@-Z\-_]` is parsed as the ranges `@-Z`
+   (0x40-0x5A) plus `\-_` (0x5C-0x5F) — and `]` is 0x5D, inside that second range — so `ESC ]`
+   (the OSC introducer) always matches the short, single-character-terminator alternative before
+   either OSC-specific (BEL- or ST-terminated) alternative is ever tried; only the 2-byte `ESC ]`
+   introducer is removed and the entire OSC payload (window-title text, an OSC 8 hyperlink URI,
+   OSC 52 clipboard data, etc., up to its terminator) survives `stripAnsi` as literal "printable"
+   text. This is a **pre-existing baseline property, not introduced by any fix above** — every
+   output path that calls `stripAnsi` (the needs-input tail, `AGENT_WORKING_RE` scanning) has
+   always been exposed. Provenance: **FINDING-020**, filed by the security lens during feature
+   **0025-cursor-home-output-suppression**'s review (discovered 2026-07-09), whose own fix widened
+   exposure modestly (a `CURSOR_HOME_RE`-prefixed repaint chunk's unstripped OSC payload can now
+   reach the needs-input tail via the new repaint-tail-admission path, where pre-0025 any
+   home-prefixed chunk was excluded from the tail outright). **Deferred to its own feature** per
+   explicit human decision 2026-07-09 (not fixed in 0025); see
+   `docs/superpowers/0025-cursor-home-output-suppression-review-followups.md` (MEDIUM section) for
+   the fix sketch and disclosure detail.
 
 ## Not characterized (coverage boundary)
 Surface that cannot be pinned headlessly with the vitest profile — no CHAR test exists for it; it needs

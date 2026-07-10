@@ -1,9 +1,9 @@
 {
   "feature": "features/0025-cursor-home-output-suppression",
   "projectRoot": "C:/dev/Termhalla",
-  "phase": "driving",
-  "lastTickAt": "2026-07-10T02:15:23.921Z",
-  "lastAction": "workflow tick",
+  "phase": "doc-sync",
+  "lastTickAt": "2026-07-10T02:31:44.709Z",
+  "lastAction": "dispatch: doc-sync (F-021 fix + F-020 deferral records + reconciliation)",
   "runs": {
     ".orky/features/0017-agent-runtime-skeleton": {
       "phase": "human-review",
@@ -36,9 +36,9 @@
       "lastAction": "workflow tick"
     },
     "features/0025-cursor-home-output-suppression": {
-      "phase": "driving",
-      "lastTickAt": "2026-07-10T02:15:23.921Z",
-      "lastAction": "workflow tick"
+      "phase": "doc-sync",
+      "lastTickAt": "2026-07-10T02:31:44.709Z",
+      "lastAction": "dispatch: doc-sync (F-021 fix + F-020 deferral records + reconciliation)"
     }
   }
 }

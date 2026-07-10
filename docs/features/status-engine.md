@@ -84,7 +84,8 @@ Per-terminal config is persisted on `TerminalConfig.alerts` (`AlertConfig`); abs
   recovers at the next command-start marker (B/C); only a marker-LESS pane re-busies on the next
   real output. (b) for a raw-mode full-screen TUI whose every frame is home-prefixed, a
   repaint-delivered prompt
-  that fires needs-input has no exit path until the first non-home-prefixed chunk or exit — the
+  that fires needs-input has no exit path until the first real-output (printable, non-repaint)
+  chunk or exit — the
   answer keystroke echoes nothing and resumed work arrives only as repaints, which deliberately never
   reset needs-input (concept OQ7); the OQ4 content-delta idea is the natural future fix for (b).
 - **Heuristic idle fallback** covers no-integration shells (cmd) and nested shells (e.g. `cmd` launched inside an integrated pwsh, where markers latch on but then stop). Two thresholds: `heuristicIdleMs` (~1.5 s) idles fast when the tail `looksLikePrompt`; `heuristicIdleHardMs` (~5 s) idles after sustained silence even without a recognized prompt — fixing the cmd "stuck busy after Ctrl+C" case — but never while the tail matches an input-prompt pattern (that path stays busy → needs-input).

@@ -41,12 +41,38 @@ None is release-blocking; none is a contract violation.
   runs raw-mode/no-echo: the user's answer keystroke produces no real output, and resumed work
   arrives only as repaints, which deliberately never reset needs-input (concept OQ7). After the
   repaint-delivered prompt fires needs-input, the chip/badge can assert "waiting for you" while
-  the program demonstrably works, self-healing only on the first non-home-prefixed chunk or exit.
+  the program demonstrably works, self-healing only on the first real-output (printable,
+  non-repaint) chunk or exit.
   Pre-0025 the state was simply unreachable (the bug being fixed). **Why deferred:** human
   decision 2026-07-09 — the false "needs you" is strictly better than the old false "busy
   forever" (it at least points at a pane that DID ask a question), and the clean fix is OQ4's
   content-delta classification (a changing repaint = evidence of work), a candidate follow-up
   feature of its own. Disclosed in status-engine.md.
+
+- **`ANSI_RE`'s OSC-terminator alternatives are unreachable, so OSC payloads leak into "printable"
+  text on every output path** (FINDING-020, security). The first alternative in `ANSI_RE`'s escape
+  group, char class `[@-Z\-_]`, is parsed as the ranges `@-Z` (0x40-0x5A) plus `\-_` (0x5C-0x5F) —
+  and `]` (0x5D) falls inside that second range — so `ESC ]` (the OSC introducer) always matches
+  this short alternative before either OSC-specific (BEL- or ST-terminated) alternative is tried.
+  `stripAnsi('\x1b]0;password:\x07REST') === '0;password:\x07REST'`: only the 2-byte introducer is
+  removed and the OSC payload (window-title text, an OSC 8 hyperlink URI, OSC 52 clipboard data,
+  etc.) survives as literal printable text, reachable by any program or remote host writing to the
+  pane (an ssh session, a motd, a script in-pane). That text then counts as printable in the
+  needs-input tail and in the `AGENT_WORKING_RE` scan buffer on *every* output path — this is a
+  **pre-existing baseline property**, not introduced by 0025, though 0025's repaint-tail-admission
+  path widens exposure modestly (a `CURSOR_HOME_RE`-prefixed repaint chunk's unstripped OSC payload
+  can now reach the tail; pre-0025 any home-prefixed chunk was excluded from the tail outright, OSC
+  payload included). **Why deferred:** human decision 2026-07-09 — this is a pre-existing baseline
+  defect broader than 0025's scope (every output path, not just repaints); it is recorded as its
+  own candidate known bug (`.orky/baseline/architecture.md` known-bugs item 5) rather than folded
+  into this feature's fix. **If it bites:** exclude `]` (0x5D) from the first `ANSI_RE` alternative
+  (e.g. list `\`, `^`, `_` individually instead of a `\-_` range that accidentally spans `]`) so the
+  OSC introducer falls through to the dedicated OSC alternatives; add characterization vectors
+  asserting a BEL-terminated OSC 0/1/2 title and an ST-terminated (`ESC \`) OSC 8 hyperlink are
+  stripped IN FULL (`stripAnsi('\x1b]0;x\x07REST') === 'REST'`); amend the CHAR pins that currently
+  pin the leak through a dedicated tests phase. Note a fix must still contend with split-chunk OSC
+  delivery (a payload whose terminator lands in a later chunk) — related to the FINDING-003
+  chunk-framing-sensitivity deferral above, so the two should likely land together.
 
 ### LOW
 

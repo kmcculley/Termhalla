@@ -8,7 +8,10 @@
     "phase_of_origin": "tests",
     "verified_by": "quality",
     "id": "FINDING-001",
-    "status": "open"
+    "status": "resolved",
+    "resolution": "Deferred by explicit human decision recorded in ESC-001 (state.json escalations[0].decision, 2026-07-09: '...defer 001/002/003 to followups'), following the same-round precedent already applied to FINDING-011/FINDING-012. Deferral record verified ADEQUATE by reading docs/superpowers/0025-cursor-home-output-suppression-review-followups.md LOW section 'Triple-pinned classification vector (FINDING-001, quality)' (lines 53-60): it restates the claim (the single isPureControl/isRepaintChunk fact pinned in three files -- TEST-2527, TEST-2524, TEST-2526), names the reason for deferral (all three suites are frozen; consolidation is a tests-phase refactor), and gives the concrete follow-up path (keep CHAR-001's change-detector role, fold TEST-2527's overlap into the classifier suite) -- matching the fix text's own recommendation. Confirmed unfixed in the current tree (all three pins still present, as expected for a deferred item) -- this is a deferral closure, not a code fix.",
+    "resolvedBy": "quality",
+    "resolvedAt": "2026-07-10T02:22:03.259Z"
   },
   {
     "lens": "quality",
@@ -19,7 +22,10 @@
     "phase_of_origin": "tests",
     "verified_by": "quality",
     "id": "FINDING-002",
-    "status": "open"
+    "status": "resolved",
+    "resolution": "Deferred by explicit human decision recorded in ESC-001 (state.json escalations[0].decision, 2026-07-09: '...defer 001/002/003 to followups'), following the same-round precedent already applied to FINDING-011/FINDING-012. Deferral record verified ADEQUATE by reading docs/superpowers/0025-cursor-home-output-suppression-review-followups.md LOW section 'Prose-coupled regression-net guard (FINDING-002, quality)' (lines 62-67): it restates the claim (tests/regression-net-0025.test.ts / TEST-2541 grep-matches literal it() description strings instead of a stable id), names the reason for deferral (the guard still catches deletion, its actual purpose; anchoring on stable TEST-ids in both directions is a tests-phase cleanup for the next status feature). Re-read tests/regression-net-0025.test.ts directly: it still asserts via toContain() on the literal it(...) description strings, confirming the finding is genuinely deferred (unfixed), not silently addressed -- this is a deferral closure, not a code fix.",
+    "resolvedBy": "quality",
+    "resolvedAt": "2026-07-10T02:22:04.592Z"
   },
   {
     "lens": "determinism",
@@ -31,7 +37,10 @@
     "phase_of_origin": "spec",
     "verified_by": "determinism",
     "id": "FINDING-003",
-    "status": "open"
+    "status": "resolved",
+    "resolution": "Deferred to docs/superpowers/0025-cursor-home-output-suppression-review-followups.md per explicit human decision recorded in ESC-001 (2026-07-09: 'defer 001/002/003 to followups'), following the FINDING-011/012 deferral-resolution precedent. Deferral record verified ADEQUATE by reading the ledger (LOW section, 'Chunk-framing sensitivity of repaint classification'): it states the defect accurately (per-chunk classification; a CURSOR_HOME_RE prefix split across pty-read/TCP boundaries classifies the continuation as real output), records that 0025 narrows rather than widens the divergence, and names the revisit path (a cross-chunk escape reassembler, OSC-133 split-marker precedent). Round-3 delta re-check: the ESC-002 onOutput restructure does not touch this property (isRepaintChunk/isPureControl still classify the raw per-chunk input) - pre-existing baseline behavior, deferred not fixed.",
+    "resolvedBy": "determinism",
+    "resolvedAt": "2026-07-10T02:22:54.424Z"
   },
   {
     "lens": "doc-drift",
@@ -180,7 +189,10 @@
     "phase_of_origin": "implement",
     "verified_by": "quality",
     "id": "FINDING-013",
-    "status": "open"
+    "status": "resolved",
+    "resolution": "Verified fixed by reading src/main/status/status-tracker.ts:40-86 (current working tree, part of commit 942609a). stripAnsi(text) is now computed exactly once explicitly (line 48, 'const stripped = stripAnsi(text)') and that single result is reused for both scanBuf (line 49) and the tail assignment (line 68) -- the redundant second and third explicit calls are gone. isPureControl(text) at line 63 still runs its own internal stripAnsi pass on the RAW chunk (not the precomputed 'stripped'), which is deliberate and documented in the comment at lines 60-62 ('Classification reads the RAW chunk ... handing it pre-stripped text would misjudge escapes formed by the stripping itself') -- this satisfies the finding's own judgment call ('judge whether that satisfies the finding's intent'): total physical stripAnsi call sites are now 2 (1 explicit + 1 necessarily-separate internal), down from 3, and the second is not redundant, it is correctness-required. The un-nested re-test is also fixed: the real-output block is now nested inside 'if (printable) { this.tail = ...; if (!isRepaintChunk(text)) { ... } }' (lines 64-84) instead of two sequential top-level ifs. Confirmed green: npx vitest run tests/main/status-tracker.test.ts tests/main/needs-input-classifier.test.ts tests/main/needs-input.test.ts tests/characterization-status.test.ts tests/docs-feature-0025.test.ts tests/regression-net-0025.test.ts -- 6 files / 91 tests passed.",
+    "resolvedBy": "quality",
+    "resolvedAt": "2026-07-10T02:21:45.373Z"
   },
   {
     "lens": "quality",
@@ -192,7 +204,10 @@
     "phase_of_origin": "tests",
     "verified_by": "quality",
     "id": "FINDING-014",
-    "status": "open"
+    "status": "resolved",
+    "resolution": "Verified fixed by reading both artifacts side by side. traceability.json REQ-011.files now includes '.orky/baseline/inferred-spec.md' (was missing before, per the fix). traceability.md's Files column now includes, for every REQ, exactly the same file list as traceability.json: REQ-008 gained tests/regression-net-0025.test.ts, REQ-009 gained tests/main/needs-input-classifier.test.ts + tests/main/needs-input.test.ts, REQ-010 already listed both, and REQ-011's row now lists all 8 files incl. .orky/baseline/inferred-spec.md and tests/docs-feature-0025.test.ts -- cross-checked entry by entry across all 11 REQs, zero divergence in either direction. The .md footnote no longer claims a false single-source-of-truth relationship: it now reads 'This table is REGENERATED from traceability.json (the canonical record) -- regenerate rather than hand-edit (FINDING-014)' plus a second line naming the ESC-001/ESC-002 provenance of the inferred-spec.md addition to both files. All three verification points from the task are confirmed: inferred-spec.md is in json REQ-011.files, the md Files column is complete and matches json, and the footnote states the regeneration relationship.",
+    "resolvedBy": "quality",
+    "resolvedAt": "2026-07-10T02:21:50.023Z"
   },
   {
     "lens": "qol",
@@ -204,7 +219,10 @@
     "phase_of_origin": "implement",
     "verified_by": "qol",
     "id": "FINDING-015",
-    "status": "open"
+    "status": "resolved",
+    "resolution": "Verified fixed by reading src/main/status/status-tracker.ts:41-44: StatusTracker.onOutput's header comment no longer says 'screen-repaints classified as pure control below' — it now reads 'including repaint chunks, `isRepaintChunk` — whose printable text is admitted to the tail below but which never touch the quiet timer or state', the exact two-axis vocabulary the finding's fix prescribed, and it matches the shipped classification (isRepaintChunk-gated quiet-timer/state exemption at lines 63-83). Comment-only change; assertions/behavior untouched.",
+    "resolvedBy": "qol",
+    "resolvedAt": "2026-07-10T02:22:04.130Z"
   },
   {
     "lens": "qol",
@@ -216,7 +234,10 @@
     "phase_of_origin": "implement",
     "verified_by": "qol",
     "id": "FINDING-016",
-    "status": "open"
+    "status": "resolved",
+    "resolution": "Verified both halves fixed by reading the artifacts. (1) docs/decisions.md 0025 update block (lines 749-755): the false 'Only needs-input *reachability* changed.' sentence is gone, replaced by 'The *intended* change is needs-input reachability; because the tail is shared state also read by computeIdleFallback, two residual consequences were disclosed and deferred (...)' naming BOTH consequences — incl. the FINDING-017-corrected 'for the command's remainder' recovery for the idle-side flip — with links to status-engine.md → Behaviors and the 0025 review follow-ups; no living-doc contradiction remains between decisions.md and status-engine.md's disclosure. (2) The followups ledger's FINDING-011 entry (docs/superpowers/0025-cursor-home-output-suppression-review-followups.md:33-35) now records the decisions.md correction explicitly ('the decisions.md 0025 update block's \"only needs-input reachability changed\" overclaim was corrected in the same pass (FINDING-016)'), so closing 011 cannot strand the fix.",
+    "resolvedBy": "qol",
+    "resolvedAt": "2026-07-10T02:22:16.101Z"
   },
   {
     "lens": "devils-advocate",
@@ -228,7 +249,10 @@
     "phase_of_origin": "implement",
     "verified_by": "devils-advocate",
     "id": "FINDING-017",
-    "status": "open"
+    "status": "resolved",
+    "resolution": "Verified fixed at all three disclosure sites by reading the artifacts against the shipped state machine: (1) status-engine.md Behaviors disclosure (a) now states 'Recovery is NOT next-output for a marker-driven pane: the busy rule is gated on !hasMarkers and tick() transitions only from busy, so the pane stays idle for the command's remainder and recovers at the next command-start marker (B/C); only a marker-LESS pane re-busies on the next real output' — the command-lifetime recovery + marker-less distinction, verified accurate against status-tracker.ts (the !hasMarkers gate, tick() busy-only transitions); (2) the followups ledger's FINDING-011 entry carries the same corrected recovery ('command-lifetime on a marker-driven pane... only a marker-less pane re-busies'), the FINDING-017 attribution, the REAFFIRMED 2026-07-09 human decision, and now names the decisions.md correction so closing 011 cannot strand it; (3) docs/decisions.md's 0025 update block no longer says 'Only needs-input reachability changed' — it reads 'The intended change is needs-input reachability; ...two residual consequences were disclosed and deferred (...idle a busy marker-driven pane for the command's remainder...)' with cross-references to both detailed sites. Residual: the secondary 'while editing, also tighten' item ((b)'s 'first non-home-prefixed chunk' healing phrase) was applied only in decisions.md ('next real-output chunk') — split out as a new LOW, not grounds to hold this MEDIUM open.",
+    "resolvedBy": "devils-advocate",
+    "resolvedAt": "2026-07-10T02:25:51.001Z"
   },
   {
     "lens": "doc-drift",
@@ -241,7 +265,10 @@
     "phase_of_origin": "tests",
     "verified_by": "doc-drift",
     "id": "FINDING-018",
-    "status": "open"
+    "status": "resolved",
+    "resolution": "ESC-002 propagated the ESC-001 arbitration through the sanctioned review->spec loopback; verified directly from the artifacts, not the claim: (1) 02-spec.md REQ-003/REQ-008 acceptance now reads 'assertion bodies unmodified' and names the ESC-001 comment-only vocabulary amendments explicitly (isPureControl -> isRepaintChunk phrasing, git diff shows comment hunks only); (2) 04-tests.md line 11 corrected to assertion-body-unchanged, the lines 51-56 claims corrected, and a new 'ESC-001/ESC-002 amendment record (CONV-018)' section enumerates both amendments in the TEST-2527 record pattern; (3) the in-file describe header (tests/main/status-tracker.test.ts:163-166) now names the sanctioned amendment and cites 02-spec.md REQ-003/REQ-008 + 04-tests.md; (4) ground truth re-verified: git diff 9192411..HEAD on status-tracker.test.ts shows exactly two comment-only hunks in the pre-existing region (oscillation pin + working-bar pin incl. its inline vector comment) with every assertion body byte-identical, and git diff --stat is EMPTY for marker-less-pane.spec.ts / fake-remote-shell.mjs / status.spec.ts / pane-status-css.test.ts (REQ-008 byte-unchanged set); (5) the propagation rode the sanctioned path: state.json records ESC-002 + the loopback, spec/plan/tests/implement gates re-passed 2026-07-10T02:07-02:14, spec-freeze.json hash equals sha256 of the amended 02-spec.md and test-freeze.json equals sha256 of the current status-tracker.test.ts. Spec, phase-4 artifact, in-file header, and shipped test file are now coherent.",
+    "resolvedBy": "doc-drift",
+    "resolvedAt": "2026-07-10T02:23:22.094Z"
   },
   {
     "lens": "doc-drift",
@@ -253,6 +280,37 @@
     "phase_of_origin": "tests",
     "verified_by": "doc-drift",
     "id": "FINDING-019",
-    "status": "open"
+    "status": "resolved",
+    "resolution": "Verified fixed: the 04-tests.md TEST-2532 row now states the eight-regex reality ('EIGHT enumerated regexes: the original five ... plus three added by the ESC-001 loopback', naming the two .orky/baseline/inferred-spec.md phrasings per FINDING-004 and the pure-control-repaints vocabulary per FINDING-008), and the new 'ESC-001/ESC-002 amendment record (CONV-018)' section documents the 5->8 banned-list extension in exactly the TEST-2527 collision-record pattern the fix prescribed. Cross-checked against tests/docs-feature-0025.test.ts: the BANNED array holds exactly 8 regexes matching the description one for one; the guard was witnessed green in this re-review (npx vitest run tests/docs-feature-0025.test.ts, 6/6 pass, 2026-07-09). The phase-4 artifact again describes the frozen suite it records.",
+    "resolvedBy": "doc-drift",
+    "resolvedAt": "2026-07-10T02:23:26.524Z"
+  },
+  {
+    "lens": "security",
+    "claim": "ANSI_RE's OSC-terminator alternatives (\\][^\\x07]*\\x07 and \\][^\\x1b]*\\x1b\\) are unreachable dead code: the FIRST alternative's char class [@-Z\\-_] is parsed as ranges @-Z (0x40-0x5A) plus \\-_ (0x5C-0x5F), and 0x5D is ']' -- so ESC+']' (the OSC introducer) always matches the first, single-character alternative before the OSC-specific alternatives are ever tried (JS regex alternation stops at the first alternative that lets the overall match succeed, and nothing follows the group). Verified empirically: stripAnsi('\\x1b]0;password:\\x07REST') === '0;password:\\x07REST' -- only the 2-byte ESC+']' introducer is removed; the entire OSC payload (window-title text, OSC 8 hyperlink URI, OSC 52 clipboard data, etc., up to its BEL/ST terminator) survives as literal 'printable' text. status-engine.ts:62 feeds StatusTracker.onOutput raw, untrusted PTY bytes with zero prior sanitization, and onOutput now (0025) admits a CURSOR_HOME_RE-prefixed (repaint) chunk's printable text to the needs-input tail whenever isPureControl(text) is false -- pre-0025 any home-prefixed chunk was ALWAYS excluded from the tail outright, regardless of trailing content, so this specific admission path (repaint prefix + trailing unstripped OSC payload) is newly reachable under 0025's widened tail-admission rule. The same unstripped OSC payload also reaches scanBuf (AGENT_WORKING_RE) on every chunk, repaint or not. Net effect: any program or remote host producing PTY output (ssh session, motd, a script run in-pane) can smuggle attacker-chosen text past stripAnsi by wrapping it in an OSC sequence, e.g. ESC ] 0 ; 'Enter password: ' BEL, poisoning the needs-input tail / AI-working scanBuf that drive the pane's busy/idle/needs-input classification and OS notifications -- content that a correct terminal never renders on screen at all.",
+    "severity": "MEDIUM",
+    "fix": "Exclude ']' (0x5D) from the first ANSI_RE alternative so the OSC introducer falls through to the dedicated OSC alternatives, e.g. change [@-Z\\-_] to [@-Z\\^_] (list \\, ^, _ individually instead of a \\-_ range that accidentally spans ']'). Add characterization vectors to needs-input.ts's stripAnsi tests: an OSC 0/1/2 title sequence (BEL-terminated) and an OSC 8 hyperlink (ST-terminated, ESC\\) must be stripped IN FULL, not just their 2-byte introducer -- assert stripAnsi('\\x1b]0;x\\x07REST')==='REST'. Once fixed, re-verify the repaint-tail-admission tests (TEST-2501..2516) still pass with an OSC payload appended after a CURSOR_HOME_RE prefix.",
+    "location": "src/main/status/needs-input.ts:23 (ANSI_RE definition); src/main/status/status-tracker.ts:48-49,63-68 (stripped text admitted to scanBuf/tail from raw PTY input, status-engine.ts:62)",
+    "phase_of_origin": "spec",
+    "id": "FINDING-020",
+    "status": "resolved",
+    "resolution": "deferred to its own feature per human decision 2026-07-09; recorded in the 0025 followups ledger + baseline architecture.md known-bugs item 5",
+    "resolvedBy": "security",
+    "resolvedAt": "2026-07-10T02:33:22.662Z"
+  },
+  {
+    "lens": "devils-advocate",
+    "claim": "Residual of the ESC-002 disclosure correction, split out of FINDING-017 at its closure: the (b) consequence's healing condition is stated with two different vocabularies across the three disclosure sites, and the one used by status-engine.md and the followups ledger ('first non-home-prefixed chunk') overstates healing — i.e. understates the stuck-needs-input duration, the same error direction FINDING-017 corrected for (a). A non-home-prefixed chunk heals nothing unless it is printable non-repaint output: the needs-input->busy reset (status-tracker.ts:73) sits inside 'if (printable)' + 'if (!isRepaintChunk)', so a non-home PURE-CONTROL chunk (e.g. '\\x1b[2J', or the '\\x1b[?1049l' alt-buffer-leave a raw-mode TUI emits) is fully inert (isPureControl -> no tail, no timer, no state). docs/decisions.md:752 already carries the accurate form ('until the next real-output chunk' — 'real output' being the spec-defined printable non-repaint class), so the loopback applied FINDING-017's named tightening to one site of three, leaving the two detailed disclosure sites slightly looser than the summary site they anchor. Magnitude is small (a raw-mode TUI's non-home chunks are almost always printable), which is why this is LOW, not a re-open of the MEDIUM.",
+    "severity": "LOW",
+    "gate": "review",
+    "fix": "One-phrase edit at both sites: replace 'the first non-home-prefixed chunk' with 'the first real-output (printable non-repaint) chunk', matching decisions.md's vocabulary and the spec's Vocabulary section. Comment/doc-only; can ride the next doc pass — no reopening of the FINDING-012 deferral.",
+    "location": "docs/features/status-engine.md:87 ('no exit path until the first non-home-prefixed chunk or exit'); docs/superpowers/0025-cursor-home-output-suppression-review-followups.md:44 ('self-healing only on the first non-home-prefixed chunk or exit')",
+    "phase_of_origin": "implement",
+    "verified_by": "devils-advocate",
+    "id": "FINDING-021",
+    "status": "resolved",
+    "resolution": "Fixed the two named consequence-(b) healing-phrase sites: docs/features/status-engine.md's disclosed-consequence bullet and the FINDING-012 entry in docs/superpowers/0025-cursor-home-output-suppression-review-followups.md now both say the exit path is 'the first real-output (printable, non-repaint) chunk or exit' instead of the inaccurate 'first non-home-prefixed chunk' (which wrongly implies a non-home pure-control chunk like \\x1b[2J heals the stuck state). docs/decisions.md already used the accurate phrasing and was left untouched.",
+    "resolvedBy": "doc-sync",
+    "resolvedAt": "2026-07-10T02:32:43.470Z"
   }
 ]
