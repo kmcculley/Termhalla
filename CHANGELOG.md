@@ -996,6 +996,28 @@ All notable changes to Termhalla are recorded here. The format follows
   goes busy on real output only" decision are both preserved verbatim (feature
   0025-cursor-home-output-suppression). CHAR-001's pin was amended as the recorded, deliberate change.
 
+## [0.17.0] - 2026-07-11
+
+All four confirmed baseline known bugs are now fixed — this release closes the last of them (#4):
+a TUI that redraws its screen and prints a fresh prompt in one chunk no longer wedges the pane in
+"busy" (feature 0025-cursor-home-output-suppression, which admits a repaint's printable text to
+the needs-input tail without reopening the ConPTY repaint-eviction guard), joining #1 (a directory
+named `claude-codebase` no longer reads as a live Claude session), #2 (a question prompt with no
+trailing space now flips needs-input), and #3 (a repo mid-merge now surfaces a distinct conflicted
+count in the git popover). New: a shell that exits on its own offers **Restart** / **Close pane**
+instead of stranding at `[process exited]`, and a recording session shows a persistent ⏺ cue in
+the pane title again. A quality-of-life batch clears eight recorded annoyances: the
+maximize/minimize chords work before the first click in a workspace, the Orky chip keeps its
+actionable tail visible, favorite/recent directory dedup is case-insensitive, the split button
+reads 4-way (✛) and disabled split kinds explain themselves, a resolved escalation's decision is
+readable in full, Orky status survives panes deep in a monorepo (ancestor cap 8→32), undocked
+windows get env-vault state and the cloud focus-refresh, and a remote disconnect toasts once, in
+the window hosting the workspace. Dev-facing: the connected remote/ssh stack now runs end-to-end
+in the real app (an env-gated fake-ssh seam drives the real agent bundle, bridge, and daemon in
+three new Playwright specs) — which immediately caught two real bugs (a doubled dev artifact path
+and the fake pty backend ignoring keyboard CR), both fixed here. The detailed entries stay under
+[Unreleased] above, per the same convention the 0.9.0–0.16.1 releases recorded.
+
 ## [0.16.1] - 2026-07-09
 
 Maintenance release — fixes and hardening, no new features. Terminal fixes: SSH/agent panes no
