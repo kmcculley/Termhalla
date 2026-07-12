@@ -291,8 +291,11 @@
     "phase_of_origin": "spec",
     "verified_by": "devils-advocate",
     "id": "FINDING-021",
-    "status": "open",
-    "note": "Re-verified 2026-07-02T23:10:37.377Z (consolidated review): stays an ACCEPTED, documented residual per ESC-001 - recorded in 04-tests.md LOOPBACK 1 (\"FINDING-021 ... ACCEPTED residual ... deliberately NOT pinned\"; the upstream gatekeeper refuse-non-open-without-force improvement is filed against Orky). LOW, non-blocking; intentionally left open as the disclosed limitation."
+    "status": "resolved",
+    "note": "Re-verified 2026-07-02T23:10:37.377Z (consolidated review): stays an ACCEPTED, documented residual per ESC-001 - recorded in 04-tests.md LOOPBACK 1 (\"FINDING-021 ... ACCEPTED residual ... deliberately NOT pinned\"; the upstream gatekeeper refuse-non-open-without-force improvement is filed against Orky). LOW, non-blocking; intentionally left open as the disclosed limitation.",
+    "resolution": "Resolved upstream in Orky v0.44.0 (9443bee): resolveEscalation refuses a non-open escalation without --force (ESCALATION_NOT_OPEN, supervisor-kernel CAS parity) and feedback apply consumes a stale decision; the verify-to-write overwrite is closed at the authority. Kevin-directed close, 2026-07-12.",
+    "resolvedBy": "kevin",
+    "resolvedAt": "2026-07-12T17:55:15.934Z"
   },
   {
     "lens": "devils-advocate",

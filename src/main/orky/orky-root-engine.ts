@@ -5,7 +5,7 @@ import { basename, join } from 'node:path'
 import type { OrkyPaneStatus, OrkyFeatureStatus, OrkyPhase } from '@shared/types'
 import {
   normalizeFeatureRaw, normalizeFindings, orkyFeatureStatus, orkyPaneStatus, parseOrkyTimestamp,
-  STALL_THRESHOLD_MS
+  resolveStallThresholdMs
 } from '@shared/orky-status'
 
 /** Read-path resource bounds (REQ-015 / 0004's REQ-025 / FINDING-SEC-003) — STATED limits, each warned
@@ -71,12 +71,15 @@ export class OrkyRootEngine {
   private roots = new Map<string, Root>()
   private listeners = new Set<OrkyStatusListener>()
   private readonly now: () => number
-  private readonly thresholdMs: number
+  /** Caller override only (the liveness `caller` source). When absent, each re-read resolves the
+   *  threshold PER ROOT from `<orkyDir>/config.json` (`resolveStallThresholdMs`) so the stall verdict
+   *  matches `liveness.stale` for that project — FINDING-PROV-002 close. */
+  private readonly thresholdMs: number | undefined
   private readonly debounceMs: number
 
   constructor(opts: OrkyRootEngineOpts = {}) {
     this.now = opts.now ?? (() => Date.now())
-    this.thresholdMs = opts.thresholdMs ?? STALL_THRESHOLD_MS
+    this.thresholdMs = opts.thresholdMs
     this.debounceMs = opts.debounceMs ?? 300
   }
 
@@ -108,7 +111,7 @@ export class OrkyRootEngine {
 
     const w = safeWatch(orkyDir, 'orky', {
       ignoreInitial: true,
-      depth: 4, // covers active.json, features/<slug>/{state,findings}.json
+      depth: 4, // covers active.json, config.json, features/<slug>/{state,findings}.json
       awaitWriteFinish: { stabilityThreshold: 150, pollInterval: 50 }
     })
     // Filter to the target .json files BEFORE scheduling a re-read (REQ-014): routine edits to
@@ -190,6 +193,9 @@ export class OrkyRootEngine {
 
     const active = await this.readJson(join(orkyDir, 'active.json'), { warnOnFail: false, sizeCap: true })
     if (this.roots.get(orkyDir) !== r || r.gen !== gen) return
+    const config = await this.readJson(join(orkyDir, 'config.json'), { warnOnFail: false, sizeCap: true })
+    if (this.roots.get(orkyDir) !== r || r.gen !== gen) return
+    const thresholdMs = this.thresholdMs ?? resolveStallThresholdMs(config)
     const activeSlug = activeFeatureSlug(active)
     const activePhase = activeFeaturePhase(active)
     const lastTickAt = activeLastTick(active)
@@ -226,7 +232,7 @@ export class OrkyRootEngine {
         raw, findings, isActive,
         isActive ? activePhase : null,
         isActive ? lastTickAt : null,
-        now, this.thresholdMs
+        now, thresholdMs
       ))
     }
     if (this.roots.get(orkyDir) !== r || r.gen !== gen) return
@@ -258,10 +264,12 @@ export class OrkyRootEngine {
   }
 }
 
-/** Is `p` one of the three target files whose change warrants a roll-up re-read (REQ-014)? */
+/** Is `p` one of the target files whose change warrants a roll-up re-read (REQ-014)?
+ *  `config.json` is a target since the FINDING-PROV-002 close: `watchdog.idle_threshold_seconds`
+ *  governs the per-root stall threshold, so editing it must re-derive the verdict. */
 function isTargetFile(p: string): boolean {
   const b = basename(p)
-  return b === 'active.json' || b === 'state.json' || b === 'findings.json'
+  return b === 'active.json' || b === 'state.json' || b === 'findings.json' || b === 'config.json'
 }
 
 /** The active feature's slug = the basename of `active.json.feature` (a `.orky/features/<slug>` path). */

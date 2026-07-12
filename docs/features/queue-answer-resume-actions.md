@@ -107,11 +107,13 @@ styling and theme-token colors only.
 
 ## Known residual limitations (accepted, tracked)
 
-- **Verify-to-write TOCTOU window (FINDING-021, LOW, open).** The submit-time re-verification pull
-  (REQ-003 part 3) runs renderer-side BEFORE the dispatch enters F7's per-feature serialization —
-  an escalation resolved elsewhere in that window can still be overwritten, since Orky's
-  `resolveEscalation` has no server-side open-status compare-and-set. Disclosed, not fixed; the
-  upstream fix belongs to Orky's gatekeeper.
+- **Verify-to-write TOCTOU window (FINDING-021, LOW — CLOSED upstream 2026-07-12).** The
+  submit-time re-verification pull (REQ-003 part 3) runs renderer-side BEFORE the dispatch enters
+  F7's per-feature serialization, so it was disclosed as a race window. Since Orky v0.44.0 the
+  write itself is guarded: `resolveEscalation` refuses a non-open escalation without `--force`
+  (`ESCALATION_NOT_OPEN`), so an escalation resolved elsewhere in that window is no longer silently
+  overwritten — the dispatch surfaces the refusal through the existing error-honesty classes. The
+  renderer-side pre-verify remains as a UX courtesy (a friendlier message than the CLI refusal).
 - **Mode-flip can swap the open form under the focus substrate (FINDING-022, LOW, open).** If a
   background aggregate refresh flips a queue row's `reason` (e.g. `escalation` → `human-review`)
   while its answer form is open, the row's stable key keeps the `OrkyEntryActions` instance

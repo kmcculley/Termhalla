@@ -141,8 +141,15 @@ Termhalla parses it here; Orky emits it; the two sides can silently drift over t
   [orky-status.md](orky-status.md#data-provenance-the-orky_phases-drift-caveat)) — a divergence is a
   coordinated two-repo data-update, never something a Termhalla test can catch.
 - A future Orky-side `v` bump that **redefines** an existing field's meaning (not just adds one) would
-  be silently decoded with `v:1` semantics and render wrong (not blank) status — undetectable
-  cross-repo since the parser never fails closed on version (`FINDING-DA-006`, open, LOW).
+  be silently decoded with `v:1` semantics and render wrong (not blank) status — the parser never
+  fails closed on version (frozen TEST-011, a spec decision). Since Orky v0.44.0 (commit `9443bee`,
+  2026-07-12) this is governed at the emitter: Orky's `docs/osc-heartbeat.md` now states the
+  **never-redefine, rename-instead** evolution discipline (a field's meaning is frozen forever;
+  within `v:1` the schema may only GAIN fields; a meaning change must introduce a new field name —
+  absent fields already degrade gracefully; a `v` bump signals a structural break, never permission
+  to reuse a name), citing Termhalla's TEST-011 as the reason version negotiation cannot protect a
+  decode-everything consumer. `FINDING-DA-006` closed on that upstream rule (2026-07-12); the
+  forward-compat decode itself is unchanged.
 - Every test for this feature constructs its OSC marker bytes itself (`tests/fixtures/orky-osc-fixtures.ts`)
   against THIS embedded contract; none of them exercise a live Orky process. Tests therefore verify only
   that the Termhalla code matches the contract as documented here and in `02-spec.md` — not that the real

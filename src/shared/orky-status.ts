@@ -44,9 +44,26 @@ export const ORKY_AUTONOMOUS_PHASES: readonly OrkyPhase[] = [
   'brainstorm', 'spec', 'plan', 'tests', 'implement', 'review', 'doc-sync'
 ] as const
 
-/** Default stall threshold (a Termhalla-side UI heuristic, NOT an Orky-derived value): a live executing
- *  phase with no heartbeat for >120s reads as stalled (REQ-003). Injectable via the tracker's opts. */
-export const STALL_THRESHOLD_MS = 120_000
+/** Default stall threshold = Orky's CANONICAL watchdog default (3600 s, published by
+ *  `gatekeeper contract` under `watchdog.default_seconds` since Orky v0.44.0). The per-root value is
+ *  resolved from `.orky/config.json` via `resolveStallThresholdMs` below — the same config → default
+ *  resolution `liveness` applies when `--idle-threshold` is omitted — so the chip's "stalled" verdict
+ *  agrees with `liveness.stale` for the same run instead of inventing an independent idle heuristic.
+ *  (Supersedes 0004's 120s REQ-003 default — FINDING-PROV-002, closed 2026-07-12.) A caller-injected
+ *  `thresholdMs` (the tracker/engine opt) still wins, mirroring liveness's `caller` source. */
+export const STALL_THRESHOLD_MS = 3_600_000
+
+/** Resolve a root's stall threshold from its raw `.orky/config.json` value — EXACT parity with the
+ *  gatekeeper's own resolution (`Number(cfg.watchdog.idle_threshold_seconds)`, accepted only when
+ *  finite and positive, else the canonical default). Total: any absent/malformed shape → the default,
+ *  never a throw. */
+export function resolveStallThresholdMs(config: unknown): number {
+  if (!isObject(config)) return STALL_THRESHOLD_MS
+  const watchdog = (config as { watchdog?: unknown }).watchdog
+  if (!isObject(watchdog)) return STALL_THRESHOLD_MS
+  const secs = Number((watchdog as { idle_threshold_seconds?: unknown }).idle_threshold_seconds)
+  return Number.isFinite(secs) && secs > 0 ? secs * 1000 : STALL_THRESHOLD_MS
+}
 
 // ── On-disk (parse-layer) raw shapes ────────────────────────────────────────────────────────────
 export interface OrkyGate { passed?: boolean; at?: string }

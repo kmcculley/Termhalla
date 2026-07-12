@@ -114,15 +114,21 @@ against the shipped v0.28.0 plugin in a scratch `.orky` tree, byte-verbatim.
 
 ## Current open-findings residual (non-blocking)
 
-Four residuals stay open (not re-litigated by doc-sync); all were reviewed and explicitly accepted
-as deferred at ship time, each with a documented inheritance path.
+Of the four ship-time residuals below (each reviewed and explicitly accepted as deferred, with a
+documented inheritance path), two remain open: FINDING-014 and FINDING-016. FINDING-023 was resolved
+2026-07-07 and FINDING-010 2026-07-12.
 
-- **FINDING-010 (security, LOW)** — `parseDisabledRefusal` discriminates the feedback-disabled
-  refusal purely on `exitCode===1 && parsed.mode==='noop'`, an invariant of the CURRENT shipped
-  Orky plugin with no shared schema or contract test pinning it across the repo boundary. **Recorded
-  as a candidate for a future golden-fixture suite** pinning `submitItem`'s exact refusal shapes so
-  a future plugin release reusing `mode:'noop'` differently fails loudly instead of silently
-  misclassifying.
+- ~~**FINDING-010 (security, LOW)** — `parseDisabledRefusal` discriminates on an unpinned plugin
+  invariant~~ — **RESOLVED upstream 2026-07-12** (Orky v0.44.0, commit `9443bee`): `gatekeeper
+  contract` gained an ADDITIVE `feedback.submit` block that pins exactly the shapes this finding
+  named — the ok/refusal envelopes, the exit codes, and the discriminator itself
+  (`disabled_discriminator`: "mode 'noop' appears ONLY on the feedback-disabled refusal; validation
+  refusals carry the configured mode") — with Orky-side tests (`feedback.test.js` /
+  `hardening.test.js`) enforcing it, so a future plugin release reusing `mode:'noop'` differently
+  now fails loudly AT THE AUTHORITY instead of silently misclassifying here. `contract_version`
+  stays 2, so Termhalla's hard-failing handshake pin (TEST-691) is untouched; the invariant is now
+  a published contract field rather than an observed behavior, which is what the golden-fixture
+  wish was for. `findings.json` closed via `resolve-finding`.
 - **FINDING-014 (ux, LOW)** — substantively addressed: the per-errorKind RENDER vectors this finding
   originally flagged as missing now exist end-to-end in `tests/e2e/orky-capture.spec.ts` (TEST-525
   generic cli-error + http-refusal, TEST-526 cli-timeout indeterminate copy, TEST-527 close-mid-

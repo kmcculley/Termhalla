@@ -132,8 +132,11 @@
     "phase_of_origin": "implement",
     "verified_by": "security-review",
     "id": "FINDING-010",
-    "status": "open",
-    "note": "ESC-001 residual (2026-07-02 re-verify): correctly documented as accepted — spec 'Review residuals' #2 records the cross-repo mode:'noop' shape coupling as a candidate for a future golden-fixture suite pinning the submitItem refusal shapes; also documented in REQ-013 + the dispatcher-doc updates. Left OPEN per instruction; not resolved by F12."
+    "status": "resolved",
+    "note": "ESC-001 residual (2026-07-02 re-verify): correctly documented as accepted — spec 'Review residuals' #2 records the cross-repo mode:'noop' shape coupling as a candidate for a future golden-fixture suite pinning the submitItem refusal shapes; also documented in REQ-013 + the dispatcher-doc updates. Left OPEN per instruction; not resolved by F12.",
+    "resolution": "Resolved upstream in Orky v0.44.0 (9443bee): gatekeeper contract gained an additive feedback.submit block pinning the disabled-refusal discriminator (mode 'noop' ONLY on feedback-disabled) with Orky-side tests; contract_version stays 2 (TEST-691 untouched). Kevin-directed close, 2026-07-12.",
+    "resolvedBy": "kevin",
+    "resolvedAt": "2026-07-12T17:55:16.029Z"
   },
   {
     "lens": "security",

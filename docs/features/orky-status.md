@@ -41,7 +41,16 @@ pipeline leaves `state.json.phase` at `doc-sync` and records `human-review` only
   last-resort fallback only.
 - **needs a human** when every autonomous gate through `doc-sync` has passed and `human-review` has
   **not** (awaiting-human, derived from gates so it works for any feature), OR there is an open
-  escalation, OR the active feature is *stalled* (a live executing phase with no heartbeat for > 120s).
+  escalation, OR the active feature is *stalled* — a live executing phase with no heartbeat past the
+  root's idle threshold. Since 2026-07-12 (FINDING-PROV-002 close) that threshold is **Orky's own
+  liveness resolution**, not a Termhalla heuristic: the root's `.orky/config.json`
+  `watchdog.idle_threshold_seconds` when set (a finite positive number), else the canonical default
+  **3600 s** published by `gatekeeper contract` under `watchdog.default_seconds` (Orky v0.44.0) — the
+  same config → default order `liveness` applies when `--idle-threshold` is omitted, so the chip's
+  "stalled" verdict agrees with `liveness.stale` for the same run (the retired 120 s default could say
+  "stalled — needs you" while Orky still considered the run live). `resolveStallThresholdMs` in
+  `src/shared/orky-status.ts` is the resolver; the engine re-resolves per root on every re-read
+  (`config.json` is a watched target file) and a caller-injected `thresholdMs` still wins (tests).
   A generic auto-passed gate boundary does **not** count; `human-review` gate passed ⇒ **done**.
 - a **non-active** feature has no per-project heartbeat (one heartbeat lives in `active.json`), so it is
   **never `busy`** — only `idle` / `needs-input` / `done`.

@@ -29,7 +29,7 @@ import type {
 } from '@shared/types'
 import {
   ORKY_PHASES, isBlockingFinding, normalizeFeatureRaw, normalizeFindings, orkyFeatureStatus,
-  parseOrkyTimestamp
+  parseOrkyTimestamp, resolveStallThresholdMs
 } from '@shared/orky-status'
 
 /** Engine-parity read bounds — the SAME values `orky-root-engine.ts` enforces (200 feature dirs /
@@ -209,6 +209,10 @@ export async function assembleOrkyRootDetail(
   const activeSlug = activeSlugOf(active)
   const activePhase = activePhaseOf(active)
   const lastTickAt = activeTickOf(active)
+  // Per-root stall threshold (engine parity, FINDING-PROV-002 close): the SAME config → canonical-
+  // default resolution Orky's `liveness` applies, so this payload's stall verdicts match the aggregate's.
+  const configRead = await readJsonStable(join(orkyDir, 'config.json'), retryDelayMs)
+  const thresholdMs = resolveStallThresholdMs(configRead.kind === 'ok' ? configRead.value : undefined)
 
   let entries: string[] = []
   try { entries = await readdir(join(orkyDir, 'features')) } catch { entries = [] }
@@ -251,7 +255,7 @@ export async function assembleOrkyRootDetail(
       raw, findings, isActive,
       isActive ? activePhase : null,
       isActive ? lastTickAt : null,
-      now
+      now, thresholdMs
     )
     const rawFindings: unknown[] = Array.isArray(findingsValue) ? (findingsValue as unknown[]) : []
     features.push({

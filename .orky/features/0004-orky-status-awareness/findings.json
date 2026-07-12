@@ -428,8 +428,11 @@
     "recommendation": "Document 120s explicitly as a Termhalla-side UI heuristic (NOT an Orky-derived value), note that Orky's idle threshold is caller-configured with no canonical default, and prefer sourcing the threshold from the same config Orky's watchdog uses rather than an independent private constant. The value is already injectable via thresholdMs, so wire it from configuration instead of hardcoding the user-facing 'stalled' verdict.",
     "phase_of_origin": "spec",
     "contract_violation": false,
-    "status": "open",
-    "gate": "review"
+    "status": "resolved",
+    "gate": "review",
+    "resolution": "Resolved 2026-07-12 both halves: Orky v0.44.0 (9443bee) gave liveness a canonical caller->config->3600s threshold resolution published in the contract watchdog block; Termhalla dropped the 120s heuristic for resolveStallThresholdMs applying the same config->default resolution per root (engine + detail path; tests/main/orky-stall-threshold.test.ts). Kevin-directed close.",
+    "resolvedBy": "kevin",
+    "resolvedAt": "2026-07-12T17:55:16.281Z"
   },
   {
     "id": "FINDING-DET-002",

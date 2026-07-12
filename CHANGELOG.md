@@ -6,6 +6,25 @@ All notable changes to Termhalla are recorded here. The format follows
 
 ## [Unreleased]
 
+### Changed
+- **Orky "stalled" now agrees with Orky's own liveness verdict.** The stall threshold behind the
+  chip/queue "stalled — needs you" state was a hardcoded Termhalla-side 120 s heuristic
+  (`STALL_THRESHOLD_MS`, 0004 FINDING-PROV-002) — it could read "stalled" while Orky's watchdog
+  still considered the run live. It is now Orky's canonical liveness resolution (Orky v0.44.0):
+  the root's `.orky/config.json` `watchdog.idle_threshold_seconds` when set, else the canonical
+  3600 s default published by `gatekeeper contract` under `watchdog.default_seconds`. The new pure
+  `resolveStallThresholdMs` (`src/shared/orky-status.ts`) resolves per root in both the shared
+  engine re-read (`config.json` is now a watched target file — editing the threshold re-derives
+  the verdict live) and the one-shot `registry:detail` path; a caller-injected `thresholdMs` still
+  wins. Pinned by `tests/main/orky-stall-threshold.test.ts`.
+- **Four deferred findings closed on Orky v0.44.0** (the upstream half of each shipped there,
+  commit `9443bee`; ledgers updated with the resolution records): 0008 FINDING-021 (verify→write
+  TOCTOU — `resolveEscalation` now refuses a non-open escalation without `--force`), 0012
+  FINDING-010 (the `mode:'noop'` disabled-refusal discriminator is now a pinned `feedback.submit`
+  contract block, `contract_version` still 2), 0014 FINDING-DA-006 (the heartbeat's
+  never-redefine-a-field evolution rule is now stated in Orky's osc-heartbeat doc), and 0004
+  FINDING-PROV-002 (the stall-threshold change above).
+
 ### Added
 - **In-app remote/ssh integration e2e harness.** The connected remote-workspace surface finally
   runs end-to-end in the real app: a new env-gated seam (`TERMHALLA_E2E_REMOTE_SSH`, read only by

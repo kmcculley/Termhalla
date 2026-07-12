@@ -96,13 +96,20 @@ lost. None is release-blocking; none is a contract violation.
   **Recommended fix:** extend the per-file `lstat`-skip to `state.json`/`findings.json`, or switch the
   directory guard to a `realpath`-prefix check (closes both vectors and the TOCTOU window in one call).
 
-- **`STALL_THRESHOLD_MS = 120_000` is an uncited Termhalla heuristic** (FINDING-PROV-002,
-  `src/shared/orky-status.ts:16`). The 120s "stalled" verdict is an independent Termhalla-side UI value
-  not reconciled with Orky's own watchdog idle threshold (Orky's `liveness()` takes
-  `idleThresholdSeconds` as a caller-supplied argument with no canonical default), so the chip can
-  render "stalled — needs you" while Orky still considers the run live. The value is already injectable
-  via `thresholdMs`. **Recommended fix:** document 120s explicitly as a Termhalla UI heuristic (NOT an
-  Orky-derived value) and prefer sourcing it from the same config Orky's watchdog uses.
+- ~~**`STALL_THRESHOLD_MS = 120_000` is an uncited Termhalla heuristic** (FINDING-PROV-002)~~ —
+  **RESOLVED 2026-07-12, both halves.** Upstream (Orky v0.44.0, commit `9443bee`): `liveness` now
+  resolves its idle threshold ITSELF (caller → `watchdog.idle_threshold_seconds` config → canonical
+  default 3600 s), reports which source applied (`thresholdSource`), and the canonical default is
+  published in `gatekeeper contract` under `watchdog.default_seconds` — exactly the "no canonical
+  default" gap this finding named. Termhalla side (same day): the 120 s heuristic is **dropped** —
+  `STALL_THRESHOLD_MS` is now the canonical `3_600_000` ms, and the new pure `resolveStallThresholdMs`
+  (`src/shared/orky-status.ts`) applies Orky's own config → default resolution PER ROOT in both the
+  engine re-read (`orky-root-engine.ts`; `config.json` is now a watched target file, so editing the
+  threshold re-derives the verdict live) and the one-shot detail path (`orky-root-detail.ts`). A
+  caller-injected `thresholdMs` still wins (the `caller` source), so every threshold-injecting test
+  is untouched. Pinned by `tests/main/orky-stall-threshold.test.ts`. This supersedes 0004's REQ-003
+  "default MUST be 120_000 ms" spec sentence (the frozen spec text stays as the historical record;
+  this ledger is the supersession record). `findings.json` closed via `resolve-finding`.
 
 - **Id-collision tiebreak nondeterminism for malformed features** (FINDING-DET-002,
   `src/shared/orky-status.ts:281`). `compareFeatures`'s final tiebreak is the feature id, but

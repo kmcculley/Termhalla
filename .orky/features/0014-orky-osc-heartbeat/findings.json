@@ -138,9 +138,12 @@
     "claim": "REQ-005's forward-compat reversal (FINDING-DA-003) fixed the blackout risk but introduces an unexamined residual: a future v:2 that REDEFINES an existing field's meaning (not just adds one) would be silently decoded with v1 semantics and render WRONG status, not blank status — undetectable cross-repo since the parser never fails closed on version.",
     "fix": "Document the residual misrender risk in the REQ-016 cross-repo drift caveat; optionally log-once (not reject) on an unrecognized v for diagnosability.",
     "phase_of_origin": "spec",
-    "status": "open",
+    "status": "resolved",
     "verified_by": "devils-advocate",
-    "contract_violation": false
+    "contract_violation": false,
+    "resolution": "Resolved upstream in Orky v0.44.0 (9443bee): docs/osc-heartbeat.md states the never-redefine-rename-instead evolution rule (fields' meanings frozen forever; v bump = structural break, never name reuse), citing Termhalla's decode-everything TEST-011. Kevin-directed close, 2026-07-12.",
+    "resolvedBy": "kevin",
+    "resolvedAt": "2026-07-12T17:55:16.155Z"
   },
   {
     "id": "FINDING-DA-007-OSC",

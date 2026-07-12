@@ -152,17 +152,21 @@ by an API error and cancelled — additive lenses never block. See the per-findi
 
 ## Current open-findings residual (non-blocking)
 
-Two residuals stay open (not re-litigated by doc-sync); both were reviewed and explicitly accepted
-as deferred, each with a documented rationale — see the "Known residual limitations" section of
+One residual stays open (not re-litigated by doc-sync); it was reviewed and explicitly accepted as
+deferred with a documented rationale — see the "Known residual limitations" section of
 `docs/features/queue-answer-resume-actions.md` for the user-facing summary.
 
-- **FINDING-021 (review, LOW, verify→write TOCTOU).** REQ-003's submit-time re-verification pull
-  runs renderer-side BEFORE the dispatch enters F7's per-feature serialization queue; Orky's
-  `resolveEscalation` has no server-side open-status compare-and-set, so an escalation resolved
-  elsewhere in that window can still be overwritten. Same disclosed-residual class as the existing
-  cross-window duplicate-dispatch gap (REQ-007's own honest boundary) — the gatekeeper re-resolve is
-  idempotent-enough that this is accepted rather than fixed now. The upstream fix (a
-  compare-and-set refusal in Orky's `gatekeeper.js`) is outside this repo.
+- ~~**FINDING-021 (review, LOW, verify→write TOCTOU).**~~ — **RESOLVED upstream 2026-07-12** (Orky
+  v0.44.0, commit `9443bee`): `resolveEscalation` now REFUSES a non-open escalation without
+  `--force` (error code `ESCALATION_NOT_OPEN`, CLI exit 2 — parity with the supervisor kernel's
+  revision-CAS, closing the solo/local path Termhalla's feedback-apply dispatch rides), and
+  `feedback apply` consumes a stale decision instead of retrying forever. An escalation resolved
+  elsewhere inside the verify→write window is therefore no longer silently overwritten — the
+  compare-and-set this ledger said was "outside this repo" now exists at the authority, where it
+  belongs (CONV-045's first arm). The contract pins the refusal behavior
+  (`escalations.escalation_resolution`). No Termhalla-side change: the renderer's submit-time
+  re-verification remains a UX courtesy in front of a now-guarded write. `findings.json` closed via
+  `resolve-finding`.
 - **FINDING-022 (review, LOW, mode-flip focus jump).** A queue row's stable `featureSlug` key keeps
   its `OrkyEntryActions` instance mounted across aggregate refreshes; if a background refresh flips
   the row's `reason` (e.g. `escalation` → `human-review`) while its answer form is open, the stale
