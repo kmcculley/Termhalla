@@ -1015,6 +1015,21 @@ All notable changes to Termhalla are recorded here. The format follows
   goes busy on real output only" decision are both preserved verbatim (feature
   0025-cursor-home-output-suppression). CHAR-001's pin was amended as the recorded, deliberate change.
 
+## [0.17.1] - 2026-07-12
+
+Cross-repo hardening close-out riding Orky v0.44.0. The Orky "stalled — needs you" verdict no
+longer comes from a hardcoded Termhalla-side 120 s heuristic: the chip, decision queue, and Orky
+pane now resolve the stall threshold exactly the way Orky's own `liveness` does — the project's
+`.orky/config.json` `watchdog.idle_threshold_seconds` when set, else the canonical 3600 s default
+published in `gatekeeper contract` — so Termhalla can no longer call a run stalled while Orky's
+watchdog still considers it live (editing the config re-derives the verdict live). Four
+long-deferred ledger findings whose fixes belonged upstream are closed on Orky v0.44.0: the
+escalation verify→write overwrite race (resolveEscalation now refuses a non-open escalation), the
+unpinned feedback disabled-refusal discriminator (now a contract block), the heartbeat field
+never-redefine rule (now stated at the emitter), and the uncited stall threshold (this release's
+change). The detailed entries stay under [Unreleased] above, per the same convention the
+0.9.0–0.17.0 releases recorded.
+
 ## [0.17.0] - 2026-07-11
 
 All four confirmed baseline known bugs are now fixed — this release closes the last of them (#4):
