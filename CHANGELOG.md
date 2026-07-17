@@ -6,6 +6,34 @@ All notable changes to Termhalla are recorded here. The format follows
 
 ## [Unreleased]
 
+### Fixed
+- **QoL batch 2026-07-17 — focus lands where you're about to type.** Clicking maximize (or the
+  chord) left keyboard focus on the toolbar button — typing was swallowed until you clicked the
+  terminal; `toggleMaximize` now focuses the pane it maximizes/restores. The deeper class:
+  programmatic focus (`requestPaneFocus`) never updated the store's `focusedPaneId` (only a
+  tile-body mouse-down did), so after creating/restoring/moving a pane, the maximize/minimize
+  chords and every dialog-close refocus targeted the *previous* pane. All programmatic focus now
+  rides one `focusPaneTracked` helper (create, adopt, maximize, restore, cross-workspace move,
+  cockpit/remote workspace create, refocus). Also: toolbar/title/chip clicks now set the focused
+  pane (the mouse-down tracker only covered the tile body); every `MenuSurface` menu restores
+  focus to its opener on dismiss (the CONV-020 close-half, previously SplitMenu-only); dismissing
+  a proc/cwd/git/orky popover refocuses the pane's terminal; a pane added from the "＋ pane…"
+  dropdown is auto-focused (the focused `<select>` made the focus request bail as editable
+  chrome); `revealPaneFromSearch` tracks-then-activates with an explicit focus instead of relying
+  on the modal-close refocus; keyboard arrow tab-navigation keeps focus on the tab button
+  (`setActive(..., { refocusPane: false })`) instead of having it yanked into a terminal frames later.
+- **The split button reads 4-way again.** `⬌` → `✛` — the 0002 FINDING-QOL-002 fix was recorded
+  in this changelog but had regressed in a toolbar refactor; the glyph is now actually `✛`.
+- **AltGr no longer triggers app shortcuts.** The chord matcher was alt-blind, so AltGr (which
+  reports ctrl+alt on many layouts) could fire e.g. the mod+K palette mid-typing; chords now
+  model Alt and an alt-held event never matches a non-alt binding (Ctrl+Alt+digit is also no
+  longer the reserved workspace jump).
+- **Binary files are no longer misreported as "(deleted)".** The editor shows a distinct
+  "Binary file — can't display." notice; the tab is not struck through.
+- **An explorer rename follows the file into open editor tabs.** The tab re-keys to the new path
+  (same buffer, same undo stack, watch + recovery draft re-wired) instead of going "(deleted)"
+  when the old path's unlink event landed.
+
 ### Changed
 - **Orky "stalled" now agrees with Orky's own liveness verdict.** The stall threshold behind the
   chip/queue "stalled — needs you" state was a hardcoded Termhalla-side 120 s heuristic
@@ -26,6 +54,72 @@ All notable changes to Termhalla are recorded here. The format follows
   FINDING-PROV-002 (the stall-threshold change above).
 
 ### Added
+- **QoL batch 2026-07-17 — destructive actions confirm; idle ones don't.** Closing a pane used to
+  be the one silent kill (close-workspace and per-tab close both confirmed): `closePane` now
+  confirms when the terminal is running a foreground process/AI session, or when an editor pane
+  holds unsaved tabs (a registry-backed dirty count — closing the pane used to bypass the per-tab
+  confirm AND delete the hot-exit recovery drafts). Idle panes still close without friction. The
+  close-workspace prompt is busy-aware ("2 panes are still running a process"; remote detach
+  never adds it — nothing is killed). Also newly confirmed: permanently deleting a closed
+  workspace's on-disk record, Clear (output-search) history, deleting an SSH favorite, a saved
+  run-command, a workspace template, and removing a named remote agent. Pure decision + copy in
+  `paneCloseConfirmText`/`busyPaneCount` (`store/pane-ops.ts`), pinned by
+  `tests/renderer/pane-close-confirm.test.ts`.
+- **QoL batch 2026-07-17 — every dialog gets the keyboard contract.** `Modal.tsx` now owns
+  Escape-to-close (keyboard parity with the backdrop click; a dialog that handles Escape itself
+  still wins via `defaultPrevented`) and a Tab focus trap — seven dialogs had no Escape path and
+  none trapped Tab, so focus could walk out of the card into the terminal behind the scrim. Enter
+  submits in the SSH form / Schedule (Ctrl+Enter, + a visible Close button) / Run-commands form;
+  the output-history search gains arrow+Enter result navigation (the palette's pattern). The
+  proc/cwd/git popovers — formerly dismissable only by re-toggling their chip — now render
+  through the shared `MenuSurface` (portalled, click-away + Escape), pinned in
+  `menu-surface-structure.test.ts`. Error toasts persist until dismissed (a 4 s "Save failed"
+  could vanish mid-read), all toasts pause on hover and carry a visible ✕.
+- **QoL batch 2026-07-17 — terminal niceties.**
+  - *Visual bell:* BEL was silently dropped; it now flashes a paint-only inset ring overlay
+    (never a box change — the ConPTY-repaint gotcha).
+  - *Find in terminal:* a per-pane find bar (`@xterm/addon-search`; Ctrl+Shift+G, palette, or the
+    pane context menu) with Enter/Shift+Enter stepping — distinct from the cross-pane history
+    search on Ctrl+Shift+F.
+  - *Clear terminal:* buffer + scrollback (Ctrl+Shift+K, palette, context menu).
+  - *Configurable scrollback:* `quick.termScrollback` (General settings, default now 5000 — the
+    xterm default of 1000 silently lost long build output), live-applied to every open terminal.
+  - *file:line links:* `src/foo.ts:42:8` / MSBuild `a.cs(10,5)` in output Ctrl+click-opens the
+    file in the editor pane at that position (stat-gated so false positives stay inert; pure
+    detection in `@shared/terminal-links`, pinned by `tests/shared/file-line-links.test.ts`).
+  - *Clipboard:* Ctrl+Shift+C/V now work (the terminal-emulator convention); middle-click pastes;
+    dropping a file onto a terminal pastes its quoted path (Electron 33's `webUtils.getPathForFile`
+    via preload); a multi-line paste warns when the running program has NOT enabled bracketed
+    paste (each line would run as it lands).
+  - *OSC titles:* a program-set window title (ssh's `user@host`, vim's file) shows on the pane
+    chrome unless the user named the pane manually.
+  - *"▼ new output":* scrolled up reading history, fresh output shows a jump-to-bottom pill.
+- **QoL batch 2026-07-17 — keybindings + palette.** New rebindable commands: close pane
+  (Ctrl+Shift+Q), directional pane focus (Ctrl+Alt+arrows — geometry-picked via the pure
+  `pane-nav.ts`, no wrap at edges), restore last minimized (Ctrl+Shift+J), terminal font zoom
+  in/out/reset (Ctrl+Alt+= / - / 0 — the View-menu roles keep whole-UI zoom), clear terminal,
+  find in terminal. The command palette shows its command list on the EMPTY query too (it read as
+  connect/jump-only), registers the pane/view commands (maximize/minimize/restore/clear/find/
+  redraw/zoom-reset/notes/history-search), and adds a subsequence fuzzy fallback ("nterm" finds
+  New terminal) ranked below substring hits.
+- **QoL batch 2026-07-17 — editor & explorer.** Explorer: New File / New Folder (new `fs:mkdir`
+  IPC; inline name entry; root-header context menu for top-level creates), "Open terminal here"
+  on folders, and keyboard tree navigation (rows focusable: Enter opens/toggles, F2 renames,
+  Delete trashes, arrows walk/expand/collapse). Editor tabs: middle-click closes, long names
+  ellipsize (full path on hover), and a per-tab context menu (Close / Close others / Close to the
+  right / Close all / Save As… for named files / Copy path / Reveal in File Explorer). A pane
+  title shows `•` while any tab is unsaved (visible when the strip is scrolled or the pane
+  minimized). Word-wrap + minimap toggles (General settings, live-applied).
+- **QoL batch 2026-07-17 — chrome.** The status bar's empty center now shows the focused pane's
+  `cwd · ⎇ branch · ✨ AI ctx%`. The OS window title tracks the active workspace (taskbar/Alt-Tab
+  used to read a permanent "Termhalla"). Appearance gains one-click built-in **Dark/Light**
+  themes (`LIGHT_THEME`) and a **follow-system** toggle (prefers-color-scheme). Workspace tabs:
+  middle-click closes (same confirm path) and the context menu gains **Duplicate** (fresh-id deep
+  copy via the workspace-doc round trip; panes respawn at the same cwds). A compass split now
+  inherits the source terminal's shell (splitting a WSL pane gave the global default; it already
+  inherited the cwd). The minimized tray gets a restore-all chip at ≥2 panes. Labels/tooltips on
+  the close ✕, the tab-bar `+`, and both tab-bar selects; the terminal-size setting names the
+  Ctrl+wheel zoom gesture.
 - **In-app remote/ssh integration e2e harness.** The connected remote-workspace surface finally
   runs end-to-end in the real app: a new env-gated seam (`TERMHALLA_E2E_REMOTE_SSH`, read only by
   `src/main/e2e-remote.ts` — the `e2e-presentation.ts` discipline, structurally pinned) routes

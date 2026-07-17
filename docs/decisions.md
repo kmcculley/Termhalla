@@ -7,6 +7,51 @@ design specs live in [`superpowers/specs/`](superpowers/); this log captures the
 
 ---
 
+### [2026-07-17] Programmatic pane focus always tracks `focusedPaneId` (one helper)
+
+**Context:** `focusedPaneId` — the store's "active pane", which the maximize/minimize
+chords and every dialog-close refocus target — was seeded only by a tile-body
+mouse-down. Every programmatic focus (`requestPaneFocus` on create, restore,
+cross-workspace move, workspace adopt) moved the *keyboard* without updating the
+*store*, so the chords and refocus aimed at the previous pane. `pane-reveal.ts` had
+independently discovered the correct pattern (set, then focus); nowhere else used it.
+**Decision:** All programmatic focus routes through one store-closure helper,
+`focusPaneTracked(paneId)` = `setFocusedPane(paneId)` + `requestPaneFocus(paneId)`.
+The toolbar (rendered by MosaicWindow *outside* the tile body) gets its own
+focus-tracking mouse-down. `setActive` gains `{ refocusPane: false }` so keyboard
+tab-navigation can decline the pane refocus that would otherwise steal focus off the
+tab button frames later.
+**Rationale:** The store and the DOM must agree on which pane is "focused" or every
+focusedPaneId consumer inherits the divergence; one chokepoint keeps a future
+focus-issuing action from re-introducing it (the same argument as the 2026-07-03
+editable-chrome guard, one entry down).
+**Consequences:** Any new action that calls `requestPaneFocus` directly on a specific
+pane is almost certainly wrong — use `focusPaneTracked`. `refocusActivePane` also
+tracks its fallback target, so a stale cross-workspace `focusedPaneId` self-heals on
+the next tab switch.
+
+### [2026-07-17] Keyboard chords model Alt; an alt-held event never matches a non-alt binding
+
+**Context:** The QoL batch needed defaults for directional pane focus and terminal
+font zoom, but the chord model was `mod[+shift]+key` only — and every attractive
+default either collided with a shell/readline binding (Ctrl+Shift+arrows are
+PSReadLine word-selection) or an Electron menu-role accelerator (Ctrl+-/Ctrl+0 are
+whole-UI zoom). Separately, the matcher was alt-*blind*: AltGr reports ctrl+alt on
+many layouts, so AltGr+K while typing international text could falsely fire the
+mod+K palette — a latent bug for non-US users.
+**Decision:** `Chord` gains an optional `alt` flag (chordKey `mod+alt+…`; persisted
+pre-alt overrides parse unchanged). `eventToChord` records alt only when held, so a
+chordKey comparison makes alt-held events and non-alt bindings mutually invisible.
+The reserved Ctrl+digit workspace jump also requires `!altKey`. New defaults:
+mod+alt+arrows (directional focus), mod+alt+=/-/0 (font zoom).
+**Rationale:** Extending the model was cheaper than any single workaround and fixes
+the AltGr class outright; alt-space defaults conflict with nothing the app or common
+shells claim.
+**Consequences:** `isValidRebind` allows digits with Alt held (the reserved-jump ban
+applies only to bare mod+digit). Rebind capture in KeybindingsSettings records Alt
+automatically via `eventToChord`. Mac option-key semantics (⌥ composes characters)
+are untested — revisit defaults if a mac build ever ships.
+
 ### [2026-07-03] Programmatic pane refocus never steals from editable chrome
 
 **Context:** Workspace rename was broken: activating a workspace starts a
