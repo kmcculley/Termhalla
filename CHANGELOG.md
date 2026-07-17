@@ -1109,6 +1109,26 @@ All notable changes to Termhalla are recorded here. The format follows
   goes busy on real output only" decision are both preserved verbatim (feature
   0025-cursor-home-output-suppression). CHAR-001's pin was amended as the recorded, deliberate change.
 
+## [0.18.0] - 2026-07-17
+
+The QoL release: one coordinated polish batch from a five-domain UX audit. Focus finally lands
+where you're about to type — maximizing, restoring, creating, or moving a pane puts the keyboard
+in it AND keeps the store's focused-pane in sync, so the pane chords and dialog-close refocus stop
+targeting the wrong pane; every menu restores focus on dismiss. Destructive actions confirm (a
+pane close warns before killing a running process/AI session or discarding unsaved editor tabs —
+it used to delete the recovery drafts silently) while idle closes stay friction-free. Every dialog
+gets Escape + a Tab focus trap centrally; error toasts persist until dismissed. Terminals gain a
+visual bell, an in-pane find bar, clear-scrollback, configurable scrollback (default 5000),
+clickable file:line links into the editor, Ctrl+Shift+C/V, middle-click paste, file drag-drop,
+program-set OSC titles, and a new-output pill. The chord model learns Alt (fixing latent AltGr
+false-matches) with 11 new rebindable commands, and the palette becomes a real command menu with
+fuzzy matching. The explorer can finally create files/folders, renames follow into open editor
+tabs, editor tabs get middle-click close + a context menu + Save As, and the tree is keyboard-
+navigable. Chrome: a focused-pane cwd/branch/AI readout in the status bar, the OS window title
+tracks the active workspace, one-click Dark/Light/follow-system themes, Duplicate workspace,
+splits inherit the source shell, and the split button reads 4-way (✛) again. The detailed entries
+stay under [Unreleased] above, per the standing convention.
+
 ## [0.17.1] - 2026-07-12
 
 Cross-repo hardening close-out riding Orky v0.44.0. The Orky "stalled — needs you" verdict no
