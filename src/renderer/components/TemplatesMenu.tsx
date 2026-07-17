@@ -39,7 +39,10 @@ export function TemplatesMenu({ onPicked, onClose }: { onPicked: (id: string) =>
             <button data-testid={`tpl-${t.id}`} style={{ flex: 1, textAlign: 'left' }}
               onClick={() => { const id = newFromTemplate(t.id, t.name); onClose(); onPicked(id) }}>{t.name}</button>
             <button data-testid={`tpl-del-${t.id}`} title="Delete template"
-              onClick={() => { deleteTemplate(t.id); pushToast('Template deleted') }}>×</button>
+              onClick={() => {
+                if (!window.confirm(`Delete template "${t.name}"?`)) return
+                deleteTemplate(t.id); pushToast('Template deleted')
+              }}>×</button>
           </div>
         ))}
     </MenuSurface>

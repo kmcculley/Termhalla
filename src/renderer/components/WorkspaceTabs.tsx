@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { useShallow } from 'zustand/react/shallow'
 import { useStore } from '../store'
-import type { PaneKind } from '../store/pane-ops'
+import { busyPaneCount, type PaneKind } from '../store/pane-ops'
 import { tabBadge } from './tab-badge'
 import { useTabDrag } from './use-tab-drag'
 import { TemplatesMenu } from './TemplatesMenu'
@@ -15,15 +15,26 @@ export function WorkspaceTabs() {
   const {
     order, workspaces, activeId, setActive, newWorkspace,
     saveAll, shells, newTerminalShellId, setNewTerminalShell, addPaneOfKind,
-    renameWorkspace, closeWorkspace, moveWorkspace, setBroadcastOpen, broadcastOpen
+    renameWorkspace, closeWorkspace, duplicateWorkspace, moveWorkspace, setBroadcastOpen, broadcastOpen
   } = useStore(useShallow(s => ({
     order: s.order, workspaces: s.workspaces, activeId: s.activeId, setActive: s.setActive,
     newWorkspace: s.newWorkspace, saveAll: s.saveAll, shells: s.shells,
     newTerminalShellId: s.newTerminalShellId, setNewTerminalShell: s.setNewTerminalShell,
     addPaneOfKind: s.addPaneOfKind,
     renameWorkspace: s.renameWorkspace, closeWorkspace: s.closeWorkspace,
+    duplicateWorkspace: s.duplicateWorkspace,
     moveWorkspace: s.moveWorkspace, setBroadcastOpen: s.setBroadcastOpen, broadcastOpen: s.broadcastOpen
   })))
+
+  // ONE confirmed-close path for every close gesture (menu item, middle-click): confirm only when
+  // the workspace has panes, busy-aware copy.
+  const confirmAndClose = (id: string) => {
+    const ws = workspaces[id]
+    const st = useStore.getState()
+    const ok = !ws || Object.keys(ws.panes).length === 0 ||
+      window.confirm(closeWorkspaceConfirmText(ws.name, ws.home, busyPaneCount(ws, st.procs, st.aiSessions)))
+    if (ok) closeWorkspace(id)
+  }
   // Derive the per-workspace badge string inside the selector: statuses/aiSessions change on
   // every line of output, but shallow-comparing the derived strings means we only re-render
   // when a badge's *text* actually changes.
@@ -99,7 +110,9 @@ export function WorkspaceTabs() {
     else if (e.key === 'End') next = order[order.length - 1]
     else return
     e.preventDefault()
-    if (next) { setActive(next); tabRefs.current.get(next)?.focus() }
+    // refocusPane:false — a keyboard tab switch keeps focus ON the tab button so arrow navigation
+    // can continue; the default retrying pane refocus would steal it a few frames later.
+    if (next) { setActive(next, { refocusPane: false }); tabRefs.current.get(next)?.focus() }
   }
 
   return (
@@ -133,6 +146,7 @@ export function WorkspaceTabs() {
               onKeyDown={onTabKey(id)}
               onPointerDown={beginTabDrag(id)}
               onDoubleClick={() => startRename(id)}
+              onAuxClick={e => { if (e.button === 1) { e.preventDefault(); confirmAndClose(id) } }}
               onContextMenu={e => { e.preventDefault(); setMenuFor({ id, x: e.clientX, y: e.clientY }) }}>
               {badges[id]?.trim() ? <span className="ws-tab-badge">{badges[id].trim()}</span> : null}
               {/* Name scrolls horizontally when it can't fit; translate a vertical wheel into a
@@ -149,17 +163,22 @@ export function WorkspaceTabs() {
         <button data-testid="tabs-scroll-right" className="ws-scroll-btn" aria-label="Scroll tabs right"
           disabled={nav.atEnd} onClick={() => scrollStrip(1)}>▶</button>
       )}
-      <button data-testid="new-workspace" style={{ flexShrink: 0 }}
+      <button data-testid="new-workspace" title="New workspace" style={{ flexShrink: 0 }}
         onClick={() => { const id = newWorkspace(`Workspace ${order.length + 1}`); startRename(id) }}>+</button>
       <button data-testid="templates-button" title="Workspace templates" style={{ flexShrink: 0 }}
         onClick={() => setTemplatesOpen(o => !o)}>▾</button>
       <span style={{ flex: 1 }} />
-      <select data-testid="shell-picker" value={newTerminalShellId ?? ''} style={{ flexShrink: 0 }}
+      <select data-testid="shell-picker" title="Default shell for new terminals" aria-label="Default shell for new terminals"
+        value={newTerminalShellId ?? ''} style={{ flexShrink: 0 }}
         onChange={e => setNewTerminalShell(e.target.value)}>
         {shells.map(s => <option key={s.id} value={s.id}>{s.label}</option>)}
       </select>
-      <select data-testid="add-pane" value="" style={{ flexShrink: 0 }} onChange={e => {
+      <select data-testid="add-pane" title="Add a pane to this workspace" aria-label="Add a pane to this workspace"
+        value="" style={{ flexShrink: 0 }} onChange={e => {
         const kind = e.target.value as PaneKind; e.currentTarget.value = ''
+        // Blur first: requestPaneFocus refuses to steal from editable chrome (a SELECT counts), so
+        // a still-focused picker made the new pane the ONE creation path that wasn't auto-focused.
+        e.currentTarget.blur()
         if (activeId) void addPaneOfKind(activeId, kind)
       }}>
         <option value="" disabled>＋ pane…</option>
@@ -177,14 +196,9 @@ export function WorkspaceTabs() {
         <MenuSurface testid="ws-menu" onClose={() => setMenuFor(null)}
           style={{ left: menuFor.x, top: menuFor.y, padding: 4, gap: 2, fontSize: 'var(--font-size, 13px)' }}>
           <button data-testid="ws-menu-rename" onClick={() => startRename(menuFor.id)}>Rename</button>
+          <button data-testid="ws-menu-duplicate" onClick={() => { duplicateWorkspace(menuFor.id); setMenuFor(null) }}>Duplicate</button>
           <button data-testid="ws-menu-save" onClick={() => { void saveAll(); setMenuFor(null) }}>Save</button>
-          <button data-testid="ws-menu-close" onClick={() => {
-            const ws = workspaces[menuFor.id]
-            const ok = !ws || Object.keys(ws.panes).length === 0 ||
-              window.confirm(closeWorkspaceConfirmText(ws.name, ws.home))
-            if (ok) closeWorkspace(menuFor.id)
-            setMenuFor(null)
-          }}>Close</button>
+          <button data-testid="ws-menu-close" onClick={() => { confirmAndClose(menuFor.id); setMenuFor(null) }}>Close</button>
         </MenuSurface>
       )}
       {ghost && (

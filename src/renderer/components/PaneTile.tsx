@@ -17,6 +17,7 @@ import { RunCommandsMenu } from './RunCommandsMenu'
 import { SplitMenu } from './SplitMenu'
 import { OrkyPopover } from './OrkyPopover'
 import { setTileSize, clearTileSize } from './pane-geometry'
+import { requestPaneFocus } from './terminal-registry'
 import { paneBorderStatus, paneTitle } from './pane-status'
 
 export type PaneMenu = 'proc' | 'cwd' | 'schedule' | 'git' | 'run' | 'split' | 'orky'
@@ -57,6 +58,11 @@ export function PaneTile({ wsId, paneId, path }: { wsId: string; paneId: string;
   const [renameText, setRenameText] = useState('')
   const toggle = (m: PaneMenu) => setMenu(cur => (cur === m ? null : m))
   const close = () => setMenu(null)
+  // Dismissing a transient info popover (proc/cwd/git/run/orky) puts the keyboard back in the pane
+  // it describes, so a chip-click round trip doesn't strand focus on the toolbar button. The split
+  // compass keeps the plain close: its own trigger-restore contract is pinned (TEST-465), and a
+  // committed split focuses the NEW pane via commitPane anyway.
+  const closeRefocus = () => { setMenu(null); requestPaneFocus(paneId) }
   const tileRef = useRef<HTMLDivElement>(null)
 
   const termCfg = pane?.config.kind === 'terminal' ? pane.config : undefined
@@ -64,6 +70,12 @@ export function PaneTile({ wsId, paneId, path }: { wsId: string; paneId: string;
   const shellLabel = SHELL_CHIP_LABEL[rawShellLabel] ?? rawShellLabel
   const chipText = aiSession ? `✨ ${aiSession.label}${usage ? ` ${usage.contextPct}%` : ''}`
     : procInfo && procInfo.foreground ? `▶ ${procInfo.foreground}` : shellLabel
+
+  // OSC 0/2 title a program set (ssh's user@host, vim's file) — shown when the user hasn't
+  // named the pane manually (QoL 2026-07-17).
+  const oscTitle = useStore(s => s.oscTitles[paneId])
+  // Any unsaved editor tab surfaces as a • on the pane title (visible even minimized).
+  const editorDirty = useStore(s => !!s.editorDirty[paneId])
 
   const alerts = resolveAlerts(termCfg?.alerts)
   // Orky precedence (REQ-014): for a bound Orky run the Orky-derived kind drives the border + badge,
@@ -76,8 +88,8 @@ export function PaneTile({ wsId, paneId, path }: { wsId: string; paneId: string;
   const { state, failed } = paneBorderStatus(orky, byteState, status?.lastExit)
   const statusClass = alerts.border ? `term-status term-${state}${failed ? ' term-failure' : ''}` : ''
   const needsInput = state === 'needs-input'
-  const baseName = pane?.config.name ?? pane?.config.kind ?? 'Pane'
-  const title = paneTitle(baseName, { needsInput, recording })
+  const baseName = pane?.config.name ?? (oscTitle || undefined) ?? pane?.config.kind ?? 'Pane'
+  const title = paneTitle(editorDirty ? `${baseName} •` : baseName, { needsInput, recording })
 
   // Maximize: mark this pane's mosaic tile so CSS can fill it and hide siblings. The attribute is
   // not React-managed, so it survives react-mosaic re-renders; !important CSS overrides the inline
@@ -106,6 +118,16 @@ export function PaneTile({ wsId, paneId, path }: { wsId: string; paneId: string;
     return () => { ro.disconnect(); clearTileSize(paneId) }
   }, [paneId, isMax])
 
+  // Anchor coordinates for the tile-hosted popovers, measured when a menu is open. They portal to
+  // <body> through MenuSurface (the react-mosaic containing-block gotcha), so their fixed position
+  // is derived from the tile's viewport rect: just inside its top-left / top-right corner.
+  const tileRect = menu ? tileRef.current?.getBoundingClientRect() : undefined
+  const anchorLeft: React.CSSProperties = { left: (tileRect?.left ?? 0) + 4, top: (tileRect?.top ?? 0) + 4 }
+  const anchorRight: React.CSSProperties = {
+    right: Math.max(0, window.innerWidth - (tileRect?.right ?? window.innerWidth)) + 4,
+    top: (tileRect?.top ?? 0) + 4
+  }
+
   const startRename = () => { setRenameText(pane?.config.name ?? '') ; setRenaming(true) }
   const commitRename = () => {
     const n = renameText.trim()
@@ -120,6 +142,10 @@ export function PaneTile({ wsId, paneId, path }: { wsId: string; paneId: string;
   const renderToolbar = () => (
     <div data-testid={`titlebar-${paneId}`}
       onContextMenu={e => { e.preventDefault(); setCtx({ x: e.clientX, y: e.clientY }) }}
+      // MosaicWindow renders the toolbar OUTSIDE the tile body, so the body's focus-tracking
+      // mouse-down never sees toolbar clicks — without this, clicking pane B's chips left the
+      // pane chords and dialog-close refocus aimed at pane A.
+      onMouseDownCapture={() => setFocusedPane(paneId)}
       style={{ display: 'flex', alignItems: 'center', width: '100%' }}>
       {renaming ? (
         <input data-testid={`pane-rename-${paneId}`} autoFocus value={renameText}
@@ -145,14 +171,15 @@ export function PaneTile({ wsId, paneId, path }: { wsId: string; paneId: string;
         onMouseDownCapture={() => setFocusedPane(paneId)}
         style={{ ...themeCssVarsPartial(pane?.config.theme ?? {}), position: 'relative', height: '100%' }}>
         {menu === 'proc' && (
-          <ProcessPopover paneId={paneId} procInfo={procInfo} aiSession={aiSession} usage={usage} onClose={close} />
+          <ProcessPopover paneId={paneId} procInfo={procInfo} aiSession={aiSession} usage={usage}
+            anchor={anchorLeft} onClose={closeRefocus} />
         )}
         {menu === 'schedule' && <ScheduleDialog paneId={paneId} onClose={close} />}
         {menu === 'run' && <RunCommandsMenu wsId={wsId} paneId={paneId} onClose={close} />}
-        {menu === 'cwd' && <CwdMenu wsId={wsId} paneId={paneId} cwd={cwd} onClose={close} />}
+        {menu === 'cwd' && <CwdMenu wsId={wsId} paneId={paneId} cwd={cwd} anchor={anchorRight} onClose={closeRefocus} />}
         {menu === 'split' && <SplitMenu wsId={wsId} paneId={paneId} onClose={close} />}
-        {menu === 'git' && gitStatus && <GitPopover status={gitStatus} />}
-        {menu === 'orky' && orky && <OrkyPopover paneId={paneId} status={orky} onClose={close} />}
+        {menu === 'git' && gitStatus && <GitPopover status={gitStatus} anchor={anchorLeft} onClose={closeRefocus} />}
+        {menu === 'orky' && orky && <OrkyPopover paneId={paneId} status={orky} onClose={closeRefocus} />}
         {pane?.config.kind === 'terminal' && termCfg && <TerminalPane paneId={paneId} wsId={wsId} config={termCfg} />}
         {pane?.config.kind === 'editor' && <EditorPane paneId={paneId} wsId={wsId} config={pane.config} />}
         {pane?.config.kind === 'explorer' && <ExplorerPane paneId={paneId} wsId={wsId} config={pane.config} />}

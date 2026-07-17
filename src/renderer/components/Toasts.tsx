@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useStore } from '../store'
 import { SURFACE } from './Modal'
 import type { Toast } from '../store/types'
@@ -9,21 +9,29 @@ const ACCENT: Record<Toast['kind'], string> = {
   info: 'var(--border, #444)'
 }
 
-/** How long a toast stays before auto-dismissing. */
+/** How long a success/info toast stays before auto-dismissing. Error toasts never auto-dismiss:
+ *  "Save failed" vanishing after 4s mid-read left no way to review the failure. */
 const TOAST_DISMISS_MS = 4000
 
 function ToastItem({ toast }: { toast: Toast }) {
   const dismiss = useStore(s => s.dismissToast)
+  const [hover, setHover] = useState(false)
   useEffect(() => {
+    // Errors persist until dismissed; hovering pauses the timer (it restarts in full on leave).
+    if (toast.kind === 'error' || hover) return
     const t = setTimeout(() => dismiss(toast.id), TOAST_DISMISS_MS)
     return () => clearTimeout(t)
-  }, [toast.id, dismiss])
+  }, [toast.id, toast.kind, hover, dismiss])
   return (
     <div data-testid="toast" className="ui-pop-in" onClick={() => dismiss(toast.id)}
+      onMouseEnter={() => setHover(true)} onMouseLeave={() => setHover(false)}
       style={{ ...SURFACE, pointerEvents: 'auto', cursor: 'pointer', padding: '6px 10px',
         borderLeft: `3px solid ${ACCENT[toast.kind]}`, maxWidth: 320,
-        fontSize: 'var(--font-size, 13px)' }}>
-      {toast.text}
+        fontSize: 'var(--font-size, 13px)', display: 'flex', alignItems: 'baseline', gap: 8 }}>
+      <span style={{ flex: 1 }}>{toast.text}</span>
+      <button data-testid="toast-dismiss" aria-label="Dismiss"
+        onClick={e => { e.stopPropagation(); dismiss(toast.id) }}
+        style={{ background: 'none', border: 'none', color: 'var(--fg-dim, #aaa)', cursor: 'pointer', padding: 0, fontSize: 'inherit' }}>✕</button>
     </div>
   )
 }

@@ -57,6 +57,8 @@ export function RemoteAgentPicker({ onClose }: { onClose: () => void }) {
   }
 
   const removeAgent = async (id: string) => {
+    const agent = namedAgents.find(a => a.id === id)
+    if (agent && !window.confirm(`Remove named agent "${agent.name}"?`)) return
     await saveNamedAgents(namedAgents.filter(a => a.id !== id))
     if (selected === id) setSelected(null)
   }

@@ -36,6 +36,37 @@ export function chordPaneTarget(
   return firstTarget(ws)
 }
 
+/** The confirm prompt a pane close must show, or null when nothing is at risk (QoL batch
+ *  2026-07-17: pane close used to kill a running build/AI session — and discard an editor's
+ *  unsaved tabs plus their hot-exit drafts — with zero warning, while close-WORKSPACE confirmed).
+ *  Pure so the at-risk decision + copy are unit-testable; store.closePane gates on it. */
+export function paneCloseConfirmText(
+  o: { kind: string; dirtyCount: number; foreground?: string; aiLabel?: string }
+): string | null {
+  if (o.kind === 'editor' && o.dirtyCount > 0) {
+    const files = o.dirtyCount === 1 ? '1 file' : `${o.dirtyCount} files`
+    return `This editor has ${files} with unsaved changes. Close the pane and discard them?`
+  }
+  if (o.kind === 'terminal') {
+    const label = o.aiLabel ?? o.foreground
+    if (label) return `This terminal is running ${label}. Close the pane and kill it?`
+  }
+  return null
+}
+
+/** How many of a workspace's terminal panes are actively running something (a foreground child
+ *  process or an AI session) — the close-workspace confirm folds this in so an idle workspace's
+ *  prompt reads differently from one about to kill a live build. Pure/api-free. */
+export function busyPaneCount(
+  ws: Workspace,
+  procs: Record<string, { foreground?: string }>,
+  aiSessions: Record<string, AiSession>
+): number {
+  return Object.keys(ws.panes).filter(id =>
+    ws.panes[id].config.kind === 'terminal' && (procs[id]?.foreground || aiSessions[id])
+  ).length
+}
+
 /** Add a pane of `kind` to `wsId`, splitting off its first existing pane. No-ops for a missing
  *  workspace; the explorer branch prompts for a folder first (and skips if cancelled), and the
  *  orky branch (feature 0009, REQ-004) prompts through its OWN injected, api-free root-picker

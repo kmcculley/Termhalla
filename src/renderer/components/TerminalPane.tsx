@@ -1,10 +1,11 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Terminal } from '@xterm/xterm'
 import { FitAddon } from '@xterm/addon-fit'
 import { SerializeAddon } from '@xterm/addon-serialize'
+import { SearchAddon } from '@xterm/addon-search'
 import '@xterm/xterm/css/xterm.css'
 import { api } from '../api'
-import type { TerminalConfig } from '@shared/types'
+import { DEFAULT_TERM_SCROLLBACK, type TerminalConfig } from '@shared/types'
 import { resolveTheme } from '@shared/theme'
 import { nextFontSize } from '@shared/font-zoom'
 import { matchShortcut, resolveBindings } from '@shared/keymap'
@@ -12,15 +13,19 @@ import { useStore, paneCwd } from '../store'
 import { domainAllowed } from '../store/remote-gates'
 import { useResolvedPaneTheme } from '../use-resolved-theme'
 import { handleClipboardKey, normalizeCopiedText } from './terminal-clipboard'
-import { registerSerializer, unregisterSerializer, consumeSnapshot, registerFocuser, unregisterFocuser, registerRedrawer, unregisterRedrawer, registerRespawner, unregisterRespawner, respawnPane } from './terminal-registry'
+import { registerSerializer, unregisterSerializer, consumeSnapshot, registerFocuser, unregisterFocuser, registerRedrawer, unregisterRedrawer, registerRespawner, unregisterRespawner, respawnPane, registerClearer, unregisterClearer, registerFindOpener, unregisterFindOpener } from './terminal-registry'
 import { SURFACE } from './Modal'
 import { redraw } from './redraw'
 import { syncGrid, type GridSyncDeps } from './grid-sync'
 import { shouldAutoResumeClaude } from '../store/pane-ops'
 import { registerTerminalLinks } from '../terminal/links'
+import { stashReveal } from '../editor/reveal'
 
 /** Scrollback lines captured when serializing a terminal for a window-handoff replay. */
 const HANDOFF_SCROLLBACK_LINES = 1000
+
+/** How long the visual-bell border flash stays visible. */
+const BELL_FLASH_MS = 450
 
 /** Quiet window after the last resize before we repaint xterm once, so a drag doesn't repaint per frame. */
 const RESIZE_SETTLE_MS = 150
@@ -48,9 +53,17 @@ export function TerminalPane({ paneId, wsId, config }: { paneId: string; wsId: s
   const hostRef = useRef<HTMLDivElement>(null)
   const termRef = useRef<Terminal | null>(null)
   const fitRef = useRef<FitAddon | null>(null)
+  const searchRef = useRef<SearchAddon | null>(null)
+  const findInputRef = useRef<HTMLInputElement>(null)
   const exited = useStore(s => !!s.exited[paneId])
   const isRemote = useStore(s => !!s.workspaces[wsId]?.home)
   const closePane = useStore(s => s.closePane)
+  // QoL batch 2026-07-17: visual bell flash, the in-pane find bar, and the scrolled-up
+  // "new output" pill. All render as absolutely-positioned overlays — they never change the
+  // terminal host's box (the ConPTY-repaint gotcha).
+  const [bell, setBell] = useState(false)
+  const [findOpen, setFindOpen] = useState(false)
+  const [newOutput, setNewOutput] = useState(false)
   /** The grid the PTY was last told about. Shared by every `fit()` site (the ResizeObserver, the
    *  font/theme effect, the redraw command) so none of them can re-grid xterm without telling the
    *  PTY — an unpaired fit desyncs the two and renders garbled. See `grid-sync.ts`. */
@@ -60,10 +73,14 @@ export function TerminalPane({ paneId, wsId, config }: { paneId: string; wsId: s
     const t0 = resolveTheme(useStore.getState().quick.theme, useStore.getState().workspaces[wsId]?.theme, config.theme)
     const term = new Terminal({
       fontFamily: t0.termFontFamily, fontSize: t0.termFontSize, cursorBlink: true,
+      scrollback: useStore.getState().quick.termScrollback ?? DEFAULT_TERM_SCROLLBACK,
       theme: { background: t0.termBg, foreground: t0.termFg }
     })
     const fit = new FitAddon()
     term.loadAddon(fit)
+    const search = new SearchAddon()
+    term.loadAddon(search)
+    searchRef.current = search
     // Serialize the screen + scrollback to ANSI on demand, so this terminal's visible content can
     // be replayed into a new window when its workspace is torn off / re-docked (see WindowManager).
     const serialize = new SerializeAddon()
@@ -136,14 +153,29 @@ export function TerminalPane({ paneId, wsId, config }: { paneId: string; wsId: s
       scheduleResume()
     })
 
-    const offData = api.onPtyData((id, data) => { if (id === paneId) { term.write(data); scheduleResume() } })
+    const offData = api.onPtyData((id, data) => {
+      if (id !== paneId) return
+      // atBottom/setNewOutput are declared below in this effect — callbacks only run after the
+      // effect body has completed, so the reference is safe. Same-value setState bails out, so
+      // this costs nothing per chunk while the user is at the bottom.
+      if (!atBottom()) setNewOutput(true)
+      term.write(data); scheduleResume()
+    })
     const offExit = api.onPtyExit((id) => { if (id === paneId && !disposed) term.write('\r\n[process exited]\r\n') })
     const inputDisp = term.onData(d => api.ptyWrite({ id: paneId, data: d }))
 
-    // Clipboard: Ctrl+C copies a selection (else ^C falls through), Ctrl+V / right-click paste.
-    // Paste goes through term.paste() so it honors bracketed-paste mode (multi-line pastes into a
-    // shell or TUI don't auto-run); it flows out via the inputDisp onData handler above.
-    const paste = async () => { const text = await api.clipboardRead(); if (text) term.paste(text) }
+    // Clipboard: Ctrl(+Shift)+C copies a selection (else ^C falls through), Ctrl(+Shift)+V /
+    // right-click / middle-click paste. Paste goes through term.paste() so it honors bracketed-
+    // paste mode (multi-line pastes into a shell or TUI don't auto-run); when the program has NOT
+    // enabled bracketed paste, a multi-line paste runs line-by-line — confirm it first.
+    const paste = async () => {
+      const text = await api.clipboardRead()
+      if (!text) return
+      const lines = text.split('\n').length
+      if (lines > 1 && !term.modes.bracketedPasteMode
+          && !window.confirm(`Paste ${lines} lines? Bracketed paste is off, so each line will run as it lands.`)) return
+      term.paste(text)
+    }
     // Clean up a terminal selection before it hits the clipboard (reflow TUI-wrapped lines, trim/
     // collapse blanks) unless the cleanCopy setting is off. Default on.
     const cleanSel = (s: string) =>
@@ -176,6 +208,55 @@ export function TerminalPane({ paneId, wsId, config }: { paneId: string; wsId: s
       if (sel) api.clipboardWrite(cleanSel(sel))
     }
     hostRef.current!.addEventListener('mouseup', onMouseUp)
+
+    // Middle-click pastes (the X11/terminal-emulator convention; sourced from the clipboard —
+    // Chromium has no primary-selection buffer).
+    const onAuxClick = (e: MouseEvent) => { if (e.button === 1) { e.preventDefault(); void paste() } }
+    hostRef.current!.addEventListener('auxclick', onAuxClick)
+
+    // Dropping files pastes their quoted paths; dropping text pastes the text. preventDefault on
+    // dragover is what makes the drop land here instead of Electron navigating to the file.
+    const onDragOver = (e: DragEvent) => { e.preventDefault() }
+    const onDrop = (e: DragEvent) => {
+      e.preventDefault()
+      const dt = e.dataTransfer
+      if (!dt) return
+      const files = Array.from(dt.files ?? [])
+      if (files.length) {
+        const paths = files.map(f => api.pathForFile(f)).filter(Boolean)
+          .map(p => /\s/.test(p) ? `"${p}"` : p)
+        if (paths.length) { term.paste(paths.join(' ')); term.focus() }
+        return
+      }
+      const text = dt.getData('text/plain')
+      if (text) { term.paste(text); term.focus() }
+    }
+    hostRef.current!.addEventListener('dragover', onDragOver)
+    hostRef.current!.addEventListener('drop', onDrop)
+
+    // Visual bell: BEL used to be silently dropped — flash a paint-only inset border (an overlay,
+    // never a box change — the ConPTY-repaint gotcha).
+    let bellTimer: ReturnType<typeof setTimeout> | undefined
+    const bellDisp = term.onBell(() => {
+      setBell(true)
+      if (bellTimer) clearTimeout(bellTimer)
+      bellTimer = setTimeout(() => setBell(false), BELL_FLASH_MS)
+    })
+
+    // OSC 0/2 window title (e.g. ssh's user@host, vim's filename) → the pane chrome, unless the
+    // user set a manual name (PaneTile falls back config.name ?? oscTitle ?? kind).
+    const titleDisp = term.onTitleChange(t => useStore.getState().setOscTitle(paneId, t))
+
+    // "New output ▼" pill: when the user has scrolled up to read history and fresh output lands
+    // below, give them a cue + a one-click jump back. DOM scroll position is the ground truth.
+    const viewportEl = hostRef.current!.querySelector('.xterm-viewport') as HTMLElement | null
+    const atBottom = () => !viewportEl || viewportEl.scrollTop + viewportEl.clientHeight >= viewportEl.scrollHeight - 4
+    const onViewportScroll = () => { if (atBottom()) setNewOutput(false) }
+    viewportEl?.addEventListener('scroll', onViewportScroll)
+
+    // Registry hooks for the clear-terminal and find-in-terminal commands (palette + chords).
+    registerClearer(paneId, () => term.clear())
+    registerFindOpener(paneId, () => { setFindOpen(true); findInputRef.current?.focus() })
 
     // Ctrl/Cmd + wheel zooms the terminal font (like editors/browsers). Capture phase + stop so
     // xterm doesn't also scroll the buffer; writes the global termFontSize, which the theme effect
@@ -230,7 +311,16 @@ export function TerminalPane({ paneId, wsId, config }: { paneId: string; wsId: s
       getCwd: () => paneCwd(useStore.getState(), paneId) || config.cwd,
       getHome: () => useStore.getState().home,
       openExternal: (url) => api.openExternal(url),
-      openImage: (src) => useStore.getState().openImagePreview(src)
+      openImage: (src) => useStore.getState().openImagePreview(src),
+      // Source locations (src/foo.ts:42:8) open in the editor pane at that position. Stat-gated
+      // at click time so a random `word:12` that isn't a real file stays a no-op.
+      openFileAt: (path, line, col) => {
+        void api.fsStat(path).then(st => {
+          if (st.isDir) return
+          stashReveal(path, { line, col })
+          useStore.getState().openFileInEditor(wsId, path)
+        }).catch(() => {})
+      }
     })
 
     // tmux/vim/less… switch to the alternate screen when they launch; under xterm's DOM renderer that
@@ -269,22 +359,37 @@ export function TerminalPane({ paneId, wsId, config }: { paneId: string; wsId: s
       disposed = true
       hostRef.current?.removeEventListener('contextmenu', onContextMenu)
       hostRef.current?.removeEventListener('mouseup', onMouseUp)
+      hostRef.current?.removeEventListener('auxclick', onAuxClick)
+      hostRef.current?.removeEventListener('dragover', onDragOver)
+      hostRef.current?.removeEventListener('drop', onDrop)
+      viewportEl?.removeEventListener('scroll', onViewportScroll)
       hostRef.current?.removeEventListener('wheel', onWheel, { capture: true } as EventListenerOptions)
       unregisterSerializer(paneId)
       unregisterFocuser(paneId)
       unregisterRedrawer(paneId)
       unregisterRespawner(paneId)
+      unregisterClearer(paneId)
+      unregisterFindOpener(paneId)
       if (settle) clearTimeout(settle)
       if (resumeTimer) clearTimeout(resumeTimer)
       if (altTimer) clearTimeout(altTimer)
+      if (bellTimer) clearTimeout(bellTimer)
+      bellDisp.dispose(); titleDisp.dispose()
       offBufferChange.dispose(); offWriteParsed.dispose()
       linksDisposer.dispose()
       ro.disconnect(); inputDisp.dispose(); offData(); offExit(); term.dispose()
-      termRef.current = null; fitRef.current = null
+      termRef.current = null; fitRef.current = null; searchRef.current = null
     }
   // launch.args is an array; key the effect on a stable string of it (+ command) so an
   // SSH terminal re-spawns if its target changes, without re-running on unrelated renders.
   }, [paneId, config.shellId, config.cwd, config.launch?.command, JSON.stringify(config.launch?.args)])
+
+  // Live-apply the scrollback setting to the running terminal (a shrink drops the oldest lines).
+  const termScrollback = useStore(s => s.quick.termScrollback)
+  useEffect(() => {
+    const term = termRef.current
+    if (term) term.options.scrollback = termScrollback ?? DEFAULT_TERM_SCROLLBACK
+  }, [termScrollback])
 
   const theme = useResolvedPaneTheme(wsId, config.theme)
   useEffect(() => {
@@ -304,9 +409,43 @@ export function TerminalPane({ paneId, wsId, config }: { paneId: string; wsId: s
   // The host div keeps its exact box (layout-measuring specs read it; the ResizeObserver watches
   // it); the wrapper only provides the positioning context for the exited overlay, which is
   // absolutely positioned and can never change the terminal's geometry.
+  const closeFind = () => {
+    setFindOpen(false)
+    searchRef.current?.clearDecorations()
+    termRef.current?.focus()
+  }
+  const findNext = () => { const q = findInputRef.current?.value; if (q) searchRef.current?.findNext(q) }
+  const findPrev = () => { const q = findInputRef.current?.value; if (q) searchRef.current?.findPrevious(q) }
+
   return (
-    <div style={{ position: 'relative', width: '100%', height: '100%' }}>
+    <div style={{ position: 'relative', width: '100%', height: '100%' }} className={bell ? 'term-bell-flash' : undefined}>
       <div data-testid={`terminal-${paneId}`} ref={hostRef} style={{ width: '100%', height: '100%' }} />
+      {findOpen && (
+        // In-pane find (QoL 2026-07-17): searches THIS terminal's buffer — distinct from the
+        // cross-pane history search. Overlay only; never perturbs the terminal host's box.
+        <div data-testid={`find-bar-${paneId}`}
+          style={{ ...SURFACE, position: 'absolute', top: 4, right: 4, zIndex: 6,
+            display: 'flex', gap: 4, padding: 4, alignItems: 'center', fontSize: 12 }}>
+          <input ref={findInputRef} data-testid={`find-input-${paneId}`} autoFocus placeholder="Find…"
+            onChange={e => { const q = e.target.value; if (q) searchRef.current?.findNext(q, { incremental: true }); else searchRef.current?.clearDecorations() }}
+            onKeyDown={e => {
+              if (e.key === 'Enter') { e.preventDefault(); if (e.shiftKey) findPrev(); else findNext() }
+              else if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); closeFind() }
+            }}
+            style={{ width: 160 }} />
+          <button title="Previous match (Shift+Enter)" onClick={findPrev}>▲</button>
+          <button title="Next match (Enter)" onClick={findNext}>▼</button>
+          <button title="Close (Esc)" aria-label="Close find" onClick={closeFind}>✕</button>
+        </div>
+      )}
+      {newOutput && (
+        <button data-testid={`new-output-${paneId}`}
+          onClick={() => { termRef.current?.scrollToBottom(); setNewOutput(false); termRef.current?.focus() }}
+          style={{ ...SURFACE, position: 'absolute', left: '50%', bottom: 8, transform: 'translateX(-50%)',
+            zIndex: 5, padding: '2px 10px', borderRadius: 10, fontSize: 11, cursor: 'pointer', whiteSpace: 'nowrap' }}>
+          ▼ new output
+        </button>
+      )}
       {exited && (
         // The dead-pane affordance (phase1 M-3): the shell exited on its own; the pane keeps its
         // scrollback under this small overlay instead of sitting there with no next action.

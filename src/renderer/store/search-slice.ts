@@ -1,4 +1,5 @@
 import type { State, SliceDeps } from './types'
+import { requestPaneFocus } from '../components/terminal-registry'
 
 type SearchSlice = Pick<State, 'setSearchOpen' | 'revealPaneFromSearch' | 'relaunchFromSearch'>
 
@@ -12,8 +13,12 @@ export function createSearchSlice({ set, get }: SliceDeps): SearchSlice {
       const s = get()
       const wsId = Object.keys(s.workspaces).find(id => s.workspaces[id]?.panes[paneId])
       if (!wsId) return
-      s.setActive(wsId)
+      // Track first, then activate: setActive's refocusActivePane reads focusedPaneId, so the
+      // reverse order aimed it at the stale pane (it only worked via the Modal-close refocus a
+      // microtask later). Mirrors focusMruPaneMatch (pane-reveal.ts).
       s.setFocusedPane(paneId)
+      s.setActive(wsId)
+      requestPaneFocus(paneId)
       set({ searchOpen: false })
     },
 

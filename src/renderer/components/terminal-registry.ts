@@ -98,6 +98,19 @@ export function requestPaneFocus(
 }
 
 /**
+ * Per-pane dirty checks. A mounted EditorPane registers a callback returning how many of its tabs
+ * hold unsaved changes, so store.closePane can warn before a close discards them (closing the
+ * PANE used to bypass the per-tab dirty confirm entirely — and delete the hot-exit drafts too).
+ * Panes with nothing to lose (terminals, explorers) register none; 0 means "nothing at risk".
+ */
+const dirtyChecks = new Map<string, () => number>()
+export function registerDirtyCheck(paneId: string, fn: () => number): void { dirtyChecks.set(paneId, fn) }
+export function unregisterDirtyCheck(paneId: string): void { dirtyChecks.delete(paneId) }
+
+/** How many unsaved buffers the pane would discard if closed now (0 when none / not mounted). */
+export function paneDirtyCount(paneId: string): number { return dirtyChecks.get(paneId)?.() ?? 0 }
+
+/**
  * Per-pane redraw hooks. A mounted TerminalPane registers a callback that re-fits and forces its
  * terminal (and any running TUI like Claude) to repaint — used by the "Redraw terminal" command to
  * fix a display garbled by a resize. Kept here with the other per-pane imperative hooks.
@@ -109,6 +122,39 @@ export function unregisterRedrawer(paneId: string): void { redrawers.delete(pane
 /** Redraw a pane now. Returns false if it has no live redrawer (not mounted / not a terminal). */
 export function redrawPane(paneId: string): boolean {
   const fn = redrawers.get(paneId)
+  if (!fn) return false
+  fn()
+  return true
+}
+
+/**
+ * Per-pane clear hooks (QoL batch 2026-07-17): a mounted TerminalPane registers `term.clear()`
+ * so the "Clear terminal" command/menu item can wipe the buffer + scrollback app-side (the shell's
+ * own `clear` only scrolls the prompt to the top).
+ */
+const clearers = new Map<string, () => void>()
+export function registerClearer(paneId: string, fn: () => void): void { clearers.set(paneId, fn) }
+export function unregisterClearer(paneId: string): void { clearers.delete(paneId) }
+
+/** Clear a pane's buffer + scrollback now. False if it has no live clearer (not a terminal). */
+export function clearPane(paneId: string): boolean {
+  const fn = clearers.get(paneId)
+  if (!fn) return false
+  fn()
+  return true
+}
+
+/**
+ * Per-pane find hooks (QoL batch 2026-07-17): a mounted TerminalPane registers an opener for its
+ * in-pane find bar, so the "Find in terminal" command can raise it on the focused pane.
+ */
+const findOpeners = new Map<string, () => void>()
+export function registerFindOpener(paneId: string, fn: () => void): void { findOpeners.set(paneId, fn) }
+export function unregisterFindOpener(paneId: string): void { findOpeners.delete(paneId) }
+
+/** Open a pane's find bar now. False if it has no live opener (not a terminal). */
+export function openPaneFind(paneId: string): boolean {
+  const fn = findOpeners.get(paneId)
   if (!fn) return false
   fn()
   return true

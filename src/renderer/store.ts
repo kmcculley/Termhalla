@@ -14,8 +14,8 @@ import { makeRegisterWorkspace } from './store/workspace-registration'
 import {
   placePane, firstTarget, paneCwd, applyCwds, applyResumeAi, applyViewState, clearPaneRuntime, teardownPanes
 } from './store/internals'
-import { defaultShellId, dispatchAddPane, routeWorkspaceTeardown } from './store/pane-ops'
-import { readPaneSnapshot, stashSnapshot, requestPaneFocus } from './components/terminal-registry'
+import { defaultShellId, dispatchAddPane, routeWorkspaceTeardown, paneCloseConfirmText } from './store/pane-ops'
+import { readPaneSnapshot, stashSnapshot, requestPaneFocus, paneDirtyCount } from './components/terminal-registry'
 import { readExplorerState, stashExplorerState } from './components/explorer-registry'
 import { beginPaneTransit } from './components/pane-transit'
 import { AUTOSAVE_DEBOUNCE_MS } from './timing'
@@ -64,6 +64,17 @@ export const useStore = create<State>((set, get) => {
   const scheduleQuickSave = quickSave.schedule
   const scheduleNotesSave = (key: string) => { dirtyNotes.add(key); notesSave.schedule() }
 
+  /** Focus a pane AND record it as the store's focused pane. Every programmatic focus must keep
+   *  `focusedPaneId` in sync: the pane-scoped chords (maximize/minimize) and refocusActivePane
+   *  all target `focusedPaneId`, and it is otherwise seeded only by a tile-body mouse-down — so a
+   *  create/restore/move that focused the pane without tracking it left the chords aimed at the
+   *  PREVIOUS pane (the stale-focus class pane-reveal.ts already solved; this is that pattern,
+   *  shared). */
+  const focusPaneTracked = (paneId: string) => {
+    get().setFocusedPane(paneId)
+    requestPaneFocus(paneId)
+  }
+
   /** Place `cfg` as a new pane in `wsId`, commit it to state, schedule a save, and return the
    *  new pane id. Centralizes the get-ws / placePane / set-workspaces / autosave sequence that
    *  was copy-pasted across every "open a pane" action (and unifies their persistence on the
@@ -81,7 +92,7 @@ export const useStore = create<State>((set, get) => {
     scheduleAutosave()
     // Focus the pane the user just opened so they can type immediately. It mounts after this
     // commit, so requestPaneFocus retries until its focuser registers (see terminal-registry).
-    requestPaneFocus(r.paneId)
+    focusPaneTracked(r.paneId)
     return r.paneId
   }
 
@@ -108,7 +119,7 @@ export const useStore = create<State>((set, get) => {
   const adoptWorkspace = (ws: Workspace): void => {
     registerWorkspace(ws)
     const target = firstTarget(ws)
-    if (target) requestPaneFocus(target)
+    if (target) focusPaneTracked(target)
   }
 
   /** The active workspace record with live cwd / AI-resume / view-state folded in — the exact
@@ -164,6 +175,8 @@ export const useStore = create<State>((set, get) => {
     orky: {},
     recording: {},
     exited: {},
+    oscTitles: {},
+    editorDirty: {},
     drafts: {},
     notes: {},
     notesOpen: false,
@@ -397,7 +410,7 @@ export const useStore = create<State>((set, get) => {
       // orky pane registers none, so a request aimed at it could never land — see
       // terminal-registry); requestPaneFocus retries until the pane's focuser registers post-mount.
       const termPaneId = Object.keys(ws.panes).find(id => ws.panes[id].config.kind === 'terminal')
-      if (termPaneId) requestPaneFocus(termPaneId)
+      if (termPaneId) focusPaneTracked(termPaneId)
       return ws.id
     },
 
@@ -435,7 +448,7 @@ export const useStore = create<State>((set, get) => {
       ws.panes = { [paneId]: { paneId, config: { kind: 'terminal', shellId: defaultShellId(get()), cwd: '' } } }
       ws.layout = paneId
       registerWorkspace(ws)
-      requestPaneFocus(paneId)
+      focusPaneTracked(paneId)
       return ws.id
     },
     closeRemoteAgentPicker: () => set({ remoteAgentPickerOpen: false }),
@@ -445,6 +458,18 @@ export const useStore = create<State>((set, get) => {
       if (!n) return
       set(s => s.workspaces[id] ? { workspaces: { ...s.workspaces, [id]: { ...s.workspaces[id], name: n } } } : {})
       scheduleAutosave()
+    },
+
+    /** Duplicate a workspace (QoL 2026-07-17): a fresh-id deep copy of its CURRENT record (live
+     *  cwds/view-state folded in) via the workspace-doc round trip, so pane ids re-map and the
+     *  copy's panes spawn their own PTYs at the same cwds. Registered + focused like any adopt. */
+    duplicateWorkspace: (id) => {
+      const src = get().workspaces[id]
+      if (!src) return null
+      const copy = importWorkspaceDoc(serializeWorkspace(currentRecord(id)), uuid(), uuid)
+      copy.name = `${src.name} (copy)`
+      adoptWorkspace(copy)
+      return copy.id
     },
 
     closeWorkspace: (id) => {
@@ -559,7 +584,13 @@ export const useStore = create<State>((set, get) => {
       set(s => { const docPaths = { ...s.docPaths }; delete docPaths[id]; return { docPaths } })
     },
 
-    setActive: (id) => { set({ activeId: id }); scheduleAutosave(); reportAssignment(); get().refocusActivePane() },
+    // opts.refocusPane=false keeps keyboard focus where it is — used by keyboard tab-navigation,
+    // where the retrying pane refocus would otherwise yank focus off the tab button a few frames
+    // after the switch and break continued arrow-key navigation.
+    setActive: (id, opts) => {
+      set({ activeId: id }); scheduleAutosave(); reportAssignment()
+      if (opts?.refocusPane !== false) get().refocusActivePane()
+    },
 
     /** Put keyboard focus back on the active workspace's pane: the one the user last focused if it
      *  still lives in this workspace, otherwise its first pane. Used on tab switch (so the first
@@ -569,7 +600,10 @@ export const useStore = create<State>((set, get) => {
       const ws = s.activeId ? s.workspaces[s.activeId] : undefined
       if (!ws) return
       const target = (s.focusedPaneId && ws.panes[s.focusedPaneId]) ? s.focusedPaneId : firstTarget(ws)
-      if (target) requestPaneFocus(target)
+      // Tracked: when the previous focusedPaneId lives in another workspace the fallback pane
+      // becomes the real focused pane — leaving the store pointing across workspaces would send
+      // the pane chords at a pane the user can't even see.
+      if (target) focusPaneTracked(target)
     },
 
     setLayout: (wsId, layout) => {
@@ -577,17 +611,23 @@ export const useStore = create<State>((set, get) => {
       scheduleAutosave()
     },
 
-    toggleMaximize: (wsId, paneId) => { set(s => {
+    toggleMaximize: (wsId, paneId) => {
       // REQ-010 mutual exclusion (runtime path): never maximize a currently-minimized pane — that
       // would leave it in BOTH maps (incoherent, and it would HIDE the surviving visible pane). The
       // minimize path already clears maximize (minimizePane / toggleMinimize); this enforces the
       // symmetric direction, closing the stale-focus → maximize footgun (FINDING-SEC-001 / TEST-041).
-      if ((s.minimized[wsId] ?? []).includes(paneId)) return {}
-      const maximized = { ...s.maximized }
-      if (maximized[wsId] === paneId) delete maximized[wsId]
-      else maximized[wsId] = paneId
-      return { maximized }
-    }); scheduleAutosave() },   // maximize is now persisted (REQ-008)
+      if ((get().minimized[wsId] ?? []).includes(paneId)) return
+      set(s => {
+        const maximized = { ...s.maximized }
+        if (maximized[wsId] === paneId) delete maximized[wsId]
+        else maximized[wsId] = paneId
+        return { maximized }
+      })
+      scheduleAutosave()   // maximize is now persisted (REQ-008)
+      // Land keyboard focus in the pane the user just maximized (or un-maximized — it stays
+      // visible either way) so they can type immediately instead of leaving focus on the button.
+      focusPaneTracked(paneId)
+    },
 
     /** Minimize a not-minimized pane, or restore an already-minimized one. Minimize keeps the pane
      *  fully alive off-layout: it reuses the same-window move plumbing (stash the terminal's
@@ -620,7 +660,7 @@ export const useStore = create<State>((set, get) => {
       if (wasFocused) {
         const nextMin = get().minimized[wsId] ?? []
         const survivor = Object.keys(ws.panes).find(id => id !== paneId && !nextMin.includes(id))
-        if (survivor) requestPaneFocus(survivor)
+        if (survivor) focusPaneTracked(survivor)
       }
     },
 
@@ -649,7 +689,7 @@ export const useStore = create<State>((set, get) => {
         return { workspaces: { ...st.workspaces, [wsId]: { ...st.workspaces[wsId], layout: restored.layout } }, minimized }
       })
       scheduleAutosave()
-      requestPaneFocus(paneId)
+      focusPaneTracked(paneId)
     },
 
     // Also stamps the pane's focus recency (feature 0006, REQ-009); the entry is pruned by the
@@ -687,6 +727,9 @@ export const useStore = create<State>((set, get) => {
       })
       scheduleAutosave()
       reportAssignment()
+      // The move follows the pane with the active tab — land keyboard focus in the moved pane too
+      // (activeId was set directly above, bypassing setActive's refocus, so nothing else focuses it).
+      focusPaneTracked(paneId)
     },
 
     /** Move a pane into a brand-new workspace, carrying the source workspace's theme override so the
@@ -706,7 +749,11 @@ export const useStore = create<State>((set, get) => {
 
     // ---- core: pane management ----
     addTerminal: (wsId, targetPaneId, dir, splitDir) => {
-      const shellId = defaultShellId(get())
+      // A compass SPLIT inherits the source terminal's shell (splitting a WSL pane should give
+      // another WSL pane, not the global default) — it already inherits the cwd. The "+ pane"
+      // add (no splitDir) keeps the global default shell (QoL 2026-07-17).
+      const targetCfg = targetPaneId ? get().workspaces[wsId]?.panes[targetPaneId]?.config : undefined
+      const shellId = (splitDir && targetCfg?.kind === 'terminal') ? targetCfg.shellId : defaultShellId(get())
       const cwd = targetPaneId ? paneCwd(get(), targetPaneId) : ''
       const lay = splitDir ? splitDirToLayout(splitDir) : { direction: dir, position: 'after' as const }
       return commitPane(wsId, { kind: 'terminal', shellId, cwd }, targetPaneId, lay.direction, false, lay.position)
@@ -716,6 +763,20 @@ export const useStore = create<State>((set, get) => {
       dispatchAddPane(get(), wsId, kind, () => api.openFolder(), () => get().pickOrkyRoot()),
 
     closePane: (wsId, paneId) => {
+      // Confirm before a close that would kill a running process/AI session or discard unsaved
+      // editor tabs (and their hot-exit drafts) — close-pane used to be the one silent kill while
+      // close-workspace and per-tab close both confirmed. Idle panes close without friction.
+      const s = get()
+      const pane = s.workspaces[wsId]?.panes[paneId]
+      if (pane) {
+        const text = paneCloseConfirmText({
+          kind: pane.config.kind,
+          dirtyCount: paneDirtyCount(paneId),
+          foreground: s.procs[paneId]?.foreground,
+          aiLabel: s.aiSessions[paneId]?.label
+        })
+        if (text && !window.confirm(text)) return
+      }
       const ws = removePane(get().workspaces[wsId], paneId)
       teardownPanes([paneId])
       set(s => {

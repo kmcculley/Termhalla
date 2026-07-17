@@ -80,13 +80,16 @@ export function PaneToolbar(
         </>
       )}
       <button data-testid={`cwd-${paneId}`} title="Folder actions" onClick={() => toggle('cwd')}>📁</button>
+      {/* ✛ not ⬌ — the compass splits 4-way; the old glyph read as horizontal-only (0002
+          FINDING-QOL-002; regressed in a toolbar refactor after the changelog recorded the fix). */}
       <button data-testid={`split-${paneId}`} title="Split (compass: up / left / right / down)"
-        aria-haspopup="dialog" aria-expanded={splitOpen} onClick={() => toggle('split')}>⬌</button>
+        aria-haspopup="dialog" aria-expanded={splitOpen} onClick={() => toggle('split')}>✛</button>
       <button data-testid={`min-${paneId}`} title={minTitle}
         onClick={() => toggleMinimize(wsId, paneId)}>🗕</button>
       <button data-testid={`max-${paneId}`} title={isMax ? 'Restore pane' : 'Maximize pane'}
         onClick={() => toggleMaximize(wsId, paneId)}>{isMax ? '🗗' : '🗖'}</button>
-      <button data-testid={`close-${paneId}`} onClick={() => closePane(wsId, paneId)}>✕</button>
+      <button data-testid={`close-${paneId}`} title="Close pane" aria-label="Close pane"
+        onClick={() => closePane(wsId, paneId)}>✕</button>
     </>
   )
 }

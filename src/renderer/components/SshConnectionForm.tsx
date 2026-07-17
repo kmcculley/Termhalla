@@ -76,7 +76,13 @@ export function SshConnectionForm() {
     <Modal onClose={close} align="top" z={Z.paletteForm}
       backdropTestId="connection-form-backdrop" cardTestId="connection-form"
       cardProps={{ role: 'dialog', 'aria-modal': true, 'aria-label': 'SSH connection',
-        onKeyDown: e => { if (e.key === 'Escape') close() } }}
+        onKeyDown: e => {
+          if (e.key === 'Escape') { close(); return }
+          // Enter in any text field saves (the primary action) — buttons keep their native Enter.
+          if (e.key === 'Enter' && valid && (e.target as HTMLElement).tagName === 'INPUT') {
+            e.preventDefault(); onSave(false)
+          }
+        } }}
       card={{ width: 420, padding: 16, gap: 10 }}>
         <h3 style={{ margin: 0, fontSize: 15 }}>{editing ? 'Edit SSH connection' : 'New SSH connection'}</h3>
         {field('Name', <input data-testid="conn-name" autoFocus value={name}

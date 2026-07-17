@@ -4,8 +4,8 @@ import {
   findConflict, isValidRebind, nextTipIndex, DEFAULT_BINDINGS, COMMANDS, TIP_COMMANDS, type Chord
 } from '../src/shared/keybindings'
 
-const ev = (over: Partial<{ key: string; ctrlKey: boolean; metaKey: boolean; shiftKey: boolean }>) =>
-  ({ key: '', ctrlKey: false, metaKey: false, shiftKey: false, ...over })
+const ev = (over: Partial<{ key: string; ctrlKey: boolean; metaKey: boolean; shiftKey: boolean; altKey: boolean }>) =>
+  ({ key: '', ctrlKey: false, metaKey: false, shiftKey: false, altKey: false, ...over })
 const ch = (mod: boolean, shift: boolean, key: string): Chord => ({ mod, shift, key })
 
 describe('chordKey / parseChordKey', () => {
@@ -90,5 +90,45 @@ describe('registry invariants', () => {
       expect(cmd, id).toBeTruthy()
       expect(cmd!.tip, id).toBeTruthy()
     }
+  })
+  it('no two commands share a default chord', () => {
+    const keys = COMMANDS.map(c => chordKey(c.defaultChord))
+    expect(new Set(keys).size).toBe(keys.length)
+  })
+})
+
+describe('alt modifier (QoL batch 2026-07-17)', () => {
+  it('round-trips through chordKey/parseChordKey', () => {
+    const alt: Chord = { mod: true, shift: false, alt: true, key: 'arrowleft' }
+    expect(chordKey(alt)).toBe('mod+alt+arrowleft')
+    expect(parseChordKey('mod+alt+arrowleft')).toEqual(alt)
+  })
+  it('formatChord renders Alt between Ctrl and Shift', () => {
+    expect(formatChord({ mod: true, alt: true, shift: true, key: 'x' })).toBe('Ctrl+Alt+Shift+X')
+  })
+  it('an alt-held event never matches a non-alt binding (the AltGr false-match fix)', () => {
+    // AltGr on many layouts reports ctrlKey+altKey — it must not trigger e.g. the mod+k palette.
+    expect(matchShortcut(ev({ key: 'k', ctrlKey: true, altKey: true }))).toBeNull()
+  })
+  it('an alt binding matches only with alt held', () => {
+    expect(matchShortcut(ev({ key: 'ArrowLeft', ctrlKey: true, altKey: true })))
+      .toEqual({ type: 'focus-pane-left' })
+    expect(matchShortcut(ev({ key: 'ArrowLeft', ctrlKey: true }))).toBeNull()
+  })
+  it('Ctrl+Alt+digit is NOT the reserved workspace jump (AltGr layouts type with it)', () => {
+    expect(matchShortcut(ev({ key: '3', ctrlKey: true, altKey: true }))).toBeNull()
+  })
+})
+
+describe('new QoL commands exist with defaults', () => {
+  const want = ['close-pane', 'focus-pane-left', 'focus-pane-right', 'focus-pane-up', 'focus-pane-down',
+    'restore-last-minimized', 'font-zoom-in', 'font-zoom-out', 'font-zoom-reset',
+    'clear-terminal', 'find-in-terminal']
+  it.each(want)('%s is registered and bound by default', (id) => {
+    expect(COMMANDS.find(c => c.id === id), id).toBeTruthy()
+    expect(DEFAULT_BINDINGS[id as keyof typeof DEFAULT_BINDINGS], id).toBeTruthy()
+  })
+  it('close-pane dispatches from its default chord', () => {
+    expect(matchShortcut(ev({ key: 'q', ctrlKey: true, shiftKey: true }))).toEqual({ type: 'close-pane' })
   })
 })

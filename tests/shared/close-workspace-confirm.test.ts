@@ -22,4 +22,13 @@ describe('closeWorkspaceConfirmText (0024 FINDING-028)', () => {
     // never the local-kill claim
     expect(text).not.toMatch(/will be closed/i)
   })
+
+  it('a LOCAL workspace with busy panes names what the close would kill (QoL 2026-07-17)', () => {
+    expect(closeWorkspaceConfirmText('W', undefined, 2)).toContain('2 panes are still running')
+    expect(closeWorkspaceConfirmText('W', undefined, 1)).toContain('1 pane is still running')
+  })
+
+  it('a REMOTE workspace never adds the busy note — nothing is killed by the detach', () => {
+    expect(closeWorkspaceConfirmText('OpsHub', home, 3)).not.toMatch(/still running/i)
+  })
 })

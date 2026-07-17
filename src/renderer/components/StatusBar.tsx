@@ -19,6 +19,15 @@ function accountLabel(c: CloudStatus): string {
   return c.state === 'logged-in' ? '' : ` (${c.state})`
 }
 
+/** Last two path segments, enough to orient without eating the bar: `C:\dev\Termhalla\src` →
+ *  `…\Termhalla\src`. Short paths pass through whole. */
+function tailPath(p: string): string {
+  const parts = p.split(/[\\/]/).filter(Boolean)
+  if (parts.length <= 2) return p
+  const sep = p.includes('\\') ? '\\' : '/'
+  return `…${sep}${parts.slice(-2).join(sep)}`
+}
+
 export function StatusBar() {
   const cloud = useStore(s => s.cloud)
   const refreshCloud = useStore(s => s.refreshCloud)
@@ -30,6 +39,14 @@ export function StatusBar() {
   const queueOpen = useStore(s => s.queueOpen)
   const setQueueOpen = useStore(s => s.setQueueOpen)
   const queueCount = useStore(s => s.queueCount())
+  // Focused-pane readout (QoL 2026-07-17): the bar's empty center becomes a glanceable
+  // cwd · ⎇branch · ✨ctx% for the pane that currently has focus. Value-scoped selectors so the
+  // always-mounted bar only re-renders when the focused pane's own facts change.
+  const focusedCwd = useStore(s => (s.focusedPaneId ? s.cwds[s.focusedPaneId] : undefined) ?? '')
+  const focusedBranch = useStore(s => (s.focusedPaneId ? s.gitStatus[s.focusedPaneId]?.branch : undefined) ?? '')
+  const focusedDirty = useStore(s => (s.focusedPaneId ? s.gitStatus[s.focusedPaneId]?.dirty : undefined) ?? false)
+  const focusedAiLabel = useStore(s => (s.focusedPaneId ? s.aiSessions[s.focusedPaneId]?.label : undefined) ?? '')
+  const focusedCtxPct = useStore(s => (s.focusedPaneId ? s.usage[s.focusedPaneId]?.contextPct : undefined) ?? null)
   const [tipIdx, setTipIdx] = useState(0)
   useEffect(() => {
     const t = setInterval(() => setTipIdx(i => nextTipIndex(i, TIP_COMMANDS.length)), 7000)
@@ -89,6 +106,14 @@ export function StatusBar() {
           )}
         </div>
       ))}
+      {(focusedCwd || focusedBranch || focusedAiLabel) && (
+        <span data-testid="statusbar-focused" style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', minWidth: 0 }}
+          title={focusedCwd || undefined}>
+          {focusedCwd && <span>{tailPath(focusedCwd)}</span>}
+          {focusedBranch && <span> · ⎇ {focusedBranch}{focusedDirty ? ' ●' : ''}</span>}
+          {focusedAiLabel && <span> · ✨ {focusedAiLabel}{focusedCtxPct !== null ? ` ${focusedCtxPct}%` : ''}</span>}
+        </span>
+      )}
       <div style={{ flex: 1 }} />
       {/* The rotating tip sits LEFT of the buttons: its width changes every rotation, and as the
           rightmost element it would shove the search/notes/queue buttons sideways each time.

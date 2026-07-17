@@ -1,4 +1,4 @@
-import { readFile, readdir, stat, rename } from 'node:fs/promises'
+import { readFile, readdir, stat, rename, mkdir } from 'node:fs/promises'
 import { join } from 'node:path'
 import type { DirEntry, ReadResult, StatResult } from '@shared/types'
 import { atomicWrite, type AtomicFs } from '../persistence/atomic-write'
@@ -46,4 +46,11 @@ export async function statPath(path: string): Promise<StatResult> {
  *  is missing or the target exists — node's rename throws on a cross-device move too. */
 export async function renamePath(oldPath: string, newPath: string): Promise<void> {
   await rename(oldPath, newPath)
+}
+
+/** Create a directory (explorer "New Folder", QoL 2026-07-17). Non-recursive on purpose: the
+ *  explorer always creates directly inside an existing dir, and rejecting a bad parent surfaces
+ *  the real error instead of silently manufacturing a path. Rejects if it already exists. */
+export async function makeDirectory(path: string): Promise<void> {
+  await mkdir(path)
 }

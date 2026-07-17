@@ -90,6 +90,9 @@ export type PaletteAction =
   | 'new-terminal' | 'new-editor' | 'new-explorer' | 'new-orky'
   | 'new-workspace' | 'broadcast' | 'save-all' | 'refresh-cloud' | 'settings'
   | 'toggle-orky-queue' | 'capture-orky-work' | 'new-orky-workspace' | 'new-remote-workspace'
+  | 'toggle-notes' | 'search-history' | 'redraw-terminal' | 'close-pane'
+  | 'maximize-pane' | 'minimize-pane' | 'restore-last-minimized'
+  | 'clear-terminal' | 'find-in-terminal' | 'font-zoom-reset'
 
 export type PaletteItem =
   | { kind: 'connection'; id: string; label: string; detail: string; search: string }
@@ -134,8 +137,9 @@ export function buildPaletteItems(q: QuickStore, currentCwd: string): PaletteIte
   return items
 }
 
-/** The command-menu items, appended to the palette ONLY when the query is non-empty
- *  (so the default connect/jump view stays uncluttered). Pure + order-stable. */
+/** The command-menu items, appended to the palette below the connect/jump list (since the QoL
+ *  batch 2026-07-17 they show on an EMPTY query too — the palette is a real command menu, not
+ *  just connect/jump). Pure + order-stable. */
 export function buildCommandItems(): PaletteItem[] {
   const cmd = (action: PaletteAction, label: string, search: string): PaletteItem =>
     ({ kind: 'action', action, label, search })
@@ -152,13 +156,34 @@ export function buildCommandItems(): PaletteItem[] {
     cmd('toggle-orky-queue', 'Toggle Orky decision queue', 'orky decision queue needs you human review'),
     cmd('capture-orky-work', 'Capture Orky work item…', 'capture orky work idea inbox'),
     cmd('new-orky-workspace', 'New Orky project workspace…', 'new orky project workspace cockpit'),
-    cmd('new-remote-workspace', 'New remote workspace…', 'new remote workspace agent ssh home')
+    cmd('new-remote-workspace', 'New remote workspace…', 'new remote workspace agent ssh home'),
+    // QoL batch 2026-07-17: the pane/view commands that were chord- or menu-only.
+    cmd('close-pane', 'Close pane', 'close pane'),
+    cmd('maximize-pane', 'Maximize pane', 'maximize pane zoom toggle'),
+    cmd('minimize-pane', 'Minimize pane', 'minimize pane tray hide'),
+    cmd('restore-last-minimized', 'Restore last minimized pane', 'restore minimized pane tray'),
+    cmd('clear-terminal', 'Clear terminal scrollback', 'clear terminal scrollback buffer'),
+    cmd('find-in-terminal', 'Find in terminal', 'find search terminal buffer'),
+    cmd('redraw-terminal', 'Redraw terminal', 'redraw repaint terminal garbled fix'),
+    cmd('font-zoom-reset', 'Reset terminal font size', 'reset terminal font size zoom'),
+    cmd('toggle-notes', 'Toggle notes panel', 'notes panel notepad project'),
+    cmd('search-history', 'Search output history', 'search output history across panes')
   ]
 }
 
-/** Case-insensitive substring filter; an empty/whitespace query returns the list unchanged. */
+/** Case-insensitive filter; an empty/whitespace query returns the list unchanged. Substring
+ *  matches rank first; a subsequence fallback (query chars in order — "nterm" hits "New terminal")
+ *  is appended for queries of 3+ chars so a partial/abbreviated query still finds its command. */
 export function filterPaletteItems(items: PaletteItem[], query: string): PaletteItem[] {
   const q = query.trim().toLowerCase()
   if (!q) return items
-  return items.filter(i => i.search.includes(q))
+  const substr = items.filter(i => i.search.includes(q))
+  if (q.length < 3) return substr
+  const isSubsequence = (needle: string, hay: string): boolean => {
+    let i = 0
+    for (const c of hay) if (c === needle[i] && ++i === needle.length) return true
+    return false
+  }
+  const rest = items.filter(i => !i.search.includes(q) && isSubsequence(q, i.search))
+  return [...substr, ...rest]
 }

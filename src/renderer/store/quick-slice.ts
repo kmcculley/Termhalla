@@ -7,7 +7,7 @@ import type { State, SliceDeps } from './types'
 type QuickSlice = Pick<State,
   'saveTemplate' | 'deleteTemplate' | 'newWorkspaceFromTemplate' |
   'saveConnection' | 'deleteConnection' | 'pinDir' | 'unpinDir' |
-  'launchConnection' | 'launchDir' | 'setRecordByDefault' | 'setAutoResumeClaude' | 'setCopyOnSelect' | 'setCleanCopy' | 'setToastsEnabled' | 'setOrkyNeedsYouNotifications'>
+  'launchConnection' | 'launchDir' | 'setRecordByDefault' | 'setAutoResumeClaude' | 'setCopyOnSelect' | 'setCleanCopy' | 'setToastsEnabled' | 'setOrkyNeedsYouNotifications' | 'setTermScrollback' | 'setEditorWordWrap' | 'setEditorMinimap' | 'setThemeFollowSystem'>
 
 /** The "quick.json" domain: workspace templates, SSH connection favorites, pinned/recent dirs,
  *  the launch shortcuts that open a favorite as a new terminal pane, and the record-by-default
@@ -100,6 +100,11 @@ export function createQuickSlice({ set, get, scheduleQuickSave, commitPane, regi
     // Feature 0013: the app-wide OS needs-you-notifications opt-in (default enabled). Mirrors
     // setToastsEnabled — the debounced quickSave carries the full payload to main, whose live-refresh
     // mirror re-reads orkyNeedsYouNotifications so a toggle takes effect without a restart.
-    setOrkyNeedsYouNotifications: (on) => { set(s => ({ quick: { ...s.quick, orkyNeedsYouNotifications: on } })); scheduleQuickSave() }
+    setOrkyNeedsYouNotifications: (on) => { set(s => ({ quick: { ...s.quick, orkyNeedsYouNotifications: on } })); scheduleQuickSave() },
+    // QoL 2026-07-17: terminal scrollback lines, live-applied by each TerminalPane's effect.
+    setTermScrollback: (lines) => { set(s => ({ quick: { ...s.quick, termScrollback: lines } })); scheduleQuickSave() },
+    setEditorWordWrap: (on) => { set(s => ({ quick: { ...s.quick, editorWordWrap: on } })); scheduleQuickSave() },
+    setEditorMinimap: (on) => { set(s => ({ quick: { ...s.quick, editorMinimap: on } })); scheduleQuickSave() },
+    setThemeFollowSystem: (on) => { set(s => ({ quick: { ...s.quick, themeFollowSystem: on } })); scheduleQuickSave() }
   }
 }

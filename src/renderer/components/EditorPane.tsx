@@ -7,7 +7,7 @@ import { EditorTabStrip } from './EditorTabStrip'
 export function EditorPane({ paneId, wsId, config }: { paneId: string; wsId: string; config: EditorConfig }) {
   const {
     hostRef, order, active, activeTab, getTab, setActiveModel,
-    openTab, closeTab, clearUntitled, saveUntitledAs, reloadActive, dismissExternalChange
+    openTab, closeTab, clearUntitled, saveUntitledAs, saveTabAs, reloadActive, dismissExternalChange
   } = useEditorTabs(paneId, wsId, config)
 
   const untitledContent = getTab(UNTITLED)?.model.getValue() ?? ''
@@ -19,8 +19,10 @@ export function EditorPane({ paneId, wsId, config }: { paneId: string; wsId: str
         onSelect={setActiveModel} onClose={closeTab}
         onSaveUntitledAs={() => void saveUntitledAs()} onClearUntitled={clearUntitled}
         onOpenFile={async () => { const p = await api.openFile(); if (p) void openTab(p) }}
+        onSaveTabAs={p => void saveTabAs(p)}
       />
       {activeTab?.tooLarge && <div data-testid="editor-toolarge" style={{ color: 'var(--fg-dim, #aaa)', padding: 8 }}>File too large to open.</div>}
+      {activeTab?.binary && <div data-testid="editor-binary" style={{ color: 'var(--fg-dim, #aaa)', padding: 8 }}>Binary file — can't display.</div>}
       {activeTab?.externalChanged && (
         <div data-testid="editor-reloadbar" style={{ background: 'var(--warn-bg)', color: 'var(--warn-fg)', padding: '2px 8px', display: 'flex', gap: 8 }}>
           <span>Changed on disk.</span>
@@ -28,7 +30,7 @@ export function EditorPane({ paneId, wsId, config }: { paneId: string; wsId: str
           <button data-testid="editor-keepmine" onClick={dismissExternalChange}>Keep mine</button>
         </div>
       )}
-      <div ref={hostRef} style={{ flex: 1, display: activeTab?.tooLarge ? 'none' : 'block' }} />
+      <div ref={hostRef} style={{ flex: 1, display: activeTab?.tooLarge || activeTab?.binary ? 'none' : 'block' }} />
     </div>
   )
 }

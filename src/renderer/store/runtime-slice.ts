@@ -6,7 +6,7 @@ import type { State, SliceDeps } from './types'
 
 type RuntimeSlice = Pick<State,
   'setStatus' | 'setCwd' | 'setProcs' | 'setGitStatus' | 'setAiSession' | 'setUsage' | 'setOrky' | 'setRecording' |
-  'setExited' | 'setCloud' | 'refreshCloud' | 'setEnvState'>
+  'setExited' | 'setOscTitle' | 'setEditorDirty' | 'setCloud' | 'refreshCloud' | 'setEnvState'>
 
 /** Per-pane runtime pushed from main (status / cwd / child procs / AI session / usage /
  *  recording) plus global cloud + env-vault status. Setters mirror the wire events; setStatus
@@ -85,6 +85,22 @@ export function createRuntimeSlice({ set, get, scheduleAutosave, scheduleQuickSa
     setRecording: (id, on) => set(s => { const r = { ...s.recording }; if (on) r[id] = true; else delete r[id]; return { recording: r } }),
 
     setExited: (id, on) => set(s => { const e = { ...s.exited }; if (on) e[id] = true; else delete e[id]; return { exited: e } }),
+
+    setOscTitle: (id, title) => set(s => {
+      if (s.oscTitles[id] === title) return {}
+      const oscTitles = { ...s.oscTitles }
+      if (title) oscTitles[id] = title
+      else delete oscTitles[id]
+      return { oscTitles }
+    }),
+
+    setEditorDirty: (id, dirty) => set(s => {
+      if (!!s.editorDirty[id] === dirty) return {}
+      const editorDirty = { ...s.editorDirty }
+      if (dirty) editorDirty[id] = true
+      else delete editorDirty[id]
+      return { editorDirty }
+    }),
 
     setCloud: (statuses) => set({ cloud: statuses }),
     refreshCloud: () => { void api.cloudRefresh() },

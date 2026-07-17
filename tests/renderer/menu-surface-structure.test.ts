@@ -20,7 +20,14 @@ const SITES = [
   { rel: 'src/renderer/components/ExplorerPane.tsx', portalled: true },   // inside a mosaic tile
   { rel: 'src/renderer/components/PaneContextMenu.tsx', portalled: true },
   { rel: 'src/renderer/components/SplitMenu.tsx', portalled: true },
-  { rel: 'src/renderer/components/OrkyPopover.tsx', portalled: true }
+  { rel: 'src/renderer/components/OrkyPopover.tsx', portalled: true },
+  // QoL batch 2026-07-17: the three formerly hand-rolled in-tile popovers (dismissable only by
+  // re-toggling their chip — no Escape, no click-away) now ride the shared chrome too, as does
+  // the new editor tab-strip context menu.
+  { rel: 'src/renderer/components/ProcessPopover.tsx', portalled: true },
+  { rel: 'src/renderer/components/CwdMenu.tsx', portalled: true },
+  { rel: 'src/renderer/components/GitPopover.tsx', portalled: true },
+  { rel: 'src/renderer/components/EditorTabStrip.tsx', portalled: true }
 ]
 
 describe('MenuSurface — the one shared popover chrome (Group C #10)', () => {

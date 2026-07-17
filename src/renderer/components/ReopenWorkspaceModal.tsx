@@ -23,7 +23,13 @@ export function ReopenWorkspaceModal({ onClose }: { onClose: () => void }) {
   useEffect(refresh, [listClosedWorkspaces])
 
   const reopen = (id: string) => { onClose(); void reopenClosedWorkspace(id) }
-  const remove = async (id: string) => { await deleteClosedWorkspace(id); refresh() }
+  // Confirmed: this is the one permanently-destructive action in the dialog — it prunes the
+  // workspace's on-disk record for good (no recycle bin, no undo).
+  const remove = async (id: string, name: string) => {
+    if (!window.confirm(`Permanently delete workspace "${name}"? Its saved record is removed from disk — this cannot be undone.`)) return
+    await deleteClosedWorkspace(id)
+    refresh()
+  }
 
   return (
     <Modal onClose={onClose} z={Z.dialog} backdropTestId="reopen-ws-backdrop">
@@ -54,7 +60,7 @@ export function ReopenWorkspaceModal({ onClose }: { onClose: () => void }) {
                 </span>
               </button>
               <button type="button" data-testid={`reopen-ws-remove-${w.id}`} title={`Delete ${w.name} permanently`}
-                onClick={() => { void remove(w.id) }}>✕</button>
+                onClick={() => { void remove(w.id, w.name) }}>✕</button>
             </div>
           ))}
         </div>

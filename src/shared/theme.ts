@@ -19,6 +19,26 @@ export const DEFAULT_THEME: Theme = {
   termFontSize: 13
 }
 
+/** Built-in light theme (QoL 2026-07-17): light mode used to mean hand-editing 11 color pickers.
+ *  One click in Appearance (or follow-system) applies this whole set. */
+export const LIGHT_THEME: Theme = {
+  windowBg: '#f3f3f3',
+  panelBg: '#ececec',
+  elevatedBg: '#ffffff',
+  border: '#c8c8c8',
+  text: '#1f1f1f',
+  textDim: '#616161',
+  accent: '#0066bf',
+  statusBusy: '#0066bf',
+  statusNeedsInput: '#b25e00',
+  fontFamily: "'Segoe UI', system-ui, sans-serif",
+  fontSize: 13,
+  termBg: '#ffffff',
+  termFg: '#1f1f1f',
+  termFontFamily: "'Consolas', 'Cascadia Mono', monospace",
+  termFontSize: 13
+}
+
 /** Fill any missing tokens from defaults (forward-compatible with older persisted themes). */
 export function mergeTheme(partial: Partial<Theme> | undefined): Theme {
   return { ...DEFAULT_THEME, ...(partial ?? {}) }

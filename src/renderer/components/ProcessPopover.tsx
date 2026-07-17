@@ -1,6 +1,6 @@
 import { useEffect } from 'react'
 import type { ProcInfo, AiSession, UsageMetrics } from '@shared/types'
-import { Z, SURFACE } from './Modal'
+import { MenuSurface } from './MenuSurface'
 import { INDENT_PX } from '../ui-tokens'
 
 /** Auto-dismiss delay for a popover opened on a terminal that has no child processes yet. */
@@ -13,15 +13,17 @@ function fmtTokens(n: number): string {
   return `${k >= 10 ? Math.round(k) : k.toFixed(1)}k`
 }
 
-/** In-tile popover listing a terminal's child-process tree, with an AI-session usage header.
+/** Popover listing a terminal's child-process tree, with an AI-session usage header, anchored to
+ *  its tile. Rendered through the shared MenuSurface (click-away + Escape dismiss).
  *  Auto-dismisses 2s after opening on a terminal with no children; if a process appears within
  *  that window `procInfo` changes, the effect re-runs, sees a non-empty tree, and cancels. */
 export function ProcessPopover(
-  { paneId, procInfo, aiSession, usage, onClose }: {
+  { paneId, procInfo, aiSession, usage, anchor, onClose }: {
     paneId: string
     procInfo: ProcInfo | undefined
     aiSession: AiSession | undefined
     usage: UsageMetrics | undefined
+    anchor: React.CSSProperties
     onClose: () => void
   }
 ) {
@@ -32,9 +34,8 @@ export function ProcessPopover(
   }, [procInfo, onClose])
 
   return (
-    <div data-testid="proc-menu" onClick={e => e.stopPropagation()}
-      style={{ ...SURFACE, position: 'absolute', left: 4, top: 28, zIndex: Z.popover, padding: 6, maxWidth: 460,
-        maxHeight: 240, overflow: 'auto', fontSize: 12, fontFamily: 'var(--mono)' }}>
+    <MenuSurface testid="proc-menu" portal onClose={onClose}
+      style={{ ...anchor, padding: 6, maxWidth: 460, maxHeight: 240, overflow: 'auto', fontSize: 12, fontFamily: 'var(--mono)' }}>
       {aiSession && usage && (
         <div data-testid={`usage-${paneId}`}
           style={{ borderBottom: '1px solid var(--border, #444)', paddingBottom: 4, marginBottom: 4 }}>
@@ -52,6 +53,6 @@ export function ProcessPopover(
           <span style={{ opacity: 'var(--dimmer)' }}>  {n.command}</span>
         </div>
       ))}
-    </div>
+    </MenuSurface>
   )
 }

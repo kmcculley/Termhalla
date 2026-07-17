@@ -3,6 +3,7 @@ import { useShallow } from 'zustand/react/shallow'
 import { useStore } from '../store'
 import { api } from '../api'
 import { resolveBindings, formatChord } from '@shared/keybindings'
+import { clearPane, openPaneFind } from './terminal-registry'
 import { MenuSurface } from './MenuSurface'
 
 /** Right-click menu for a pane's title bar: Rename, Move to workspace ▸ (other workspaces this
@@ -27,8 +28,13 @@ export function PaneContextMenu(
   // `quick.keybindings` ref and resolve in render: `resolveBindings(...)[id]` returns a fresh object
   // each call once an override exists, which as a zustand selector result loops forever (React #185).
   const keybindings = useStore(s => s.quick.keybindings)
-  const minChord = resolveBindings(keybindings)['toggle-minimize-pane']
+  const bindings = resolveBindings(keybindings)
+  const minChord = bindings['toggle-minimize-pane']
   const minTitle = minChord ? `Minimize pane (${formatChord(minChord)})` : 'Minimize pane'
+  const findChord = bindings['find-in-terminal']
+  const findTitle = findChord ? `Find in terminal (${formatChord(findChord)})` : 'Find in terminal'
+  const clearChord = bindings['clear-terminal']
+  const clearTitle = clearChord ? `Clear terminal and scrollback (${formatChord(clearChord)})` : 'Clear terminal and scrollback'
   const [view, setView] = useState<'root' | 'move'>('root')
 
   // Terminals open the terminal section (name + alerts + env); editors/explorers have no terminal
@@ -50,6 +56,14 @@ export function PaneContextMenu(
               <button data-testid="pane-menu-record"
                 onClick={() => { recording ? api.recStop(paneId) : api.recStart(paneId); onClose() }}>
                 {recording ? 'Stop recording' : 'Start recording'}</button>
+            )}
+            {kind === 'terminal' && (
+              <button data-testid="pane-menu-find" title={findTitle}
+                onClick={() => { onClose(); openPaneFind(paneId) }}>Find in terminal</button>
+            )}
+            {kind === 'terminal' && (
+              <button data-testid="pane-menu-clear" title={clearTitle}
+                onClick={() => { clearPane(paneId); onClose() }}>Clear terminal</button>
             )}
             <button data-testid="pane-menu-move" onClick={() => setView('move')}>Move to workspace ▸</button>
             <button data-testid="pane-menu-settings"

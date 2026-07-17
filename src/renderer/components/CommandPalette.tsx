@@ -1,6 +1,9 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useStore, paneCwd } from '../store'
 import { buildPaletteItems, buildCommandItems, filterPaletteItems, type PaletteItem } from '@shared/quick'
+import { chordPaneTarget } from '../store/pane-ops'
+import { clearPane, openPaneFind, redrawPane } from './terminal-registry'
+import { DEFAULT_THEME } from '@shared/theme'
 import { Modal, Z } from './Modal'
 
 export function CommandPalette() {
@@ -47,9 +50,10 @@ export function CommandPalette() {
     return termId ? paneCwd({ cwds, workspaces }, termId) : ''
   }, [activeId, workspaces, cwds])
 
+  // Commands show on the empty query too (QoL 2026-07-17) — the palette used to hide every
+  // command until you typed, so it read as connect/jump-only.
   const items = useMemo(() => {
-    const base = buildPaletteItems(quick, currentCwd)
-    const all = query.trim() ? [...base, ...buildCommandItems()] : base
+    const all = [...buildPaletteItems(quick, currentCwd), ...buildCommandItems()]
     return filterPaletteItems(all, query)
   }, [quick, currentCwd, query])
 
@@ -74,8 +78,30 @@ export function CommandPalette() {
     // NO active workspace, so it is handled before the guard below (the toggle-orky-queue
     // precedent). No argument: the picker-first flow.
     if (item.action === 'capture-orky-work') { openOrkyCapture(); close(); return }
+    // Window-chrome commands (QoL 2026-07-17) — no active workspace needed, same precedent.
+    if (item.action === 'toggle-notes') { const st = useStore.getState(); st.setNotesOpen(!st.notesOpen); close(); return }
+    if (item.action === 'search-history') { useStore.getState().setSearchOpen(true); close(); return }
+    if (item.action === 'font-zoom-reset') { useStore.getState().setTheme({ termFontSize: DEFAULT_THEME.termFontSize }); close(); return }
     // Commands below need an active workspace.
     if (!activeId) return
+    // Pane-scoped commands target the focused pane (else the workspace's first pane), exactly
+    // like their chords in App.tsx.
+    {
+      const st = useStore.getState()
+      const pane = chordPaneTarget(st.workspaces[activeId], st.focusedPaneId)
+      if (item.action === 'close-pane') { if (pane) st.closePane(activeId, pane); close(); return }
+      if (item.action === 'maximize-pane') { if (pane) st.toggleMaximize(activeId, pane); close(); return }
+      if (item.action === 'minimize-pane') { if (pane) st.toggleMinimize(activeId, pane); close(); return }
+      if (item.action === 'clear-terminal') { if (pane) clearPane(pane); close(); return }
+      if (item.action === 'find-in-terminal') { if (pane) openPaneFind(pane); close(); return }
+      if (item.action === 'redraw-terminal') { if (pane) redrawPane(pane); close(); return }
+      if (item.action === 'restore-last-minimized') {
+        const ids = st.minimized[activeId] ?? []
+        const last = ids[ids.length - 1]
+        if (last) st.restorePane(activeId, last)
+        close(); return
+      }
+    }
     if (item.action === 'new-terminal') void addPaneOfKind(activeId, 'terminal')
     else if (item.action === 'new-editor') void addPaneOfKind(activeId, 'editor')
     else if (item.action === 'new-explorer') void addPaneOfKind(activeId, 'explorer')
@@ -133,7 +159,10 @@ export function CommandPalette() {
                         const c = quick.connections.find(x => x.id === item.id)
                         if (c) { setConnectionForm(c); setOpen(false) } }}>✎</button>
                     <button data-testid={`palette-delete-${item.id}`} title="Delete"
-                      onClick={e => { e.stopPropagation(); deleteConnection(item.id) }}>🗑</button>
+                      onClick={e => {
+                        e.stopPropagation()
+                        if (window.confirm(`Delete SSH connection "${item.label}"?`)) deleteConnection(item.id)
+                      }}>🗑</button>
                   </>
                 )}
                 {item.kind === 'dir' && item.favorite && (

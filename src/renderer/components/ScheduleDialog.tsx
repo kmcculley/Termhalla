@@ -52,6 +52,7 @@ export function ScheduleDialog({ paneId, onClose }: { paneId: string; onClose: (
     <Modal onClose={onClose} backdropTestId="schedule-dialog" card={{ padding: 12, width: 480 }}>
         <div style={{ fontWeight: 600 }}>Schedule command for this terminal</div>
         <textarea data-testid="schedule-text" value={text} onChange={e => setText(e.target.value)} rows={3} autoFocus
+          onKeyDown={e => { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey) && text.trim()) { e.preventDefault(); add() } }}
           style={{ fontFamily: 'var(--mono)', fontSize: 13 }} />
         <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
           <label>Send as:&nbsp;
@@ -73,7 +74,8 @@ export function ScheduleDialog({ paneId, onClose }: { paneId: string; onClose: (
             ± <DurationInput tid="schedule-jitter" min={0} value={jitter} onChange={setJitter} />
           </>}
           <span style={{ flex: 1 }} />
-          <button data-testid="schedule-add" disabled={!text.trim()} onClick={add}>Schedule</button>
+          <button data-testid="schedule-close" onClick={onClose}>Close</button>
+          <button data-testid="schedule-add" disabled={!text.trim()} title="Schedule (Ctrl+Enter)" onClick={add}>Schedule</button>
         </div>
         {tasks.length > 0 && (
           <div style={{ borderTop: '1px solid var(--border, #444)', paddingTop: 6, display: 'flex', flexDirection: 'column', gap: 2 }}>

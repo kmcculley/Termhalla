@@ -234,6 +234,10 @@ export interface Theme {
   termFontSize: number
 }
 
+/** Terminal scrollback lines when `quick.termScrollback` is unset (QoL 2026-07-17 — the xterm
+ *  default of 1000 silently lost long build output). */
+export const DEFAULT_TERM_SCROLLBACK = 5000
+
 /** App-global favorites/recents (persisted to quick.json, not per-workspace). */
 export interface QuickStore {
   connections: SshConnection[]
@@ -248,6 +252,10 @@ export interface QuickStore {
   copyOnSelect?: boolean         // copy a terminal selection to the clipboard as soon as it's made (default on)
   cleanCopy?: boolean            // normalize copied terminal text (reflow TUI-wrapped lines, trim/collapse blanks) before it hits the clipboard (default on)
   toastsEnabled?: boolean        // show bottom-right toast notifications; toasts render only when strictly true (default off)
+  termScrollback?: number        // terminal scrollback lines (QoL 2026-07-17); absent => DEFAULT_TERM_SCROLLBACK
+  editorWordWrap?: boolean       // Monaco word wrap (QoL 2026-07-17); default off
+  editorMinimap?: boolean        // Monaco minimap (QoL 2026-07-17); default off
+  themeFollowSystem?: boolean    // apply built-in Light/Dark to match the OS (QoL 2026-07-17); default off
   orkyNeedsYouNotifications?: boolean   // app-wide OS notifications when an Orky project needs a decision (feature 0013); default ENABLED — absent ⇒ !== false ⇒ on
   keybindings?: Record<string, string>   // CommandId -> chordKey ("mod+shift+t") | 'none' (unbound)
 }

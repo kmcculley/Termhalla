@@ -24,9 +24,12 @@ import { RemoteAgentPicker } from './components/RemoteAgentPicker'
 import { ReopenWorkspaceModal } from './components/ReopenWorkspaceModal'
 import { SearchHistory } from './components/SearchHistory'
 import { matchShortcut, resolveBindings } from '@shared/keymap'
-import { chordPaneTarget } from './store/pane-ops'
+import { chordPaneTarget, busyPaneCount } from './store/pane-ops'
 import { closeWorkspaceConfirmText } from '@shared/remote-home'
-import { redrawPane } from './components/terminal-registry'
+import { redrawPane, clearPane, openPaneFind, requestPaneFocus } from './components/terminal-registry'
+import { directionalPaneTarget, type NavDir } from './components/pane-nav'
+import { DEFAULT_THEME, mergeTheme } from '@shared/theme'
+import { nextFontSize } from '@shared/font-zoom'
 import { focusProjectPane, revealQueueGroup } from './components/pane-reveal'
 import { api } from './api'
 
@@ -53,6 +56,13 @@ export default function App() {
   // File ▸ Reopen Closed Workspace… (conditionally hosted so it reloads the list each open).
   const reopenOpen = useStore(s => s.reopenOpen)
   useEffect(() => { init() }, [init])
+  // The OS window title tracks the active workspace (QoL 2026-07-17) — taskbar/Alt-Tab used to
+  // read a permanent "Termhalla" regardless of what the window held. document.title propagates to
+  // the BrowserWindow title; each window (main or undocked) names its own active workspace.
+  const activeWsName = activeId ? workspaces[activeId]?.name : undefined
+  useEffect(() => {
+    document.title = activeWsName ? `${activeWsName} — Termhalla` : 'Termhalla'
+  }, [activeWsName])
   useEffect(() => {
     const flush = () => { const s = useStore.getState(); void s.saveAll(); s.flushQuick(); s.flushNotes() }
     window.addEventListener('beforeunload', flush)
@@ -154,7 +164,7 @@ export default function App() {
           if (!activeId) break
           const ws = s.workspaces[activeId]
           const ok = !ws || Object.keys(ws.panes).length === 0 ||
-            window.confirm(closeWorkspaceConfirmText(ws.name, ws.home))
+            window.confirm(closeWorkspaceConfirmText(ws.name, ws.home, busyPaneCount(ws, s.procs, s.aiSessions)))
           if (ok) s.closeWorkspace(activeId); break
         }
         case 'next-workspace': if (order.length) s.setActive(order[(idx + 1 + order.length) % order.length]); break
@@ -181,6 +191,53 @@ export default function App() {
         // chord works with zero workspaces (the toggle-orky-queue precedent above).
         case 'capture-orky-work': s.openOrkyCapture(); break
         case 'redraw-terminal': redrawPane(s.focusedPaneId ?? ''); break
+        case 'close-pane': {
+          const pane = chordPaneTarget(activeId ? s.workspaces[activeId] : undefined, s.focusedPaneId)
+          if (pane && activeId) s.closePane(activeId, pane) // closePane owns the busy/dirty confirm
+          break
+        }
+        case 'focus-pane-left': case 'focus-pane-right': case 'focus-pane-up': case 'focus-pane-down': {
+          if (!activeId || s.maximized[activeId]) break // siblings are hidden under maximize
+          const ws = s.workspaces[activeId]
+          const from = chordPaneTarget(ws, s.focusedPaneId)
+          if (!ws || !from) break
+          // Measure the visible tiles; the geometry pick itself is pure (pane-nav.ts).
+          const min = new Set(s.minimized[activeId] ?? [])
+          const rects = Object.keys(ws.panes).filter(id => !min.has(id)).flatMap(id => {
+            const el = document.querySelector(`[data-testid="tile-${id}"]`)
+            if (!el) return []
+            const r = el.getBoundingClientRect()
+            return r.width > 0 && r.height > 0 ? [{ id, left: r.left, top: r.top, width: r.width, height: r.height }] : []
+          })
+          const dir = sc.type.slice('focus-pane-'.length) as NavDir
+          const target = directionalPaneTarget(dir, from, rects)
+          if (target) { s.setFocusedPane(target); requestPaneFocus(target) }
+          break
+        }
+        case 'restore-last-minimized': {
+          if (!activeId) break
+          const ids = s.minimized[activeId] ?? []
+          const last = ids[ids.length - 1]
+          if (last) s.restorePane(activeId, last)
+          break
+        }
+        case 'font-zoom-in': case 'font-zoom-out': {
+          const cur = mergeTheme(s.quick.theme).termFontSize
+          const next = nextFontSize(cur, sc.type === 'font-zoom-in' ? -1 : 1)
+          if (next !== cur) s.setTheme({ termFontSize: next })
+          break
+        }
+        case 'font-zoom-reset': s.setTheme({ termFontSize: DEFAULT_THEME.termFontSize }); break
+        case 'clear-terminal': {
+          const pane = chordPaneTarget(activeId ? s.workspaces[activeId] : undefined, s.focusedPaneId)
+          if (pane) clearPane(pane)
+          break
+        }
+        case 'find-in-terminal': {
+          const pane = chordPaneTarget(activeId ? s.workspaces[activeId] : undefined, s.focusedPaneId)
+          if (pane) openPaneFind(pane)
+          break
+        }
       }
     }
     window.addEventListener('keydown', onKey)

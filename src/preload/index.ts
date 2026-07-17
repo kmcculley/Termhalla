@@ -1,4 +1,4 @@
-import { contextBridge, ipcRenderer, type IpcRendererEvent } from 'electron'
+import { contextBridge, ipcRenderer, webUtils, type IpcRendererEvent } from 'electron'
 import { CH, type TermhallaApi } from '@shared/ipc-contract'
 
 /**
@@ -51,6 +51,7 @@ const api: TermhallaApi = {
   fsWrite: (path, content) => ipcRenderer.invoke(CH.fsWrite, path, content),
   fsReadDir: (path) => ipcRenderer.invoke(CH.fsReadDir, path),
   fsStat: (path) => ipcRenderer.invoke(CH.fsStat, path),
+  fsMkdir: (path) => ipcRenderer.invoke(CH.fsMkdir, path),
   fsWatch: (id, path) => ipcRenderer.send(CH.fsWatch, id, path),
   fsUnwatch: (id) => ipcRenderer.send(CH.fsUnwatch, id),
   onFsChange: pushChannel<[string, import('@shared/types').FsChange]>(CH.fsChange),
@@ -108,6 +109,8 @@ const api: TermhallaApi = {
   envRemoveTerminal: (id, n) => ipcRenderer.send(CH.envRemoveTerminal, id, n),
   clipboardWrite: (text) => ipcRenderer.send(CH.clipboardWrite, text),
   clipboardRead: () => ipcRenderer.invoke(CH.clipboardRead),
+  // Preload-local (no IPC): File.path was removed in Electron 32+, webUtils is the sanctioned way.
+  pathForFile: (file) => { try { return webUtils.getPathForFile(file as File) } catch { return '' } },
   winDragEnd: (a) => ipcRenderer.send(CH.winDragEnd, a),
   winDragGhost: (a) => ipcRenderer.send(CH.winDragGhost, a),
   winRedock: (a) => ipcRenderer.send(CH.winRedock, a),

@@ -50,6 +50,52 @@ export function findImagePaths(line: string): LinkMatch[] {
   return out
 }
 
+/** A source-location reference in one line of output (QoL batch 2026-07-17). */
+export interface FileLineMatch { start: number; end: number; path: string; line: number; col?: number }
+
+// path:LINE[:COL] — the path needs a dot-extension so bare `foo:12` stays inert; an optional
+// leading drive letter keeps the Windows drive colon out of the line-number split.
+const COLON_REF = /^((?:[A-Za-z]:)?[^:()]*\.\w+):(\d+)(?::(\d+))?$/
+// MSBuild/csc form: path(LINE[,COL])
+const PAREN_REF = /^((?:[A-Za-z]:)?[^:()]*\.\w+)\((\d+)(?:,(\d+))?\)$/
+
+/** Source-location refs (`src/foo.ts:42:8`, `C:\a\b.cs(10,5)`) in one line, with the span of the
+ *  whole reference so the full `path:line:col` renders as one link. Token discipline mirrors
+ *  findImagePaths (bracket/punctuation trimming); URLs never match (the `://` colon breaks the
+ *  extension capture, and the scheme token carries no dot-extension before a `:digit` tail). */
+export function findFileLineRefs(lineText: string): FileLineMatch[] {
+  const out: FileLineMatch[] = []
+  const re = /\S+/g
+  let m: RegExpExecArray | null
+  while ((m = re.exec(lineText)) !== null) {
+    let start = m.index
+    let end = m.index + m[0].length
+    while (start < end && LEAD.has(lineText[start])) start++
+    while (end > start && TRAIL.has(lineText[end - 1])) {
+      // Keep a ')' that closes a paren opened INSIDE the token — `a.cs(10,5):` must trim the
+      // colon but stop at the balanced paren, or the MSBuild form can never match.
+      if (lineText[end - 1] === ')') {
+        const slice = lineText.slice(start, end)
+        const opens = (slice.match(/\(/g) ?? []).length
+        const closes = (slice.match(/\)/g) ?? []).length
+        if (closes <= opens) break
+      }
+      end--
+    }
+    const token = lineText.slice(start, end)
+    if (!token || token.includes('://')) continue
+    const hit = COLON_REF.exec(token) ?? PAREN_REF.exec(token)
+    if (!hit) continue
+    out.push({
+      start, end,
+      path: hit[1],
+      line: Number(hit[2]),
+      col: hit[3] !== undefined ? Number(hit[3]) : undefined
+    })
+  }
+  return out
+}
+
 const ABSOLUTE = /^([A-Za-z]:[\\/]|\\\\|\/)/
 
 /** Absolute path for an image reference: absolute passthrough; `~`/`~/…` → home; else join cwd. */

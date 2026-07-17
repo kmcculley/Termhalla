@@ -8,9 +8,17 @@ import { chipStatus, orkyChipStatus, type ChipState } from '@shared/chip-status'
  * restores that pane (REQ-006/REQ-014). The tray is mounted only when ≥1 pane is minimized.
  */
 export function MinimizedTray({ wsId, paneIds }: { wsId: string; paneIds: string[] }) {
+  const restorePane = useStore(s => s.restorePane)
   return (
     <div data-testid={`min-tray-${wsId}`} className="min-tray">
       {paneIds.map(id => <MinChip key={id} wsId={wsId} paneId={id} />)}
+      {paneIds.length >= 2 && (
+        <button type="button" data-testid={`min-restore-all-${wsId}`} className="min-chip"
+          title="Restore all minimized panes" aria-label="Restore all minimized panes"
+          onClick={() => { for (const id of [...paneIds]) restorePane(wsId, id) }}>
+          ⤢ all
+        </button>
+      )}
     </div>
   )
 }

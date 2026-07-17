@@ -17,4 +17,19 @@ describe('buildCommandItems', () => {
     const hit = filterPaletteItems(buildCommandItems(), 'settings')
     expect(hit.some(c => c.kind === 'action' && c.action === 'settings')).toBe(true)
   })
+  it('includes the QoL pane/view commands (2026-07-17)', () => {
+    const actions = buildCommandItems().map(c => c.kind === 'action' ? c.action : null)
+    expect(actions).toEqual(expect.arrayContaining([
+      'close-pane', 'maximize-pane', 'minimize-pane', 'restore-last-minimized',
+      'clear-terminal', 'find-in-terminal', 'redraw-terminal', 'font-zoom-reset',
+      'toggle-notes', 'search-history'
+    ]))
+  })
+  it('subsequence fallback finds abbreviated queries, ranked below substring hits', () => {
+    const hit = filterPaletteItems(buildCommandItems(), 'nterm')
+    expect(hit.some(c => c.kind === 'action' && c.action === 'new-terminal')).toBe(true)
+    // substring matches still rank first
+    const both = filterPaletteItems(buildCommandItems(), 'clear')
+    expect(both[0]).toMatchObject({ action: 'clear-terminal' })
+  })
 })

@@ -73,7 +73,8 @@ export interface State {
   /** Permanently delete a closed workspace's on-disk record (+ its doc binding). */
   deleteClosedWorkspace: (id: string) => Promise<void>
   moveWorkspace: (fromId: string, toId: string) => void
-  setActive: (id: string) => void
+  duplicateWorkspace: (id: string) => string | null
+  setActive: (id: string, opts?: { refocusPane?: boolean }) => void
   maximized: Record<string, string>   // wsId -> the paneId currently maximized in that workspace (persisted)
   minimized: Record<string, string[]> // wsId -> paneIds minimized off-layout in that workspace (persisted)
   focusedPaneId: string | null
@@ -177,12 +178,24 @@ export interface State {
   // idle pane (REQ-005 / FINDING-DA-003). Set on pty:exit, cleared when the pane is closed.
   exited: Record<string, boolean>
   setExited: (id: string, on: boolean) => void
+  // OSC 0/2 window titles per pane (QoL 2026-07-17): shown on the pane chrome when the user
+  // hasn't set a manual name. Runtime-only, never persisted.
+  oscTitles: Record<string, string>
+  setOscTitle: (id: string, title: string) => void
+  // Editor panes with any unsaved tab (QoL 2026-07-17): drives the pane-title • so a dirty tab
+  // stays visible when the strip is scrolled or the pane minimized. Runtime-only.
+  editorDirty: Record<string, boolean>
+  setEditorDirty: (id: string, dirty: boolean) => void
   setRecordByDefault: (on: boolean) => void
   setAutoResumeClaude: (on: boolean) => void
   setCopyOnSelect: (on: boolean) => void
   setCleanCopy: (on: boolean) => void
   setToastsEnabled: (on: boolean) => void
   setOrkyNeedsYouNotifications: (on: boolean) => void
+  setTermScrollback: (lines: number) => void
+  setEditorWordWrap: (on: boolean) => void
+  setEditorMinimap: (on: boolean) => void
+  setThemeFollowSystem: (on: boolean) => void
   drafts: Record<string, EditorDraft>
   setDraft: (key: string, draft: EditorDraft) => void
   deleteDraft: (key: string) => void

@@ -7,15 +7,24 @@ import type { DirEntry, ExplorerConfig } from '@shared/types'
 import { INDENT_PX } from '../ui-tokens'
 import { MenuSurface } from './MenuSurface'
 import { registerExplorerState, unregisterExplorerState, consumeExplorerState } from './explorer-registry'
+import { emitFileRenamed } from '../editor/rename-bus'
+
+/** OS-style child join matching what readDirectory produces for this tree's paths. */
+const joinChild = (dir: string, name: string): string =>
+  dir.replace(/[\\/]+$/, '') + (dir.includes('\\') ? '\\' : '/') + name
 
 export function ExplorerPane({ paneId, wsId, config }: { paneId: string; wsId: string; config: ExplorerConfig }) {
   const openFileInEditor = useStore(s => s.openFileInEditor)
+  const launchDir = useStore(s => s.launchDir)
   const pushToast = useStore(s => s.pushToast)
   const [children, setChildren] = useState<Record<string, DirEntry[]>>({})
   const [expanded, setExpanded] = useState<Set<string>>(new Set())
   const [menu, setMenu] = useState<{ entry: DirEntry; x: number; y: number } | null>(null)
   const [renaming, setRenaming] = useState<string | null>(null)  // path being renamed
   const [renameText, setRenameText] = useState('')
+  // Inline "New File / New Folder" entry (QoL 2026-07-17): the target dir + kind being created.
+  const [creating, setCreating] = useState<{ dir: string; isDir: boolean } | null>(null)
+  const [createText, setCreateText] = useState('')
   const [errored, setErrored] = useState<Set<string>>(new Set())
   const watchedRef = useRef<Set<string>>(new Set())
   const containerRef = useRef<HTMLDivElement>(null)
@@ -40,8 +49,33 @@ export function ExplorerPane({ paneId, wsId, config }: { paneId: string; wsId: s
     setRenaming(null)
     if (!name || name === entry.name) return
     const parent = entry.path.slice(0, entry.path.length - entry.name.length)
-    try { await api.fsRename(entry.path, parent + name); pushToast('Renamed') }
+    try {
+      await api.fsRename(entry.path, parent + name)
+      // Let editor panes holding the old path follow the rename instead of going "(deleted)".
+      if (!entry.isDir) emitFileRenamed(entry.path, parent + name)
+      pushToast('Renamed')
+    }
     catch { pushToast('Rename failed', 'error') }
+  }
+
+  /** Begin an inline create inside `dir` (expanding it so the entry field is visible). */
+  const startCreate = (dir: string, isDir: boolean) => {
+    setMenu(null)
+    if (!expanded.has(dir)) { setExpanded(s => new Set(s).add(dir)); void loadDir(dir) }
+    setCreateText('')
+    setCreating({ dir, isDir })
+  }
+
+  const commitCreate = async () => {
+    const c = creating
+    const name = createText.trim()
+    setCreating(null)
+    if (!c || !name) return
+    const path = joinChild(c.dir, name)
+    try {
+      if (c.isDir) { await api.fsMkdir(path); pushToast('Folder created') }
+      else { await api.fsWrite(path, ''); openFileInEditor(wsId, path); pushToast('File created') }
+    } catch { pushToast(`${c.isDir ? 'Folder' : 'File'} create failed`, 'error') }
   }
 
   const del = async (entry: DirEntry) => {
@@ -120,35 +154,72 @@ export function ExplorerPane({ paneId, wsId, config }: { paneId: string; wsId: s
     watchedRef.current.clear()
   }, [paneId])
 
+  // Keyboard on tree rows (QoL 2026-07-17): Enter opens/toggles, F2 renames, Delete trashes,
+  // ArrowUp/Down walk visible rows, ArrowRight/Left expand/collapse a folder.
+  const onRowKey = (e: DirEntry) => (ev: React.KeyboardEvent<HTMLDivElement>) => {
+    if (ev.key === 'Enter') { ev.preventDefault(); if (e.isDir) toggle(e.path); else openFileInEditor(wsId, e.path) }
+    else if (ev.key === 'F2') { ev.preventDefault(); setRenameText(e.name); setRenaming(e.path) }
+    else if (ev.key === 'Delete') { ev.preventDefault(); void del(e) }
+    else if (ev.key === 'ArrowDown' || ev.key === 'ArrowUp') {
+      ev.preventDefault()
+      const rows = Array.from(containerRef.current?.querySelectorAll<HTMLElement>('[data-entry-row]') ?? [])
+      const i = rows.indexOf(ev.currentTarget)
+      rows[i + (ev.key === 'ArrowDown' ? 1 : -1)]?.focus()
+    }
+    else if (ev.key === 'ArrowRight' && e.isDir && !expanded.has(e.path)) { ev.preventDefault(); toggle(e.path) }
+    else if (ev.key === 'ArrowLeft' && e.isDir && expanded.has(e.path)) { ev.preventDefault(); collapse(e.path) }
+  }
+
+  const createInput = (depth: number) => (
+    <input data-testid="explorer-create" autoFocus placeholder={creating?.isDir ? 'folder name' : 'file name'}
+      value={createText}
+      onChange={ev => setCreateText(ev.target.value)}
+      onKeyDown={ev => { if (ev.key === 'Enter') void commitCreate(); else if (ev.key === 'Escape') setCreating(null) }}
+      onBlur={() => void commitCreate()}
+      style={{ marginLeft: depth * INDENT_PX + 6, width: 160 }} />
+  )
+
   const renderDir = (dir: string, depth: number) => {
     if (errored.has(dir)) return <div style={{ paddingLeft: depth * INDENT_PX + 6, color: 'var(--fg-dim, #aaa)' }}>Couldn't read folder</div>
     const loaded = children[dir]
-    if (expanded.has(dir) && loaded && loaded.length === 0) return <div style={{ paddingLeft: depth * INDENT_PX + 6, color: 'var(--fg-dim, #aaa)' }}>Folder is empty</div>
-    return (loaded ?? []).map(e => (
-      <div key={e.path}>
-        {renaming === e.path ? (
-          <input data-testid={`rename-${base(e.path)}`} autoFocus value={renameText}
-            onFocus={ev => ev.currentTarget.select()}
-            onChange={ev => setRenameText(ev.target.value)}
-            onKeyDown={ev => { if (ev.key === 'Enter') void commitRename(e); else if (ev.key === 'Escape') setRenaming(null) }}
-            onBlur={() => void commitRename(e)}
-            style={{ marginLeft: depth * INDENT_PX + 6, width: 160 }} />
-        ) : (
-          <div data-testid={`entry-${base(e.path)}`}
-            onClick={() => e.isDir ? toggle(e.path) : openFileInEditor(wsId, e.path)}
-            onContextMenu={ev => { ev.preventDefault(); setMenu({ entry: e, x: ev.clientX, y: ev.clientY }) }}
-            style={{ paddingLeft: depth * INDENT_PX + 6, cursor: 'pointer', color: 'var(--fg, #ddd)', userSelect: 'none', whiteSpace: 'nowrap' }}>
-            {e.isDir ? (expanded.has(e.path) ? '▾ ' : '▸ ') : '  '}{e.name}
+    const creatingHere = creating?.dir === dir ? createInput(depth) : null
+    if (expanded.has(dir) && loaded && loaded.length === 0 && !creatingHere) return <div style={{ paddingLeft: depth * INDENT_PX + 6, color: 'var(--fg-dim, #aaa)' }}>Folder is empty</div>
+    return (
+      <>
+        {creatingHere}
+        {(loaded ?? []).map(e => (
+          <div key={e.path}>
+            {renaming === e.path ? (
+              <input data-testid={`rename-${base(e.path)}`} autoFocus value={renameText}
+                onFocus={ev => ev.currentTarget.select()}
+                onChange={ev => setRenameText(ev.target.value)}
+                onKeyDown={ev => { if (ev.key === 'Enter') void commitRename(e); else if (ev.key === 'Escape') setRenaming(null) }}
+                onBlur={() => void commitRename(e)}
+                style={{ marginLeft: depth * INDENT_PX + 6, width: 160 }} />
+            ) : (
+              <div data-testid={`entry-${base(e.path)}`} data-entry-row tabIndex={0}
+                onClick={() => e.isDir ? toggle(e.path) : openFileInEditor(wsId, e.path)}
+                onKeyDown={onRowKey(e)}
+                onContextMenu={ev => { ev.preventDefault(); setMenu({ entry: e, x: ev.clientX, y: ev.clientY }) }}
+                style={{ paddingLeft: depth * INDENT_PX + 6, cursor: 'pointer', color: 'var(--fg, #ddd)', userSelect: 'none', whiteSpace: 'nowrap' }}>
+                {e.isDir ? (expanded.has(e.path) ? '▾ ' : '▸ ') : '  '}{e.name}
+              </div>
+            )}
+            {e.isDir && expanded.has(e.path) && renderDir(e.path, depth + 1)}
           </div>
-        )}
-        {e.isDir && expanded.has(e.path) && renderDir(e.path, depth + 1)}
-      </div>
-    ))
+        ))}
+      </>
+    )
   }
 
   return (
     <div ref={containerRef} data-testid={`explorer-${paneId}`} style={{ height: '100%', overflow: 'auto', background: 'var(--elevated, #252526)', fontFamily: 'var(--mono)', fontSize: 13 }}>
-      <div style={{ padding: '4px 6px', color: 'var(--fg-dim, #aaa)' }}>{base(config.root)}</div>
+      <div data-testid={`explorer-root-${paneId}`} style={{ padding: '4px 6px', color: 'var(--fg-dim, #aaa)' }}
+        // Right-clicking the root header offers the same dir actions as any folder row (it's the
+        // only way to create at the top level).
+        onContextMenu={ev => { ev.preventDefault(); setMenu({ entry: { name: base(config.root), path: config.root, isDir: true }, x: ev.clientX, y: ev.clientY }) }}>
+        {base(config.root)}
+      </div>
       {renderDir(config.root, 0)}
       {menu && (
         // portal: the explorer lives inside a react-mosaic tile (the MenuSurface containing-block
@@ -156,11 +227,19 @@ export function ExplorerPane({ paneId, wsId, config }: { paneId: string; wsId: s
         <MenuSurface testid="explorer-menu" portal onClose={() => setMenu(null)}
           style={{ left: menu.x, top: menu.y, padding: 4, gap: 2, fontSize: 'var(--font-size, 13px)' }}>
           {!menu.entry.isDir && <button data-testid="explorer-open" onClick={() => { openFileInEditor(wsId, menu.entry.path); setMenu(null) }}>Open</button>}
+          {menu.entry.isDir && <button data-testid="explorer-new-file" onClick={() => startCreate(menu.entry.path, false)}>New File</button>}
+          {menu.entry.isDir && <button data-testid="explorer-new-folder" onClick={() => startCreate(menu.entry.path, true)}>New Folder</button>}
+          {menu.entry.isDir && <button data-testid="explorer-terminal-here"
+            onClick={() => { launchDir(menu.entry.path); setMenu(null) }}>Open terminal here</button>}
           <button data-testid="explorer-reveal" onClick={() => { void api.fsRevealItem(menu.entry.path); setMenu(null) }}>Reveal in File Explorer</button>
           <button data-testid="explorer-copy-path" onClick={() => { api.clipboardWrite(menu.entry.path); pushToast('Path copied'); setMenu(null) }}>Copy path</button>
           <button data-testid="explorer-copy-rel" onClick={() => { api.clipboardWrite(relativeTo(config.root, menu.entry.path)); pushToast('Path copied'); setMenu(null) }}>Copy relative path</button>
-          <button data-testid="explorer-rename" onClick={() => { setRenameText(menu.entry.name); setRenaming(menu.entry.path); setMenu(null) }}>Rename</button>
-          <button data-testid="explorer-delete" onClick={() => void del(menu.entry)}>Delete</button>
+          {menu.entry.path !== config.root && (
+            <button data-testid="explorer-rename" onClick={() => { setRenameText(menu.entry.name); setRenaming(menu.entry.path); setMenu(null) }}>Rename</button>
+          )}
+          {menu.entry.path !== config.root && (
+            <button data-testid="explorer-delete" onClick={() => void del(menu.entry)}>Delete</button>
+          )}
         </MenuSurface>
       )}
     </div>

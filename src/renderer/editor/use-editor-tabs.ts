@@ -5,13 +5,15 @@ import { draftKey, resolveDraftOnOpen, UNTITLED, isUntitled } from '@shared/edit
 import { api } from '../api'
 import { useStore } from '../store'
 import type { EditorConfig } from '@shared/types'
-import { applyContent, base, type Tab } from './tabs'
+import { applyContent, base, isDirty, type Tab } from './tabs'
 import { runOp } from '../op'
 import { useEditorDrafts } from './use-editor-drafts'
 import { useExternalFileWatch } from './use-external-file-watch'
 import { useResolvedPaneTheme } from '../use-resolved-theme'
 import { isPaneInTransit, endPaneTransit } from '../components/pane-transit'
-import { registerFocuser, unregisterFocuser } from '../components/terminal-registry'
+import { registerFocuser, unregisterFocuser, registerDirtyCheck, unregisterDirtyCheck } from '../components/terminal-registry'
+import { consumeReveal } from './reveal'
+import { onFileRenamed } from './rename-bus'
 
 /** The tab/model state + actions a rendered EditorPane needs. The Monaco editor instance,
  *  the tab→model map, draft persistence, save logic, the untitled scratch buffer, external-file
@@ -27,6 +29,9 @@ export interface EditorTabsApi {
   closeTab: (path: string) => void
   clearUntitled: () => void
   saveUntitledAs: () => Promise<void>
+  /** Save the tab at `path`'s buffer to a NEW file picked in a dialog and open it (QoL 2026-07-17
+   *  — Save As used to exist only for the untitled scratch buffer). */
+  saveTabAs: (path: string) => Promise<void>
   reloadActive: () => Promise<void>
   dismissExternalChange: () => void
 }
@@ -46,6 +51,7 @@ export function useEditorTabs(paneId: string, wsId: string, config: EditorConfig
   const { persist: persistDraft, schedule: scheduleDraftPersist, cancel: cancelDraftTimer, clearTimers: clearDraftTimers } = useEditorDrafts(paneId, getTab)
 
   const orderRef = useRef(order); orderRef.current = order
+  const activeRef = useRef(active); activeRef.current = active
   const persist = useCallback((nextOrder: string[], nextActive: string | undefined) => {
     if (sameOrder(nextOrder, config.files) && nextActive === config.activePath) return
     updatePaneConfig(wsId, paneId, { files: nextOrder, activePath: nextActive })
@@ -75,34 +81,51 @@ export function useEditorTabs(paneId: string, wsId: string, config: EditorConfig
     rerender()
   }, [active, paneId, setActiveModel, rerender, cancelDraftTimer])
 
+  // A terminal file:line link may have stashed a position for this path — jump there after the
+  // model is active (consumed once; a plain open finds nothing and does nothing).
+  const applyReveal = useCallback((path: string) => {
+    const pos = consumeReveal(path)
+    const ed = edRef.current
+    if (!pos || !ed) return
+    ed.revealLineInCenter(pos.line)
+    ed.setPosition({ lineNumber: pos.line, column: pos.col ?? 1 })
+    ed.focus()
+  }, [])
+
   const openTab = useCallback(async (path: string) => {
-    if (tabs.current.has(path)) { setActiveModel(path); return }
+    if (tabs.current.has(path)) { setActiveModel(path); applyReveal(path); return }
     if (loading.current.has(path)) return
     loading.current.add(path)
     try {
-      let saved = '', tooLarge = false, missing = false
+      let saved = '', tooLarge = false, missing = false, binary = false
       try { const r = await api.fsRead(path); saved = r.content; tooLarge = r.tooLarge }
-      catch { missing = true }
+      catch (err) {
+        // A binary file EXISTS — it just can't display. Marking it missing rendered it
+        // struck-through "(deleted)", which is a lie (QoL 2026-07-17).
+        if (err instanceof Error && /binary/i.test(err.message)) binary = true
+        else missing = true
+      }
       const key = draftKey(paneId, path)
       const draft = useStore.getState().drafts[key]
-      const resolved = tooLarge
+      const resolved = tooLarge || binary
         ? { content: '', dirty: false, externalChanged: false }
         : resolveDraftOnOpen(missing ? null : saved, draft)
       const model = monaco.editor.createModel(resolved.content, languageForPath(path))
       const disp = model.onDidChangeContent(() => { rerender(); scheduleDraftPersist(path) })
       // Only surface the "changed on disk" bar when the restored draft actually differs from
       // disk; a stale draft equal to disk (deleted just below) shouldn't raise it.
-      tabs.current.set(path, { path, model, saved, disp, tooLarge, missing, externalChanged: (resolved.dirty && resolved.externalChanged) || undefined })
+      tabs.current.set(path, { path, model, saved, disp, tooLarge, missing, binary: binary || undefined, externalChanged: (resolved.dirty && resolved.externalChanged) || undefined })
       if (draft && !resolved.dirty) api.draftsDelete(key)  // stale draft equals disk
       api.fsWatch(key, path)
       const nextOrder = orderRef.current.includes(path) ? orderRef.current : [...orderRef.current, path]
       setOrder(nextOrder)
       setActiveModel(path, nextOrder)
+      applyReveal(path)
       rerender()
     } finally {
       loading.current.delete(path)
     }
-  }, [rerender, setActiveModel, scheduleDraftPersist, paneId])
+  }, [rerender, setActiveModel, scheduleDraftPersist, paneId, applyReveal])
 
   // Save the untitled scratch buffer to a new file: write it, drop its draft, clear it,
   // and open the saved file as a normal (clean) tab.
@@ -127,7 +150,7 @@ export function useEditorTabs(paneId: string, wsId: string, config: EditorConfig
     if (!active) return
     if (isUntitled(active)) { await saveUntitledAs(); return }
     const t = tabs.current.get(active)
-    if (!t || t.tooLarge) return
+    if (!t || t.tooLarge || t.binary) return
     const value = t.model.getValue()
     // Mark the buffer clean / drop its draft only on a successful write — a failed save must keep
     // the buffer dirty and its recovery draft intact rather than silently lose the edits.
@@ -140,6 +163,18 @@ export function useEditorTabs(paneId: string, wsId: string, config: EditorConfig
 
   const saveActiveRef = useRef(saveActive)
   useEffect(() => { saveActiveRef.current = saveActive }, [saveActive])
+
+  // Save As for a NAMED file (QoL 2026-07-17): write the tab's buffer to a dialog-picked path and
+  // open the copy. The original tab keeps its state — this is "save a copy", the common ask.
+  const saveTabAs = useCallback(async (path: string) => {
+    if (isUntitled(path)) { await saveUntitledAs(); return }
+    const t = tabs.current.get(path)
+    if (!t || t.tooLarge || t.binary || t.missing) return
+    const target = await api.saveFileDialog()
+    if (!target || target === path) return
+    if (!await runOp(() => api.fsWrite(target, t.model.getValue()), useStore.getState().pushToast, 'Save failed')) return
+    await openTab(target)
+  }, [openTab, saveUntitledAs])
 
   // Tear down one tab's Monaco model, watch, and persisted draft — no prompt, no order/persist
   // bookkeeping. Shared by closeTab (user-initiated) and the config-reconciliation effect.
@@ -155,7 +190,7 @@ export function useEditorTabs(paneId: string, wsId: string, config: EditorConfig
   const closeTab = useCallback((path: string) => {
     const t = tabs.current.get(path)
     if (!t) return
-    if (!t.tooLarge && !t.missing && t.model.getValue() !== t.saved) {
+    if (!t.tooLarge && !t.missing && !t.binary && t.model.getValue() !== t.saved) {
       if (!window.confirm(`${base(path)} has unsaved changes. Close anyway?`)) return
     }
     dropTab(path)
@@ -172,12 +207,22 @@ export function useEditorTabs(paneId: string, wsId: string, config: EditorConfig
   }, [active, persist, setActiveModel, rerender, dropTab])
 
   useEffect(() => {
+    const q = useStore.getState().quick
     const ed = monaco.editor.create(hostRef.current!, {
-      automaticLayout: true, theme: 'vs-dark', minimap: { enabled: false }, fontSize: 13
+      automaticLayout: true, theme: 'vs-dark', fontSize: 13,
+      wordWrap: q.editorWordWrap ? 'on' : 'off',
+      minimap: { enabled: q.editorMinimap === true }
     })
     edRef.current = ed
     registerEditorPane(paneId)
     registerFocuser(paneId, () => { ed.focus(); return ed.hasTextFocus() })
+    // How many tabs would lose unsaved edits if this pane closed now — store.closePane consults
+    // this so a pane close can't silently discard what the per-tab close would have confirmed.
+    registerDirtyCheck(paneId, () => {
+      let n = 0
+      for (const t of tabs.current.values()) if (!t.tooLarge && !t.missing && t.model.getValue() !== t.saved) n++
+      return n
+    })
     const focusDisp = ed.onDidFocusEditorText(() => registerEditorPane(paneId))
     ed.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS, () => { void saveActiveRef.current() })
     // One persistent untitled scratch buffer per pane (saved='' so the existing dirty/persist
@@ -190,6 +235,7 @@ export function useEditorTabs(paneId: string, wsId: string, config: EditorConfig
     if (config.files.length === 0) setActiveModel(UNTITLED)
     return () => {
       unregisterFocuser(paneId)
+      unregisterDirtyCheck(paneId)
       focusDisp.dispose(); ed.dispose()
       clearDraftTimers()
       const moving = isPaneInTransit(paneId)
@@ -229,11 +275,52 @@ export function useEditorTabs(paneId: string, wsId: string, config: EditorConfig
   // wrongly tearing the new tab down. `dropTab` is the shared teardown used by closeTab.)
   useEffect(() => {
     for (const f of config.files) if (!tabs.current.has(f)) void openTab(f)
-    if (config.activePath && tabs.current.has(config.activePath)) setActiveModel(config.activePath)
+    if (config.activePath && tabs.current.has(config.activePath)) { setActiveModel(config.activePath); applyReveal(config.activePath) }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [config.files, config.activePath])
 
   useExternalFileWatch(paneId, getTab, rerender)
+
+  // Mirror "any tab dirty?" into the store after every render (edits force a rerender via the
+  // model-change subscriptions), so the pane title's • stays live. Same-value writes are dropped.
+  useEffect(() => {
+    let dirty = false
+    for (const t of tabs.current.values()) if (isDirty(t)) { dirty = true; break }
+    useStore.getState().setEditorDirty(paneId, dirty)
+  })
+
+  // Follow an explorer rename into this pane's open tabs (QoL 2026-07-17): re-key the tab to the
+  // new path (same model, same undo stack) instead of letting the old path's unlink event mark it
+  // "(deleted)". Re-wires the watch and moves any recovery draft to the new key.
+  useEffect(() => onFileRenamed((oldPath, newPath) => {
+    const t = tabs.current.get(oldPath)
+    if (!t) return
+    tabs.current.delete(oldPath)
+    t.path = newPath
+    t.missing = false
+    tabs.current.set(newPath, t)
+    api.fsUnwatch(draftKey(paneId, oldPath))
+    api.fsWatch(draftKey(paneId, newPath), newPath)
+    api.draftsDelete(draftKey(paneId, oldPath))
+    cancelDraftTimer(oldPath)
+    if (t.model.getValue() !== t.saved) scheduleDraftPersist(newPath)
+    const next = orderRef.current.map(p => (p === oldPath ? newPath : p))
+    const nextActive = activeRef.current === oldPath ? newPath : activeRef.current
+    setOrder(next)
+    if (activeRef.current === oldPath) setActive(newPath)
+    persistRef.current(next, nextActive && !isUntitled(nextActive) ? nextActive : undefined)
+    rerender()
+  }), [paneId, cancelDraftTimer, scheduleDraftPersist, rerender])
+
+  // Editor display settings (QoL 2026-07-17): word wrap + minimap, app-wide, live-applied.
+  const editorWordWrap = useStore(s => s.quick.editorWordWrap)
+  const editorMinimap = useStore(s => s.quick.editorMinimap)
+  useEffect(() => {
+    edRef.current?.updateOptions({
+      wordWrap: editorWordWrap ? 'on' : 'off',
+      minimap: { enabled: editorMinimap === true }
+    })
+  }, [editorWordWrap, editorMinimap])
 
   // Per-pane theming: define a Monaco theme from the resolved app/ws/pane colors and apply it.
   const theme = useResolvedPaneTheme(wsId, config.theme)
@@ -266,7 +353,7 @@ export function useEditorTabs(paneId: string, wsId: string, config: EditorConfig
 
   return {
     hostRef, order, active, activeTab, getTab, setActiveModel,
-    openTab, closeTab, clearUntitled, saveUntitledAs, reloadActive, dismissExternalChange
+    openTab, closeTab, clearUntitled, saveUntitledAs, saveTabAs, reloadActive, dismissExternalChange
   }
 }
 

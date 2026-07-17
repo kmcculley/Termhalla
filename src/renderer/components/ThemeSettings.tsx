@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useStore } from '../store'
-import { themeCssVarsPartial } from '@shared/theme'
+import { themeCssVarsPartial, DEFAULT_THEME, LIGHT_THEME } from '@shared/theme'
 import type { Theme } from '@shared/types'
 import { panePidOf, selectionToScope, resolvedForSelection } from './theme-scope'
 
@@ -57,9 +57,24 @@ export function ThemeSettings({ paneId }: { paneId?: string }) {
 
   const row = { display: 'flex', alignItems: 'center', gap: 8, justifyContent: 'space-between' } as const
 
+  const setTheme = useStore(s => s.setTheme)
+  const followSystem = useStore(s => s.quick.themeFollowSystem === true)
+  const setThemeFollowSystem = useStore(s => s.setThemeFollowSystem)
+
   return (
     <div data-testid="settings-appearance" style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
         <div style={{ fontWeight: 600 }}>Theme</div>
+        {/* One-click built-ins (QoL 2026-07-17): light mode used to mean 11 color pickers by hand. */}
+        <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+          <span>Built-in:</span>
+          <button data-testid="theme-builtin-dark" onClick={() => setTheme({ ...DEFAULT_THEME })}>Dark</button>
+          <button data-testid="theme-builtin-light" onClick={() => setTheme({ ...LIGHT_THEME })}>Light</button>
+          <label style={{ display: 'flex', gap: 6, alignItems: 'center', marginLeft: 8 }}>
+            <input data-testid="theme-follow-system" type="checkbox" checked={followSystem}
+              onChange={e => setThemeFollowSystem(e.target.checked)} />
+            Follow system
+          </label>
+        </div>
         <label style={row}><span>Scope</span>
           <select data-testid="theme-scope" value={sel} onChange={e => setSel(e.target.value)} style={{ flex: 1, marginLeft: 8 }}>
             <option value="app">App (default)</option>
@@ -87,7 +102,8 @@ export function ThemeSettings({ paneId }: { paneId?: string }) {
         <label style={row}><span>Terminal font</span>
           <input data-testid="theme-termFontFamily" value={t.termFontFamily} style={{ width: 200 }}
             onChange={e => commit('termFontFamily', e.target.value)} /></label>
-        <label style={row}><span>Terminal text size</span>
+        <label style={row} title="Ctrl+wheel over a terminal also zooms this">
+          <span>Terminal text size <span style={{ color: 'var(--fg-dim, #aaa)' }}>(Ctrl+wheel zooms)</span></span>
           <input data-testid="theme-termFontSize" type="number" min={8} max={32} value={t.termFontSize} style={{ width: 64 }}
             onChange={e => commit('termFontSize', +e.target.value)} /></label>
 

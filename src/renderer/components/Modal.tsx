@@ -83,6 +83,33 @@ export function Modal({ onClose, align = 'center', z = Z.dialog, backdropTestId,
     const card = cardRef.current
     if (card && !card.contains(document.activeElement)) card.focus()
   }, [])
+  // Central keyboard contract every dialog inherits (QoL batch 2026-07-17 — 7 of ~11 modals had
+  // no Escape path, and none trapped Tab, so focus could walk out of the card into the terminal
+  // behind the scrim):
+  //  - Escape closes, with keyboard parity to the backdrop click. A dialog that handles Escape
+  //    itself (palette, capture modal) preventDefault()s first, so its semantics win — no
+  //    double-close of a modal→modal handoff.
+  //  - Tab wraps within the card (a minimal focus trap; Shift+Tab from the card itself or its
+  //    first control wraps to the last).
+  // Composed AFTER cardProps' own onKeyDown so per-dialog handlers run first.
+  const onCardKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    cardProps?.onKeyDown?.(e)
+    if (e.key === 'Escape') {
+      if (!e.defaultPrevented) { e.preventDefault(); e.stopPropagation(); onClose() }
+      return
+    }
+    if (e.key !== 'Tab' || e.defaultPrevented) return
+    const el = cardRef.current
+    if (!el) return
+    const focusables = Array.from(el.querySelectorAll<HTMLElement>(
+      'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+    ))
+    if (focusables.length === 0) { e.preventDefault(); return }
+    const first = focusables[0], last = focusables[focusables.length - 1]
+    const active = document.activeElement
+    if (e.shiftKey && (active === first || active === el)) { e.preventDefault(); last.focus() }
+    else if (!e.shiftKey && active === last) { e.preventDefault(); first.focus() }
+  }
   const overlay: CSSProperties = {
     position: 'fixed', inset: 0, background: BACKDROP, zIndex: z,
     ...(align === 'center'
@@ -92,7 +119,8 @@ export function Modal({ onClose, align = 'center', z = Z.dialog, backdropTestId,
   return createPortal(
     <div data-testid={backdropTestId} onClick={onClose} style={overlay}>
       <div data-testid={cardTestId} className="ui-pop-in" ref={cardRef} tabIndex={-1}
-        onClick={e => e.stopPropagation()} {...cardProps} style={{ ...CARD_BASE, ...card, outline: 'none' }}>
+        onClick={e => e.stopPropagation()} {...cardProps} onKeyDown={onCardKeyDown}
+        style={{ ...CARD_BASE, ...card, outline: 'none' }}>
         {children}
       </div>
     </div>,

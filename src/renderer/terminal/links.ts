@@ -1,7 +1,7 @@
 import type { Terminal, ILink, ILinkProvider, IDisposable } from '@xterm/xterm'
 import { WebLinksAddon } from '@xterm/addon-web-links'
 import type { ImageSource } from '@shared/ipc-contract'
-import { findImagePaths, isImageUrl, resolveImageSrc } from '@shared/terminal-links'
+import { findImagePaths, findFileLineRefs, isImageUrl, resolveImageSrc } from '@shared/terminal-links'
 
 export interface TerminalLinksOpts {
   isSsh: boolean
@@ -9,6 +9,8 @@ export interface TerminalLinksOpts {
   getHome: () => string
   openExternal: (url: string) => void
   openImage: (src: ImageSource) => void
+  /** Open a source location (compiler error / stack frame) in the editor pane (QoL 2026-07-17). */
+  openFileAt?: (path: string, line: number, col?: number) => void
 }
 
 const hasMod = (e: MouseEvent) => e.ctrlKey || e.metaKey
@@ -45,6 +47,20 @@ export function registerTerminalLinks(term: Terminal, opts: TerminalLinksOpts): 
             opts.openImage({ kind: 'file', src: resolveImageSrc(t, opts.getCwd(), opts.getHome()) })
           }
         }))
+        // Source locations (`src/foo.ts:42:8`, `a.cs(10,5)`) open in the editor pane at that
+        // position (QoL 2026-07-17). Same Ctrl/Cmd+click gesture as every other terminal link.
+        if (opts.openFileAt) {
+          for (const m of findFileLineRefs(text)) {
+            links.push({
+              range: { start: { x: m.start + 1, y: bufferLineNumber }, end: { x: m.end, y: bufferLineNumber } },
+              text: text.slice(m.start, m.end),
+              activate: (event: MouseEvent) => {
+                if (!hasMod(event)) return
+                opts.openFileAt!(resolveImageSrc(m.path, opts.getCwd(), opts.getHome()), m.line, m.col)
+              }
+            })
+          }
+        }
         callback(links.length ? links : undefined)
       }
     }

@@ -26,10 +26,13 @@ describe('clipboardKeyAction', () => {
   it('ignores non-keydown events', () => {
     expect(clipboardKeyAction(ev({ type: 'keyup', ctrlKey: true, key: 'c' }), true)).toBeNull()
   })
-  it('ignores Alt+Ctrl+C and Ctrl+Shift+C/V', () => {
+  it('ignores Alt+Ctrl+C', () => {
     expect(clipboardKeyAction(ev({ ctrlKey: true, altKey: true, key: 'c' }), true)).toBeNull()
-    expect(clipboardKeyAction(ev({ ctrlKey: true, shiftKey: true, key: 'c' }), true)).toBeNull()
-    expect(clipboardKeyAction(ev({ ctrlKey: true, shiftKey: true, key: 'v' }), false)).toBeNull()
+  })
+  it('accepts Ctrl+Shift+C/V — the terminal-emulator convention (QoL 2026-07-17)', () => {
+    expect(clipboardKeyAction(ev({ ctrlKey: true, shiftKey: true, key: 'C' }), true)).toBe('copy')
+    expect(clipboardKeyAction(ev({ ctrlKey: true, shiftKey: true, key: 'C' }), false)).toBeNull()
+    expect(clipboardKeyAction(ev({ ctrlKey: true, shiftKey: true, key: 'V' }), false)).toBe('paste')
   })
   it('ignores plain c/v without a modifier', () => {
     expect(clipboardKeyAction(ev({ key: 'c' }), true)).toBeNull()

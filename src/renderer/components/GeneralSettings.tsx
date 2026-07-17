@@ -1,5 +1,6 @@
 import { useStore } from '../store'
 import { api } from '../api'
+import { DEFAULT_TERM_SCROLLBACK } from '@shared/types'
 
 /** App-wide terminal/recording preferences (was scattered across the per-pane
  *  TerminalSettings popover and the tab-bar shell picker). */
@@ -19,6 +20,12 @@ export function GeneralSettings() {
   const setToastsEnabled = useStore(s => s.setToastsEnabled)
   const orkyNeedsYouNotifications = useStore(s => s.quick.orkyNeedsYouNotifications)
   const setOrkyNeedsYouNotifications = useStore(s => s.setOrkyNeedsYouNotifications)
+  const termScrollback = useStore(s => s.quick.termScrollback)
+  const setTermScrollback = useStore(s => s.setTermScrollback)
+  const editorWordWrap = useStore(s => s.quick.editorWordWrap)
+  const setEditorWordWrap = useStore(s => s.setEditorWordWrap)
+  const editorMinimap = useStore(s => s.quick.editorMinimap)
+  const setEditorMinimap = useStore(s => s.setEditorMinimap)
   return (
     <div data-testid="settings-general" style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
       <label style={{ display: 'flex', gap: 8, alignItems: 'center', justifyContent: 'space-between' }}>
@@ -56,6 +63,22 @@ export function GeneralSettings() {
         <input data-testid="orky-needs-you-notifications" type="checkbox" checked={orkyNeedsYouNotifications !== false}
           onChange={e => setOrkyNeedsYouNotifications(e.target.checked)} />
         Show OS notifications when an Orky project needs a decision
+      </label>
+      <label style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+        <input data-testid="editor-word-wrap" type="checkbox" checked={editorWordWrap === true}
+          onChange={e => setEditorWordWrap(e.target.checked)} />
+        Word wrap in editors
+      </label>
+      <label style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+        <input data-testid="editor-minimap" type="checkbox" checked={editorMinimap === true}
+          onChange={e => setEditorMinimap(e.target.checked)} />
+        Minimap in editors
+      </label>
+      <label style={{ display: 'flex', gap: 8, alignItems: 'center', justifyContent: 'space-between' }}>
+        <span>Terminal scrollback lines (applies live to every terminal)</span>
+        <input data-testid="term-scrollback" type="number" min={100} max={100000} step={100}
+          value={termScrollback ?? DEFAULT_TERM_SCROLLBACK} style={{ width: 90 }}
+          onChange={e => { const v = +e.target.value; if (Number.isFinite(v) && v >= 100) setTermScrollback(Math.min(100000, v)) }} />
       </label>
       <div>
         <button data-testid="rec-folder" onClick={() => api.recReveal()}>Open recordings folder</button>

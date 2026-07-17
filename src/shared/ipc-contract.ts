@@ -29,6 +29,7 @@ export const CH = {
   fsWrite: 'fs:write',
   fsReadDir: 'fs:readDir',
   fsStat: 'fs:stat',
+  fsMkdir: 'fs:mkdir',
   fsRename: 'fs:rename',
   fsTrash: 'fs:trash',
   fsRevealItem: 'fs:revealItem',
@@ -191,6 +192,7 @@ export interface TermhallaApi {
   fsWrite(path: string, content: string): Promise<number>
   fsReadDir(path: string): Promise<DirEntry[]>
   fsStat(path: string): Promise<StatResult>
+  fsMkdir(path: string): Promise<void>
   fsWatch(id: string, path: string): void
   fsUnwatch(id: string): void
   onFsChange(cb: (id: string, change: FsChange) => void): () => void
@@ -273,6 +275,10 @@ export interface TermhallaApi {
   envRemoveTerminal(envId: string, name: string): void
   clipboardWrite(text: string): void
   clipboardRead(): Promise<string>
+  /** Absolute filesystem path for a DOM File from a drag-drop (QoL 2026-07-17). Synchronous,
+   *  preload-local (Electron webUtils.getPathForFile — File.path was removed in Electron 32+).
+   *  Typed structurally (not `File`) so this contract stays DOM-lib-free for the node configs. */
+  pathForFile(file: unknown): string
   winDragEnd(args: WinDragEndArgs): void
   winDragGhost(args: WinDragGhostArgs | null): void
   winRedock(args: WinRedockArgs): void

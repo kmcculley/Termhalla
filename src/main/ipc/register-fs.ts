@@ -1,6 +1,6 @@
 import { ipcMain, dialog, shell, BrowserWindow } from 'electron'
 import { CH } from '@shared/ipc-contract'
-import { readTextFile, writeTextFile, readDirectory, statPath, renamePath } from '../fs/files'
+import { readTextFile, writeTextFile, readDirectory, statPath, renamePath, makeDirectory } from '../fs/files'
 import { WatchManager } from '../fs/watch-manager'
 import type { Send, Disposer } from './types'
 
@@ -16,6 +16,7 @@ export function registerFs(win: BrowserWindow, send: Send): Disposer {
   ipcMain.handle(CH.fsWrite, (_e, path: string, content: string) => writeTextFile(path, content))
   ipcMain.handle(CH.fsReadDir, (_e, path: string) => readDirectory(path))
   ipcMain.handle(CH.fsStat, (_e, path: string) => statPath(path))
+  ipcMain.handle(CH.fsMkdir, (_e, path: string) => makeDirectory(path))
   ipcMain.on(CH.fsWatch, (_e, id: string, path: string) => watcher.watch(id, path))
   ipcMain.on(CH.fsUnwatch, (_e, id: string) => watcher.unwatch(id))
 

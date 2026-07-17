@@ -1,13 +1,14 @@
 import type { GitStatus } from '@shared/types'
-import { Z, SURFACE } from './Modal'
+import { MenuSurface } from './MenuSurface'
 
-/** Read-only in-tile popover with full git detail. Positioned like ProcessPopover (absolute within
- *  the position:relative tile); closed by toggling the chip again. */
-export function GitPopover({ status }: { status: GitStatus }) {
+/** Read-only popover with full git detail, anchored to its tile (the caller measures the anchor).
+ *  Rendered through the shared MenuSurface so click-away and Escape dismiss it like every menu. */
+export function GitPopover(
+  { status, anchor, onClose }: { status: GitStatus; anchor: React.CSSProperties; onClose: () => void }
+) {
   return (
-    <div data-testid="git-menu" onClick={e => e.stopPropagation()}
-      style={{ ...SURFACE, position: 'absolute', left: 4, top: 28, zIndex: Z.popover, padding: 6,
-        maxWidth: 320, fontSize: 12, fontFamily: 'var(--mono)' }}>
+    <MenuSurface testid="git-menu" portal onClose={onClose}
+      style={{ ...anchor, padding: 6, maxWidth: 320, fontSize: 12, fontFamily: 'var(--mono)' }}>
       <div>{status.detached ? `detached @ ${status.branch}` : status.branch}</div>
       {status.upstream && (
         <div style={{ color: 'var(--fg-dim, #aaa)' }}>{status.upstream} · ↑{status.ahead} ↓{status.behind}</div>
@@ -22,6 +23,6 @@ export function GitPopover({ status }: { status: GitStatus }) {
           conflicted {status.conflicted}
         </div>
       )}
-    </div>
+    </MenuSurface>
   )
 }

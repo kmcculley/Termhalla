@@ -97,10 +97,12 @@ export interface ClipboardKeyEvent {
 /** Decide what a terminal key event means for the clipboard.
  *  - Ctrl/Cmd+C with a selection -> 'copy'; without -> null (let ^C through to the PTY).
  *  - Ctrl/Cmd+V -> 'paste'.
- *  - Anything else (non-keydown, Alt or Shift held, other keys) -> null. */
+ *  - Ctrl/Cmd+Shift+C / +V (QoL 2026-07-17): the classic terminal-emulator convention — same
+ *    actions, unambiguous alongside ^C-as-interrupt.
+ *  - Anything else (non-keydown, Alt held, other keys) -> null. */
 export function clipboardKeyAction(e: ClipboardKeyEvent, hasSelection: boolean): ClipboardAction {
   if (e.type !== 'keydown') return null
-  if (!(e.ctrlKey || e.metaKey) || e.altKey || e.shiftKey) return null
+  if (!(e.ctrlKey || e.metaKey) || e.altKey) return null
   const key = e.key.toLowerCase()
   if (key === 'c') return hasSelection ? 'copy' : null
   if (key === 'v') return 'paste'

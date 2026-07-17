@@ -42,7 +42,10 @@ export function RunCommandsMenu({ wsId, paneId, onClose }: { wsId: string; paneI
   }
 
   const startEdit = (s: Scope, cmd: RunCommand) => { setScope(s); setEditId(cmd.id); setLabel(cmd.label); setCommand(cmd.command) }
-  const del = (s: Scope, id: string) => { persist(s, removeRunCommand(listFor(s), id)); if (editId === id) resetForm() }
+  const del = (s: Scope, cmd: RunCommand) => {
+    if (!window.confirm(`Delete run command "${cmd.label}"?`)) return
+    persist(s, removeRunCommand(listFor(s), cmd.id)); if (editId === cmd.id) resetForm()
+  }
   const run = (command: string) => { runCommand(paneId, command); onClose() }
 
   const section = (s: Scope, title: string) => {
@@ -58,7 +61,7 @@ export function RunCommandsMenu({ wsId, paneId, onClose }: { wsId: string; paneI
               style={{ flex: 1, fontFamily: 'var(--mono)', fontSize: 12, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', cursor: 'pointer' }}>
               {cmd.label} — {cmd.command.split('\n')[0]}
             </span>
-            <button data-testid={`run-del-${cmd.id}`} onClick={() => del(s, cmd.id)}>×</button>
+            <button data-testid={`run-del-${cmd.id}`} title="Delete" onClick={() => del(s, cmd)}>×</button>
           </div>
         ))}
       </div>
@@ -72,9 +75,11 @@ export function RunCommandsMenu({ wsId, paneId, onClose }: { wsId: string; paneI
       {section('pane', 'This terminal')}
       <div style={{ borderTop: '1px solid var(--border, #444)', paddingTop: 8, display: 'flex', flexDirection: 'column', gap: 6 }}>
         <input data-testid="run-cmd-label" placeholder="Label (e.g. Test)" value={label}
-          onChange={e => setLabel(e.target.value)} autoFocus />
+          onChange={e => setLabel(e.target.value)} autoFocus
+          onKeyDown={e => { if (e.key === 'Enter') submit() }} />
         <input data-testid="run-cmd-command" placeholder="Command (e.g. npm test)" value={command}
-          onChange={e => setCommand(e.target.value)} style={{ fontFamily: 'var(--mono)' }} />
+          onChange={e => setCommand(e.target.value)} style={{ fontFamily: 'var(--mono)' }}
+          onKeyDown={e => { if (e.key === 'Enter') submit() }} />
         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
           <label>Scope:&nbsp;
             <select data-testid="run-cmd-scope" value={scope} onChange={e => setScope(e.target.value as Scope)} disabled={editId !== null}>

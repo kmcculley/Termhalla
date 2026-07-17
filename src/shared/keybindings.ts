@@ -3,9 +3,11 @@
  *  no Electron, no store — so it is fully unit-testable. */
 
 /** A normalized chord. `mod` means "Ctrl OR ⌘" (mac parity); `key` is a lowercased
- *  KeyboardEvent.key. We model only mod[+shift]+key: every app shortcut requires Ctrl/⌘, which
- *  keeps unmatched keys flowing to the terminal. */
-export interface Chord { mod: boolean; shift: boolean; key: string }
+ *  KeyboardEvent.key; `alt` (optional, QoL batch 2026-07-17) adds the Alt modifier. Every app
+ *  shortcut still requires Ctrl/⌘, which keeps unmatched keys flowing to the terminal. Modeling
+ *  alt also FIXES a latent AltGr bug: AltGr reports ctrl+alt on many layouts, and the old
+ *  alt-blind matcher let AltGr+K falsely trigger the mod+K palette while typing. */
+export interface Chord { mod: boolean; shift: boolean; key: string; alt?: boolean }
 
 /** The dispatched shortcut. `type` for the rebindable commands equals their CommandId, so the
  *  App.tsx dispatch switch is unchanged. `jump-workspace` is parametric and non-rebindable. */
@@ -25,16 +27,31 @@ export type Shortcut =
   | { type: 'redraw-terminal' }
   | { type: 'toggle-orky-queue' }
   | { type: 'capture-orky-work' }
+  | { type: 'close-pane' }
+  | { type: 'focus-pane-left' }
+  | { type: 'focus-pane-right' }
+  | { type: 'focus-pane-up' }
+  | { type: 'focus-pane-down' }
+  | { type: 'restore-last-minimized' }
+  | { type: 'font-zoom-in' }
+  | { type: 'font-zoom-out' }
+  | { type: 'font-zoom-reset' }
+  | { type: 'clear-terminal' }
+  | { type: 'find-in-terminal' }
 
 export type CommandId =
   | 'toggle-palette' | 'toggle-broadcast' | 'new-terminal' | 'close-workspace'
   | 'next-workspace' | 'prev-workspace' | 'open-settings' | 'toggle-maximize-pane'
   | 'toggle-minimize-pane' | 'toggle-notes' | 'toggle-search' | 'redraw-terminal'
   | 'toggle-orky-queue' | 'capture-orky-work'
+  | 'close-pane' | 'focus-pane-left' | 'focus-pane-right' | 'focus-pane-up' | 'focus-pane-down'
+  | 'restore-last-minimized' | 'font-zoom-in' | 'font-zoom-out' | 'font-zoom-reset'
+  | 'clear-terminal' | 'find-in-terminal'
 
 export interface Command { id: CommandId; label: string; category: string; defaultChord: Chord; tip?: string }
 
 const c = (mod: boolean, shift: boolean, key: string): Chord => ({ mod, shift, key })
+const ca = (key: string): Chord => ({ mod: true, shift: false, alt: true, key })
 
 /** The rebindable commands. `tip` (when present) is the phrase used in status-bar tips. */
 export const COMMANDS: Command[] = [
@@ -54,27 +71,45 @@ export const COMMANDS: Command[] = [
   // Feature 0012: mod+shift+u because every plausible mnemonic collides — o=queue, n=notes,
   // w=close-workspace, i=Electron's toggleDevTools role accelerator (menu.ts), c=terminal-copy.
   { id: 'capture-orky-work',    label: 'Capture Orky work item',      category: 'General',    defaultChord: c(true, true, 'u'), tip: 'capture an Orky work item' },
+  // QoL batch 2026-07-17. Chord choices: q (close) because w=close-workspace; j (restore) pairs
+  // with h (minimize); mod+alt+arrows for directional focus because mod+shift+arrows are
+  // PSReadLine's word-selection defaults; mod+alt+=/-/0 for font zoom because the View menu's
+  // Electron roles own mod+-/mod+0 for whole-UI zoom; g ("grep") for in-pane find because
+  // mod+shift+f is the history search and bare mod+f must keep reaching the shell (readline ^F).
+  { id: 'close-pane',           label: 'Close pane',              category: 'Panes', defaultChord: c(true, true, 'q'), tip: 'close the focused pane' },
+  { id: 'focus-pane-left',      label: 'Focus pane left',         category: 'Panes', defaultChord: ca('arrowleft') },
+  { id: 'focus-pane-right',     label: 'Focus pane right',        category: 'Panes', defaultChord: ca('arrowright') },
+  { id: 'focus-pane-up',        label: 'Focus pane above',        category: 'Panes', defaultChord: ca('arrowup') },
+  { id: 'focus-pane-down',      label: 'Focus pane below',        category: 'Panes', defaultChord: ca('arrowdown') },
+  { id: 'restore-last-minimized', label: 'Restore last minimized pane', category: 'Panes', defaultChord: c(true, true, 'j'), tip: 'restore the last minimized pane' },
+  { id: 'font-zoom-in',         label: 'Terminal font larger',    category: 'Panes', defaultChord: ca('=') },
+  { id: 'font-zoom-out',        label: 'Terminal font smaller',   category: 'Panes', defaultChord: ca('-') },
+  { id: 'font-zoom-reset',      label: 'Terminal font reset',     category: 'Panes', defaultChord: ca('0') },
+  { id: 'clear-terminal',       label: 'Clear terminal scrollback', category: 'Panes', defaultChord: c(true, true, 'k'), tip: 'clear the terminal and its scrollback' },
+  { id: 'find-in-terminal',     label: 'Find in terminal',        category: 'Panes', defaultChord: c(true, true, 'g'), tip: 'search within this terminal' },
 ]
 
-/** Canonical, JSON-storable, comparable key for a chord, e.g. "mod+shift+t". */
+/** Canonical, JSON-storable, comparable key for a chord, e.g. "mod+shift+t" / "mod+alt+arrowleft". */
 export function chordKey(ch: Chord): string {
-  return [ch.mod ? 'mod' : '', ch.shift ? 'shift' : '', ch.key].filter(Boolean).join('+')
+  return [ch.mod ? 'mod' : '', ch.alt ? 'alt' : '', ch.shift ? 'shift' : '', ch.key].filter(Boolean).join('+')
 }
 
-/** Parse a chordKey back to a Chord; null if it has no key segment. */
+/** Parse a chordKey back to a Chord; null if it has no key segment. Pre-alt stored keys parse
+ *  unchanged (alt simply stays unset). */
 export function parseChordKey(s: string): Chord | null {
   const parts = s.split('+')
   const key = parts.pop()
   if (!key) return null
   const set = new Set(parts)
-  return { mod: set.has('mod'), shift: set.has('shift'), key }
+  return { mod: set.has('mod'), shift: set.has('shift'), key, alt: set.has('alt') ? true : undefined }
 }
 
-interface KeyEvent { key: string; ctrlKey: boolean; metaKey: boolean; shiftKey: boolean }
+interface KeyEvent { key: string; ctrlKey: boolean; metaKey: boolean; shiftKey: boolean; altKey?: boolean }
 
-/** Normalize a keyboard event to a Chord (mod = Ctrl OR ⌘). */
+/** Normalize a keyboard event to a Chord (mod = Ctrl OR ⌘). `alt` is set only when held, so a
+ *  chordKey comparison distinguishes AltGr (ctrl+alt) events from plain mod chords. */
 export function eventToChord(e: KeyEvent): Chord {
-  return { mod: e.ctrlKey || e.metaKey, shift: e.shiftKey, key: e.key.toLowerCase() }
+  return { mod: e.ctrlKey || e.metaKey, shift: e.shiftKey, key: e.key.toLowerCase(), alt: e.altKey ? true : undefined }
 }
 
 const KEY_LABEL: Record<string, string> = {
@@ -88,7 +123,7 @@ export function formatChord(ch: Chord): string {
   const key = KEY_LABEL[ch.key] ?? (ch.key.length === 1
     ? ch.key.toUpperCase()
     : ch.key.charAt(0).toUpperCase() + ch.key.slice(1))
-  return [ch.mod ? 'Ctrl' : '', ch.shift ? 'Shift' : '', key].filter(Boolean).join('+')
+  return [ch.mod ? 'Ctrl' : '', ch.alt ? 'Alt' : '', ch.shift ? 'Shift' : '', key].filter(Boolean).join('+')
 }
 
 export const DEFAULT_BINDINGS: Record<CommandId, Chord> =
@@ -115,8 +150,9 @@ export function matchShortcut(e: KeyEvent, bindings: Partial<Record<CommandId, C
   const mod = e.ctrlKey || e.metaKey
   if (!mod) return null
   const k = e.key.toLowerCase()
-  // Reserved numeric jump — checked first so a rebind can never shadow it.
-  if (!e.shiftKey && k.length === 1 && k >= '1' && k <= '9') return { type: 'jump-workspace', index: Number(k) - 1 }
+  // Reserved numeric jump — checked first so a rebind can never shadow it. Never with Alt held:
+  // AltGr layouts report ctrl+alt while typing, and ctrl+alt+digit types characters there.
+  if (!e.shiftKey && !e.altKey && k.length === 1 && k >= '1' && k <= '9') return { type: 'jump-workspace', index: Number(k) - 1 }
   const wanted = chordKey(eventToChord(e))
   for (const id of Object.keys(bindings) as CommandId[]) {
     const ch = bindings[id]
@@ -142,7 +178,7 @@ export function findConflict(bindings: Partial<Record<CommandId, Chord>>, chord:
 export function isValidRebind(ch: Chord): boolean {
   if (!ch.mod) return false
   if (!ch.key || ['control', 'meta', 'shift', 'alt'].includes(ch.key)) return false
-  if (/^[1-9]$/.test(ch.key)) return false
+  if (!ch.alt && /^[1-9]$/.test(ch.key)) return false  // reserved jump digits — free with Alt held
   if (ch.key === '+') return false
   return true
 }

@@ -54,10 +54,19 @@ export function remoteAllowedDomains(
  * not claim they "will be closed". Local workspaces keep the pre-0024 wording verbatim. ONE
  * helper for both confirm sites (WorkspaceTabs.tsx tab menu, App.tsx keyboard shortcut).
  */
-export function closeWorkspaceConfirmText(name: string, home: WorkspaceHome | undefined): string {
-  return home
-    ? `Close workspace "${name}"? Its terminals keep running on the remote agent — reopen the workspace to reattach them.`
-    : `Close workspace "${name}"? Its terminals will be closed.`
+export function closeWorkspaceConfirmText(
+  name: string, home: WorkspaceHome | undefined, busyCount = 0
+): string {
+  if (home) {
+    // Remote: nothing is killed regardless of busyness (that's the whole point of the detach).
+    return `Close workspace "${name}"? Its terminals keep running on the remote agent — reopen the workspace to reattach them.`
+  }
+  const base = `Close workspace "${name}"? Its terminals will be closed.`
+  // Busy-aware (QoL batch 2026-07-17): the prompt used to read identically for an idle shell and
+  // a pane mid-build/mid-AI-session — name what the close would actually kill.
+  return busyCount > 0
+    ? `${base} ${busyCount === 1 ? '1 pane is' : `${busyCount} panes are`} still running a process.`
+    : base
 }
 
 /**
