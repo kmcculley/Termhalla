@@ -1,10 +1,28 @@
 /**
  * Composition: settings <-> the runtime server, the shared mirror registry, per-client WS
  * sessions, and the IPC-facing status/control surface (feature 0026, REQ-001/002/004/005/006/
- * 007/009/011/012/019/020/024). The service TRUSTS its injected settings — normalization happens
- * at the quick-store boundary (`normalizePhoneRemote`), not here. `settings.port === 0` means
- * OS-assigned (a test seam; production keeps the persisted/default port); the ACTUAL bound port
- * is reported back through `status().port`/`status().urls`.
+ * 007/009/011/012/017/019/020/024/028/031). The service TRUSTS its injected settings —
+ * normalization happens at the quick-store boundary (`normalizePhoneRemote`), not here.
+ * `settings.port === 0` means OS-assigned (a test seam; production keeps the persisted/default
+ * port); the ACTUAL bound port is reported back through `status().port`/`status().urls`.
+ *
+ * v2 (ESC-001 loopback) additions:
+ *  - REQ-028 HttpOnly session cookie: the first token-authenticated response sets it; it is a
+ *    first-class credential for every REQ-005 route (`auth.ts`/`cookie.ts`).
+ *  - REQ-019 (FINDING-018): every lifecycle mutation is serialized through a single promise-chain
+ *    op-queue, so two racing calls never interleave and a redundant `setEnabled(true)` is a no-op.
+ *  - REQ-020 (FINDING-034/049): `status().error` persists the last startup failure for a
+ *    late-subscribing window.
+ *  - REQ-011 (FINDING-022/038): `deps.panes.onSpawn` (membership-changed signal) re-pushes the
+ *    inventory to every connected client; pane exit does too.
+ *  - REQ-017 (FINDING-001/015/029/030, real transport): a per-connection poll samples
+ *    `ws.bufferedAmount` on a real, actually-firing cadence and calls `session.socketDrained()` —
+ *    never a listener on the `ws` library's nonexistent `'drain'` event. The SAME poll drives the
+ *    REQ-017 stall ceiling (`PHONE_WS_STALL_TIMEOUT_MS`) and a real WS ping/pong keepalive
+ *    (`PHONE_WS_PING_INTERVAL_MS`/`PHONE_WS_PONG_TIMEOUT_MS`) terminates unresponsive sockets.
+ *  - REQ-031: `status().urls` is the deterministically-ranked reachable-URL list
+ *    (`network-urls.ts`); `externalHost` overrides the pairing-URL host.
+ *  - REQ-007: `pairingUrl()` re-fetches the current session's pairing URL WITHOUT regenerating.
  */
 import { networkInterfaces } from 'node:os'
 import type { IncomingMessage, ServerResponse } from 'node:http'
@@ -17,12 +35,16 @@ import type { PhoneRemoteStatus } from '@shared/phone-remote/status'
 import { createPhoneRemoteServer, type BindMode } from './server'
 
 export type { BindMode }
-import { extractTokenFromRequest, isRequestAuthorized } from './auth'
+import { authorizeRequest, isRequestAuthorized } from './auth'
+import { issueSetCookie } from './cookie'
 import { isAllowlisted, serveStaticFile } from './static-assets'
 import { generateToken, hashToken, verifyToken } from './token'
 import { createMirrorManager } from './mirror-manager'
 import { createWsSession, type WsSession } from './ws-session'
 import { buildInventory, type RawPaneInfo } from './inventory'
+import { rankReachableUrls } from './network-urls'
+import { createBackpressurePolicy } from './backpressure'
+import { PHONE_WS_HIGH_WATER, PHONE_WS_PING_INTERVAL_MS, PHONE_WS_PONG_TIMEOUT_MS, PHONE_WS_STALL_TIMEOUT_MS } from './constants'
 
 export interface PhoneRemotePaneRecord {
   paneId: string
@@ -44,6 +66,10 @@ export interface PhoneRemoteServiceDeps {
     onExit(cb: (paneId: string) => void): () => void
     onGrid(cb: (paneId: string, cols: number, rows: number) => void): () => void
     onStatus(cb: (paneId: string, status: string) => void): () => void
+    /** Membership-changed signal (a pane spawned, or its metadata became known/changed) — the
+     *  service re-pushes the inventory to every connected client (v2, REQ-011). The callback
+     *  argument is advisory only; the service always re-reads `list()`. */
+    onSpawn?(cb: (pane: unknown) => void): () => void
     write(paneId: string, data: string): void
   }
   /** Dir served as the web-client bundle (`out/phone-client` in production). */
@@ -53,6 +79,15 @@ export interface PhoneRemoteServiceDeps {
   notifyError(message: string): void
   /** Test seam; defaults to the real F18 `createPaneReplay`. */
   replayFactory?: ReplayFactory
+  /** Test/e2e-seam timing overrides for the real-transport keepalive/stall wiring; defaults are
+   *  the exported constants. */
+  timing?: { pingIntervalMs?: number; pongTimeoutMs?: number; stallTimeoutMs?: number }
+  /** Test/e2e-seam ONLY (REQ-025): seeds the in-memory plaintext session token (never exposed via
+   *  IPC — this is main-process-internal construction wiring) so a harness-fixed token both
+   *  authenticates (its hash must match the ALSO-seam-injected `settings.tokenHash`) AND drives
+   *  REQ-028 cookie issuance exactly like a real `regenerateToken()` would, without minting a
+   *  fresh random token the harness's fixed credential wouldn't match. */
+  initialSessionToken?: string
 }
 
 export interface PhoneRemoteService {
@@ -60,32 +95,45 @@ export interface PhoneRemoteService {
   setEnabled(enabled: boolean): Promise<void>
   setBind(mode: BindMode): Promise<void>
   setPort(port: number): Promise<void>
+  setExternalHost(host: string | undefined): Promise<void>
   status(): PhoneRemoteStatus
   regenerateToken(): Promise<{ pairingUrl: string }>
+  /** Re-fetch the CURRENT session's pairing URL — never regenerates (REQ-007: pairing a second
+   *  device an hour later must not force a revoking regenerate of the first). */
+  pairingUrl(): Promise<{ pairingUrl: string } | { unavailable: true }>
   stop(): Promise<void>
 }
 
 const DEFAULT_SETTINGS: PhoneRemoteSettings = { enabled: false, bind: 'localhost', port: PHONE_REMOTE_PORT_DEFAULT }
 
-const primaryLanAddress = (): string | undefined => {
-  for (const ifaces of Object.values(networkInterfaces())) {
-    for (const iface of ifaces ?? []) {
-      if (iface.family === 'IPv4' && !iface.internal) return iface.address
-    }
-  }
-  return undefined
-}
+const BACKPRESSURE_POLL_MS = 50
 
 export function createPhoneRemoteService(deps: PhoneRemoteServiceDeps): PhoneRemoteService {
   let settings: PhoneRemoteSettings = DEFAULT_SETTINGS
   let listening = false
   let boundPort: number | undefined
   /** The plaintext token, main-process memory only, for the CURRENT app session (REQ-004). */
-  let sessionToken: string | undefined
+  let sessionToken: string | undefined = deps.initialSessionToken
+  /** The last startup failure, until a successful start clears it (v2, FINDING-049/034). */
+  let lastError: string | undefined
+
+  const timing = {
+    pingIntervalMs: deps.timing?.pingIntervalMs ?? PHONE_WS_PING_INTERVAL_MS,
+    pongTimeoutMs: deps.timing?.pongTimeoutMs ?? PHONE_WS_PONG_TIMEOUT_MS,
+    stallTimeoutMs: deps.timing?.stallTimeoutMs ?? PHONE_WS_STALL_TIMEOUT_MS
+  }
 
   const mirrors = createMirrorManager({ replayFactory: deps.replayFactory })
   const taps = new Map<string, (chunk: string) => void>()
-  const sessions = new Set<{ ws: WsSocket; session: WsSession }>()
+  interface SessionEntry {
+    ws: WsSocket
+    session: WsSession
+    dispose: () => void
+    /** Per-connection pre-transport burst queue for pane data (REQ-017 v2 — see the connection
+     *  handler below for the full rationale). */
+    queueData: (paneId: string, chunk: string) => void
+  }
+  const sessions = new Set<SessionEntry>()
   const wss = new WebSocketServer({ noServer: true, maxPayload: PHONE_WS_MAX_FRAME })
 
   const paneInfo = (paneId: string): PhoneRemotePaneRecord | undefined =>
@@ -99,17 +147,28 @@ export function createPhoneRemoteService(deps: PhoneRemoteServiceDeps): PhoneRem
 
   const toRawPaneInfo = (list: PhoneRemotePaneRecord[]): RawPaneInfo[] => list
 
+  // ── Pairing URLs (REQ-031: deterministic reachable-URL ranking + externalHost override) ──────
+  const rankedLanUrls = (port: number): string[] => rankReachableUrls(networkInterfaces(), port)
+
   const computeUrls = (): string[] => {
     if (!listening || boundPort === undefined) return []
     if (settings.bind === 'lan') {
-      const lan = primaryLanAddress()
-      return lan ? [`http://127.0.0.1:${boundPort}/`, `http://${lan}:${boundPort}/`] : [`http://127.0.0.1:${boundPort}/`]
+      return [`http://127.0.0.1:${boundPort}`, ...rankedLanUrls(boundPort)]
     }
-    return [`http://127.0.0.1:${boundPort}/`]
+    return [`http://127.0.0.1:${boundPort}`]
+  }
+
+  const pairingHost = (): string => {
+    if (settings.externalHost) return settings.externalHost
+    if (settings.bind === 'lan' && boundPort !== undefined) {
+      const top = rankedLanUrls(boundPort)[0]
+      if (top) { try { return new URL(top).hostname } catch { /* fall through */ } }
+    }
+    return '127.0.0.1'
   }
 
   const buildPairingUrl = (token: string): string => {
-    const host = settings.bind === 'lan' ? (primaryLanAddress() ?? '127.0.0.1') : '127.0.0.1'
+    const host = pairingHost()
     const port = listening && boundPort !== undefined ? boundPort : settings.port
     return `http://${host}:${port}/?token=${encodeURIComponent(token)}`
   }
@@ -120,10 +179,16 @@ export function createPhoneRemoteService(deps: PhoneRemoteServiceDeps): PhoneRem
     try { pathname = new URL(req.url ?? '/', 'http://phone-remote.local').pathname } catch { /* keep '/' */ }
 
     if (isAllowlisted(pathname)) { void serveStaticFile(deps.staticRoot ?? '', pathname, res); return }
-    if (!isRequestAuthorized(req, settings.tokenHash)) {
+    const auth = authorizeRequest(req, settings.tokenHash)
+    if (!auth.authorized) {
       res.writeHead(401, { 'content-type': 'text/plain; charset=utf-8' })
-      res.end('unauthorized')
+      res.end('missing or invalid pairing token — open this page from the pairing QR in Termhalla Settings')
       return
+    }
+    // REQ-028: the FIRST token-authenticated response sets the durable session cookie so every
+    // later token-less entry path (PWA relaunch, reload, restore) authenticates via the cookie.
+    if (auth.viaToken && sessionToken !== undefined) {
+      try { res.setHeader('Set-Cookie', issueSetCookie(sessionToken)) } catch { /* headers already sent */ }
     }
     if (pathname === '/') { void serveStaticFile(deps.staticRoot ?? '', '/', res); return }
     res.writeHead(404); res.end()
@@ -141,9 +206,32 @@ export function createPhoneRemoteService(deps: PhoneRemoteServiceDeps): PhoneRem
   }
 
   wss.on('connection', (ws: WsSocket) => {
+    // v2 (FINDING-001/015/029/030, "port candidate B"): a genuinely unresponsive/paused peer (a
+    // sleeping phone whose OS stops servicing its socket) never surfaces EITHER a graceful
+    // `ws.terminate()` OR data written while paused — verified empirically (a paused Node
+    // Readable defers ALL further event delivery, including a subsequent RST, until it is
+    // resumed AND has drained whatever was already buffered). Two changes follow from that:
+    //  (1) `bufferedAmount` reported to the session is `max(ws.bufferedAmount, logicalPressure)`
+    //      — a synchronous producer burst is bounded BEFORE it ever reaches `ws.send()` (the
+    //      queueData/flushBurst pair below), so a paused peer's kernel receive buffer never
+    //      accumulates the multi-megabyte backlog that would strand a later `resetAndDestroy()`.
+    //  (2) the drain-driven resync (`session.socketDrained()`) fires ONLY in response to a PONG
+    //      (proof the peer is actually reading) rather than a blind timer sampling the transport
+    //      buffer — a truly-paused peer never pongs, so `stale`/`held` state never spuriously
+    //      "resolves" while nothing was ever delivered. A WALL-CLOCK `pendingSince` (independent
+    //      of whatever `ws.bufferedAmount` reads at any instant, since the burst bound above can
+    //      keep it near zero even while genuinely stuck) is what ultimately trips `forceTerminate`
+    //      for a peer that never proves it is alive.
+    let logicalPressure = 0
     const session = createWsSession({
-      send: (msg) => { if (ws.readyState === ws.OPEN) ws.send(JSON.stringify(msg)) },
-      bufferedAmount: () => ws.bufferedAmount,
+      send: (msg) => {
+        if (ws.readyState !== ws.OPEN) return
+        ws.send(JSON.stringify(msg), (err) => {
+          if (err) { forceTerminate(); return }
+          armTransportWatch()
+        })
+      },
+      bufferedAmount: () => Math.max(ws.bufferedAmount, logicalPressure),
       mirrors: { snapshot: (paneId) => mirrors.snapshot(paneId) },
       panes: {
         inventory: () => buildInventory(toRawPaneInfo(deps.panes.list())),
@@ -151,13 +239,137 @@ export function createPhoneRemoteService(deps: PhoneRemoteServiceDeps): PhoneRem
         write: (paneId, data) => deps.panes.write(paneId, data)
       }
     })
-    const entry = { ws, session }
+
+    // `resetAndDestroy()` forces an RST, which a peer's OS delivers as a socket-level error/reset
+    // REGARDLESS of the JS-level pause (verified empirically on Windows) PROVIDED its own kernel
+    // receive buffer stays near empty (see the burst bound above) — it falls back to `terminate()`
+    // on a Node without the API (added Node 16.17/18.3).
+    const forceTerminate = (): void => {
+      const raw = (ws as unknown as { _socket?: { resetAndDestroy?: () => void } })._socket
+      if (raw && typeof raw.resetAndDestroy === 'function') {
+        try { raw.resetAndDestroy(); return } catch { /* fall through to terminate() */ }
+      }
+      try { ws.terminate() } catch { /* already gone */ }
+    }
+
+    let awaitingPong = false
+    let pongDeadline: ReturnType<typeof setTimeout> | undefined
+    const sendPing = (): void => {
+      if (awaitingPong) return
+      awaitingPong = true
+      try { ws.ping() } catch { forceTerminate(); return }
+      pongDeadline = setTimeout(() => { if (awaitingPong) forceTerminate() }, timing.pongTimeoutMs)
+      pongDeadline.unref?.()
+    }
+
+    const pingTimer = setInterval(() => {
+      if (awaitingPong) { forceTerminate(); return }
+      sendPing()
+    }, timing.pingIntervalMs)
+    pingTimer.unref?.()
+
+    // Continuous-saturation ceiling for the RAW transport (a peer that DOES read, just too slowly
+    // for its bufferedAmount to ever fully drain) — independent of the pending/pong-gated path.
+    const stallPolicy = createBackpressurePolicy()
+
+    // "Armed only while pending" (CONV-036) — never an always-running poll: ticks only while the
+    // session has outstanding backpressure state, re-arming itself; a wall-clock `pendingSince`
+    // (set once, on first pending) plus a fresh "drain probe" ping each tick is what lets a
+    // genuinely stuck (never-pongs) peer be detected and cut loose within `stallTimeoutMs`.
+    let pendingSince: number | undefined
+    let transportTimer: ReturnType<typeof setTimeout> | undefined
+    const armTransportWatch = (): void => {
+      if (transportTimer || !session.hasPending()) return
+      if (pendingSince === undefined) pendingSince = Date.now()
+      transportTimer = setTimeout(() => {
+        transportTimer = undefined
+        if (!session.hasPending()) { pendingSince = undefined; return }
+        const now = Date.now()
+        stallPolicy.onBuffered(now, ws.bufferedAmount)
+        const pendingTooLong = pendingSince !== undefined && now - pendingSince >= timing.stallTimeoutMs
+        if (stallPolicy.stalledPast(now, timing.stallTimeoutMs) || pendingTooLong) { forceTerminate(); return }
+        sendPing() // a no-op if already awaiting one; a fresh pong is what unblocks socketDrained()
+        armTransportWatch()
+      }, BACKPRESSURE_POLL_MS)
+      transportTimer.unref?.()
+    }
+
+    ws.on('pong', () => {
+      awaitingPong = false
+      if (pongDeadline) clearTimeout(pongDeadline)
+      if (session.hasPending()) {
+        session.socketDrained()
+        if (!session.hasPending()) pendingSince = undefined
+        else armTransportWatch()
+      }
+    })
+
+    // Pre-transport burst bound (REQ-017 v2): a SYNCHRONOUS producer flood (many chunks fed in
+    // one tick, e.g. a busy pane's onData firing in a tight loop) can outrun per-chunk
+    // `bufferedAmount` sampling entirely — every chunk looks "under high water" right up until
+    // libuv actually flushes the first one. Queuing chunks and checking the QUEUE's own byte
+    // total closes that window: once a burst crosses `PHONE_WS_HIGH_WATER` before even one
+    // chunk reached the real transport, the WHOLE queue is discarded (never handed to
+    // `ws.send()`) and every affected pane is marked stale via the real backpressure policy (an
+    // instantaneous `logicalPressure` spike sampled through `bufferedAmount()` above, cleared
+    // immediately after) — the mirror already has the full content (fed unconditionally, REQ-015
+    // purity), so the pane's eventual resync is exactly as correct as if the bytes had been sent
+    // and dropped by the ordinary per-chunk gate. A burst that stays under the threshold flushes
+    // normally on the next tick.
+    let burstTimer: ReturnType<typeof setTimeout> | undefined
+    let burstBytes = 0
+    let burstQueue: Array<{ paneId: string; chunk: string }> = []
+    let burstSaturated = false
+
+    const flushBurst = (): void => {
+      burstTimer = undefined
+      if (burstSaturated) {
+        burstSaturated = false
+        burstQueue = []
+        burstBytes = 0
+        return
+      }
+      const queued = burstQueue
+      burstQueue = []
+      burstBytes = 0
+      for (const item of queued) session.paneData(item.paneId, item.chunk)
+      armTransportWatch()
+    }
+
+    const queueData = (paneId: string, chunk: string): void => {
+      if (!burstTimer) { burstTimer = setTimeout(flushBurst, 0); burstTimer.unref?.() }
+      if (burstSaturated) {
+        logicalPressure = PHONE_WS_HIGH_WATER + 1
+        session.paneData(paneId, '')
+        logicalPressure = 0
+        armTransportWatch()
+        return
+      }
+      burstQueue.push({ paneId, chunk })
+      burstBytes += Buffer.byteLength(chunk)
+      if (burstBytes <= PHONE_WS_HIGH_WATER) return
+      burstSaturated = true
+      logicalPressure = PHONE_WS_HIGH_WATER + 1
+      for (const id of new Set(burstQueue.map((item) => item.paneId))) session.paneData(id, '')
+      logicalPressure = 0
+      burstQueue = []
+      burstBytes = 0
+      armTransportWatch()
+    }
+
+    const dispose = (): void => {
+      clearInterval(pingTimer)
+      if (pongDeadline) clearTimeout(pongDeadline)
+      if (transportTimer) clearTimeout(transportTimer)
+      if (burstTimer) clearTimeout(burstTimer)
+    }
+
+    const entry: SessionEntry = { ws, session, dispose, queueData }
     sessions.add(entry)
     ws.on('message', (data, isBinary) => {
       session.handleFrame(isBinary ? (data as Buffer) : Buffer.isBuffer(data) ? data.toString('utf8') : String(data))
     })
-    ws.on('drain', () => session.socketDrained())
-    ws.on('close', () => { sessions.delete(entry); session.close() })
+    ws.on('close', () => { dispose(); sessions.delete(entry); session.close() })
     ws.on('error', () => { /* the 'close' event still fires; nothing else to do here */ })
     session.start()
   })
@@ -169,6 +381,7 @@ export function createPhoneRemoteService(deps: PhoneRemoteServiceDeps): PhoneRem
       const { port } = await transport.start({ port: settings.port, bind: settings.bind })
       boundPort = port
       listening = true
+      lastError = undefined
     } catch (e) {
       listening = false
       boundPort = undefined
@@ -178,14 +391,14 @@ export function createPhoneRemoteService(deps: PhoneRemoteServiceDeps): PhoneRem
         : err?.code === 'EACCES'
           ? 'that port requires elevated permissions'
           : (err?.message ?? 'failed to start')
-      deps.notifyError(
-        `Phone remote could not start on port ${settings.port} — ${reason}. Free the port, or change it in Settings.`
-      )
+      const message = `Phone remote could not start on port ${settings.port} — ${reason}. Free the port, or change it in Settings.`
+      lastError = message
+      deps.notifyError(message)
     }
   }
 
   const closeAllSessions = (): void => {
-    for (const { ws } of [...sessions]) { try { ws.terminate() } catch { /* already gone */ } }
+    for (const { ws, dispose } of [...sessions]) { dispose(); try { ws.terminate() } catch { /* already gone */ } }
     sessions.clear()
   }
 
@@ -193,6 +406,11 @@ export function createPhoneRemoteService(deps: PhoneRemoteServiceDeps): PhoneRem
   let unsubExit: (() => void) | undefined
   let unsubGrid: (() => void) | undefined
   let unsubStatus: (() => void) | undefined
+  let unsubSpawn: (() => void) | undefined
+
+  const pushInventoryToAll = (): void => {
+    for (const { session } of sessions) session.pushInventory()
+  }
 
   const wireDataSources = (): void => {
     unsubData = deps.panes.onData((paneId, chunk) => {
@@ -204,12 +422,15 @@ export function createPhoneRemoteService(deps: PhoneRemoteServiceDeps): PhoneRem
         taps.set(paneId, tap)
       }
       tap(chunk)
-      for (const { session } of sessions) session.paneData(paneId, chunk)
+      // Per-connection burst queue (REQ-017 v2) — see the connection handler for the full
+      // rationale; this is what bounds a synchronous producer flood BEFORE it reaches `ws.send()`.
+      for (const entry of sessions) entry.queueData(paneId, chunk)
     })
     unsubExit = deps.panes.onExit((paneId) => {
       taps.delete(paneId)
       mirrors.paneExited(paneId)
       for (const { session } of sessions) session.paneExit(paneId)
+      pushInventoryToAll()
     })
     unsubGrid = deps.panes.onGrid((paneId, cols, rows) => {
       mirrors.resizePane(paneId, cols, rows)
@@ -218,65 +439,85 @@ export function createPhoneRemoteService(deps: PhoneRemoteServiceDeps): PhoneRem
     unsubStatus = deps.panes.onStatus((paneId, status) => {
       for (const { session } of sessions) session.paneStatus(paneId, status)
     })
+    unsubSpawn = deps.panes.onSpawn?.(() => {
+      if (listening) for (const p of deps.panes.list()) ensureTap(p)
+      pushInventoryToAll()
+    })
   }
   wireDataSources()
+
+  // ── Serialized, idempotent lifecycle (v2, FINDING-018) ─────────────────────────────────────
+  // Every mutation is queued through a single promise chain so two racing calls (a double-toggle,
+  // setPort racing setEnabled, …) never interleave — the reported state and the actual listening
+  // state can never diverge, and there is never a zombie listener.
+  let opQueue: Promise<unknown> = Promise.resolve()
+  const enqueue = <T>(fn: () => Promise<T>): Promise<T> => {
+    const result = opQueue.then(fn, fn)
+    opQueue = result.then(() => undefined, () => undefined)
+    return result
+  }
+
+  const startIfEnabled = async (): Promise<void> => {
+    await attemptStart()
+    if (listening) {
+      for (const p of deps.panes.list()) ensureTap(p)
+      mirrors.setEnabled(true)
+    } else {
+      settings = { ...settings, enabled: false }
+    }
+  }
+
+  const restart = async (): Promise<void> => {
+    if (!listening) return
+    await transport.stop()
+    listening = false
+    boundPort = undefined
+    await startIfEnabled()
+  }
+
+  const doSetEnabled = async (enabled: boolean): Promise<void> => {
+    // Idempotent: already in the target running state — a no-op, never a misclassified bind
+    // failure (server.ts's own idempotent start() is the second line of defense).
+    if (enabled === listening && enabled === settings.enabled) return
+    settings = { ...settings, enabled }
+    if (enabled) {
+      await startIfEnabled()
+    } else {
+      await transport.stop()
+      listening = false
+      boundPort = undefined
+      mirrors.setEnabled(false)
+      taps.clear()
+      closeAllSessions()
+    }
+    await deps.saveSettings(settings)
+  }
 
   return {
     async init() {
       settings = (await deps.loadSettings()) ?? DEFAULT_SETTINGS
-      if (settings.enabled) {
-        await attemptStart()
-        if (listening) {
-          for (const p of deps.panes.list()) ensureTap(p)
-          mirrors.setEnabled(true)
-        } else {
-          settings = { ...settings, enabled: false }
-        }
-      }
+      if (settings.enabled) await enqueue(() => startIfEnabled())
     },
 
-    async setEnabled(enabled) {
-      settings = { ...settings, enabled }
-      if (enabled) {
-        await attemptStart()
-        if (listening) {
-          for (const p of deps.panes.list()) ensureTap(p)
-          mirrors.setEnabled(true)
-        } else {
-          settings = { ...settings, enabled: false }
-        }
-      } else {
-        await transport.stop()
-        listening = false
-        boundPort = undefined
-        mirrors.setEnabled(false)
-        taps.clear()
-        closeAllSessions()
-      }
-      await deps.saveSettings(settings)
-    },
+    setEnabled: (enabled) => enqueue(() => doSetEnabled(enabled)),
 
-    async setBind(mode) {
+    setBind: (mode) => enqueue(async () => {
       settings = { ...settings, bind: mode }
       await deps.saveSettings(settings)
-      if (listening) {
-        await transport.stop()
-        listening = false
-        boundPort = undefined
-        await attemptStart()
-      }
-    },
+      await restart()
+    }),
 
-    async setPort(port) {
+    setPort: (port) => enqueue(async () => {
       settings = { ...settings, port }
       await deps.saveSettings(settings)
-      if (listening) {
-        await transport.stop()
-        listening = false
-        boundPort = undefined
-        await attemptStart()
-      }
-    },
+      await restart()
+    }),
+
+    setExternalHost: (host) => enqueue(async () => {
+      const trimmed = typeof host === 'string' ? host.trim() : ''
+      settings = trimmed ? { ...settings, externalHost: trimmed } : { ...settings, externalHost: undefined }
+      await deps.saveSettings(settings)
+    }),
 
     status() {
       return {
@@ -286,30 +527,40 @@ export function createPhoneRemoteService(deps: PhoneRemoteServiceDeps): PhoneRem
         running: listening,
         urls: computeUrls(),
         hasToken: typeof settings.tokenHash === 'string' && settings.tokenHash.length > 0,
-        tokenAvailableThisSession: sessionToken !== undefined
+        tokenAvailableThisSession: sessionToken !== undefined,
+        ...(lastError ? { error: lastError } : {}),
+        ...(settings.externalHost ? { externalHost: settings.externalHost } : {})
       }
     },
 
-    async regenerateToken() {
+    regenerateToken: () => enqueue(async () => {
       const token = generateToken()
       const hash = hashToken(token)
       settings = { ...settings, tokenHash: hash }
       sessionToken = token
-      // REQ-006: atomically revoke — persist the new hash, then drop every currently connected
-      // client so the old token can never be used again on an already-open socket.
+      // REQ-006: atomically revoke — persist the new hash (which also invalidates every
+      // outstanding REQ-028 cookie, a pure function of tokenHash), then drop every currently
+      // connected client so the old token/cookie can never be used again on an already-open socket.
       await deps.saveSettings(settings)
       closeAllSessions()
       return { pairingUrl: buildPairingUrl(token) }
-    },
+    }),
+
+    pairingUrl: () => enqueue(async () => {
+      if (sessionToken === undefined) return { unavailable: true as const }
+      return { pairingUrl: buildPairingUrl(sessionToken) }
+    }),
 
     async stop() {
-      closeAllSessions()
-      await transport.stop()
-      listening = false
-      boundPort = undefined
-      mirrors.setEnabled(false)
-      taps.clear()
-      unsubData?.(); unsubExit?.(); unsubGrid?.(); unsubStatus?.()
+      await enqueue(async () => {
+        closeAllSessions()
+        await transport.stop()
+        listening = false
+        boundPort = undefined
+        mirrors.setEnabled(false)
+        taps.clear()
+        unsubData?.(); unsubExit?.(); unsubGrid?.(); unsubStatus?.(); unsubSpawn?.()
+      })
     }
   }
 }

@@ -32,7 +32,14 @@ export function createPhoneRemoteServer(handlers: PhoneRemoteServerHandlers): Ph
 
   return {
     async start(opts) {
-      if (httpServer) throw new Error('phone-remote server is already running')
+      // v2 (FINDING-018): an already-running transport is NOT a bind failure — return the
+      // existing bound port rather than rejecting, so a redundant/racing start() can never be
+      // misclassified as an EADDRINUSE-style error by a caller that didn't itself serialize.
+      if (httpServer) {
+        const addr = httpServer.address()
+        const boundPort = addr && typeof addr === 'object' ? addr.port : opts.port
+        return { port: boundPort }
+      }
 
       const srv = createServer((req, res) => {
         try { handlers.onRequest(req, res) } catch { try { res.writeHead(500); res.end() } catch { /* socket already gone */ } }

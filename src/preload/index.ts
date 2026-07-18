@@ -147,8 +147,11 @@ const api: TermhallaApi = {
   phoneRemoteSetEnabled: (enabled) => ipcRenderer.invoke(CH.phoneRemoteSetEnabled, enabled),
   phoneRemoteSetBind: (mode) => ipcRenderer.invoke(CH.phoneRemoteSetBind, mode),
   phoneRemoteSetPort: (port) => ipcRenderer.invoke(CH.phoneRemoteSetPort, port),
+  phoneRemoteSetExternalHost: (host) => ipcRenderer.invoke(CH.phoneRemoteSetExternalHost, host),
   phoneRemoteRegenerateToken: () => ipcRenderer.invoke(CH.phoneRemoteRegenerateToken),
+  phoneRemotePairingUrl: () => ipcRenderer.invoke(CH.phoneRemotePairingUrl),
   onPhoneRemoteChanged: pushChannel<[import('@shared/phone-remote/status').PhoneRemoteStatus]>(CH.phoneRemoteChanged),
+  onPhoneRemoteError: pushChannel<[string]>(CH.phoneRemoteError),
 }
 
 contextBridge.exposeInMainWorld('termhalla', api)

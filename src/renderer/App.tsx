@@ -103,6 +103,12 @@ export default function App() {
       api.onRemoteState(st => s().ingestRemoteState(st)),
       api.onRecState((id, state) => s().setRecording(id, state.recording)),
       api.onEnvState(state => s().setEnvState(state)),
+      // Phone web remote (feature 0026 v2, REQ-020 — closes FINDING-034): an app-wide, always-
+      // subscribed error push — independent of whether the phone-remote Settings section is even
+      // mounted, so a startup failure (persisted enabled=true, port occupied before any window
+      // loads) still reaches a user-visible toast with the error severity that bypasses the
+      // quick.toastsEnabled opt-in (CONV-004).
+      api.onPhoneRemoteError(message => s().pushToast(message, 'error')),
       api.onWinAssignment(a => { void s().applyAssignment(a) }),
       api.onTermSerialize(wsId => s().serializeWorkspace(wsId)),
       // Native Edit ▸ Settings… opens the Settings modal at the General section.

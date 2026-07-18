@@ -19,9 +19,21 @@
  * INSIDE the callback of exactly that chunk — every byte fed before the call is in the result, and
  * no byte fed after the call can be (later chunks are unparsed at serialize time). The REQ-009
  * reference-terminal oracles pin this contract.
+ *
+ * Import shape: `@xterm/headless`/`@xterm/addon-serialize` ship CJS with no `exports` map (no
+ * `import` condition), so Node's ESM loader must fall back to `cjs-module-lexer` to synthesize
+ * named exports — which fails for `Terminal` (main's real Electron launch throws `SyntaxError:
+ * Named export 'Terminal' not found` loading the electron-vite-built, dependency-externalized
+ * `out/main/index.js`; unlike `src/agent/`'s bundled single-file `.cjs` artifact, where Rollup
+ * inlines the dependency at build time and this interop step never runs). A default import +
+ * destructure is the universally-safe CJS interop pattern regardless of what the lexer can infer.
  */
-import { Terminal, type ITerminalAddon } from '@xterm/headless'
-import { SerializeAddon } from '@xterm/addon-serialize'
+import xtermHeadless from '@xterm/headless'
+import type { ITerminalAddon } from '@xterm/headless'
+import addonSerialize from '@xterm/addon-serialize'
+
+const { Terminal } = xtermHeadless
+const { SerializeAddon } = addonSerialize
 
 /** Matches the tmux `history-limit` analog `src/agent/replay.ts` uses (REQ-008). */
 export const HISTORY_LIMIT_DEFAULT = 2000

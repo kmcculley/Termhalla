@@ -12,4 +12,6 @@ export interface PhoneRemoteStatus {
   hasToken: boolean
   tokenAvailableThisSession: boolean
   error?: string
+  /** Optional phone-reachable host override for the pairing URL/QR (REQ-031). */
+  externalHost?: string
 }

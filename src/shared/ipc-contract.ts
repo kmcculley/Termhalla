@@ -132,8 +132,14 @@ export const CH = {
   phoneRemoteSetEnabled: 'phoneRemote:setEnabled',           // renderer -> main
   phoneRemoteSetBind: 'phoneRemote:setBind',                 // renderer -> main
   phoneRemoteSetPort: 'phoneRemote:setPort',                 // renderer -> main
+  phoneRemoteSetExternalHost: 'phoneRemote:setExternalHost', // renderer -> main (REQ-031)
   phoneRemoteRegenerateToken: 'phoneRemote:regenerateToken', // renderer -> main (returns the plaintext pairing URL)
+  phoneRemotePairingUrl: 'phoneRemote:pairingUrl',           // renderer -> main (re-fetch, never a regenerate — REQ-007)
   phoneRemoteChanged: 'phoneRemote:changed',                 // main -> renderer event (status changed / an enable error occurred)
+  // v2 (ESC-001, FINDING-034): a dedicated, component-independent error push consumed at the
+  // renderer root (App.tsx) — phoneRemoteChanged alone is only reliably observed by a mounted
+  // Settings panel, and a startup failure before any window loads must still surface.
+  phoneRemoteError: 'phoneRemote:error',                     // main -> renderer event (app-wide, always-subscribed)
 } as const
 
 export interface NotifyArgs { title: string; body: string }
@@ -143,6 +149,10 @@ export interface PtySpawnArgs {
    *  main then routes the spawn (and the pane's whole pty lifecycle) over that workspace's agent
    *  connection. ABSENT for local spawns (the byte-identical pre-F21 path). */
   remote?: { workspaceId: string; agentId: string }
+  /** Feature 0026 v2 (REQ-011, additive): the spawning pane's owning workspace id, so the
+   *  phone-remote inventory knows a pane's real workspace grouping immediately at spawn time
+   *  (before that workspace's next autosave lands). Purely observational — never gates anything. */
+  workspaceId?: string
 }
 export interface PtyWriteArgs { id: string; data: string }
 export interface PtyResizeArgs { id: string; cols: number; rows: number }
@@ -348,6 +358,12 @@ export interface TermhallaApi {
   phoneRemoteSetEnabled(enabled: boolean): Promise<PhoneRemoteStatus>
   phoneRemoteSetBind(mode: 'localhost' | 'lan'): Promise<PhoneRemoteStatus>
   phoneRemoteSetPort(port: number): Promise<PhoneRemoteStatus>
+  phoneRemoteSetExternalHost(host: string | undefined): Promise<PhoneRemoteStatus>
   phoneRemoteRegenerateToken(): Promise<{ pairingUrl: string }>
+  /** Re-fetch the current session's pairing URL — NEVER regenerates (REQ-007). */
+  phoneRemotePairingUrl(): Promise<{ pairingUrl: string } | { unavailable: true }>
   onPhoneRemoteChanged(cb: (status: PhoneRemoteStatus) => void): () => void
+  /** App-wide, always-subscribed error push (REQ-020 v2, FINDING-034) — consumed at the renderer
+   *  root, independent of whether the Settings panel is mounted. */
+  onPhoneRemoteError(cb: (message: string) => void): () => void
 }

@@ -7,13 +7,17 @@ import { ThemeSettings } from './ThemeSettings'
 import { EnvSettings } from './EnvSettings'
 import { TerminalAlertsSettings } from './TerminalAlertsSettings'
 import { KeybindingsSettings } from './KeybindingsSettings'
+import { PhoneRemoteSettings } from './PhoneRemoteSettings'
 
 const SECTIONS: { id: SettingsSection; label: string }[] = [
   { id: 'general', label: 'General' },
   { id: 'appearance', label: 'Appearance' },
   { id: 'environment', label: 'Environment' },
   { id: 'terminal', label: 'Terminal' },
-  { id: 'keybindings', label: 'Keybindings' }
+  { id: 'keybindings', label: 'Keybindings' },
+  // Feature 0026 v2 (REQ-029 — closes FINDING-010/024): the phone-remote settings/pairing surface
+  // must be reachable through the REAL Settings navigation, not just built-and-unmounted.
+  { id: 'phoneRemote', label: 'Phone' }
 ]
 
 export function SettingsPanel() {
@@ -51,6 +55,7 @@ export function SettingsPanel() {
         {section === 'environment' && <EnvSettings wsId={settings.paneId ? activeId ?? undefined : undefined} paneId={settings.paneId} />}
         {section === 'terminal' && <TerminalAlertsSettings wsId={settings.paneId ? activeId ?? undefined : undefined} paneId={settings.paneId} />}
         {section === 'keybindings' && <KeybindingsSettings />}
+        {section === 'phoneRemote' && <PhoneRemoteSettings />}
       </div>
     </Modal>
   )

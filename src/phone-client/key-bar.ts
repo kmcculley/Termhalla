@@ -19,6 +19,21 @@ export interface KeyBar {
   /** The bytes to emit for one key-bar tap ('' = nothing to emit). */
   press(key: string): string
   isCtrlLatched(): boolean
+  /** Routes a `term.onData` (soft-keyboard/typed) datum through the SAME Ctrl latch `press` uses
+   *  (feature 0026 v2, REQ-023 — closes FINDING-033): with the latch armed, a single-letter datum
+   *  becomes its control byte (Ctrl+C is producible by tapping Ctrl then typing 'c' on the iOS
+   *  keyboard) and the latch clears, one-shot, exactly like a key-bar tap. Unlatched or
+   *  non-single-letter data (pastes, multi-byte input) passes through unchanged — never a
+   *  fabricated control byte. */
+  transformTyped(data: string): string
+}
+
+/** Ctrl+<letter> -> 0x01..0x1a, case-insensitive; every other single character (or the latch
+ *  being unarmed) never fabricates a control byte. Shared by `press` and `transformTyped`. */
+const controlByteFor = (letter: string): string | undefined => {
+  if (typeof letter !== 'string' || letter.length !== 1) return undefined
+  const code = letter.toUpperCase().charCodeAt(0)
+  return code >= 65 && code <= 90 ? String.fromCharCode(code - 64) : undefined
 }
 
 export function createKeyBar(): KeyBar {
@@ -33,9 +48,9 @@ export function createKeyBar(): KeyBar {
       const wasLatched = ctrlLatched
       ctrlLatched = false
 
-      if (wasLatched && typeof key === 'string' && key.length === 1) {
-        const code = key.toUpperCase().charCodeAt(0)
-        if (code >= 65 && code <= 90) return String.fromCharCode(code - 64)
+      if (wasLatched) {
+        const controlByte = controlByteFor(key)
+        if (controlByte) return controlByte
       }
 
       if (Object.prototype.hasOwnProperty.call(SPECIAL, key)) return SPECIAL[key]
@@ -44,6 +59,23 @@ export function createKeyBar(): KeyBar {
     },
     isCtrlLatched() {
       return ctrlLatched
+    },
+    transformTyped(data) {
+      const wasLatched = ctrlLatched
+      if (!wasLatched) return data
+      // Only a PLAUSIBLE single-character keystroke may consume the latch. xterm's `onData`
+      // callback also carries the terminal's OWN generated escape sequences — notably DEC mode
+      // 1004 focus-tracking reports (`\x1b[I`/`\x1b[O`), fired whenever DOM focus moves into/out
+      // of the terminal, which happens on the VERY NEXT `onData` after a key-bar tap (clicking
+      // the Ctrl button itself steals focus, and re-focusing the terminal to type re-fires it).
+      // Without this guard that spurious multi-character event silently consumed an armed latch
+      // before the real keystroke ever arrived, so Ctrl+C could never be typed on a real page
+      // (verified against the served client: `\x1b[I` arrives latched, clears it, and the
+      // following 'c' then passes through as a literal, unlatched character).
+      if (typeof data !== 'string' || data.length !== 1) return data
+      ctrlLatched = false
+      const controlByte = controlByteFor(data)
+      return controlByte ?? data
     }
   }
 }

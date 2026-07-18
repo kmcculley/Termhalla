@@ -489,10 +489,10 @@ const mkPaneSourceV2 = (initial: Array<Record<string, unknown>>): PaneSourceV2 =
   return {
     panes: {
       list: () => { listCalls++; return backing as never },
-      onData: (cb) => { dataCbs.push(cb); return () => {} },
-      onExit: (cb) => { exitCbs.push(cb); return () => {} },
-      onGrid: (cb) => { gridCbs.push(cb); return () => {} },
-      onStatus: (cb) => { statusCbs.push(cb); return () => {} },
+      onData: (cb: (id: string, c: string) => void) => { dataCbs.push(cb); return () => {} },
+      onExit: (cb: (id: string) => void) => { exitCbs.push(cb); return () => {} },
+      onGrid: (cb: (id: string, c: number, r: number) => void) => { gridCbs.push(cb); return () => {} },
+      onStatus: (cb: (id: string, s: string) => void) => { statusCbs.push(cb); return () => {} },
       onSpawn: (cb: (p: Record<string, unknown>) => void) => { spawnCbs.push(cb); return () => {} },
       write: (id: string, d: string) => writes.push([id, d])
     } as never,

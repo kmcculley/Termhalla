@@ -42,7 +42,11 @@ export function registerPty(
     remote?: import('../remote/remote-workspace-manager').RemoteWorkspaceManager
     // feature 0026: the phone-remote mirror registry's grid source. Purely observational — never
     // gates or alters a spawn/resize; absent by default (byte-identical when unused, REQ-015).
-    onSpawn?: (paneId: string, cols: number, rows: number) => void
+    // v2 (REQ-011): the LOCAL fresh-spawn call site ALSO passes the spawning pane's workspaceId
+    // (a 4th, additive argument) so the phone-remote inventory learns real workspace membership
+    // immediately — the remote branches (FINDING-040) keep the exact 3-arg shape their frozen
+    // tests pin.
+    onSpawn?: (paneId: string, cols: number, rows: number, workspaceId?: string) => void
     onResize?: (paneId: string, cols: number, rows: number) => void
   }
 ): PtyManager {
@@ -89,9 +93,19 @@ export function registerPty(
         // …then reconcile the adopted pty to the grid the remounting pane fitted to (see below).
         // `remote.resize` drops a resize whose grid already matches, so this is never redundant.
         deps.remote.resize(a.id, a.cols, a.rows)
+        // feature 0026 v2 (FINDING-040): surface the REMOUNTING grid through the same
+        // observational seam local panes use, so the phone-remote mirror gets grid parity
+        // (never a hard-coded 80x24) even on an adopt/remount, not only a fresh spawn.
+        deps.onResize?.(a.id, a.cols, a.rows)
         return true
       }
-      return deps.remote ? deps.remote.spawn(a) : false
+      if (!deps.remote) return false
+      const spawned = deps.remote.spawn(a)
+      // feature 0026 v2 (FINDING-040): a fresh remote spawn gets a mirror at its REAL grid — the
+      // v1 review found remote panes minted a hard-coded 80x24 mirror because this branch never
+      // invoked the observational seam at all.
+      deps.onSpawn?.(a.id, a.cols, a.rows)
+      return spawned
     }
     // Moved pane: adopt the live pty, don't respawn. Adoption also re-delivers the pane's sticky
     // AI session to the (possibly NEW) owning window: aiSession pushes are pane-scoped and the
@@ -110,7 +124,7 @@ export function registerPty(
     const shell = shells.find(s => s.id === a.shellId) ?? shells[0]
     tracker.register(a.id)   // register BEFORE spawn: a failed spawn calls onExit->unregister synchronously, keeping the registry clean
     pty.spawn(a.id, shell, a.cwd, a.cols, a.rows, a.launch, envVault.envFor(a.envId))
-    deps.onSpawn?.(a.id, a.cols, a.rows)
+    deps.onSpawn?.(a.id, a.cols, a.rows, a.workspaceId)
     return false   // fresh spawn (adopted=true above) — the renderer's auto-resume gate needs this distinction
   })
   ipcMain.on(CH.ptyWrite, (_e, a: PtyWriteArgs) => {
@@ -118,7 +132,13 @@ export function registerPty(
     pty.write(a.id, a.data)
   })
   ipcMain.on(CH.ptyResize, (_e, a: PtyResizeArgs) => {
-    if (deps.remote?.owns(a.id)) { deps.remote.resize(a.id, a.cols, a.rows); return }
+    if (deps.remote?.owns(a.id)) {
+      deps.remote.resize(a.id, a.cols, a.rows)
+      // feature 0026 v2 (FINDING-040): grid-push parity with the local branch below — a desktop
+      // resize of a remote-owned pane must reach the phone-remote mirror too.
+      deps.onResize?.(a.id, a.cols, a.rows)
+      return
+    }
     pty.resize(a.id, a.cols, a.rows); recorder.resize(a.id, a.cols, a.rows)
     deps.onResize?.(a.id, a.cols, a.rows)
   })

@@ -20,6 +20,13 @@ manages pane lifecycle, and never perturbs the desktop renderer path (REQ-015).
   private tailnet. There is intentionally **no cloud relay** and no built-in TLS in v1; all traffic
   either stays on localhost, stays on your LAN (with the plaintext warning), or rides your own
   Tailscale/VPN tunnel.
+  - **The explicit pairing step:** because the phone reaches your desktop at the TAILSCALE
+    hostname, not `127.0.0.1`, set the **external host** field in the phone-remote Settings
+    section to that tailnet hostname (e.g. `my-machine.tailXXXX.ts.net`) BEFORE scanning — the QR
+    code and the copyable pairing URL then encode that host instead of the bind address, so the
+    phone can actually reach it. The bind mode itself stays `localhost`; only the ADVERTISED host
+    changes. `status().urls` also lists every other reachable candidate (deterministically ranked)
+    for LAN-mode pairing without `tailscale serve`.
 - **Single hashed pairing token.** The token is generated in main from a CSPRNG (`crypto.
   randomBytes(32)`, base64url, 256 bits of entropy). Only its sha-256 hash is ever persisted
   (`quick.json`'s `phoneRemote.tokenHash`) — the plaintext exists in main-process memory only, for
@@ -28,9 +35,25 @@ manages pane lifecycle, and never perturbs the desktop renderer path (REQ-015).
   constant-time comparison (`crypto.timingSafeEqual`); a small fixed allowlist (the PWA manifest +
   icons — no user or pane data) is served unauthenticated so the phone can install to the home
   screen before pairing.
-- **Regenerate revokes everything.** Regenerating the token atomically replaces the stored hash,
-  invalidates the old token for all future requests, and immediately closes every currently
-  connected WS client — there is exactly one token (single-grant model in v1).
+- **Regenerate revokes everything — including session cookies.** Regenerating the token atomically
+  replaces the stored hash, invalidates the old token for all future requests, invalidates every
+  outstanding session cookie (see below — a cookie's validity is a pure function of the CURRENT
+  hash, so changing the hash revokes it for free, no cookie registry to maintain), and immediately
+  closes every currently connected WS client — there is exactly one token (single-grant model in v1).
+
+### HttpOnly session cookie (REQ-028) — pairing survives every entry path
+
+The first token-authenticated HTTP response (`GET /?token=...`) sets an **HttpOnly** session
+cookie (`SameSite=Lax`, `Path=/`, a 400-day `Max-Age`). The cookie is a full credential for every
+authenticated route (HTTP and the WS upgrade) and is bound to the current token generation — its
+validity is a pure function of the presented value and the persisted `tokenHash`, so it keeps
+working after a desktop app restart/auto-update (only persisted state is needed) and dies the
+instant Regenerate runs (see above). This closes the pairing/relaunch gap the v1 review found:
+after the pairing URL's token is stripped from the visible address (`history.replaceState`), every
+later entry path — an iOS home-screen PWA relaunch from `start_url`, a Safari reload, a jetsam
+restore, a phone reboot — is token-less, and the cookie (not the URL, not any script-readable
+storage) is what keeps the session authenticated. The cookie value never appears in a URL and is
+never readable by page script.
 
 ## History limits (accepted, documented — REQ-008/REQ-024)
 

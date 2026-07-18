@@ -1,14 +1,16 @@
 import { Notification } from 'electron'
 import type { Services } from '../services'
 import { raisesOsSurfaces } from '../e2e-presentation'
+import { e2ePhoneRemoteOverride } from '../e2e-phone-remote'
 import type { WindowManager } from '../window-manager'
 import type { PtyManager } from '../pty/pty-manager'
-import type { OrkyPaneStatus, OrkyRegistrySnapshot, TerminalStatus } from '@shared/types'
+import type { OrkyPaneStatus, OrkyRegistrySnapshot, TerminalStatus, Workspace } from '@shared/types'
 import { CH } from '@shared/ipc-contract'
 import type { Disposer } from './types'
 import { OrkyStreamStatusBridge } from '../orky/orky-stream-status'
 import { OrkyNeedsYouNotifier } from '../orky/orky-needs-you-notifier'
 import { createPhoneRemoteService, type PhoneRemoteService, type PhoneRemotePaneRecord } from '../phone-remote/service'
+import { hashToken as hashPhoneRemoteSeamToken } from '../phone-remote/token'
 import { registerPhoneRemote } from './register-phone-remote'
 import { registerPty } from './register-pty'
 import { registerFs } from './register-fs'
@@ -56,12 +58,53 @@ export async function registerHandlers(services: Services, wm: WindowManager): P
   // (REQ-008) with zero duplicated wiring. Every call is forwarded to the real `send` completely
   // unchanged (same channel, same args, same order) — REQ-015's byte-identical renderer path — this
   // wrapper only ALSO notifies whichever listeners the phone-remote service installs below.
-  interface PhoneRemoteLivePane { cols: number; rows: number; status: string }
+  interface PhoneRemoteLivePane { cols: number; rows: number; status: string; workspaceId?: string }
   const phoneRemoteLivePanes = new Map<string, PhoneRemoteLivePane>()
   const phoneRemoteDataListeners = new Set<(id: string, chunk: string) => void>()
   const phoneRemoteExitListeners = new Set<(id: string) => void>()
   const phoneRemoteGridListeners = new Set<(id: string, cols: number, rows: number) => void>()
   const phoneRemoteStatusListeners = new Set<(id: string, status: string) => void>()
+  // Membership-changed signal (feature 0026 v2, REQ-011/FINDING-022/038): fired on a fresh pane
+  // spawn AND whenever a workspace autosave lands with real name/title metadata, so the phone's
+  // inventory catches up to the REAL grouping shortly after a pane appears — never only a
+  // synthetic placeholder (FINDING-011/017/027).
+  const phoneRemoteMembershipListeners = new Set<(pane: unknown) => void>()
+
+  // v2 (REQ-011): REAL workspace id/name + human-readable per-pane title/kind, threaded from
+  // main-owned state — never the rejected single-synthetic-workspace stub. `workspaceNames` is
+  // fed by every `ws:save` (even before a workspace has any panes, so the name is usually already
+  // known by the time a pane spawns); `paneMeta` is fed by the SAME event, keyed per pane. The
+  // spawning pane's `workspaceId` (an additive `PtySpawnArgs` field, `TerminalPane.tsx`) also seeds
+  // `phoneRemoteLivePanes` immediately at spawn time, so the very first inventory push after a
+  // spawn is already correctly grouped without waiting on the next autosave.
+  const phoneRemoteWorkspaceNames = new Map<string, string>()
+  interface PhoneRemotePaneMeta { workspaceId: string; title: string; kind: string }
+  const phoneRemotePaneMeta = new Map<string, PhoneRemotePaneMeta>()
+  const onPhoneRemoteWorkspaceSaved = (ws: Workspace): void => {
+    phoneRemoteWorkspaceNames.set(ws.id, ws.name)
+    // Prune pane entries that used to belong to this workspace but no longer do (moved/removed).
+    for (const [paneId, meta] of [...phoneRemotePaneMeta]) {
+      if (meta.workspaceId === ws.id && !ws.panes[paneId]) phoneRemotePaneMeta.delete(paneId)
+    }
+    for (const [paneId, node] of Object.entries(ws.panes)) {
+      if (node.config.kind !== 'terminal') continue // v1 inventory excludes non-terminal kinds
+      phoneRemotePaneMeta.set(paneId, { workspaceId: ws.id, title: node.config.name ?? '', kind: node.config.kind })
+    }
+    // A more-accurate grouping/title just landed — re-push so a pane spawned before its owning
+    // workspace's autosave settled still ends up correctly grouped, without reconnecting.
+    for (const cb of phoneRemoteMembershipListeners) cb(undefined)
+  }
+  const phoneRemotePaneRecord = (paneId: string, p: PhoneRemoteLivePane): PhoneRemotePaneRecord => {
+    const meta = phoneRemotePaneMeta.get(paneId)
+    const workspaceId = meta?.workspaceId ?? p.workspaceId ?? 'unassigned'
+    return {
+      paneId, workspaceId,
+      workspaceName: phoneRemoteWorkspaceNames.get(workspaceId) ?? 'Workspace',
+      title: meta?.title ?? '', kind: meta?.kind ?? 'terminal',
+      cols: p.cols, rows: p.rows, status: p.status
+    }
+  }
+
   const phoneRemoteSend = (channel: string, ...args: unknown[]): void => {
     if (channel === CH.ptyData) {
       const [id, chunk] = args as [string, string]
@@ -70,6 +113,7 @@ export async function registerHandlers(services: Services, wm: WindowManager): P
     } else if (channel === CH.ptyExit) {
       const [id] = args as [string, number]
       phoneRemoteLivePanes.delete(id)
+      phoneRemotePaneMeta.delete(id)
       for (const cb of phoneRemoteExitListeners) cb(id)
     } else if (channel === CH.ptyStatus) {
       const [id, status] = args as [string, TerminalStatus]
@@ -120,9 +164,10 @@ export async function registerHandlers(services: Services, wm: WindowManager): P
     onPaneGone: (id) => { git.removePane(id); orkyBridge.clearPane(id) },
     onOrkyHeartbeat: (id, hb) => orkyBridge.setStreamHeartbeat(id, hb),
     remote: remoteManager,
-    onSpawn: (id, cols, rows) => {
-      phoneRemoteLivePanes.set(id, { cols, rows, status: 'idle' })
+    onSpawn: (id, cols, rows, workspaceId) => {
+      phoneRemoteLivePanes.set(id, { cols, rows, status: 'idle', workspaceId })
       for (const cb of phoneRemoteGridListeners) cb(id, cols, rows)
+      for (const cb of phoneRemoteMembershipListeners) cb(undefined)
     },
     onResize: (id, cols, rows) => {
       const rec = phoneRemoteLivePanes.get(id)
@@ -131,36 +176,54 @@ export async function registerHandlers(services: Services, wm: WindowManager): P
     }
   })
 
-  // Phone web remote (feature 0026): the opt-in HTTP+WS mirror server. Settings ride quick.json
-  // (additive optional field, no SCHEMA_VERSION bump); `panes` is sourced from the taps wired into
-  // registerPty/the remote manager above — real-time cols/rows/status, but grouped under one
-  // synthetic workspace (main has no renderer-owned workspace/title metadata for a live pane; a
-  // richer inventory needs a renderer-seeded surface, tracked as a documented follow-on, NOT the
-  // spec's explicitly-deferred renderer-serialize MIRROR seeding). `notifyError` re-broadcasts the
-  // fresh status (with the specific failure text) over `phoneRemote:changed` so every window's
-  // Settings UI sees it — errors are never suppressed by the toasts opt-in (CONV-004; enforced
-  // renderer-side by the store slice's pushToast('error', …) call, not here).
+  // Phone web remote (feature 0026, v2 — ESC-001): the opt-in HTTP+WS mirror server. Settings ride
+  // quick.json (additive optional field, no SCHEMA_VERSION bump); `panes` is sourced from the taps
+  // wired into registerPty/the remote manager above (real-time cols/rows/status) COMBINED with the
+  // REAL workspace id/name + human-readable per-pane title threaded from `ws:save` above (never the
+  // rejected single-synthetic-workspace stub — FINDING-011/017/027). `notifyError` re-broadcasts the
+  // fresh status (with the specific failure text) over `phoneRemote:changed` AND the dedicated
+  // app-wide `phoneRemote:error` push (REQ-020 v2, FINDING-034) so a start failure surfaces even
+  // with Settings closed — errors are never suppressed by the toasts opt-in (CONV-004; enforced
+  // renderer-side by the App.tsx root consumer's pushToast('error', …) call, not here). The REQ-025
+  // e2e seam (unset ⇒ inert) can force the service on at a fixed port/token for the mandated specs.
   let phoneRemoteServiceRef: PhoneRemoteService | undefined
+  const phoneRemoteSeam = e2ePhoneRemoteOverride()
   const phoneRemoteService = createPhoneRemoteService({
-    loadSettings: async () => (await quick.load()).phoneRemote,
-    saveSettings: async (s) => { const cur = await quick.load(); await quick.save({ ...cur, phoneRemote: s }) },
+    loadSettings: async () => {
+      if (phoneRemoteSeam) {
+        return {
+          enabled: phoneRemoteSeam.enabled === true,
+          bind: 'localhost',
+          port: phoneRemoteSeam.port ?? 0,
+          ...(phoneRemoteSeam.token ? { tokenHash: hashPhoneRemoteSeamToken(phoneRemoteSeam.token) } : {})
+        }
+      }
+      return (await quick.load()).phoneRemote
+    },
+    saveSettings: async (s) => {
+      if (phoneRemoteSeam) return // the e2e seam never persists to the real userData quick.json
+      const cur = await quick.load(); await quick.save({ ...cur, phoneRemote: s })
+    },
     panes: {
-      list: (): PhoneRemotePaneRecord[] => [...phoneRemoteLivePanes.entries()].map(([paneId, p]) => ({
-        paneId, workspaceId: 'local', workspaceName: 'Termhalla', title: paneId, kind: 'terminal',
-        cols: p.cols, rows: p.rows, status: p.status
-      })),
+      list: (): PhoneRemotePaneRecord[] => [...phoneRemoteLivePanes.entries()].map(([paneId, p]) => phoneRemotePaneRecord(paneId, p)),
       onData: (cb) => { phoneRemoteDataListeners.add(cb); return () => phoneRemoteDataListeners.delete(cb) },
       onExit: (cb) => { phoneRemoteExitListeners.add(cb); return () => phoneRemoteExitListeners.delete(cb) },
       onGrid: (cb) => { phoneRemoteGridListeners.add(cb); return () => phoneRemoteGridListeners.delete(cb) },
       onStatus: (cb) => { phoneRemoteStatusListeners.add(cb); return () => phoneRemoteStatusListeners.delete(cb) },
+      onSpawn: (cb) => { phoneRemoteMembershipListeners.add(cb); return () => phoneRemoteMembershipListeners.delete(cb) },
       write: (id, data) => { if (remoteManager.owns(id)) remoteManager.write(id, data); else pty.write(id, data) }
     },
     staticRoot: services.phoneClientStaticRoot,
-    notifyError: (message) => send(CH.phoneRemoteChanged, { ...phoneRemoteServiceRef?.status(), error: message })
+    notifyError: (message) => {
+      send(CH.phoneRemoteChanged, { ...phoneRemoteServiceRef?.status(), error: message })
+      send(CH.phoneRemoteError, message)
+    },
+    ...(phoneRemoteSeam?.token ? { initialSessionToken: phoneRemoteSeam.token } : {}),
+    ...(phoneRemoteSeam?.timing ? { timing: phoneRemoteSeam.timing } : {})
   })
   phoneRemoteServiceRef = phoneRemoteService
   await phoneRemoteService.init()
-  const disposePhoneRemote = registerPhoneRemote(phoneRemoteService, send)
+  const disposePhoneRemote = registerPhoneRemote(phoneRemoteService, send, (sender) => wm.isKnownWindowSender(sender))
 
   // Feature 0013 — app-wide needs-you-notifications opt-in mirror. The production `shouldNotify` gate
   // is SYNCHRONOUS, but the preference is written renderer-side via fire-and-forget quickSave; so the
@@ -170,7 +233,8 @@ export async function registerHandlers(services: Services, wm: WindowManager): P
   let needsYouNotificationsMirror = (await quick.load()).orkyNeedsYouNotifications !== false
   registerWorkspaces({
     store, quick, shells,
-    onQuickSave: (data) => { needsYouNotificationsMirror = data.orkyNeedsYouNotifications !== false }
+    onQuickSave: (data) => { needsYouNotificationsMirror = data.orkyNeedsYouNotifications !== false },
+    onWorkspaceSaved: onPhoneRemoteWorkspaceSaved
   })
   registerEnv(win, envVault, send)
   registerClipboard()

@@ -1,7 +1,16 @@
 /**
- * Pairing-token URL extraction + client-side persistence (feature 0026, REQ-023/REQ-024). Pure
- * and DOM-free: `main.ts` supplies the real `window.location.href` / `localStorage` at the call
- * site so this module stays import-safe (and unit-testable) under node.
+ * Pairing-token URL extraction (feature 0026, REQ-023/REQ-028). Pure and DOM-free: `main.ts`
+ * supplies the real `window.location.href` at the call site so this module stays import-safe
+ * (and unit-testable) under node.
+ *
+ * v2 (ESC-001 — closes the FINDING-025 auth-relaunch contradiction): the plaintext token is NO
+ * LONGER persisted anywhere script-readable (no `localStorage`/`sessionStorage`, no script-written
+ * cookie). The first token-authenticated HTTP response sets the REQ-028 HttpOnly session cookie
+ * server-side (invisible to script); the browser then presents that cookie automatically on every
+ * later same-origin request (including the WS upgrade), so the client needs no in-memory or
+ * persisted credential of its own after the initial load. This module's ONLY remaining job is
+ * extracting the token so `main.ts` can strip it from the visible URL immediately (it must not
+ * linger in browser history) — it does not store the token anywhere.
  */
 
 export interface ExtractedToken {
@@ -24,27 +33,4 @@ export function extractTokenFromUrl(href: string): ExtractedToken {
   const search = url.searchParams.toString()
   url.search = search
   return { token, cleanedHref: url.toString() }
-}
-
-export interface StorageLike {
-  getItem(key: string): string | null
-  setItem(key: string, value: string): void
-}
-
-export interface TokenStorage {
-  save(token: string): void
-  load(): string | undefined
-}
-
-const STORAGE_KEY = 'termhalla-phone-token'
-
-export function createTokenStorage(storage: StorageLike): TokenStorage {
-  return {
-    save(token) {
-      storage.setItem(STORAGE_KEY, token)
-    },
-    load() {
-      return storage.getItem(STORAGE_KEY) ?? undefined
-    }
-  }
 }

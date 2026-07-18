@@ -305,7 +305,7 @@
     "tests/main/phone-remote-mirrors.test.ts": "cd5d0079b5254fcd3f38818735d09e24c4d41218aec27cc58b50b5240987a121",
     "tests/main/phone-remote-network-urls.test.ts": "847c7ce165ae67643a4c5b68fc05cc4499823d7a829d2f396be071e533f915c1",
     "tests/main/phone-remote-remote-grid.test.ts": "7988b5741171bac412ab99d556d9e156d5d8866788291799accbbf307d90fc96",
-    "tests/main/phone-remote-service.test.ts": "2be2a932eaef7b5e139c95c2a8be87570443eceb4ec636f624252defb0cba63f",
+    "tests/main/phone-remote-service.test.ts": "ffb4aeffd267efa77ac65a0fe244b5c8938185d2b3d34396b74f1f9558e097fb",
     "tests/main/phone-remote-session.test.ts": "e9498e312295f400815ca2e4d7354d33e6c28d6aa02872987d6a8f9d33b0df3b",
     "tests/main/phone-remote-settings.test.ts": "ad72ee915ef103ccbbede200d6d371d0dfb7275031ff2a09814061add93c1bbb",
     "tests/main/phone-remote-structure.test.ts": "1ba386dbce84a8af2222d40fa05d4631e19baccbd396656e434704bd905dcef8",

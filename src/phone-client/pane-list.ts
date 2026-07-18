@@ -1,7 +1,8 @@
 /**
- * The workspace-grouped pane list (feature 0026, REQ-011/REQ-023): each row renders the pane's
- * live status chip — busy / idle / needs-input / exited — driven by the server's `panes`
- * inventory push and subsequent `status` pushes.
+ * The workspace-grouped pane list (feature 0026, REQ-011/REQ-023/REQ-030): each row renders the
+ * pane's live status chip — busy / idle / needs-input / exited — driven by the server's `panes`
+ * inventory push and subsequent `status` pushes. An empty inventory renders guidance instead of a
+ * blank screen (v2, REQ-030 — closes FINDING-048).
  */
 
 export interface PaneRow {
@@ -44,8 +45,26 @@ export class PaneList {
     this.render()
   }
 
+  /** The freshest known row for a pane (cols/rows/title) — used to size the terminal before
+   *  subscribing (REQ-013) and to render a human title. */
+  getPane(paneId: string): PaneRow | undefined {
+    for (const ws of this.workspaces) {
+      const found = ws.panes.find((p) => p.paneId === paneId)
+      if (found) return found
+    }
+    return undefined
+  }
+
   private render(): void {
     this.container.innerHTML = ''
+    const paneCount = this.workspaces.reduce((n, ws) => n + ws.panes.length, 0)
+    if (paneCount === 0) {
+      const empty = document.createElement('p')
+      empty.className = 'pane-list-empty'
+      empty.textContent = 'Open a terminal in Termhalla to see it here.'
+      this.container.appendChild(empty)
+      return
+    }
     for (const ws of this.workspaces) {
       const section = document.createElement('section')
       section.className = 'pane-list-workspace'
@@ -61,6 +80,7 @@ export class PaneList {
         const btn = document.createElement('button')
         btn.type = 'button'
         btn.className = 'pane-list-row'
+        btn.dataset.testid = `phone-pane-${pane.paneId}`
         const title = document.createElement('span')
         title.className = 'pane-list-title'
         title.textContent = pane.title

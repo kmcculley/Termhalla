@@ -109,7 +109,7 @@ export function TerminalPane({ paneId, wsId, config }: { paneId: string; wsId: s
     const home = useStore.getState().workspaces[wsId]?.home
     const spawned = api.ptySpawn({
       id: paneId, shellId: config.shellId, cwd: config.cwd,
-      cols: term.cols, rows: term.rows, launch: config.launch, envId: config.envId,
+      cols: term.cols, rows: term.rows, launch: config.launch, envId: config.envId, workspaceId: wsId,
       ...(home ? { remote: { workspaceId: wsId, agentId: home.agentId } } : {})
     })
     api.searchSetMuted(paneId, !!config.historyMuted)
@@ -204,7 +204,7 @@ export function TerminalPane({ paneId, wsId, config }: { paneId: string; wsId: s
       void api.ptySpawn({
         id: paneId, shellId: config.shellId,
         cwd: paneCwd(useStore.getState(), paneId) || config.cwd,
-        cols: term.cols, rows: term.rows, launch: config.launch, envId: config.envId
+        cols: term.cols, rows: term.rows, launch: config.launch, envId: config.envId, workspaceId: wsId
       })
     })
     // Manual "Redraw terminal" (Ctrl+Shift+L): the aggressive path — re-fit + repaint xterm, a real

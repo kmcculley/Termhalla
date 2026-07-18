@@ -19,7 +19,7 @@ export type ThemeScope =
 export type ToastKind = 'success' | 'error' | 'info'
 export interface Toast { id: string; kind: ToastKind; text: string }
 
-export type SettingsSection = 'general' | 'appearance' | 'environment' | 'terminal' | 'keybindings'
+export type SettingsSection = 'general' | 'appearance' | 'environment' | 'terminal' | 'keybindings' | 'phoneRemote'
 export interface SettingsTarget { section: SettingsSection; paneId?: string }
 
 /** A closed (on-disk but not open in this window) workspace, listed in the Reopen dialog. */

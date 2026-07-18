@@ -14,6 +14,9 @@ export interface PhoneRemoteSettings {
   /** sha-256 (base64url) of the pairing token. Absent = never paired. The plaintext token is
    *  NEVER persisted (REQ-004) — it lives in main-process memory only, for the current session. */
   tokenHash?: string
+  /** Optional phone-reachable host override for the pairing URL/QR (REQ-031 — the `tailscale
+   *  serve` hostname being the motivating case). Not a secret; the bind address is unaffected. */
+  externalHost?: string
 }
 
 const isValidPort = (p: unknown): p is number =>
@@ -32,5 +35,6 @@ export function normalizePhoneRemote(value: unknown): PhoneRemoteSettings | unde
     port: isValidPort(v.port) ? v.port : PHONE_REMOTE_PORT_DEFAULT
   }
   if (typeof v.tokenHash === 'string') out.tokenHash = v.tokenHash
+  if (typeof v.externalHost === 'string' && v.externalHost.trim().length > 0) out.externalHost = v.externalHost.trim()
   return out
 }

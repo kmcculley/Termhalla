@@ -14,14 +14,22 @@ export function registerWorkspaces(
      *  to refresh the main-side needs-you opt-in mirror synchronously — no new IPC channel, no async
      *  re-read on the notify hot path (REQ-005 Wiring). */
     onQuickSave?: (data: QuickStore) => void
+    /** Feature 0026 v2 (REQ-011): invoked with the FULL workspace record on every `ws:save` —
+     *  main's only source of real workspace id/name + per-pane title/kind. Called BEFORE the
+     *  (possibly async) disk write so the phone-remote metadata mirror stays current even if the
+     *  write itself is slow; the write is not delayed or altered by this hook. */
+    onWorkspaceSaved?: (ws: Workspace) => void
   }
 ): void {
-  const { store, quick, shells, onQuickSave } = deps
+  const { store, quick, shells, onQuickSave, onWorkspaceSaved } = deps
 
   ipcMain.handle(CH.listShells, () => shells)
   ipcMain.handle(CH.listWorkspaceIds, () => store.listWorkspaceIds())
   ipcMain.handle(CH.loadWorkspace, (_e, id: string) => store.loadWorkspace(id))
-  ipcMain.handle(CH.saveWorkspace, (_e, ws: Workspace) => store.saveWorkspace(ws))
+  ipcMain.handle(CH.saveWorkspace, (_e, ws: Workspace) => {
+    onWorkspaceSaved?.(ws)
+    return store.saveWorkspace(ws)
+  })
   ipcMain.handle(CH.deleteWorkspace, (_e, id: string) => store.deleteWorkspace(id))
   ipcMain.handle(CH.loadAppState, () => store.loadAppState())
   ipcMain.handle(CH.saveAppState, (_e, s: AppState) => store.saveAppState(s))
