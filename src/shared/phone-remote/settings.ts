@@ -14,8 +14,11 @@ export interface PhoneRemoteSettings {
   /** sha-256 (base64url) of the pairing token. Absent = never paired. The plaintext token is
    *  NEVER persisted (REQ-004) — it lives in main-process memory only, for the current session. */
   tokenHash?: string
-  /** Optional phone-reachable host override for the pairing URL/QR (REQ-031 — the `tailscale
-   *  serve` hostname being the motivating case). Not a secret; the bind address is unaffected. */
+  /** Optional phone-reachable override for the pairing URL/QR (REQ-031). Either a bare hostname
+   *  (advertised as http on the configured port) or, since v4 (ESC-004/FINDING-082), a FULL
+   *  http(s) ORIGIN such as `https://my-machine.tailXXXX.ts.net` — the `tailscale serve` public
+   *  origin being the motivating case: the pairing URL is built from the origin verbatim (scheme
+   *  preserved, no backend port appended). Not a secret; the bind address is unaffected. */
   externalHost?: string
 }
 

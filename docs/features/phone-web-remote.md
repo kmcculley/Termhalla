@@ -21,12 +21,17 @@ manages pane lifecycle, and never perturbs the desktop renderer path (REQ-015).
   either stays on localhost, stays on your LAN (with the plaintext warning), or rides your own
   Tailscale/VPN tunnel.
   - **The explicit pairing step:** because the phone reaches your desktop at the TAILSCALE
-    hostname, not `127.0.0.1`, set the **external host** field in the phone-remote Settings
-    section to that tailnet hostname (e.g. `my-machine.tailXXXX.ts.net`) BEFORE scanning — the QR
-    code and the copyable pairing URL then encode that host instead of the bind address, so the
-    phone can actually reach it. The bind mode itself stays `localhost`; only the ADVERTISED host
-    changes. `status().urls` also lists every other reachable candidate (deterministically ranked)
-    for LAN-mode pairing without `tailscale serve`.
+    origin — HTTPS on the tailnet hostname (normally port 443), reverse-proxied by `tailscale
+    serve` to your localhost backend port — set the **external host** field in the phone-remote
+    Settings section to that FULL origin (e.g. `https://my-machine.tailXXXX.ts.net`, exactly what
+    `tailscale serve` prints) BEFORE scanning. The QR code and the copyable pairing URL are then
+    built from that origin VERBATIM — https preserved, the backend port never appended — so the
+    pairing link actually rides the proxy instead of pointing `http://<host>:<backend port>` at a
+    listener the proxy fronts. (A bare hostname in the field keeps the plain-http +
+    configured-port form, for proxies/DNS names that forward the port unchanged.) The bind mode
+    itself stays `localhost`; only the ADVERTISED origin changes. `status().urls` also lists
+    every other reachable candidate (deterministically ranked) for LAN-mode pairing without
+    `tailscale serve`.
 - **Single hashed pairing token.** The token is generated in main from a CSPRNG (`crypto.
   randomBytes(32)`, base64url, 256 bits of entropy). Only its sha-256 hash is ever persisted
   (`quick.json`'s `phoneRemote.tokenHash`) — the plaintext exists in main-process memory only, for

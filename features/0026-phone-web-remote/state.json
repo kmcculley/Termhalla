@@ -61,8 +61,8 @@
     },
     "implement": {
       "passed": true,
-      "at": "2026-07-18T21:15:35.288Z",
-      "firstAt": "2026-07-18T21:15:35.288Z",
+      "at": "2026-07-18T21:54:43.161Z",
+      "firstAt": "2026-07-18T21:54:43.161Z",
       "tokens": [
         {
           "token": "spec-freeze",
@@ -90,7 +90,7 @@
   "iterations": {
     "tests": 2,
     "spec": 1,
-    "implement": 1
+    "implement": 2
   },
   "escalations": [
     {
@@ -125,6 +125,28 @@
       "at": "2026-07-18T20:38:08.776Z",
       "decision": "Human (Kevin, 2026-07-18): fix all 5 now (FINDING-058/060/063/070/071), none deferred. Implement mode: human-authorized single Claude implementer at the router-computed producer tier, overriding a potential A/B mandate for this focused fix round (budget-conscious; frozen suite + re-review still arbitrate) — to be recorded via record-implementer as an audited deviation.",
       "resolvedAt": "2026-07-18T21:00:46.124Z"
+    },
+    {
+      "id": "ESC-004",
+      "phase": "review",
+      "reason": "Should the Tailscale pairing path be fixed to accept external HTTPS origins (not just hostnames), enabling pairing through Tailscale Serve as documented? Should REQ-031's reachability requirement be enforced?",
+      "kind": "judgment",
+      "finding": "FINDING-082",
+      "status": "resolved",
+      "at": "2026-07-18T21:30:09.185Z",
+      "decision": "Human (Kevin, 2026-07-18): fix now. Accept a full external HTTPS origin for the Tailscale path and build the pairing URL from it (REQ-031 reachability enforced under every documented access story). Single top-tier Claude implementer, same audited router-override as ESC-003.",
+      "resolvedAt": "2026-07-18T21:38:32.166Z"
+    },
+    {
+      "id": "ESC-005",
+      "phase": "review",
+      "reason": "Should the final pane output on exit be preserved when a client is stale/saturated? Should a final barrier snapshot be captured before mirror disposal to ensure REQ-017/REQ-026 exactly-once delivery?",
+      "kind": "judgment",
+      "finding": "FINDING-083",
+      "status": "resolved",
+      "at": "2026-07-18T21:30:31.997Z",
+      "decision": "Human (Kevin, 2026-07-18): fix now. Preserve final pane output at exit for stale/saturated clients — final barrier snapshot before mirror disposal (or equivalent reorder) so REQ-017/REQ-026 exactly-once holds at pane exit. Single top-tier Claude implementer, same audited router-override as ESC-003.",
+      "resolvedAt": "2026-07-18T21:38:32.226Z"
     }
   ],
   "concerns": [
@@ -139,7 +161,7 @@
     "plan": 0,
     "tests": 0,
     "implement": 0,
-    "review": 2
+    "review": 3
   },
   "implementer": {
     "mode": "claude",
@@ -147,8 +169,8 @@
       "orky:implementer"
     ],
     "winner": "orky:implementer",
-    "reason": "ESC-003 fix round: router computed ab (networking/determinism), overridden to a single Claude implementer at the router's top producer tier (fable/xhigh, judgment-loopback trigger) by explicit human authorization recorded on ESC-003 (budget-conscious targeted fixes; frozen suite + re-review arbitrate). All 5 findings fixed; implement gate re-passed on build + full-suite ground truth.",
-    "at": "2026-07-18T21:15:53.626Z"
+    "reason": "ESC-004/005 fix round: router computed ab, overridden to a single Claude implementer at top tier (fable/xhigh) by explicit human authorization recorded on both escalations. Tailscale external-origin pairing (bare-hostname pin preserved) + final-output-at-exit exactly-once (terminal snapshot before deferred mirror disposal). Implement gate re-passed on ground truth.",
+    "at": "2026-07-18T21:55:02.529Z"
   },
   "loopbacks": [
     {
@@ -174,7 +196,13 @@
       "from": "review",
       "reason": "ESC-003 resolved: 5 new HIGH findings on round-2 code, all implement-origin — burst-queue macrotask defer breaks snapshot-stream exactly-once (058/060), startup failure invisible pre-window (063), Set-Cookie dead after desktop restart (070), failed start destroys enabled intent (071).",
       "at": "2026-07-18T21:00:46.181Z"
+    },
+    {
+      "to": "implement",
+      "from": "review",
+      "reason": "ESC-004/005 resolved: FINDING-082 (pairing URL bypasses tailscale-serve HTTPS proxy — externalHost must accept a full origin) and FINDING-083 (final pane output lost at exit under stale/saturation — mirror disposed before exit fan-out). Both implement-origin.",
+      "at": "2026-07-18T21:38:32.289Z"
     }
   ],
-  "totalFailures": 2
+  "totalFailures": 3
 }

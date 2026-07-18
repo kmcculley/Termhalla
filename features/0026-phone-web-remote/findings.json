@@ -645,7 +645,10 @@
     "phase_of_origin": "spec",
     "verified_by": "ux",
     "id": "FINDING-043",
-    "status": "open"
+    "status": "resolved",
+    "resolution": "Verified fixed in src/renderer/components/PhoneRemoteSettings.tsx: a role=alert 'Not running - failed to start: <status().error>' cue renders whenever enabled && !running (lines 114-118) - a state now reachable in production because startIfEnabled keeps enabled=true on a failed start (the FINDING-063/071 fix); status().urls renders as a visible list whenever the server is running (lines 204-208, computeUrls returns at least the loopback URL while listening), so the user can tell from Settings whether the server is listening: enabled + alert = down with the specific reason, enabled + URL list + no alert = running. The affirmative state is conveyed by the port field + URL list rather than a literal 'running on port N' line - substance of REQ-029's status-line requirement met.",
+    "resolvedBy": "ux",
+    "resolvedAt": "2026-07-18T21:22:13.381Z"
   },
   {
     "lens": "devils-advocate",
@@ -849,7 +852,10 @@
     "verified_by": "determinism",
     "contract_violation": true,
     "id": "FINDING-058",
-    "status": "open"
+    "status": "resolved",
+    "resolution": "Verified fixed in commit c39dba3 by code-trace of both defect halves through src/main/phone-remote/service.ts + ws-session.ts + backpressure.ts + replay-engine.ts. (a) DUPLICATION: every snapshot-barrier-capturing entry point now synchronously drains the connection's burst queue first — ws.on('message') calls flushNow() before session.handleFrame (service.ts:409, so doSubscribe's barrier can never cover a still-parked chunk), ws.on('pong') calls flushNow() before socketDrained() (service.ts:322, same for the resync barrier), and the paneExit fan-out flushes each entry before session.paneExit (service.ts:475, so a parked final chunk is delivered, not discarded). The replay engine captures its barrier synchronously at snapshot() call time (target = issuedSeq, replay-engine.ts:119), so post-flush chunks are excluded from the snapshot and later flushed exactly once as data — traced the finding's interleavings in both snapshot-resolution orders plus attach/resync supersession (identity guards make an orphaned window's chunks land inside the superseding barrier). (b) LOSS: the paneData(id,'') substitute is gone; queueData's saturation discard calls session.markStale (service.ts:381/389), which records staleness through an attach/resync hold window (ws-session.ts:244-247 accepts live OR attaching OR resyncing; policy.markStale is direct); finishAttach/finishResync's deliverData then drops the stale pane's pending chunks (all mirror-covered) and the pong-driven next drain opens a resync whose fresh barrier covers the discarded bytes; socketDrained additionally refuses to open a resync window over an in-flight attach (ws-session.ts:259, re-marks stale) so a resync buffer-replace can never erase attach-delivered bytes. armTransportWatch is armed on every markStale so the repairing drain actually occurs. TEST-2713 exercises the live-pane saturation-to-resync path through the real transport. Residual: the fix's demanded service-level interleaved vectors (barrier race, mid-window saturation) were NOT added — test-freeze held through the fix round; that unpinned-repair gap is already tracked as FINDING-079 (networking) and FINDING-077 (devils-advocate), not re-filed.",
+    "resolvedBy": "determinism",
+    "resolvedAt": "2026-07-18T21:24:50.871Z"
   },
   {
     "lens": "determinism",
@@ -874,7 +880,10 @@
     "verified_by": "networking",
     "contract_violation": true,
     "id": "FINDING-060",
-    "status": "open"
+    "status": "resolved",
+    "resolution": "Verified fixed in commit c39dba3 by reading the code: (1) duplication half — ws.on('message') (service.ts:404-411) invokes flushNow() BEFORE session.handleFrame, so a subscribe's snapshot barrier (doSubscribe -> mirrors.snapshot) can no longer be captured while a mirror-fed chunk is still parked in the burst queue, and ws.on('pong') (service.ts:316-328) invokes flushNow() before session.socketDrained() for the resync barrier — traced both interleavings: a same-tick parked chunk now lands in the snapshot exactly once (flushed pre-barrier it is dropped-if-unsubscribed or delivered-then-replaced; parked post-barrier it rides the hold window exactly once). (2) loss half — the saturation discard calls session.markStale(paneId) (service.ts:381,389) instead of paneData(id,''), ws-session.markStale (ws-session.ts:244-247) records staleness in the policy even while the pane is attaching/resyncing (backpressure.ts:98-100 markStale added), socketDrained keeps a still-attaching stale pane stale rather than opening a concurrent resync window (ws-session.ts:259, no delivered-then-erased hazard), and the next drain resyncs from mirror truth (mirror fed synchronously before the discard). paneExit additionally flushes parked chunks before subscription state is cleared (service.ts:475). socketDrained has no other caller (grepped). Residual gap — no test pins this ordering (fix round was test-frozen) — filed separately as a MEDIUM.",
+    "resolvedBy": "networking",
+    "resolvedAt": "2026-07-18T21:23:45.671Z"
   },
   {
     "lens": "security",
@@ -910,7 +919,10 @@
     "verified_by": "ux",
     "contract_violation": true,
     "id": "FINDING-063",
-    "status": "open"
+    "status": "resolved",
+    "resolution": "Verified fixed in code, all three halves: (a) service.ts startIfEnabled (lines 503-515) no longer coerces enabled=false on a failed start - enabled is kept as the user's persistent intent, so status() reports the { enabled: true, running: false, error } shape and the REQ-029 notRunning gate is REACHABLE (restart() also lets an enabled-but-errored service retry on a port/bind change); (b) PhoneRemoteSettings.tsx:114-118 renders the role=alert not-running cue with the specific status().error text keyed on enabled && !running; (c) App.tsx:166-168 performs a root-load recovery pull of phoneRemoteStatus() and routes a carried error through pushToast('error') - recovering the pre-window push that webContents.send dropped - alongside the always-subscribed onPhoneRemoteError push (App.tsx:111). TEST-2710 pins the status()-carries half (occupied port at init => running:false + error naming the port). Residual: the composed acceptance vector (persisted enabled:true + occupied port => visible indication in the first loaded window; enabled stays true) is pinned by NO test - filed separately as a new MEDIUM.",
+    "resolvedBy": "ux",
+    "resolvedAt": "2026-07-18T21:22:05.034Z"
   },
   {
     "lens": "ux",
@@ -995,7 +1007,10 @@
     "verified_by": "devils-advocate",
     "contract_violation": true,
     "id": "FINDING-070",
-    "status": "open"
+    "status": "resolved",
+    "resolution": "Verified in code (round-3 commit c39dba3): auth.ts authorizeRequest now returns the PRESENTED, just-verified plaintext on the token path ({authorized, viaToken, token}), and service.ts handleRequest (lines 201-211) issues the Set-Cookie from auth.token — never from the in-memory sessionToken — so a valid pairing URL first opened after a desktop restart (sessionToken undefined, tokenHash persisted) still yields the cookie. Traced the vector end-to-end: fresh instance loads only persisted tokenHash, GET /?token=<valid> verifies via verifyToken(token, tokenHash), auth.viaToken=true with auth.token set, issueSetCookie(auth.token) emits the HttpOnly cookie whose value verifies against the same persisted hash. Regenerate-revokes (REQ-006) and no-new-persisted-secret (REQ-004) are preserved since validity stays a pure function of tokenHash. The requested regression pin (issuance-after-restart vector) was NOT added (frozen suite unchanged at the fix round) — filed separately as a test-adequacy finding rather than holding this defect finding open.",
+    "resolvedBy": "devils-advocate",
+    "resolvedAt": "2026-07-18T21:22:13.161Z"
   },
   {
     "lens": "devils-advocate",
@@ -1008,7 +1023,10 @@
     "verified_by": "devils-advocate",
     "contract_violation": true,
     "id": "FINDING-071",
-    "status": "open"
+    "status": "resolved",
+    "resolution": "Verified in code (round-3 commit c39dba3), all three halves: (1) service.ts startIfEnabled (lines 503-515) no longer coerces enabled=false on a failed start — enabled is kept as persistent user intent, so status() reports the exact { enabled: true, running: false, error } shape; restart() (517-530) additionally falls through for enabled-but-errored so a setPort/setBind actually retries the start (the error's own corrective hint now works); doSetEnabled's idempotency guard (enabled===listening && enabled===settings.enabled) still permits an explicit retry and a clean disable from the errored state. (2) PhoneRemoteSettings.tsx renders the not-running cue + the specific status().error text under notRunning = enabled && !running (lines 77, 114-118) — now a REACHABLE state. (3) App.tsx (lines 159-168) pulls phoneRemoteStatus() once at root load and routes a carried status().error through the store toast chokepoint with the error severity (missed-push recovery for the pre-window phoneRemote:error push), satisfying the REQ-020 'first loaded window still surfaces the error' acceptance. Residuals filed separately: the requested real-vector pin was not added (frozen suite unchanged — test-adequacy finding), and lastError is never cleared on explicit disable so the root pull can ghost-toast a stale error (new LOW).",
+    "resolvedBy": "devils-advocate",
+    "resolvedAt": "2026-07-18T21:22:23.884Z"
   },
   {
     "lens": "devils-advocate",
@@ -1044,6 +1062,149 @@
     "phase_of_origin": "implement",
     "verified_by": "devils-advocate",
     "id": "FINDING-074",
+    "status": "open"
+  },
+  {
+    "lens": "quality",
+    "claim": "Four exported/public members in the phone-remote module have zero production call sites — dead code the shipped feature never exercises, one of it actively misleading: (1) reconnectAttachPlan (src/phone-client/ws-client.ts:36-38) is documented 'a reconnect performs a FRESH REQ-009 attach per subscribed pane' and is unit-tested (tests/phone-client-core.test.ts TEST-2674, asserting a 2-pane plan) as if it were the client's live reconnect mechanism, but main.ts's actual reconnect handler (the WS 'open' listener, ~line 187) re-attaches only activePaneId via TerminalView.open/openPanePlan — a materially different, narrower behavior born of the later subscription-hygiene pivot (FINDING-003/028: at most one pane is ever subscribed). The passing TEST-2674 gives false confidence that multi-pane reconnect re-attach is a live, tested behavior; it is not reachable from any entry point. (2) TerminalView.setPane (terminal-view.ts:88-90) has an inline comment claiming it is 'kept for callers that only need to redirect input' but has zero callers anywhere in src/ or tests/. (3) PhoneRemoteServer.isRunning() (server.ts:24,87) was floated as one alternative fix for FINDING-018 ('setEnabled idempotent... transport.isRunning()') but the fix that actually shipped took the other documented alternative (start() returns the existing bound port) — isRunning() was never wired to anything and has no dedicated test file. (4) staticFilePath (static-assets.ts:48-51), whose own doc comment claims it exists for 'tests/diagnostics', has zero call sites in tests/ or src/.",
+    "severity": "MEDIUM",
+    "gate": "review",
+    "fix": "Delete all four (reconnectAttachPlan + its TEST-2674 unit test, TerminalView.setPane, PhoneRemoteServer.isRunning, staticFilePath) unless a real caller is added. If reconnectAttachPlan's multi-pane semantics are intentionally retained for a future multi-subscription mode, say so explicitly in its doc comment and mark TEST-2674 as pinning a not-yet-wired capability rather than implying it is live REQ-024 behavior.",
+    "phase_of_origin": "implement",
+    "verified_by": "quality",
+    "id": "FINDING-075",
+    "status": "open"
+  },
+  {
+    "lens": "ux",
+    "claim": "The FINDING-063/071 fix (the REQ-020/REQ-029 errored-state surfacing) is unpinned against exactly the regression that already happened once between review rounds 1 and 2: no test asserts that settings.enabled SURVIVES a failed start (TEST-2710 asserts running:false and error text but never status().enabled - reintroducing the old startIfEnabled enabled=false coercion passes the entire frozen suite while silently killing the panel's notRunning gate and the checkbox state again); no test renders PhoneRemoteSettings with an errored status or seeds an errored server through the real composition (TEST-2717 is a source-grep of the component file - the class TEST-2716's own header warns cannot see reachability; TEST-2730 opens Settings against a healthy seam-fixed server only); and App.tsx's root-load recovery pull (the REQ-020 'first loaded window still surfaces the error' acceptance half) is asserted nowhere (app-queue-wiring.test.ts has no phoneRemote coverage, TEST-2718 pins only the push subscription). REQ-020's amended acceptance ('with persisted enabled: true and the port occupied at app startup, the first loaded window still surfaces the error') and REQ-029's ('with enabled: true and a stopped/errored server the section shows the not-running cue and the error text from status()') therefore have no executable vector - a shallow-pin gap on a twice-regressed behavior, not a behavior defect (the current code is verified correct).",
+    "severity": "MEDIUM",
+    "gate": "review",
+    "fix": "Extend TEST-2710 to assert status().enabled === true after the failed start (one line, pins the enabled-intent invariant that gates every renderer surface), and add either (a) a component render test mounting PhoneRemoteSettings with an injected { enabled: true, running: false, error } status asserting the role=alert cue and error text are in the DOM, or (b) an e2e vector that occupies the seam-fixed port with persisted enabled:true and asserts the first window shows the error toast and the Settings section shows the not-running cue. Requires a tests-phase amendment per the freeze discipline.",
+    "location": "tests/main/phone-remote-service.test.ts:591-607 (TEST-2710) + tests/renderer/phone-remote-settings-structure.test.ts (TEST-2717/2718) + tests/e2e/phone-remote.spec.ts:179-200 (TEST-2730)",
+    "phase_of_origin": "tests",
+    "verified_by": "ux",
+    "id": "FINDING-076",
+    "status": "open"
+  },
+  {
+    "lens": "devils-advocate",
+    "claim": "Every ESC-003 fix shipped with ZERO regression pins: the round-3 implement gate passed with the frozen suite byte-identical, so the exact vectors that produced this feature's three rounds of same-class regressions are still untested. Concretely: (a) FINDING-070's vector — cookie ISSUANCE after a desktop restart (fresh service instance loading only persisted tokenHash, GET /?token=<valid> must respond Set-Cookie) — TEST-2691 pins in-session issuance and TEST-2692 pins post-restart ACCEPTANCE, but no test composes the two, so reverting the auth.token change back to sessionToken-conditional issuance passes the whole suite; (b) FINDING-071/063's vector — a failed start must keep status().enabled === true — TEST-2653/TEST-2710 assert running:false and the error text but never assert enabled, so re-adding the enabled=false coercion (which re-kills the REQ-029 cue and the REQ-020 acceptance) passes the whole suite, and TEST-2717 remains the source-scan REQ-029 itself bans; (c) App.tsx's root phoneRemoteStatus() pull-and-toast (the late-subscriber half of REQ-020) has NO pin at all (TEST-2718 pins only the push subscription); (d) the FINDING-058/060 burst-queue interleavings (flushNow-before-barrier, markStale-mid-attach) are exercised nowhere through the real service seam — the session tests explicitly bypass the burst layer. The fix guidance on all five findings requested these pins; the human ESC-003 decision authorized the budget-conscious fix mode with 'frozen suite + re-review still arbitrate' — but re-review arbitrates once, while an unpinned fix can regress forever after.",
+    "severity": "MEDIUM",
+    "gate": "review",
+    "fix": "Run a tests-phase amendment (the sanctioned frozen-suite loopback path) adding: a restart-issuance vector (fresh instance + persisted-only state + token GET asserts Set-Cookie, then a cookie-only WS upgrade succeeds); an assertion in TEST-2653/2710 that status().enabled stays true after a failed start; a renderer test pinning the App.tsx root status-pull toast on a carried error; service-seam interleaving vectors for subscribe-racing-a-parked-chunk and saturation-during-attach. propose CONV: A loopback fix for a blocking finding MUST land with a test pinning the finding's vector (via a tests-phase amendment) in the same round — a fix arbitrated only by re-review is unpinned and can silently regress.",
+    "location": "tests/ (frozen suite unchanged across the ESC-003 fix round — implement gate token 'test files unchanged since freeze') vs src/main/phone-remote/service.ts v3",
+    "phase_of_origin": "implement",
+    "verified_by": "devils-advocate",
+    "id": "FINDING-077",
+    "status": "open"
+  },
+  {
+    "lens": "devils-advocate",
+    "claim": "The v3 late-subscriber recovery ghost-toasts a stale error after the user has deliberately disabled the feature: lastError is cleared ONLY by a successful attemptStart, never by an explicit disable — so after enable-fails (port occupied) then setEnabled(false), status() keeps reporting { enabled: false, running: false, error: 'Phone remote could not start on port …' } indefinitely, and App.tsx's root recovery pull toasts st.error WITHOUT checking st.enabled. Every subsequently created window (undock spawns a fresh renderer root) and every window reload re-raises an error-severity toast — which persists until manually dismissed (error toasts never auto-dismiss) — for a feature the user explicitly turned OFF, telling them to free a port they no longer care about. The case the v3 fix ignored: 'error present' is not the same state as 'error present AND the feature is still wanted'. A disabled feature is the spec's inert state (REQ-001) — it should surface nothing.",
+    "severity": "LOW",
+    "gate": "review",
+    "fix": "Clear lastError in doSetEnabled's disable branch (and/or in stop()) — a deliberate disable resolves the failure state; alternatively gate App.tsx's root pull-toast on st.enabled (the REQ-020 acceptance vector is persisted enabled:true). Cover with a vector: enable-fail, disable, assert status().error is absent (or the root consumer stays silent).",
+    "location": "src/main/phone-remote/service.ts:539-546 (doSetEnabled disable branch — lastError untouched) + src/renderer/App.tsx:166-168 (unconditional root pull-and-toast)",
+    "phase_of_origin": "implement",
+    "verified_by": "devils-advocate",
+    "id": "FINDING-078",
+    "status": "open"
+  },
+  {
+    "lens": "networking",
+    "claim": "The FINDING-058/060 exactly-once repair is entirely unpinned by the suite: the ESC-003 fix commit (c39dba3) changed no test files (test-freeze held through the fix round), and no test traverses the burst-layer ordering it introduced — flushNow/markStale appear nowhere under tests/ (grepped), TEST-2625/2705/2706 drive createWsSession directly and bypass the burst queue (the exact insufficiency FINDING-058/060 documented), and the real-transport TEST-2713 saturates without interleaving output against a barrier capture. Consequence: deleting the load-bearing flushNow() call at service.ts:409 (message handler) or :322 (pong handler), or reverting the saturation discard from session.markStale back to the old paneData(id,'') substitute, silently regresses REQ-009/REQ-017 exactly-once through the production path with the whole suite green. REQ-009's amended acceptance ('repeated with output racing the subscribe call') and REQ-017's interleaved-drain vector are exercised only at the session seam that round-2 review proved insufficient.",
+    "severity": "MEDIUM",
+    "gate": "review",
+    "fix": "Tests-phase amendment adding the service-level vectors FINDING-058/060 already demanded, through the REAL connection path (the TEST-2713 harness style): (1) feed a chunk and process a subscribe frame for that pane in the same tick, assert the reconstruction contains the chunk exactly once (in the snapshot XOR as data); (2) flood past PHONE_WS_HIGH_WATER during an in-flight attach/resync and assert a later pong-driven drain emits a resync containing the discarded bytes; (3) a paneExit with a same-tick parked final chunk still delivers that chunk before the exit push.",
+    "location": "tests/main/phone-remote-service.test.ts (no vector traverses queueData/flushNow/markStale); src/main/phone-remote/service.ts:319-393",
+    "phase_of_origin": "tests",
+    "verified_by": "networking",
+    "id": "FINDING-079",
+    "status": "open"
+  },
+  {
+    "lens": "networking",
+    "claim": "grid (and status) pushes bypass the per-connection burst queue, so a desktop resize's grid message can overtake pane data fed in the same tick that is still parked in burstQueue: onGrid -> session.paneGrid -> safeSend transmits immediately while the parked pre-resize bytes wait for the next macrotask/flushNow — the client resizes its xterm to the new cols/rows BEFORE applying up to one macrotask of pre-resize output, transiently mis-wrapping it (the shared mirror applies the same bytes in the correct order, data then resize, so the client and mirror renderings diverge until the post-resize full repaint or a resync). Self-healing in practice (a real desktop resize always provokes a ConPTY repaint) and sub-millisecond window; no REQ is violated (REQ-010 pins only per-pane DATA order), but it is the one cross-message-class ordering inversion the burst queue introduced, and the paneExit path already got the flush-first treatment for exactly this reason (service.ts:475). Filed once at LOW per calibration.",
+    "severity": "LOW",
+    "gate": "review",
+    "fix": "Flush the connection's burst queue before emitting a grid push (entry.flushNow() in the onGrid fan-out, mirroring the paneExit treatment), or route grid pushes through the same per-connection queue so data/grid relative order matches main's observed order.",
+    "location": "src/main/phone-remote/service.ts:378-393 (queueData parks data) vs :478-481 (onGrid fan-out sends grid immediately)",
+    "phase_of_origin": "implement",
+    "verified_by": "networking",
+    "id": "FINDING-080",
+    "status": "open"
+  },
+  {
+    "lens": "determinism",
+    "claim": "The stall-episode clock in the v3 transport watch is wall-clock and is never reset per pending episode, so the forceTerminate decision is a function of clock adjustments and a 50ms scheduling race rather than the connection's actual behavior. (a) Episode carryover: pendingSince = Date.now() is set once when the watch first arms and cleared only in the pong handler (when pending fully resolves after socketDrained) or by a timer tick that observes no pending — but unsubscribe/paneExit clear staleness synchronously WITHOUT resetting it, so a NEW pending episode beginning within the <=50ms armed-tick window after the previous one resolved inherits the OLD episode's pendingSince, and pendingTooLong (line 308) can forceTerminate a healthy connection up to almost the full PHONE_WS_STALL_TIMEOUT_MS early. (b) Non-monotonic source: Date.now() jumps with NTP steps and system sleep/resume — a forward jump while ANY backpressure state is pending (or while stallPolicy.aboveSince is set, since onBuffered/stalledPast ride the same wall clock) spuriously trips the 60s ceiling on the first tick after resume and kills a healthy connection. Consequence is bounded — the client auto-reconnects with a lossless fresh attach per REQ-024 — but the phone visibly drops to 'reconnecting' at a moment determined by the host's clock, not by the protocol.",
+    "severity": "LOW",
+    "gate": "review",
+    "fix": "Reset pendingSince at every pending->non-pending transition (clear it wherever session.hasPending() can go false — the unsubscribe/paneExit frame paths — or simply re-derive it inside armTransportWatch by checking hasPending() at arm time rather than only timer presence), and switch pendingSince plus the stallPolicy onBuffered/stalledPast timestamps to a monotonic source (performance.now() / process.hrtime.bigint()) so suspend/NTP can never manufacture a stall.",
+    "location": "src/main/phone-remote/service.ts:298-313 (armTransportWatch/pendingSince)",
+    "phase_of_origin": "implement",
+    "verified_by": "determinism",
+    "id": "FINDING-081",
+    "status": "open"
+  },
+  {
+    "lens": "codex-cross-check",
+    "claim": "REQ-031's documented Tailscale pairing path is still unreachable even with a valid bare externalHost (distinct from FINDING-068's malformed-input case): docs/features/phone-web-remote.md:17-27 tells users to keep the server on localhost, expose it through tailscale serve HTTPS, set only the tailnet hostname, and scan. But src/main/phone-remote/service.ts:174-186 treats externalHost as only a hostname and always emits http://<externalHost>:<backend settings.port>/?token=...; PhoneRemoteSettings.tsx:150-162 reinforces that hostname-only input. Tailscale Serve's public origin is HTTPS (normally port 443) reverse-proxied to localhost:<backend port>, so http://tailnet-host:<backend port> bypasses the proxy and cannot reach a listener bound to 127.0.0.1. Thus the ESC-001 decision/REQ-031 MUST that pairing be reachable under every documented access story was not actually applied; the existing ranking/copy UI tests prove string construction, not reachability.",
+    "severity": "HIGH",
+    "gate": "review",
+    "fix": "Model the advertised PUBLIC ORIGIN, not only a host: accept and validate an external origin such as https://my-machine.tailXXXX.ts.net (or separate external scheme/port fields), build the pairing URL with URL APIs without forcing the backend scheme/port, and update docs/features/phone-web-remote.md to the current tailscale serve command. Add a test where backend http://127.0.0.1:8199 is advertised as https://host/ and the pairing URL/QR preserves that external origin while bind remains localhost.",
+    "phase_of_origin": "spec",
+    "verified_by": "codex-cross-check",
+    "contract_violation": true,
+    "id": "FINDING-082",
+    "status": "open"
+  },
+  {
+    "lens": "codex-cross-check",
+    "claim": "REQ-017/REQ-026 permanently lose a pane's final output when it exits while that client is stale/saturated. In src/main/phone-remote/service.ts:456-467 output is fed to the mirror then parked per connection; on exit, service.ts:469-475 disposes the mirror BEFORE flushNow()/session.paneExit(). flushNow only repairs an under-threshold parked chunk. If ws.bufferedAmount is already above high water, deliverData drops the flushed final chunk and marks stale; if the burst queue itself saturated, the real chunks were already discarded and only stale remains. ws-session.ts:227-233 then clears stale/resync state and sends paneExit, while the only fresh snapshot source was just disposed. The promised drain resync can never occur and reconnect cannot attach an exited pane, so command-ending diagnostics can disappear permanently. This is distinct from FINDING-079's missing regression pin and its under-threshold parked-chunk vector.",
+    "severity": "HIGH",
+    "gate": "review",
+    "fix": "Before disposing the mirror, capture a final barrier snapshot for every exiting pane and make each tracking session finalize in wire order with a buffer-replacing final resync/snapshot followed by paneExit, then clear stale state; retain the mirror until that bounded finalization completes. Preserve the per-client memory ceiling (or explicitly terminate with a surfaced incomplete-history state if the final snapshot cannot be queued). Add real-service vectors for ordinary socket-high-water and pre-transport burst saturation immediately followed by pane exit, asserting the client's final terminal equals mirror truth before the exit indication.",
+    "phase_of_origin": "spec",
+    "verified_by": "codex-cross-check",
+    "contract_violation": true,
+    "id": "FINDING-083",
+    "status": "open"
+  },
+  {
+    "lens": "codex-cross-check",
+    "claim": "REQ-009/REQ-013 mirror ordering is not preserved when output is pending during a desktop resize (distinct from FINDING-080, which covers the client-side burst queue). replay-engine.ts:103-109 feeds with asynchronous term.write(data, callback), but resizePane reaches replay-engine.ts:112-115 and calls term.resize synchronously with no write barrier; service.ts:456-480 composes those two paths. Therefore a resize can overtake already-observed pane bytes inside the authoritative mirror, so later attach/resync snapshots parse pre-resize bytes at the new grid instead of matching the desktop's data-then-resize order. A direct probe against the shipped @xterm/headless code confirmed it: at 5x2, feed('ABCDE12345') then resize(10,2) before the write callback serializes as one unwrapped line, while waiting for the callback before the same resize produces the expected reflow/control sequence. FINDING-080's proposed client flush cannot repair a snapshot whose server mirror is already wrong.",
+    "severity": "MEDIUM",
+    "gate": "review",
+    "fix": "Put feed and resize in one ordered replay-operation domain: a resize requested with writes pending must run inside the callback/barrier after all previously issued writes and before any subsequently issued writes. Add an actual headless replay test that compares feed-before-resize and resize-before-feed against reference terminals, plus a service attach/resync vector with a resize racing output.",
+    "phase_of_origin": "spec",
+    "verified_by": "codex-cross-check",
+    "contract_violation": true,
+    "id": "FINDING-084",
+    "status": "open"
+  },
+  {
+    "lens": "codex-cross-check",
+    "claim": "REQ-006's regenerate-is-atomic MUST fails on persistence error. src/main/phone-remote/service.ts:590-600 mutates the live settings.tokenHash and sessionToken BEFORE awaiting deps.saveSettings(), but closes existing sockets and returns the new pairing URL only AFTER that await. If quick.json persistence rejects, the IPC call reports failure while main has silently switched future HTTP/WS auth to an undisclosed new token, existing old-token sockets remain open, disk still contains the old hash (which resurrects after restart), and pairingUrl() can later expose a token from an operation the UI was told failed. tests/main/phone-remote-service.test.ts:305's atomicity test covers only the success path. This is a real partial commit across memory, disk, clients, and renderer state.",
+    "severity": "HIGH",
+    "gate": "review",
+    "fix": "Stage candidate settings/token without mutating live state; await persistence first, and only on success synchronously publish settings + sessionToken, close all sessions, and return the URL. On save failure leave the old in-memory token/hash/session set untouched. Add an injected saveSettings rejection vector asserting the old credential and live client remain coherent and no new token becomes observable; retain the existing success-path revoke-all vector.",
+    "phase_of_origin": "implement",
+    "verified_by": "codex-cross-check",
+    "contract_violation": true,
+    "id": "FINDING-085",
+    "status": "open"
+  },
+  {
+    "lens": "codex-cross-check",
+    "claim": "REQ-003/REQ-019 lifecycle/settings mutations are also partially committed when quick.json persistence fails (distinct from FINDING-085's REQ-006 regenerate transaction). service.ts:532-574 mutates live settings and, for setEnabled, starts/stops the transport before awaiting saveSettings; setBind/setPort mutate settings before save and restart only after it. A rejected setBind therefore leaves status().bind reporting LAN while the live listener is still localhost (computeUrls advertises unreachable LAN URLs), directly violating REQ-019's 'reported state and actual listening state can never diverge'; failed enable/disable can change the live listener while disk retains the opposite intent, so restart reverses an IPC operation that was reported as failed. No failure path rolls back or stages state.",
+    "severity": "MEDIUM",
+    "gate": "review",
+    "fix": "Use staged candidate settings for every operation. Persist the candidate before publishing it to live status or changing the transport; after persistence succeeds, synchronously publish then perform the serialized start/stop/rebind (preserving enabled:true + runtime error on bind failure). If persistence rejects, retain the old settings/listener exactly. Add saveSettings-rejection vectors for enable, disable, bind, and port that assert status, actual socket reachability, and persisted intent remain coherent.",
+    "phase_of_origin": "implement",
+    "verified_by": "codex-cross-check",
+    "contract_violation": true,
+    "id": "FINDING-086",
     "status": "open"
   }
 ]

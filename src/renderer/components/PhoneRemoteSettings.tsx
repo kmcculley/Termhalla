@@ -148,18 +148,21 @@ export function PhoneRemoteSettings() {
         {portError && <p role="alert" style={{ color: 'var(--warn-fg, #e0a030)', fontSize: 12 }}>{portError}</p>}
 
         <label style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          External host (optional)
+          External host or origin (optional)
           <input
             type="text"
-            placeholder="e.g. my-machine.tailXXXX.ts.net"
+            placeholder="e.g. https://my-machine.tailXXXX.ts.net"
             value={externalHostDraft}
             onChange={(e) => setExternalHostDraft(e.target.value)}
             onBlur={applyExternalHost}
           />
         </label>
         <p style={{ fontSize: 12, color: 'var(--fg-dim, #999)' }}>
-          Set this to a `tailscale serve` hostname (or any other phone-reachable name) so the QR
-          and pairing URL use it instead of the bind address — the bind mode is unaffected.
+          For `tailscale serve`, paste the full HTTPS origin it prints (e.g.
+          `https://my-machine.tailXXXX.ts.net`) — the QR and pairing URL are then built from that
+          origin verbatim (scheme and port preserved, so traffic rides the proxy to the localhost
+          bind). A bare hostname keeps plain http on the configured port. The bind mode itself is
+          unaffected either way.
         </p>
       </fieldset>
 

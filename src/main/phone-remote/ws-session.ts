@@ -21,7 +21,10 @@
  * `status`/`grid` pushes to a saturated client are coalesced latest-wins per pane (v2,
  * FINDING-002/019) via the backpressure policy's `onPush`/`takeHeldPushes`, flushed on the same
  * drain trigger. A pane's stale/held state is cleared by `unsubscribe`, `paneExit`, and a fresh
- * `subscribe` (v2, FINDING-020) — backpressure state can never outlive its subscription.
+ * `subscribe` (v2, FINDING-020) — backpressure state can never outlive its subscription. On
+ * `paneExit`, an outstanding delivery obligation (stale, or an in-flight attach/resync window)
+ * is SETTLED before it is cleared: a final barrier snapshot is captured and delivered as a
+ * buffer-replacing `resync` ahead of the exit push (v4, FINDING-083 — see `paneExit`).
  *
  * Every entry point is defensively contained (REQ-018): a throwing `send`, a throwing pane write,
  * or a malformed frame can never propagate an uncaught throw into main (Electron's modal-error-
@@ -52,7 +55,14 @@ export interface WsSession {
   paneData(paneId: string, chunk: string): void
   paneStatus(paneId: string, status: string): void
   paneGrid(paneId: string, cols: number, rows: number): void
-  paneExit(paneId: string): void
+  /** Pane-exit fan-in. Synchronous (returns `undefined`) when this session owes the pane nothing;
+   *  returns a settle promise when the pane exits while this session still owes it delivery —
+   *  stale from a saturation discard, or an in-flight attach/resync hold window (v4,
+   *  FINDING-083): a final write-flush-barrier mirror snapshot is captured IMMEDIATELY (before
+   *  the caller can dispose the mirror) and delivered as a buffer-replacing `resync` ahead of the
+   *  `paneExit` push, so command-ending output survives saturation exactly once. The caller MUST
+   *  defer mirror disposal until the returned promise settles. */
+  paneExit(paneId: string): void | Promise<void>
   /** Re-sends the full `panes` inventory (a membership/metadata change — REQ-011 currency). The
    *  client treats a fresh `panes` message as a list replace. */
   pushInventory(): void
@@ -225,12 +235,37 @@ export function createWsSession(deps: WsSessionDeps): WsSession {
     },
 
     paneExit(paneId) {
+      // Final-output guarantee (v4, FINDING-083 / ESC-005): if this session still OWES the pane
+      // delivery — stale from a per-chunk high-water drop or a pre-transport burst-saturation
+      // discard, or an attach/resync hold window whose snapshot has not resolved — the mirror is
+      // the ONLY remaining source of those bytes, and simply clearing the state here made the
+      // promised drain-resync impossible forever (an exited pane can never re-attach). Capture
+      // one final write-flush-barrier snapshot NOW — synchronously, before the service can
+      // dispose the mirror — and deliver it in wire order as a buffer-replacing `resync` (the
+      // client applies `resync` and `snapshot` identically: reset-then-write, so this also
+      // completes an in-flight attach), then the `paneExit` + terminal `status`. Exactly-once
+      // holds: dropped/held chunks appear only inside the final snapshot, never doubled — the
+      // hold-window queues they sat in are discarded unsent. The no-obligation path stays fully
+      // synchronous (the common case, pinned by TEST-2631/TEST-2636).
+      const owesFinal = !closed &&
+        (attaching.has(paneId) || resyncing.has(paneId) || policy.isStale(paneId))
       attaching.delete(paneId)
       resyncing.delete(paneId)
       live.delete(paneId)
       policy.clearStale(paneId)
-      safeSend({ type: 'paneExit', paneId })
-      safeSend({ type: 'status', paneId, status: 'exited' })
+      if (!owesFinal) {
+        safeSend({ type: 'paneExit', paneId })
+        safeSend({ type: 'status', paneId, status: 'exited' })
+        return
+      }
+      return new Promise<void>((resolve) => {
+        readSnapshot(paneId, (snap) => {
+          safeSend({ type: 'resync', paneId, data: snap })
+          safeSend({ type: 'paneExit', paneId })
+          safeSend({ type: 'status', paneId, status: 'exited' })
+          resolve()
+        })
+      })
     },
 
     pushInventory() {

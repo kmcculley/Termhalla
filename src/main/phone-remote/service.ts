@@ -30,7 +30,10 @@
  *    REQ-017 stall ceiling (`PHONE_WS_STALL_TIMEOUT_MS`) and a real WS ping/pong keepalive
  *    (`PHONE_WS_PING_INTERVAL_MS`/`PHONE_WS_PONG_TIMEOUT_MS`) terminates unresponsive sockets.
  *  - REQ-031: `status().urls` is the deterministically-ranked reachable-URL list
- *    (`network-urls.ts`); `externalHost` overrides the pairing-URL host.
+ *    (`network-urls.ts`); `externalHost` overrides the pairing-URL host. v4 (ESC-004 —
+ *    FINDING-082): a full http(s) ORIGIN override (the tailscale-serve public origin) builds the
+ *    pairing URL from that origin verbatim — scheme preserved, no backend port appended; a bare
+ *    hostname keeps the http + backend-port semantics.
  *  - REQ-007: `pairingUrl()` re-fetches the current session's pairing URL WITHOUT regenerating.
  */
 import { networkInterfaces } from 'node:os'
@@ -171,6 +174,18 @@ export function createPhoneRemoteService(deps: PhoneRemoteServiceDeps): PhoneRem
     return [`http://127.0.0.1:${boundPort}`]
   }
 
+  // v4 (ESC-004 — FINDING-082): `externalHost` may be a FULL ORIGIN (`https://machine.tailnet.
+  // ts.net`, optional explicit port), not only a bare hostname. The documented tailscale-serve
+  // story publishes an HTTPS origin (normally :443) reverse-proxied to localhost:<backend port> —
+  // forcing `http://` and appending the backend port bypassed that proxy entirely and can never
+  // reach a 127.0.0.1 bind. When the override parses as an http(s) origin, the pairing URL is
+  // built from it VERBATIM: scheme preserved, its own (or default) port, NO backend port appended.
+  const externalOrigin = (): string | undefined => {
+    const value = settings.externalHost
+    if (!value || !/^https?:\/\//i.test(value)) return undefined
+    try { return new URL(value).origin } catch { return undefined }
+  }
+
   const pairingHost = (): string => {
     if (settings.externalHost) return settings.externalHost
     if (settings.bind === 'lan' && boundPort !== undefined) {
@@ -181,6 +196,9 @@ export function createPhoneRemoteService(deps: PhoneRemoteServiceDeps): PhoneRem
   }
 
   const buildPairingUrl = (token: string): string => {
+    const origin = externalOrigin()
+    if (origin) return `${origin}/?token=${encodeURIComponent(token)}`
+    // A bare hostname (or no override) keeps the existing semantics: http + the backend port.
     const host = pairingHost()
     const port = listening && boundPort !== undefined ? boundPort : settings.port
     return `http://${host}:${port}/?token=${encodeURIComponent(token)}`
@@ -468,11 +486,25 @@ export function createPhoneRemoteService(deps: PhoneRemoteServiceDeps): PhoneRem
     })
     unsubExit = deps.panes.onExit((paneId) => {
       taps.delete(paneId)
-      mirrors.paneExited(paneId)
       // Flush parked chunks BEFORE the exit clears each session's subscription state (v3,
       // FINDING-058/060 class): paneExit drops the pane from live/hold-window maps, so a
       // still-parked final chunk (e.g. the shell's exit message) would otherwise be discarded.
-      for (const entry of sessions) { entry.flushNow(); entry.session.paneExit(paneId) }
+      //
+      // v4 (FINDING-083 / ESC-005 — final output must survive stale/saturation): the mirror is
+      // the ONLY snapshot source for bytes a saturated session dropped (per-chunk high-water
+      // gate) or discarded (pre-transport burst saturation), so it must NOT be disposed before
+      // the exit fan-out — a session with such an outstanding obligation captures a final
+      // write-flush-barrier snapshot inside `paneExit` (delivered as a buffer-replacing `resync`
+      // ahead of the `paneExit` push) and returns a settle promise. Dispose the mirror only
+      // after EVERY session's fan-out — including those pending final snapshots — has settled
+      // (bounded: the snapshot barrier always resolves; the no-obligation path is synchronous).
+      const settled: Array<void | Promise<void>> = []
+      for (const entry of sessions) { entry.flushNow(); settled.push(entry.session.paneExit(paneId)) }
+      // Re-check after the await (the repo's session-identity race pattern): if a tap was
+      // re-registered for this paneId during the settle window, the registry entry is no longer
+      // the exited pane's — disposing it would destroy the successor's live mirror.
+      const disposeExited = (): void => { if (!taps.has(paneId)) mirrors.paneExited(paneId) }
+      void Promise.all(settled).then(disposeExited, disposeExited)
       pushInventoryToAll()
     })
     unsubGrid = deps.panes.onGrid((paneId, cols, rows) => {
