@@ -29,8 +29,10 @@ export interface BackpressurePolicy {
    *  staleness. At/above `lowWater`: returns `[]` (nothing resynced yet). */
   onDrain(bufferedAmount: number): string[]
   isStale(paneId: string): boolean
-  /** `true` = send this status/grid push now. `false` = the push was HELD (coalesced latest-wins
-   *  per `kind`+`paneId` — a saturated client accumulates at most one entry per pane per kind). */
+  /** `true` = send this status/grid push now (this also DROPS any older held entry for the same
+   *  `kind`+`paneId` — the newer wire message supersedes it, FINDING-119). `false` = the push was
+   *  HELD (coalesced latest-wins per `kind`+`paneId` — a saturated client accumulates at most one
+   *  entry per pane per kind). */
   onPush(kind: string, paneId: string, payload: unknown, bufferedAmount: number): boolean
   /** Every held push, latest payload per (kind, paneId); clears the held set. */
   takeHeldPushes(): HeldPush[]
@@ -80,10 +82,17 @@ export function createBackpressurePolicy(opts?: { highWater?: number; lowWater?:
       return stale.has(paneId)
     },
     onPush(kind, paneId, payload, bufferedAmount) {
+      const key = heldKey(kind, paneId)
       if (bufferedAmount > highWater) {
-        held.set(heldKey(kind, paneId), { kind, paneId, payload })
+        held.set(key, { kind, paneId, payload })
         return false
       }
+      // Latest-wins across the saturation boundary (FINDING-119): a NEWER push observed once the
+      // buffer is back at/below high water is sent immediately — so any OLDER entry held for the
+      // same kind+pane under earlier saturation is now superseded and must be dropped, or the next
+      // drain's `takeHeldPushes` would emit the stale payload AFTER this newer wire message
+      // (reverting the client's status/grid to an old value).
+      held.delete(key)
       return true
     },
     takeHeldPushes() {

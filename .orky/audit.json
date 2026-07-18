@@ -10234,5 +10234,51 @@
       }
     },
     "at": "2026-07-18T23:28:48.684Z"
+  },
+  {
+    "action": "gate.check",
+    "feature": "0026-phone-web-remote",
+    "phase": "review",
+    "pass": false,
+    "attempts": 7,
+    "totalFailures": 7,
+    "wallClockMs": 5,
+    "failed": [
+      "findings"
+    ],
+    "at": "2026-07-18T23:29:20.519Z"
+  },
+  {
+    "action": "producer.select",
+    "feature": "0026-phone-web-remote",
+    "role": "implementer",
+    "phase": "implement",
+    "tier": "high",
+    "model": "fable",
+    "effort": "xhigh",
+    "trigger": "judgment-loopback",
+    "attempts": 0,
+    "at": "2026-07-18T23:34:33.070Z"
+  },
+  {
+    "action": "tier.ratchet",
+    "feature": "0026-phone-web-remote",
+    "role": "implementer",
+    "phase": "implement",
+    "fromTier": "low",
+    "toTier": "high",
+    "trigger": "judgment-loopback",
+    "attempts": 0,
+    "at": "2026-07-18T23:34:33.088Z"
+  },
+  {
+    "action": "gate.check",
+    "feature": "0026-phone-web-remote",
+    "phase": "implement",
+    "pass": true,
+    "attempts": 0,
+    "totalFailures": 7,
+    "wallClockMs": 92180,
+    "at": "2026-07-18T23:43:49.145Z"
   }
 ]

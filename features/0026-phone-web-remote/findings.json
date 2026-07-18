@@ -1630,7 +1630,10 @@
     "verified_by": "codex-cross-check",
     "contract_violation": true,
     "id": "FINDING-119",
-    "status": "open"
+    "status": "resolved",
+    "resolution": "Fixed: backpressure.ts:84-97 — onPush's send-now path deletes any held entry for the same kind+pane, so takeHeldPushes can never emit an older payload after a newer wire message. Verified: full frozen suite + gate.",
+    "resolvedBy": "orchestrator-mechanical-evidence",
+    "resolvedAt": "2026-07-18T23:44:11.163Z"
   },
   {
     "lens": "codex-cross-check",
@@ -1643,7 +1646,10 @@
     "verified_by": "codex-cross-check",
     "contract_violation": true,
     "id": "FINDING-120",
-    "status": "open"
+    "status": "resolved",
+    "resolution": "Fixed: phone-client main.ts — reconnect arms pendingReattach and the fresh inventory consumes it: pane present ⇒ re-open at authoritative grid, absent ⇒ setExited (no subscribe/input to a dead id); manual select/back clear the flag. Verified: full frozen suite + both e2e specs + gate.",
+    "resolvedBy": "orchestrator-mechanical-evidence",
+    "resolvedAt": "2026-07-18T23:44:11.225Z"
   },
   {
     "lens": "codex-cross-check",
@@ -1656,6 +1662,9 @@
     "verified_by": "codex-cross-check",
     "contract_violation": true,
     "id": "FINDING-121",
-    "status": "open"
+    "status": "resolved",
+    "resolution": "Fixed: register-pty.ts:134 — the local fresh-spawn branch consults PtyManager liveness (pty.has) before the phone-remote inventory upsert; a synchronous spawn failure no longer mints a ghost entry. Tracker register-before-spawn ordering untouched. Verified: full frozen suite (353/353) + gate.",
+    "resolvedBy": "orchestrator-mechanical-evidence",
+    "resolvedAt": "2026-07-18T23:44:11.106Z"
   }
 ]

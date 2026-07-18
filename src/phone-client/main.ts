@@ -35,6 +35,11 @@ const errorBanner = document.getElementById('error-banner')
 
 let ws: WebSocket | undefined
 let activePaneId: string | undefined
+// FINDING-120: a reconnect must NOT re-open the active pane until THIS connection's fresh `panes`
+// inventory proves the pane still exists — re-opening blindly reset the REQ-030 exited state and
+// re-subscribed a dead id the inventory no longer contains. Armed on WS `open`, consumed by the
+// first `panes` push of the connection; a manual pane selection or back-to-list supersedes it.
+let pendingReattach = false
 let terminalView: TerminalView | undefined
 let reconnectTimer: ReturnType<typeof setTimeout> | undefined
 let reconnectAttempt = 0
@@ -83,6 +88,7 @@ const paneList = new PaneList(paneListEl, (paneId) => {
     terminalView = new TerminalView({ container: terminalEl, keyBarContainer: keyBarEl, send })
   }
   activePaneId = paneId
+  pendingReattach = false // a manual selection supersedes any deferred reconnect re-attach
   showTerminal()
   // openPanePlan (inside TerminalView.open) sizes from the freshest known grid BEFORE subscribing
   // (REQ-013) — a non-80x24 pane never renders mis-wrapped for even one frame.
@@ -93,6 +99,7 @@ backButton?.setAttribute('data-testid', 'phone-back')
 backButton?.addEventListener('click', () => {
   if (activePaneId) send({ type: 'unsubscribe', paneId: activePaneId })
   activePaneId = undefined
+  pendingReattach = false
   showList()
 })
 
@@ -103,6 +110,19 @@ function handleMessage(msg: Record<string, unknown>): void {
       break
     case 'panes':
       paneList.setInventory((msg.workspaces as WorkspaceGroup[] | undefined) ?? [])
+      // FINDING-120 / REQ-030: the deferred reconnect re-attach runs against THIS fresh,
+      // authoritative inventory. Present ⇒ a fresh attach sized from the pane's real grid
+      // (REQ-013/REQ-024). Absent ⇒ the pane exited (possibly while disconnected): keep/show the
+      // exited overlay and send NO subscribe/input for the dead id — input stays disabled until
+      // the user picks a different live pane from the list.
+      if (pendingReattach) {
+        pendingReattach = false
+        if (activePaneId && terminalView) {
+          const info = paneList.getPane(activePaneId)
+          if (info) terminalView.open(info)
+          else terminalView.setExited()
+        }
+      }
       break
     case 'status':
       if (typeof msg.paneId === 'string' && typeof msg.status === 'string') {
@@ -182,12 +202,12 @@ function connect(): void {
     clearError()
     reconnectAttempt = 0
     consecutiveAuthRefusals = 0
-    // REQ-024: reconnect is a fresh attach — never assumed stream continuity. Re-sizing from the
-    // freshest known grid before re-subscribing keeps REQ-013 honest across a reconnect too.
-    if (activePaneId) {
-      const info = paneList.getPane(activePaneId)
-      terminalView?.open(info ?? { paneId: activePaneId, cols: 80, rows: 24 })
-    }
+    // REQ-024: reconnect is a fresh attach — never assumed stream continuity. But the re-attach
+    // is DEFERRED until this connection's fresh `panes` inventory arrives (FINDING-120): the
+    // active pane may have exited while we were away (or its exit is the state we last rendered),
+    // and re-opening it here unconditionally reset the REQ-030 exited overlay and re-subscribed a
+    // dead id. The `panes` handler consumes this flag against the authoritative list.
+    if (activePaneId) pendingReattach = true
   })
   ws.addEventListener('message', (event) => {
     let msg: Record<string, unknown>

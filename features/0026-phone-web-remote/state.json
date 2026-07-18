@@ -61,8 +61,8 @@
     },
     "implement": {
       "passed": true,
-      "at": "2026-07-18T23:28:47.388Z",
-      "firstAt": "2026-07-18T23:28:47.388Z",
+      "at": "2026-07-18T23:43:49.142Z",
+      "firstAt": "2026-07-18T23:43:49.142Z",
       "tokens": [
         {
           "token": "spec-freeze",
@@ -90,7 +90,7 @@
   "iterations": {
     "tests": 2,
     "spec": 1,
-    "implement": 6
+    "implement": 7
   },
   "escalations": [
     {
@@ -191,6 +191,17 @@
       "at": "2026-07-18T23:07:53.409Z",
       "decision": "Human (Kevin, 2026-07-18): fix all four (108 pairing-URL re-fetch on bind/port change, 109 renderer-send-before-phone-listeners timing, 110 cross-window regenerate URL refresh, 113 Tailscale CLI syntax), single top-tier implementer under the standing audited override, with a final cap raise (implement 7, global 18). REVIEW CLOSE-OUT: after these are fixed, gated, and closed on evidence, the review gate derives from the findings ledger WITHOUT a seventh reviewer fan-out — six rounds have run against a configured review cap of 3; remaining non-blocking findings route to the per-feature followups doc; human-review remains the final veto.",
       "resolvedAt": "2026-07-18T23:15:13.323Z"
+    },
+    {
+      "id": "ESC-010",
+      "phase": "review",
+      "reason": "Three late-filed cross-check blockers (119/120/121) surfaced after the ESC-009 close-out snapshot; straggler jobs now stopped, ledger static. Fix vs accept needs the human call (threshold HIGH / contract flags).",
+      "kind": "judgment",
+      "finding": "FINDING-121",
+      "status": "resolved",
+      "at": "2026-07-18T23:34:32.886Z",
+      "decision": "Human (Kevin, 2026-07-18): fix all three (121 spawn-failure ghost-entry ordering, 119 held-push latest-wins clear, 120 client exited-guard on reconnect) using the final in-cap implement loopback, single top-tier implementer under the standing audited override. Ledger is static (straggler Codex jobs stopped) — after these close, the review gate derives clean with certainty.",
+      "resolvedAt": "2026-07-18T23:34:32.945Z"
     }
   ],
   "concerns": [
@@ -205,7 +216,7 @@
     "plan": 0,
     "tests": 0,
     "implement": 0,
-    "review": 6
+    "review": 7
   },
   "implementer": {
     "mode": "claude",
@@ -213,8 +224,8 @@
       "orky:implementer"
     ],
     "winner": "orky:implementer",
-    "reason": "ESC-009 fix round (human-authorized cap raise implement 7/global 18): single top-tier Claude implementer fixed all four round-6 findings; implement gate re-passed; findings closed on mechanical evidence per the ESC-009-recorded close-out plan.",
-    "at": "2026-07-18T23:29:12.094Z"
+    "reason": "ESC-010 final round (last in-cap loopback): single top-tier Claude implementer fixed the three static-ledger blockers; implement gate re-passed; findings closed on mechanical evidence. Straggler Codex cross-check jobs were stopped before this round (ledger static), per the ESC-009/010 close-out plan.",
+    "at": "2026-07-18T23:44:11.282Z"
   },
   "loopbacks": [
     {
@@ -264,7 +275,13 @@
       "from": "review",
       "reason": "ESC-009: four small blockers from review round 6 (pairing-URL staleness x2, REQ-015 timing inversion, doc syntax). Final round under the ESC-009-recorded cap raise and close-out plan.",
       "at": "2026-07-18T23:15:13.384Z"
+    },
+    {
+      "to": "implement",
+      "from": "review",
+      "reason": "ESC-010: final three static-ledger blockers (119/120/121). Last in-cap round.",
+      "at": "2026-07-18T23:34:33.004Z"
     }
   ],
-  "totalFailures": 6
+  "totalFailures": 7
 }

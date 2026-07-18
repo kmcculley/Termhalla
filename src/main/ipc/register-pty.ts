@@ -124,7 +124,14 @@ export function registerPty(
     const shell = shells.find(s => s.id === a.shellId) ?? shells[0]
     tracker.register(a.id)   // register BEFORE spawn: a failed spawn calls onExit->unregister synchronously, keeping the registry clean
     pty.spawn(a.id, shell, a.cwd, a.cols, a.rows, a.launch, envVault.envFor(a.envId))
-    deps.onSpawn?.(a.id, a.cols, a.rows, a.workspaceId)
+    // FINDING-121: a SYNCHRONOUS spawn failure (bad launch command, ssh not on PATH) has already
+    // emitted its failure data + exit through `send` above and the pty never entered the session
+    // map — invoking the phone-remote observational seam now would mint a live-inventory entry
+    // for an already-dead pane (a permanent ghost: no second exit will ever remove it,
+    // REQ-011/REQ-026). Consult PtyManager's liveness instead of reordering anything: the
+    // tracker/engine register-BEFORE-spawn discipline above exists for exactly this synchronous
+    // failure path and must stay as-is.
+    if (pty.has(a.id)) deps.onSpawn?.(a.id, a.cols, a.rows, a.workspaceId)
     return false   // fresh spawn (adopted=true above) — the renderer's auto-resume gate needs this distinction
   })
   ipcMain.on(CH.ptyWrite, (_e, a: PtyWriteArgs) => {
