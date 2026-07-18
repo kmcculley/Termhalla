@@ -452,3 +452,187 @@ describe('TEST-2636 REQ-026/REQ-011 exit and status pushes reach connected clien
     h.mirror.dispose()
   })
 })
+
+// ---------------------------------------------------------------------------------------------
+// v2 loopback amendments (ESC-001; FINDING-008/009/002/019/020) — REQ-009 identity-guarded
+// supersession, REQ-017 resync hold-window / stale lifecycle / push coalescing at the session.
+// This harness controls SNAPSHOT RESOLUTION ORDER: mirrors.snapshot captures the mirror text at
+// the CALL (the F18 write-flush-barrier semantics) but resolves only when the test says so.
+
+interface DeferredHarness {
+  sent: Msg[]
+  session: ReturnType<typeof createWsSession>
+  /** feed a chunk: mirror text first (the service feeds the mirror before the session) */
+  feed: (chunk: string) => void
+  /** snapshot calls in order; resolve(i) delivers the text captured at call i */
+  resolveSnapshot: (i: number) => void
+  snapshotCalls: () => number
+  setBuffered: (n: number) => void
+}
+
+const mkDeferredHarness = (): DeferredHarness => {
+  const sent: Msg[] = []
+  let mirrorText = ''
+  let buffered = 0
+  const calls: Array<{ captured: string; resolve: (s: string) => void }> = []
+  const session = createWsSession({
+    send: (m) => sent.push(m as Msg),
+    bufferedAmount: () => buffered,
+    mirrors: {
+      snapshot: (paneId) => {
+        if (paneId !== 'A') return undefined
+        let resolveFn!: (s: string) => void
+        const p = new Promise<string>((res) => { resolveFn = res })
+        calls.push({ captured: mirrorText, resolve: resolveFn })
+        return p
+      }
+    },
+    panes: {
+      inventory: () => ({ workspaces: [{ id: 'ws1', name: 'W', panes: [{ paneId: 'A' }] }] }),
+      isLive: () => true,
+      write: () => {}
+    }
+  })
+  return {
+    sent,
+    session,
+    feed: (chunk) => { mirrorText += chunk; session.paneData('A', chunk) },
+    resolveSnapshot: (i) => { calls[i].resolve(calls[i].captured) },
+    snapshotCalls: () => calls.length,
+    setBuffered: (n) => { buffered = n }
+  }
+}
+
+describe('TEST-2705 REQ-009 attach supersession is IDENTITY-guarded (FINDING-008)', () => {
+  it('resolving the FIRST snapshot after a second subscribe completes nothing; C and D land exactly once', async () => {
+    const h = mkDeferredHarness()
+    h.session.start()
+    h.feed('B\r\n')
+    h.session.handleFrame(frame({ type: 'subscribe', paneId: 'A' })) // attach 1 captured "B"
+    h.feed('C\r\n')
+    h.session.handleFrame(frame({ type: 'subscribe', paneId: 'A' })) // attach 2 supersedes, captured "B C"
+    h.feed('D\r\n')
+    expect(h.snapshotCalls()).toBe(2)
+
+    // adversarial resolution order: the SUPERSEDED snapshot resolves first
+    h.resolveSnapshot(0)
+    await new Promise((r) => setTimeout(r, 20))
+    h.resolveSnapshot(1)
+    await until(() => h.sent.some((m) => m.type === 'snapshot' && m.paneId === 'A'))
+    await until(() => h.sent.some((m) => m.type === 'data' && String(m.data).includes('D')))
+
+    const snapshots = h.sent.filter((m) => m.type === 'snapshot' && m.paneId === 'A')
+    expect(snapshots, 'only the LATEST subscribe may complete the attach — exactly one snapshot').toHaveLength(1)
+    expect(String(snapshots[0].data)).toContain('C')
+    // exactly-once: C rides ONLY the (second) snapshot, D rides ONLY the stream
+    const streamed = h.sent.filter((m) => m.type === 'data' && m.paneId === 'A').map((m) => String(m.data))
+    expect(streamed.join('')).toContain('D')
+    expect(streamed.join('')).not.toContain('C')
+    const rendered = await reconstruct(h.sent, 'A')
+    expect(rendered).toBe(await referenceText(['B\r\n', 'C\r\n', 'D\r\n']))
+  })
+})
+
+describe('TEST-2706 REQ-017 resync rides the attach hold-window: no delivered byte is erased', () => {
+  it('data arriving between the drain trigger and the resync resolution is queued BEHIND the resync', async () => {
+    const h = mkDeferredHarness()
+    h.session.start()
+    h.session.handleFrame(frame({ type: 'subscribe', paneId: 'A' }))
+    h.resolveSnapshot(0)
+    await until(() => h.sent.some((m) => m.type === 'snapshot' && m.paneId === 'A'))
+    h.feed('one\r\n')
+    await until(() => h.sent.some((m) => m.type === 'data' && String(m.data).includes('one')))
+
+    // saturate: the next chunk is dropped and the pane goes stale
+    h.setBuffered(PHONE_WS_HIGH_WATER + 1)
+    h.feed('lost-while-saturated\r\n')
+    // drain: the resync snapshot is requested but NOT yet resolved
+    h.setBuffered(0)
+    h.session.socketDrained()
+    await until(() => h.snapshotCalls() >= 2)
+    // the hold-window race: output arrives between the trigger and the snapshot resolution
+    h.feed('during-resync\r\n')
+    const sentBeforeResolve = h.sent.filter((m) => m.type === 'data' && String(m.data).includes('during-resync'))
+    expect(sentBeforeResolve, 'post-trigger data must be queued behind the resync, never sent ahead of it').toEqual([])
+
+    h.resolveSnapshot(1)
+    await until(() => h.sent.some((m) => m.type === 'resync' && m.paneId === 'A'))
+    await until(() => h.sent.some((m) => m.type === 'data' && String(m.data).includes('during-resync')))
+    const order = h.sent.filter((m) => m.paneId === 'A' && (m.type === 'resync' || m.type === 'data'))
+    const resyncIdx = order.findIndex((m) => m.type === 'resync')
+    const heldIdx = order.findIndex((m) => m.type === 'data' && String(m.data).includes('during-resync'))
+    expect(resyncIdx).toBeGreaterThanOrEqual(0)
+    expect(heldIdx).toBeGreaterThan(resyncIdx)
+    // replace-then-append reconstructs exactly the reference — nothing erased, nothing doubled
+    const rendered = await reconstruct(h.sent, 'A')
+    expect(rendered).toBe(await referenceText(['one\r\n', 'lost-while-saturated\r\n', 'during-resync\r\n']))
+  })
+})
+
+describe('TEST-2707 REQ-017 stale-state lifecycle at the session (FINDING-020)', () => {
+  it('stale then unsubscribe then drain emits NO resync', async () => {
+    const h = mkDeferredHarness()
+    h.session.start()
+    h.session.handleFrame(frame({ type: 'subscribe', paneId: 'A' }))
+    h.resolveSnapshot(0)
+    await until(() => h.sent.some((m) => m.type === 'snapshot'))
+    h.setBuffered(PHONE_WS_HIGH_WATER + 1)
+    h.feed('dropped\r\n')
+    h.session.handleFrame(frame({ type: 'unsubscribe', paneId: 'A' }))
+    h.setBuffered(0)
+    h.session.socketDrained()
+    await new Promise((r) => setTimeout(r, 50))
+    expect(h.sent.filter((m) => m.type === 'resync')).toEqual([])
+  })
+
+  it('stale then fresh subscribe: the attach snapshot IS the resync; post-snapshot chunks flow as data', async () => {
+    const h = mkDeferredHarness()
+    h.session.start()
+    h.session.handleFrame(frame({ type: 'subscribe', paneId: 'A' }))
+    h.resolveSnapshot(0)
+    await until(() => h.sent.some((m) => m.type === 'snapshot'))
+    h.setBuffered(PHONE_WS_HIGH_WATER + 1)
+    h.feed('missed\r\n')
+    h.setBuffered(0)
+    h.session.handleFrame(frame({ type: 'subscribe', paneId: 'A' })) // fresh subscribe clears staleness
+    await until(() => h.snapshotCalls() >= 2)
+    h.resolveSnapshot(1)
+    await until(() => h.sent.filter((m) => m.type === 'snapshot').length >= 2)
+    const snap2 = h.sent.filter((m) => m.type === 'snapshot')[1]
+    expect(String(snap2.data)).toContain('missed')
+    h.session.socketDrained()
+    await new Promise((r) => setTimeout(r, 50))
+    expect(h.sent.filter((m) => m.type === 'resync'), 'the fresh attach cleared staleness — no resync follows').toEqual([])
+    h.feed('after\r\n')
+    await until(() => h.sent.some((m) => m.type === 'data' && String(m.data).includes('after')))
+  })
+})
+
+describe('TEST-2708 REQ-017 status/grid pushes to a saturated session are coalesced latest-wins', () => {
+  it('holds pushes while saturated and delivers ONE latest status + grid per pane on drain', async () => {
+    const h = mkDeferredHarness()
+    h.session.start()
+    h.session.handleFrame(frame({ type: 'subscribe', paneId: 'A' }))
+    h.resolveSnapshot(0)
+    await until(() => h.sent.some((m) => m.type === 'snapshot'))
+    const sentBefore = h.sent.length
+
+    h.setBuffered(PHONE_WS_HIGH_WATER + 1)
+    for (let i = 0; i < 25; i++) h.session.paneStatus('A', i % 2 === 0 ? 'busy' : 'idle')
+    h.session.paneStatus('A', 'needs-input')
+    h.session.paneGrid('A', 100, 30)
+    h.session.paneGrid('A', 120, 40)
+    expect(h.sent.length, 'a saturated client must not accumulate unbounded pushes').toBe(sentBefore)
+
+    h.setBuffered(0)
+    h.session.socketDrained()
+    await until(() => h.sent.some((m) => m.type === 'status' && m.paneId === 'A'))
+    const statuses = h.sent.slice(sentBefore).filter((m) => m.type === 'status' && m.paneId === 'A')
+    const grids = h.sent.slice(sentBefore).filter((m) => m.type === 'grid' && m.paneId === 'A')
+    expect(statuses).toHaveLength(1)
+    expect(statuses[0].status).toBe('needs-input')
+    expect(grids).toHaveLength(1)
+    expect(grids[0].cols).toBe(120)
+    expect(grids[0].rows).toBe(40)
+  })
+})

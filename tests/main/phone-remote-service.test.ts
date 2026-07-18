@@ -446,3 +446,297 @@ describe('TEST-2655 REQ-007/REQ-024 restarts: pairing survives, the QR does not 
     expect(res.status).toBe(200)
   })
 })
+
+// ---------------------------------------------------------------------------------------------
+// v2 loopback amendments (ESC-001; FINDING-018/034/049/022/038/039/044/001/015/019/005) —
+// REQ-019 serialized/idempotent lifecycle, REQ-020 status().error persistence, REQ-011
+// membership currency, REQ-031 externalHost, REQ-007 pairingUrl re-fetch, REQ-017 real
+// transport (drain trigger + keepalive/stall), REQ-001 enable-time registry rebuild.
+//
+// Contract amendments for the implementer (PhoneRemoteServiceDeps/PhoneRemoteService gain):
+//   deps.panes.onSpawn(cb: (pane: PaneRecord) => void): () => void
+//     // fires when a pane spawns while the app runs; the service re-pushes the inventory to
+//     // every connected client (a full `panes` push — the client treats it as a list replace)
+//     // and mirrors the new pane while enabled. Pane EXIT likewise re-pushes the inventory.
+//   deps.timing?: { pingIntervalMs?: number; pongTimeoutMs?: number; stallTimeoutMs?: number }
+//     // test/e2e-seam overrides; defaults are the exported constants.
+//   service.setExternalHost(host: string | undefined): Promise<void>
+//   service.pairingUrl(): Promise<{ pairingUrl: string } | { unavailable: true }>
+//     // re-fetch while tokenAvailableThisSession — NEVER regenerates (REQ-007).
+//   service.status() additionally reports `error?: string` (the LAST failure until a successful
+//   start clears it) and `externalHost?: string`.
+
+type SvcV2 = ReturnType<typeof createPhoneRemoteService> & {
+  setExternalHost(host: string | undefined): Promise<void>
+  pairingUrl(): Promise<{ pairingUrl: string } | { unavailable: true }>
+}
+
+interface PaneSourceV2 extends PaneSourceHandle {
+  emitSpawn: (pane: Record<string, unknown>) => void
+  listCalls: () => number
+  backing: Array<Record<string, unknown>>
+}
+
+const mkPaneSourceV2 = (initial: Array<Record<string, unknown>>): PaneSourceV2 => {
+  const backing = [...initial]
+  const dataCbs: Array<(id: string, c: string) => void> = []
+  const exitCbs: Array<(id: string) => void> = []
+  const gridCbs: Array<(id: string, c: number, r: number) => void> = []
+  const statusCbs: Array<(id: string, s: string) => void> = []
+  const spawnCbs: Array<(p: Record<string, unknown>) => void> = []
+  const writes: Array<[string, string]> = []
+  let listCalls = 0
+  return {
+    panes: {
+      list: () => { listCalls++; return backing as never },
+      onData: (cb) => { dataCbs.push(cb); return () => {} },
+      onExit: (cb) => { exitCbs.push(cb); return () => {} },
+      onGrid: (cb) => { gridCbs.push(cb); return () => {} },
+      onStatus: (cb) => { statusCbs.push(cb); return () => {} },
+      onSpawn: (cb: (p: Record<string, unknown>) => void) => { spawnCbs.push(cb); return () => {} },
+      write: (id: string, d: string) => writes.push([id, d])
+    } as never,
+    writes,
+    emitData: (id, c) => dataCbs.forEach((cb) => cb(id, c)),
+    emitStatus: (id, s) => statusCbs.forEach((cb) => cb(id, s)),
+    emitExit: (id) => {
+      const i = backing.findIndex((p) => p.paneId === id)
+      if (i >= 0) backing.splice(i, 1)
+      exitCbs.forEach((cb) => cb(id))
+    },
+    emitSpawn: (pane) => { backing.push(pane); spawnCbs.forEach((cb) => cb(pane)) },
+    listCalls: () => listCalls,
+    backing
+  }
+}
+
+interface CtxV2 {
+  svc: SvcV2
+  src: PaneSourceV2
+  errors: string[]
+  persisted: () => PhoneRemoteSettings | undefined
+}
+
+const mkServiceV2 = async (
+  initial: PhoneRemoteSettings | undefined,
+  paneList: Array<Record<string, unknown>> = [TERM_PANE('A')],
+  extra?: { replayFactory?: ReplayFactory; timing?: Record<string, number> }
+): Promise<CtxV2> => {
+  let stored = initial
+  const errors: string[] = []
+  const src = mkPaneSourceV2(paneList)
+  const staticDir = mkdtempSync(join(tmpdir(), 'termh-phone-v2-'))
+  writeFileSync(join(staticDir, 'index.html'), '<!doctype html><title>Termhalla Phone</title>')
+  writeFileSync(join(staticDir, 'manifest.webmanifest'), '{}')
+  const deps = {
+    loadSettings: async () => stored,
+    saveSettings: async (s: PhoneRemoteSettings | undefined) => { stored = s },
+    panes: src.panes,
+    staticRoot: staticDir,
+    notifyError: (m: string) => errors.push(m),
+    ...(extra?.replayFactory ? { replayFactory: extra.replayFactory } : {}),
+    ...(extra?.timing ? { timing: extra.timing } : {})
+  }
+  const svc = createPhoneRemoteService(deps as Parameters<typeof createPhoneRemoteService>[0]) as SvcV2
+  await svc.init()
+  cleanups.push(async () => { await svc.stop(); rmSync(staticDir, { recursive: true, force: true }) })
+  return { svc, src, errors, persisted: () => stored }
+}
+
+const pairedClient = async (ctx: CtxV2): Promise<{ token: string; wsUrl: string }> => {
+  const { pairingUrl } = await ctx.svc.regenerateToken()
+  const token = String(new URL(pairingUrl).searchParams.get('token'))
+  const base = ctx.svc.status().urls[0].replace(/\/$/, '').replace('http', 'ws')
+  return { token, wsUrl: `${base}/ws?token=${encodeURIComponent(token)}` }
+}
+
+const rawSocketOf = (ws: WebSocket): { pause(): void; resume(): void } =>
+  (ws as unknown as { _socket: { pause(): void; resume(): void } })._socket
+
+describe('TEST-2709 REQ-019 lifecycle mutations are serialized and idempotent (no zombie listener)', () => {
+  it('a redundant setEnabled(true) is a no-op, never a misclassified bind failure', async () => {
+    const ctx = await mkServiceV2({ ...ENABLED })
+    expect(ctx.svc.status().running).toBe(true)
+    const port = ctx.svc.status().port
+    await ctx.svc.setEnabled(true)
+    expect(ctx.svc.status().running).toBe(true)
+    expect(ctx.svc.status().port, 'the healthy listener must be left alone').toBe(port)
+    expect(ctx.errors, 'a redundant enable must not surface a bind-failure error').toEqual([])
+    const res = await fetch(`http://127.0.0.1:${port}/manifest.webmanifest`)
+    expect(res.status).toBe(200)
+  })
+
+  it('a stop racing an in-flight start never leaks the freshly bound listener', async () => {
+    const ctx = await mkServiceV2({ enabled: false, bind: 'localhost', port: 0 })
+    await ctx.svc.setEnabled(true)
+    const p1 = ctx.svc.status().port
+    // race: disable and re-enable WITHOUT awaiting in between — the op queue must serialize
+    const race = Promise.all([ctx.svc.setEnabled(false), ctx.svc.setEnabled(true)])
+    await race
+    const st = ctx.svc.status()
+    expect(st.running, 'reported state and actual listening state can never diverge').toBe(true)
+    const p2 = st.port
+    const reachable = await fetch(`http://127.0.0.1:${p2}/manifest.webmanifest`)
+    expect(reachable.status).toBe(200)
+    if (p1 !== p2) {
+      const refused = await new Promise<boolean>((res) => {
+        const s = connect({ host: '127.0.0.1', port: p1 }, () => { s.destroy(); res(false) })
+        s.on('error', () => res(true))
+      })
+      expect(refused, 'the superseded listener must be closed, not leaked (no zombie)').toBe(true)
+    }
+  })
+})
+
+describe('TEST-2710 REQ-020 status() carries the LAST failure for late-subscribing windows', () => {
+  it('a startup failure persists in status().error and clears on a later successful start', async () => {
+    const blocker: Server = createServer()
+    await new Promise<void>((r) => blocker.listen(0, '127.0.0.1', r))
+    const busyPort = (blocker.address() as { port: number }).port
+    const ctx = await mkServiceV2({ enabled: true, bind: 'localhost', port: busyPort })
+    const st = ctx.svc.status() as { running: boolean; error?: string }
+    expect(st.running).toBe(false)
+    expect(st.error, 'a pre-window startup failure must be readable from status()').toBeTruthy()
+    expect(String(st.error)).toContain(String(busyPort))
+    await new Promise<void>((r) => blocker.close(() => r()))
+    await ctx.svc.setEnabled(true)
+    const healthy = ctx.svc.status() as { running: boolean; error?: string }
+    expect(healthy.running).toBe(true)
+    expect(healthy.error ?? undefined, 'a successful start clears the stale failure').toBeUndefined()
+  })
+})
+
+describe('TEST-2711 REQ-011/REQ-026 membership currency: spawn/exit re-push the inventory', () => {
+  it('a pane spawned while a client is connected appears via a push; an exited pane leaves the list', async () => {
+    const ctx = await mkServiceV2({ ...ENABLED }, [TERM_PANE('t1')])
+    const { wsUrl } = await pairedClient(ctx)
+    const client = await wsOpen(wsUrl)
+    await until(() => client.msgs.some((m) => m.type === 'panes'))
+    const invCountAfterHello = client.msgs.filter((m) => m.type === 'panes').length
+
+    ctx.src.emitSpawn(TERM_PANE('t-new'))
+    await until(() => client.msgs.filter((m) => m.type === 'panes').length > invCountAfterHello)
+    const latest = client.msgs.filter((m) => m.type === 'panes').pop() as Msg
+    expect(JSON.stringify(latest)).toContain('t-new')
+
+    const countBeforeExit = client.msgs.filter((m) => m.type === 'panes').length
+    ctx.src.emitExit('t-new')
+    await until(() => client.msgs.filter((m) => m.type === 'panes').length > countBeforeExit)
+    const afterExit = client.msgs.filter((m) => m.type === 'panes').pop() as Msg
+    expect(JSON.stringify(afterExit)).not.toContain('t-new')
+    client.ws.close()
+  })
+})
+
+describe('TEST-2695 REQ-031 externalHost override + ranked reachable URLs', () => {
+  it('with externalHost set, the pairing URL uses that host with the configured port; the bind is unaffected', async () => {
+    const withHost = { ...ENABLED, externalHost: 'myhost.ts.net' } as PhoneRemoteSettings & { externalHost: string }
+    const ctx = await mkServiceV2(withHost)
+    const { pairingUrl } = await ctx.svc.regenerateToken()
+    const u = new URL(pairingUrl)
+    expect(u.hostname).toBe('myhost.ts.net')
+    expect(u.port).toBe(String(ctx.svc.status().port))
+    expect((ctx.svc.status() as { externalHost?: string }).externalHost).toBe('myhost.ts.net')
+    // still served on loopback — the override changes the ADVERTISED host only
+    const res = await fetch(`http://127.0.0.1:${ctx.svc.status().port}/manifest.webmanifest`)
+    expect(res.status).toBe(200)
+  })
+
+  it('setExternalHost persists and re-derives the pairing URL', async () => {
+    const ctx = await mkServiceV2({ ...ENABLED })
+    await ctx.svc.regenerateToken()
+    await ctx.svc.setExternalHost('other.host.example')
+    expect((ctx.persisted() as { externalHost?: string } | undefined)?.externalHost).toBe('other.host.example')
+    const out = await ctx.svc.pairingUrl()
+    expect('pairingUrl' in out && new URL(out.pairingUrl).hostname).toBe('other.host.example')
+  })
+})
+
+describe('TEST-2712 REQ-007 pairingUrl re-fetch: pairing a second device never revokes the first', () => {
+  it('returns the SAME token without touching the persisted hash; a fresh restart reports unavailable', async () => {
+    const ctx = await mkServiceV2({ ...ENABLED })
+    const { pairingUrl } = await ctx.svc.regenerateToken()
+    const tokenA = String(new URL(pairingUrl).searchParams.get('token'))
+    const hashBefore = ctx.persisted()?.tokenHash
+    const refetch = await ctx.svc.pairingUrl()
+    expect('pairingUrl' in refetch).toBe(true)
+    if ('pairingUrl' in refetch) {
+      expect(String(new URL(refetch.pairingUrl).searchParams.get('token'))).toBe(tokenA)
+    }
+    expect(ctx.persisted()?.tokenHash, 're-fetch must NOT regenerate').toBe(hashBefore)
+
+    const persisted = ctx.persisted()
+    await ctx.svc.stop()
+    const second = await mkServiceV2(persisted && { ...persisted, enabled: true, port: 0 })
+    const out = await second.svc.pairingUrl()
+    expect(out, 'after a restart the plaintext is gone — the UI must not claim a valid QR').toEqual({ unavailable: true })
+  })
+})
+
+describe('TEST-2713 REQ-017 REAL transport: saturating a live ws yields a resync with NO test-invoked drain seam', () => {
+  it('a paused client saturates past high water; resuming drains and a buffer-replacing resync arrives', async () => {
+    const ctx = await mkServiceV2({ ...ENABLED })
+    const { wsUrl } = await pairedClient(ctx)
+    const client = await wsOpen(wsUrl)
+    client.ws.send(JSON.stringify({ type: 'subscribe', paneId: 'A' }))
+    await until(() => client.msgs.some((m) => m.type === 'snapshot' && m.paneId === 'A'))
+
+    // stop reading: the server's socket buffer fills (the ONLY drain signal the test relies on
+    // is the transport's own — no session/drain seam is invoked from test code)
+    const sock = rawSocketOf(client.ws)
+    sock.pause()
+    const chunk = 'x'.repeat(65_536) + '\r\n'
+    for (let i = 0; i < 64; i++) ctx.src.emitData('A', chunk) // ~4 MiB >> PHONE_WS_HIGH_WATER
+    await new Promise((r) => setTimeout(r, 300))
+    sock.resume()
+
+    await until(() => client.msgs.some((m) => m.type === 'resync' && m.paneId === 'A'), 10_000)
+    // and the stream is live again after the resync
+    ctx.src.emitData('A', 'tail-after-resync\r\n')
+    await until(() => client.msgs.some((m) => m.type === 'data' && String(m.data).includes('tail-after-resync')), 8_000)
+    client.ws.close()
+  })
+})
+
+describe('TEST-2714 REQ-017 keepalive + stall ceiling terminate a half-open/immortal client', () => {
+  it('a peer that stops answering pings is terminated within the deadline', async () => {
+    const ctx = await mkServiceV2({ ...ENABLED }, [TERM_PANE('A')], { timing: { pingIntervalMs: 60, pongTimeoutMs: 60 } })
+    const { wsUrl } = await pairedClient(ctx)
+    const client = await wsOpen(wsUrl)
+    await until(() => client.msgs.some((m) => m.type === 'hello'))
+    rawSocketOf(client.ws).pause() // a sleeping phone: no pongs come back
+    await until(() => client.closed(), 8_000)
+  })
+
+  it('a connection saturated continuously past the stall timeout is terminated', async () => {
+    const ctx = await mkServiceV2({ ...ENABLED }, [TERM_PANE('A')], { timing: { stallTimeoutMs: 400, pingIntervalMs: 100_000, pongTimeoutMs: 100_000 } })
+    const { wsUrl } = await pairedClient(ctx)
+    const client = await wsOpen(wsUrl)
+    client.ws.send(JSON.stringify({ type: 'subscribe', paneId: 'A' }))
+    await until(() => client.msgs.some((m) => m.type === 'snapshot'))
+    rawSocketOf(client.ws).pause()
+    const chunk = 'y'.repeat(65_536) + '\r\n'
+    for (let i = 0; i < 64; i++) ctx.src.emitData('A', chunk)
+    // never resumes: the buffer stays above high water — the server must cut it loose
+    await until(() => client.closed(), 10_000)
+  })
+})
+
+describe('TEST-2732 REQ-001 the enable-time registry is REBUILT from pane state, not standing bookkeeping', () => {
+  it('while disabled, pane chunks trigger no list() rebuild and no mirror work; enable pulls the CURRENT pane set', async () => {
+    let created = 0
+    const factory: ReplayFactory = () => ({ feed: () => {}, resize: () => {}, snapshot: async () => '', dispose: () => {} })
+    const counting: ReplayFactory = (opts) => { created++; return factory(opts) }
+    const ctx = await mkServiceV2({ enabled: false, bind: 'localhost', port: 0 }, [TERM_PANE('A')], { replayFactory: counting })
+    const listAfterInit = ctx.src.listCalls()
+    for (let i = 0; i < 200; i++) ctx.src.emitData('A', 'chunk\r\n')
+    await new Promise((r) => setTimeout(r, 30))
+    expect(created, 'the disabled path performs no mirror work').toBe(0)
+    expect(ctx.src.listCalls(), 'the disabled hot path must not consult/rebuild the pane registry per chunk').toBe(listAfterInit)
+
+    // a pane appears while STILL disabled — no eager bookkeeping may be needed to find it later
+    ctx.src.backing.push(TERM_PANE('B'))
+    await ctx.svc.setEnabled(true)
+    expect(created, 'enable rebuilds the registry from the CURRENT pane source state').toBe(2)
+  })
+})

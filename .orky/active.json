@@ -1,9 +1,9 @@
 {
   "feature": "features/0026-phone-web-remote",
   "projectRoot": "C:/dev/Termhalla",
-  "phase": "implement",
-  "lastTickAt": "2026-07-18T16:00:39.646Z",
-  "lastAction": "re-deriving implement gate on main after A/B winner apply + TEST-741 amendment",
+  "phase": "driving",
+  "lastTickAt": "2026-07-18T17:21:21.615Z",
+  "lastAction": "workflow tick",
   "runs": {
     ".orky/features/0017-agent-runtime-skeleton": {
       "phase": "human-review",
@@ -36,9 +36,9 @@
       "lastAction": "workflow tick"
     },
     "features/0026-phone-web-remote": {
-      "phase": "implement",
-      "lastTickAt": "2026-07-18T16:00:39.646Z",
-      "lastAction": "re-deriving implement gate on main after A/B winner apply + TEST-741 amendment"
+      "phase": "driving",
+      "lastTickAt": "2026-07-18T17:21:21.615Z",
+      "lastAction": "workflow tick"
     }
   }
 }

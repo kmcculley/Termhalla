@@ -1,6 +1,6 @@
 {
   "feature": "0026-phone-web-remote",
-  "phase": "implement",
+  "phase": "tests",
   "gates": {
     "brainstorm": {
       "passed": true,
@@ -10,8 +10,8 @@
     },
     "spec": {
       "passed": true,
-      "at": "2026-07-18T13:55:18.690Z",
-      "firstAt": "2026-07-18T13:55:18.690Z",
+      "at": "2026-07-18T16:38:51.177Z",
+      "firstAt": "2026-07-18T16:38:51.177Z",
       "tokens": [
         {
           "token": "findings",
@@ -22,8 +22,8 @@
     },
     "plan": {
       "passed": true,
-      "at": "2026-07-18T13:59:36.507Z",
-      "firstAt": "2026-07-18T13:59:36.507Z",
+      "at": "2026-07-18T16:45:20.731Z",
+      "firstAt": "2026-07-18T16:45:20.731Z",
       "tokens": [
         {
           "token": "spec-freeze",
@@ -33,7 +33,7 @@
         {
           "token": "traceability-plan",
           "pass": true,
-          "evidence": "all 27 REQ(s) trace to TASK"
+          "evidence": "all 32 REQ(s) trace to TASK"
         },
         {
           "token": "findings",
@@ -44,8 +44,8 @@
     },
     "tests": {
       "passed": true,
-      "at": "2026-07-18T16:00:25.309Z",
-      "firstAt": "2026-07-18T16:00:25.309Z",
+      "at": "2026-07-18T17:20:51.905Z",
+      "firstAt": "2026-07-18T17:20:51.905Z",
       "tokens": [
         {
           "token": "spec-freeze",
@@ -55,42 +55,39 @@
         {
           "token": "tests-red",
           "pass": true,
-          "evidence": "tests are GREEN on a tests loopback (coverage augmentation; implementation already exists) — freeze re-captured"
-        }
-      ]
-    },
-    "implement": {
-      "passed": true,
-      "at": "2026-07-18T16:02:14.696Z",
-      "firstAt": "2026-07-18T16:02:14.696Z",
-      "tokens": [
-        {
-          "token": "spec-freeze",
-          "pass": true,
-          "evidence": "spec unchanged since the spec gate"
-        },
-        {
-          "token": "build",
-          "pass": true,
-          "evidence": "build exited 0"
-        },
-        {
-          "token": "test",
-          "pass": true,
-          "evidence": "test exited 0"
-        },
-        {
-          "token": "test-freeze",
-          "pass": true,
-          "evidence": "test files unchanged since freeze"
+          "evidence": "tests are RED (exit 1) — freeze snapshot captured"
         }
       ]
     }
   },
   "iterations": {
-    "tests": 1
+    "tests": 1,
+    "spec": 1
   },
-  "escalations": [],
+  "escalations": [
+    {
+      "id": "ESC-001",
+      "phase": "review",
+      "reason": "Wire an actually-scheduled drain trigger (ws.send callback or polling timer) for socketDrained. Mount PhoneRemoteSettings in SettingsPanel.tsx and gate it with a mount-path test. Thread real workspace id/name and pane titles into phoneRemoteLivePanes or get sign-off on single-synthetic-workspace as accepted v1 gap. Size the phone terminal from inventory cols/rows on select and route typed input through key-bar latch for Ctrl+letter (Ctrl+C) support. Route server errors and phone-remote enable-failures through app-wide error paths. Invoke deps.onSpawn/deps.onResize on remote-pane branches. Resolve auth-relaunch contradiction in spec (HttpOnly cookie or service worker); distinguish auth vs transient reconnect failures with backoff/terminal states. Replace undocumented single-workspace inventory with real workspace grouping or explicit v1 scope record in docs/deferred.md. Add e2e tests for backpressure saturation, resync arrival, app-close liveness, and served-client DOM interactions. 15 blocking findings.",
+      "kind": "judgment",
+      "finding": "FINDING-001",
+      "status": "resolved",
+      "at": "2026-07-18T16:19:14.306Z",
+      "decision": "Human (Kevin, 2026-07-18): loop back and fix all 15 blocking findings; none accepted as gaps. (1) REQ-011 inventory: implement REAL workspace grouping — thread real workspace id/name + pane titles into the inventory and include remote-workspace panes in server-side grid observability; the single-synthetic-workspace stub is rejected. (2) FINDING-025 auth contradiction: amend the spec to an HttpOnly session cookie — the first token-authenticated request sets it; GET / passes with token OR valid cookie, 401 otherwise; Regenerate revokes cookies too (cookie bound to token generation). This is a spec amendment, so shift-left to spec and re-propagate. (3) e2e coverage: add the requested tests (backpressure saturation, resync arrival, app-close liveness, served-client DOM) through the tests phase NOW, not deferred. Also fix mechanically: real drain trigger for socketDrained (ws.send callback or timer — ws emits no 'drain' event), mount PhoneRemoteSettings in SettingsPanel with a mount-path test, size the phone terminal from inventory cols/rows on select, key-bar Ctrl latch composing with soft-keyboard input, route enable-failures + server errors through app-wide error paths, invoke deps.onSpawn/onResize on remote-pane branches.",
+      "resolvedAt": "2026-07-18T16:26:48.986Z"
+    },
+    {
+      "id": "ESC-002",
+      "phase": "review",
+      "reason": "FINDING-001/015/029/030: Choose drain trigger implementation (ws.send callback vs socket.drain vs polling). FINDING-010/024: Approve mounting PhoneRemoteSettings in SettingsPanel. FINDING-011/017/027: Decide workspace-metadata threading or accept v1 scope reduction. FINDING-016/031: Approve sizing client terminal from inventory cols/rows on select. FINDING-025: Choose authenticated-relaunch path (HttpOnly cookie / unauthenticated shell / service worker). FINDING-033: Approve routing input through Ctrl latch. FINDING-034: Approve routing errors app-wide. FINDING-040: Approve invoking deps.onSpawn/onResize on remote branches.",
+      "kind": "judgment",
+      "finding": "FINDING-001",
+      "status": "resolved",
+      "at": "2026-07-18T16:28:16.458Z",
+      "decision": "Duplicate of ESC-001 (identical 15 findings and questions). The human decision recorded on ESC-001 (Kevin, 2026-07-18T16:26Z) stands and is being executed now: shift-left loopback to spec, fix all 15 blocking findings, none accepted as gaps — HttpOnly session cookie auth amendment, real workspace-grouped inventory, e2e coverage added through the tests phase, plus the mechanical fixes enumerated on ESC-001.",
+      "resolvedAt": "2026-07-18T16:29:00.708Z"
+    }
+  ],
   "concerns": [
     "security",
     "networking",
@@ -102,7 +99,8 @@
     "spec": 0,
     "plan": 0,
     "tests": 0,
-    "implement": 0
+    "implement": 0,
+    "review": 1
   },
   "implementer": {
     "mode": "ab",
@@ -120,6 +118,13 @@
       "from": "implement",
       "reason": "Cross-feature frozen-pin conflict: TEST-741 (0016) hard-pins the register-*.ts registrar count at 19 and CAPABILITY_IDS as their closed union; 0026's frozen TEST-2686 mandates the new register-phone-remote.ts (count 20). TEST-741's own header documents the amendment convention for exactly this case; the 0026 tests-phase collision survey missed it. Amending the pin + CAPABILITY_IDS from ground truth.",
       "at": "2026-07-18T15:58:24.868Z"
+    },
+    {
+      "to": "spec",
+      "from": "review",
+      "reason": "ESC-001 human decision: FINDING-025 is a requirement contradiction originating in spec (REQ-005 401-on-token-less-GET vs PWA relaunch) — amend to the HttpOnly session-cookie model and re-propagate; REQ-011 must specify the REAL workspace-grouped inventory (synthetic-workspace stub rejected); e2e coverage for backpressure saturation, resync arrival, app-close liveness, served-client DOM added in the tests phase. Remaining 13 blocking findings are implement-phase fixes carried by the re-descent.",
+      "at": "2026-07-18T16:29:00.771Z"
     }
-  ]
+  ],
+  "totalFailures": 1
 }

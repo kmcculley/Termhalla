@@ -56,3 +56,23 @@ describe('TEST-2681 REQ-027 living-doc entries', () => {
     expect(unreleased).toMatch(/phone[- ](web[- ])?remote/i)
   })
 })
+
+// ---------------------------------------------------------------------------------------------
+// v2 loopback addition (ESC-001) — REQ-027 (amended): the doc must ALSO cover the
+// HttpOnly-cookie pairing/relaunch model, regenerate revoking session cookies, the tailscale
+// recipe's explicit pairing step, and the external-host / copyable-URL pairing story.
+describe('TEST-2733 REQ-027 v2 doc topics: cookie model, tailscale pairing step, external host', () => {
+  it('documents the HttpOnly session-cookie pairing/relaunch model (REQ-028)', () => {
+    const doc = read('docs/features/phone-web-remote.md')
+    expect(doc).toMatch(/HttpOnly/i)
+    expect(doc).toMatch(/cookie/i)
+    expect(doc, 'regenerate must be documented as revoking session cookies too').toMatch(/cookie[\s\S]{0,400}(revoke|invalidat)|((revoke|invalidat)[\s\S]{0,400}cookie)/i)
+  })
+
+  it('the tailscale recipe includes its explicit pairing step and the external-host override', () => {
+    const doc = read('docs/features/phone-web-remote.md')
+    expect(doc).toMatch(/tailscale serve/i)
+    expect(doc, 'the recipe must spell out HOW to pair through the tailscale hostname').toMatch(/pair/i)
+    expect(doc).toMatch(/external host|externalHost/i)
+  })
+})

@@ -92,3 +92,111 @@ describe('TEST-2618 REQ-017 multiple panes and repeat cycles', () => {
     expect(p.onDrain(0)).toEqual(['A'])
   })
 })
+
+// ---------------------------------------------------------------------------------------------
+// v2 loopback amendments (ESC-001; FINDING-002/019/020) — REQ-017 now covers EVERY message
+// class, exposes a stale-clear lifecycle, and bounds a permanently saturated connection.
+//
+// Contract amendments for the implementer (createBackpressurePolicy gains):
+//   onPush(kind: 'status' | 'grid', paneId: string, payload: unknown, bufferedAmount: number): boolean
+//     // true = send now. false = the push was HELD (coalesced latest-wins per kind+pane).
+//   takeHeldPushes(): Array<{ kind: 'status' | 'grid'; paneId: string; payload: unknown }>
+//     // delivered on drain: at most ONE entry per (kind, paneId) carrying the LATEST payload;
+//     // the held set is cleared by the take.
+//   clearStale(paneId: string): void
+//     // unsubscribe / paneExit / fresh-subscribe hook: the pane's stale flag (and any held
+//     // pushes for it) cannot outlive its subscription.
+//   onBuffered(nowMs: number, bufferedAmount: number): void
+//     // continuous-saturation tracking sample (a real transport signal feeds this).
+//   stalledPast(nowMs: number, timeoutMs: number): boolean
+//     // true iff bufferedAmount has been continuously above the high-water mark for >= timeoutMs.
+// And src/main/phone-remote/constants.ts additionally exports the stated keepalive/stall limits.
+import * as PHONE_CONSTANTS from '../../src/main/phone-remote/constants'
+
+type PolicyV2 = ReturnType<typeof createBackpressurePolicy> & {
+  onPush(kind: string, paneId: string, payload: unknown, bufferedAmount: number): boolean
+  takeHeldPushes(): Array<{ kind: string; paneId: string; payload: unknown }>
+  clearStale(paneId: string): void
+  onBuffered(nowMs: number, bufferedAmount: number): void
+  stalledPast(nowMs: number, timeoutMs: number): boolean
+}
+
+const mkV2 = (opts?: { highWater?: number; lowWater?: number }): PolicyV2 =>
+  createBackpressurePolicy(opts) as PolicyV2
+
+describe('TEST-2701 REQ-017 exported keepalive/stall limits (CONV-003)', () => {
+  it('pins the stated values', () => {
+    expect(PHONE_CONSTANTS.PHONE_WS_STALL_TIMEOUT_MS).toBe(60_000)
+    expect(PHONE_CONSTANTS.PHONE_WS_PING_INTERVAL_MS).toBe(30_000)
+    expect(PHONE_CONSTANTS.PHONE_WS_PONG_TIMEOUT_MS).toBe(10_000)
+  })
+})
+
+describe('TEST-2702 REQ-017 status/grid pushes are coalesced latest-wins while saturated', () => {
+  it('sends immediately below the mark; holds above it; the take yields one LATEST entry per kind+pane', () => {
+    const p = mkV2({ highWater: 100, lowWater: 20 })
+    expect(p.onPush('status', 'A', 'busy', 50), 'an unsaturated push sends now').toBe(true)
+    expect(p.takeHeldPushes()).toEqual([])
+
+    expect(p.onPush('status', 'A', 'busy', 101)).toBe(false)
+    expect(p.onPush('status', 'A', 'idle', 101)).toBe(false)
+    expect(p.onPush('status', 'A', 'needs-input', 101)).toBe(false)
+    expect(p.onPush('grid', 'A', { cols: 100, rows: 30 }, 101)).toBe(false)
+    expect(p.onPush('grid', 'A', { cols: 120, rows: 40 }, 101)).toBe(false)
+    expect(p.onPush('status', 'B', 'busy', 101)).toBe(false)
+
+    const held = p.takeHeldPushes()
+    // N flips never accumulate unboundedly: exactly one per (kind, paneId), latest payload
+    expect(held).toHaveLength(3)
+    expect(held).toContainEqual({ kind: 'status', paneId: 'A', payload: 'needs-input' })
+    expect(held).toContainEqual({ kind: 'grid', paneId: 'A', payload: { cols: 120, rows: 40 } })
+    expect(held).toContainEqual({ kind: 'status', paneId: 'B', payload: 'busy' })
+    expect(p.takeHeldPushes(), 'the take clears the held set').toEqual([])
+  })
+})
+
+describe('TEST-2703 REQ-017 stale-state lifecycle: clearStale (unsubscribe/paneExit/fresh-subscribe)', () => {
+  it('a cleared pane is no longer stale and a later drain resyncs nothing for it', () => {
+    const p = mkV2({ highWater: 100, lowWater: 20 })
+    p.onData('A', 101)
+    expect(p.isStale('A')).toBe(true)
+    p.clearStale('A')
+    expect(p.isStale('A')).toBe(false)
+    expect(p.onDrain(0), 'a drain never resyncs a pane no longer subscribed/live').toEqual([])
+  })
+
+  it('clearStale also drops the pane held pushes and is a no-op on a never-stale pane', () => {
+    const p = mkV2({ highWater: 100, lowWater: 20 })
+    p.onPush('status', 'A', 'busy', 101)
+    p.onData('B', 101)
+    p.clearStale('A')
+    expect(() => p.clearStale('never-seen')).not.toThrow()
+    expect(p.takeHeldPushes().filter((h) => h.paneId === 'A')).toEqual([])
+    expect(p.onDrain(0)).toEqual(['B'])
+  })
+})
+
+describe('TEST-2704 REQ-017 continuous-saturation ceiling (the stall deadline)', () => {
+  it('reports stalled only after CONTINUOUS above-high-water time reaches the timeout', () => {
+    const p = mkV2({ highWater: 100, lowWater: 20 })
+    p.onBuffered(0, 101)
+    expect(p.stalledPast(59_999, 60_000)).toBe(false)
+    p.onBuffered(59_999, 101)
+    expect(p.stalledPast(60_000, 60_000)).toBe(true)
+  })
+
+  it('a dip below the mark resets the continuity clock', () => {
+    const p = mkV2({ highWater: 100, lowWater: 20 })
+    p.onBuffered(0, 101)
+    p.onBuffered(30_000, 50) // drained below the mark: not a continuous stall
+    p.onBuffered(40_000, 101)
+    expect(p.stalledPast(99_999, 60_000)).toBe(false)
+    expect(p.stalledPast(100_000, 60_000)).toBe(true)
+  })
+
+  it('never saturated => never stalled', () => {
+    const p = mkV2({ highWater: 100, lowWater: 20 })
+    p.onBuffered(0, 10)
+    expect(p.stalledPast(1_000_000, 60_000)).toBe(false)
+  })
+})

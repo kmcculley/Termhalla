@@ -1,29 +1,551 @@
 {
-  "REQ-001": { "tasks": ["TASK-007", "TASK-013"], "tests": ["TEST-2620", "TEST-2623", "TEST-2650"], "files": ["src/main/phone-remote/mirror-manager.ts", "src/main/phone-remote/service.ts"] },
-  "REQ-002": { "tasks": ["TASK-004", "TASK-013", "TASK-015"], "tests": ["TEST-2640", "TEST-2685"], "files": ["src/main/phone-remote/server.ts", "src/main/phone-remote/service.ts", "src/renderer/components/PhoneRemoteSettings.tsx"] },
-  "REQ-003": { "tasks": ["TASK-001"], "tests": ["TEST-2601", "TEST-2602", "TEST-2603"], "files": ["src/shared/types.ts", "src/shared/phone-remote/settings.ts", "src/main/persistence/quick-store.ts"] },
-  "REQ-004": { "tasks": ["TASK-002"], "tests": ["TEST-2604", "TEST-2605", "TEST-2647"], "files": ["src/main/phone-remote/token.ts"] },
-  "REQ-005": { "tasks": ["TASK-002", "TASK-005", "TASK-016"], "tests": ["TEST-2605", "TEST-2606", "TEST-2643", "TEST-2644"], "files": ["src/main/phone-remote/token.ts", "src/main/phone-remote/auth.ts", "src/main/phone-remote/static-assets.ts"] },
-  "REQ-006": { "tasks": ["TASK-005", "TASK-013"], "tests": ["TEST-2645"], "files": ["src/main/phone-remote/auth.ts", "src/main/phone-remote/service.ts"] },
-  "REQ-007": { "tasks": ["TASK-013", "TASK-014", "TASK-015"], "tests": ["TEST-2647", "TEST-2655", "TEST-2685", "TEST-2686"], "files": ["src/main/phone-remote/service.ts", "src/main/ipc/register-phone-remote.ts", "src/renderer/components/PhoneRemoteSettings.tsx"] },
-  "REQ-008": { "tasks": ["TASK-007"], "tests": ["TEST-2621"], "files": ["src/main/phone-remote/mirror-manager.ts"] },
-  "REQ-009": { "tasks": ["TASK-010"], "tests": ["TEST-2625", "TEST-2648"], "files": ["src/main/phone-remote/ws-session.ts"] },
-  "REQ-010": { "tasks": ["TASK-009", "TASK-010"], "tests": ["TEST-2610", "TEST-2611", "TEST-2626"], "files": ["src/shared/phone-remote/protocol.ts", "src/main/phone-remote/ws-session.ts"] },
-  "REQ-011": { "tasks": ["TASK-006", "TASK-020"], "tests": ["TEST-2636", "TEST-2646", "TEST-2673"], "files": ["src/main/phone-remote/inventory.ts", "src/phone-client/pane-list.ts"] },
-  "REQ-012": { "tasks": ["TASK-011"], "tests": ["TEST-2630", "TEST-2631", "TEST-2648"], "files": ["src/main/phone-remote/ws-session.ts", "src/main/phone-remote/service.ts"] },
-  "REQ-013": { "tasks": ["TASK-011", "TASK-020"], "tests": ["TEST-2613", "TEST-2624", "TEST-2632", "TEST-2633", "TEST-2637", "TEST-2673"], "files": ["src/main/phone-remote/ws-session.ts", "src/phone-client/terminal-view.ts"] },
-  "REQ-014": { "tasks": ["TASK-009", "TASK-012"], "tests": ["TEST-2613", "TEST-2634"], "files": ["src/shared/phone-remote/protocol.ts", "src/main/phone-remote/ws-session.ts"] },
-  "REQ-015": { "tasks": ["TASK-007"], "tests": ["TEST-2622"], "files": ["src/main/phone-remote/mirror-manager.ts"] },
-  "REQ-016": { "tasks": ["TASK-010", "TASK-011"], "tests": ["TEST-2627"], "files": ["src/main/phone-remote/ws-session.ts"] },
-  "REQ-017": { "tasks": ["TASK-008"], "tests": ["TEST-2615", "TEST-2616", "TEST-2617", "TEST-2618", "TEST-2629", "TEST-2670"], "files": ["src/main/phone-remote/constants.ts", "src/main/phone-remote/backpressure.ts"] },
-  "REQ-018": { "tasks": ["TASK-009", "TASK-012"], "tests": ["TEST-2612", "TEST-2635"], "files": ["src/shared/phone-remote/protocol.ts", "src/main/phone-remote/ws-session.ts"] },
-  "REQ-019": { "tasks": ["TASK-004", "TASK-013"], "tests": ["TEST-2641", "TEST-2652"], "files": ["src/main/phone-remote/server.ts", "src/main/phone-remote/service.ts"] },
-  "REQ-020": { "tasks": ["TASK-004", "TASK-013", "TASK-014", "TASK-015"], "tests": ["TEST-2653", "TEST-2686"], "files": ["src/main/phone-remote/server.ts", "src/main/phone-remote/service.ts", "src/main/ipc/register-phone-remote.ts", "src/renderer/components/PhoneRemoteSettings.tsx"] },
-  "REQ-021": { "tasks": ["TASK-016", "TASK-018", "TASK-021"], "tests": ["TEST-2675", "TEST-2676"], "files": ["vite.phone-client.config.ts", "src/main/phone-remote/static-assets.ts", "electron-builder.yml"] },
-  "REQ-022": { "tasks": ["TASK-016", "TASK-018"], "tests": ["TEST-2643", "TEST-2677"], "files": ["src/phone-client/index.html", "src/phone-client/manifest.webmanifest", "src/phone-client/icons"] },
-  "REQ-023": { "tasks": ["TASK-017", "TASK-019", "TASK-020"], "tests": ["TEST-2665", "TEST-2671", "TEST-2672", "TEST-2673"], "files": ["src/phone-client/key-bar.ts", "src/phone-client/main.ts", "src/phone-client/token-storage.ts", "src/phone-client/pane-list.ts", "src/phone-client/terminal-view.ts"] },
-  "REQ-024": { "tasks": ["TASK-019"], "tests": ["TEST-2628", "TEST-2648", "TEST-2655", "TEST-2670", "TEST-2674"], "files": ["src/phone-client/ws-client.ts", "src/phone-client/token-storage.ts"] },
-  "REQ-025": { "tasks": ["TASK-003"], "tests": ["TEST-2660", "TEST-2661"], "files": ["src/main/e2e-phone-remote.ts"] },
-  "REQ-026": { "tasks": ["TASK-007", "TASK-011"], "tests": ["TEST-2623", "TEST-2631", "TEST-2636"], "files": ["src/main/phone-remote/mirror-manager.ts", "src/main/phone-remote/ws-session.ts"] },
-  "REQ-027": { "tasks": ["TASK-022"], "tests": ["TEST-2680", "TEST-2681"], "files": ["docs/features/phone-web-remote.md", "CLAUDE.md", "CHANGELOG.md"] }
+  "REQ-001": {
+    "tasks": [
+      "TASK-007",
+      "TASK-013"
+    ],
+    "tests": [
+      "TEST-2620",
+      "TEST-2623",
+      "TEST-2650",
+      "TEST-2732"
+    ],
+    "files": [
+      "src/main/phone-remote/mirror-manager.ts",
+      "src/main/phone-remote/service.ts"
+    ]
+  },
+  "REQ-002": {
+    "tasks": [
+      "TASK-004",
+      "TASK-013",
+      "TASK-015"
+    ],
+    "tests": [
+      "TEST-2640",
+      "TEST-2685",
+      "TEST-2730"
+    ],
+    "files": [
+      "src/main/phone-remote/server.ts",
+      "src/main/phone-remote/service.ts",
+      "src/renderer/components/PhoneRemoteSettings.tsx"
+    ]
+  },
+  "REQ-003": {
+    "tasks": [
+      "TASK-001",
+      "TASK-014"
+    ],
+    "tests": [
+      "TEST-2601",
+      "TEST-2602",
+      "TEST-2603",
+      "TEST-2697"
+    ],
+    "files": [
+      "src/shared/types.ts",
+      "src/shared/phone-remote/settings.ts",
+      "src/main/persistence/quick-store.ts",
+      "src/main/ipc/register-phone-remote.ts"
+    ]
+  },
+  "REQ-004": {
+    "tasks": [
+      "TASK-002"
+    ],
+    "tests": [
+      "TEST-2604",
+      "TEST-2605",
+      "TEST-2647",
+      "TEST-2690",
+      "TEST-2693"
+    ],
+    "files": [
+      "src/main/phone-remote/token.ts"
+    ]
+  },
+  "REQ-005": {
+    "tasks": [
+      "TASK-002",
+      "TASK-005",
+      "TASK-016",
+      "TASK-023"
+    ],
+    "tests": [
+      "TEST-2605",
+      "TEST-2606",
+      "TEST-2643",
+      "TEST-2644",
+      "TEST-2690",
+      "TEST-2691",
+      "TEST-2693"
+    ],
+    "files": [
+      "src/main/phone-remote/token.ts",
+      "src/main/phone-remote/auth.ts",
+      "src/main/phone-remote/static-assets.ts",
+      "src/main/phone-remote/cookie.ts"
+    ]
+  },
+  "REQ-006": {
+    "tasks": [
+      "TASK-005",
+      "TASK-013",
+      "TASK-023"
+    ],
+    "tests": [
+      "TEST-2645",
+      "TEST-2692"
+    ],
+    "files": [
+      "src/main/phone-remote/auth.ts",
+      "src/main/phone-remote/service.ts",
+      "src/main/phone-remote/cookie.ts"
+    ]
+  },
+  "REQ-007": {
+    "tasks": [
+      "TASK-013",
+      "TASK-014",
+      "TASK-015",
+      "TASK-029"
+    ],
+    "tests": [
+      "TEST-2647",
+      "TEST-2655",
+      "TEST-2685",
+      "TEST-2686",
+      "TEST-2698",
+      "TEST-2712"
+    ],
+    "files": [
+      "src/main/phone-remote/service.ts",
+      "src/main/ipc/register-phone-remote.ts",
+      "src/renderer/components/PhoneRemoteSettings.tsx",
+      "src/main/phone-remote/network-urls.ts"
+    ]
+  },
+  "REQ-008": {
+    "tasks": [
+      "TASK-007",
+      "TASK-025"
+    ],
+    "tests": [
+      "TEST-2621",
+      "TEST-2699"
+    ],
+    "files": [
+      "src/main/phone-remote/mirror-manager.ts",
+      "src/main/ipc/register-pty.ts"
+    ]
+  },
+  "REQ-009": {
+    "tasks": [
+      "TASK-010"
+    ],
+    "tests": [
+      "TEST-2625",
+      "TEST-2648",
+      "TEST-2705"
+    ],
+    "files": [
+      "src/main/phone-remote/ws-session.ts"
+    ]
+  },
+  "REQ-010": {
+    "tasks": [
+      "TASK-009",
+      "TASK-010",
+      "TASK-031"
+    ],
+    "tests": [
+      "TEST-2610",
+      "TEST-2611",
+      "TEST-2626",
+      "TEST-2720"
+    ],
+    "files": [
+      "src/shared/phone-remote/protocol.ts",
+      "src/main/phone-remote/ws-session.ts",
+      "src/phone-client/main.ts"
+    ]
+  },
+  "REQ-011": {
+    "tasks": [
+      "TASK-006",
+      "TASK-020",
+      "TASK-024"
+    ],
+    "tests": [
+      "TEST-2636",
+      "TEST-2646",
+      "TEST-2673",
+      "TEST-2711",
+      "TEST-2726",
+      "TEST-2729"
+    ],
+    "files": [
+      "src/main/phone-remote/inventory.ts",
+      "src/phone-client/pane-list.ts",
+      "src/main/ipc/register-phone-remote.ts",
+      "src/main/services.ts"
+    ]
+  },
+  "REQ-012": {
+    "tasks": [
+      "TASK-011"
+    ],
+    "tests": [
+      "TEST-2630",
+      "TEST-2631",
+      "TEST-2648"
+    ],
+    "files": [
+      "src/main/phone-remote/ws-session.ts",
+      "src/main/phone-remote/service.ts"
+    ]
+  },
+  "REQ-013": {
+    "tasks": [
+      "TASK-011",
+      "TASK-020",
+      "TASK-025"
+    ],
+    "tests": [
+      "TEST-2613",
+      "TEST-2624",
+      "TEST-2632",
+      "TEST-2633",
+      "TEST-2637",
+      "TEST-2673",
+      "TEST-2700",
+      "TEST-2723"
+    ],
+    "files": [
+      "src/main/phone-remote/ws-session.ts",
+      "src/phone-client/terminal-view.ts",
+      "src/main/ipc/register-pty.ts"
+    ]
+  },
+  "REQ-014": {
+    "tasks": [
+      "TASK-009",
+      "TASK-012"
+    ],
+    "tests": [
+      "TEST-2613",
+      "TEST-2634"
+    ],
+    "files": [
+      "src/shared/phone-remote/protocol.ts",
+      "src/main/phone-remote/ws-session.ts"
+    ]
+  },
+  "REQ-015": {
+    "tasks": [
+      "TASK-007"
+    ],
+    "tests": [
+      "TEST-2622",
+      "TEST-2727"
+    ],
+    "files": [
+      "src/main/phone-remote/mirror-manager.ts"
+    ]
+  },
+  "REQ-016": {
+    "tasks": [
+      "TASK-010",
+      "TASK-011"
+    ],
+    "tests": [
+      "TEST-2627"
+    ],
+    "files": [
+      "src/main/phone-remote/ws-session.ts"
+    ]
+  },
+  "REQ-017": {
+    "tasks": [
+      "TASK-008",
+      "TASK-026"
+    ],
+    "tests": [
+      "TEST-2615",
+      "TEST-2616",
+      "TEST-2617",
+      "TEST-2618",
+      "TEST-2629",
+      "TEST-2670",
+      "TEST-2701",
+      "TEST-2702",
+      "TEST-2703",
+      "TEST-2704",
+      "TEST-2706",
+      "TEST-2707",
+      "TEST-2708",
+      "TEST-2713",
+      "TEST-2714"
+    ],
+    "files": [
+      "src/main/phone-remote/constants.ts",
+      "src/main/phone-remote/backpressure.ts",
+      "src/main/phone-remote/ws-session.ts",
+      "src/main/phone-remote/service.ts"
+    ]
+  },
+  "REQ-018": {
+    "tasks": [
+      "TASK-009",
+      "TASK-012"
+    ],
+    "tests": [
+      "TEST-2612",
+      "TEST-2635"
+    ],
+    "files": [
+      "src/shared/phone-remote/protocol.ts",
+      "src/main/phone-remote/ws-session.ts"
+    ]
+  },
+  "REQ-019": {
+    "tasks": [
+      "TASK-004",
+      "TASK-013"
+    ],
+    "tests": [
+      "TEST-2641",
+      "TEST-2652",
+      "TEST-2709",
+      "TEST-2728"
+    ],
+    "files": [
+      "src/main/phone-remote/server.ts",
+      "src/main/phone-remote/service.ts"
+    ]
+  },
+  "REQ-020": {
+    "tasks": [
+      "TASK-004",
+      "TASK-013",
+      "TASK-014",
+      "TASK-015",
+      "TASK-028"
+    ],
+    "tests": [
+      "TEST-2653",
+      "TEST-2686",
+      "TEST-2710",
+      "TEST-2717",
+      "TEST-2718"
+    ],
+    "files": [
+      "src/main/phone-remote/server.ts",
+      "src/main/phone-remote/service.ts",
+      "src/main/ipc/register-phone-remote.ts",
+      "src/renderer/components/PhoneRemoteSettings.tsx",
+      "src/renderer/App.tsx"
+    ]
+  },
+  "REQ-021": {
+    "tasks": [
+      "TASK-016",
+      "TASK-018",
+      "TASK-021"
+    ],
+    "tests": [
+      "TEST-2675",
+      "TEST-2676"
+    ],
+    "files": [
+      "vite.phone-client.config.ts",
+      "src/main/phone-remote/static-assets.ts",
+      "electron-builder.yml"
+    ]
+  },
+  "REQ-022": {
+    "tasks": [
+      "TASK-016",
+      "TASK-018",
+      "TASK-023"
+    ],
+    "tests": [
+      "TEST-2643",
+      "TEST-2677",
+      "TEST-2691",
+      "TEST-2731"
+    ],
+    "files": [
+      "src/phone-client/index.html",
+      "src/phone-client/manifest.webmanifest",
+      "src/phone-client/icons",
+      "src/main/phone-remote/cookie.ts"
+    ]
+  },
+  "REQ-023": {
+    "tasks": [
+      "TASK-017",
+      "TASK-019",
+      "TASK-020",
+      "TASK-031"
+    ],
+    "tests": [
+      "TEST-2665",
+      "TEST-2671",
+      "TEST-2672",
+      "TEST-2673",
+      "TEST-2721",
+      "TEST-2722",
+      "TEST-2723",
+      "TEST-2725",
+      "TEST-2731"
+    ],
+    "files": [
+      "src/phone-client/key-bar.ts",
+      "src/phone-client/main.ts",
+      "src/phone-client/token-storage.ts",
+      "src/phone-client/pane-list.ts",
+      "src/phone-client/terminal-view.ts"
+    ]
+  },
+  "REQ-024": {
+    "tasks": [
+      "TASK-019"
+    ],
+    "tests": [
+      "TEST-2628",
+      "TEST-2648",
+      "TEST-2655",
+      "TEST-2670",
+      "TEST-2674",
+      "TEST-2692",
+      "TEST-2721"
+    ],
+    "files": [
+      "src/phone-client/ws-client.ts",
+      "src/phone-client/token-storage.ts"
+    ]
+  },
+  "REQ-025": {
+    "tasks": [
+      "TASK-003"
+    ],
+    "tests": [
+      "TEST-2660",
+      "TEST-2661",
+      "TEST-2715",
+      "TEST-2727"
+    ],
+    "files": [
+      "src/main/e2e-phone-remote.ts"
+    ]
+  },
+  "REQ-026": {
+    "tasks": [
+      "TASK-007",
+      "TASK-011"
+    ],
+    "tests": [
+      "TEST-2623",
+      "TEST-2631",
+      "TEST-2636",
+      "TEST-2711"
+    ],
+    "files": [
+      "src/main/phone-remote/mirror-manager.ts",
+      "src/main/phone-remote/ws-session.ts"
+    ]
+  },
+  "REQ-027": {
+    "tasks": [
+      "TASK-022"
+    ],
+    "tests": [
+      "TEST-2680",
+      "TEST-2681",
+      "TEST-2733"
+    ],
+    "files": [
+      "docs/features/phone-web-remote.md",
+      "CLAUDE.md",
+      "CHANGELOG.md"
+    ]
+  },
+  "REQ-028": {
+    "tasks": [
+      "TASK-023"
+    ],
+    "tests": [
+      "TEST-2690",
+      "TEST-2691",
+      "TEST-2692",
+      "TEST-2693",
+      "TEST-2672",
+      "TEST-2731"
+    ],
+    "files": [
+      "src/main/phone-remote/cookie.ts",
+      "src/main/phone-remote/auth.ts",
+      "src/main/phone-remote/service.ts",
+      "src/main/phone-remote/constants.ts"
+    ]
+  },
+  "REQ-029": {
+    "tasks": [
+      "TASK-027"
+    ],
+    "tests": [
+      "TEST-2716",
+      "TEST-2717",
+      "TEST-2730"
+    ],
+    "files": [
+      "src/renderer/store/types.ts",
+      "src/renderer/components/SettingsPanel.tsx",
+      "src/renderer/components/PhoneRemoteSettings.tsx"
+    ]
+  },
+  "REQ-030": {
+    "tasks": [
+      "TASK-031"
+    ],
+    "tests": [
+      "TEST-2724",
+      "TEST-2731"
+    ],
+    "files": [
+      "src/phone-client/main.ts",
+      "src/phone-client/terminal-view.ts",
+      "src/phone-client/pane-list.ts"
+    ]
+  },
+  "REQ-031": {
+    "tasks": [
+      "TASK-029"
+    ],
+    "tests": [
+      "TEST-2694",
+      "TEST-2695",
+      "TEST-2698",
+      "TEST-2719"
+    ],
+    "files": [
+      "src/main/phone-remote/network-urls.ts",
+      "src/main/phone-remote/service.ts",
+      "src/shared/phone-remote/settings.ts",
+      "src/renderer/components/PhoneRemoteSettings.tsx"
+    ]
+  },
+  "REQ-032": {
+    "tasks": [
+      "TASK-030"
+    ],
+    "tests": [
+      "TEST-2696"
+    ],
+    "files": [
+      "src/main/ipc/register-phone-remote.ts"
+    ]
+  }
 }
