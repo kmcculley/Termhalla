@@ -17,13 +17,15 @@
  * Pure module: zero Node/Electron imports (REQ-001).
  */
 
-/** Closed, sorted, duplicate-free capability id vocabulary (19 registrar names + 'status').
+/** Closed, sorted, duplicate-free capability id vocabulary (20 registrar names + 'status').
  *  'remote' joined when feature 0022 added register-remote.ts (the connection-lifecycle
  *  registrar); 'workspace-doc' joined when the File-menu workspace-document feature added
- *  register-workspace-doc.ts (portable .thws save/open) — each extended through its own tests
- *  phase per this file's TEST-741 amendment path. No agent ever advertises either (an agent has
- *  no remote-of-remote, and workspace documents are a local File-menu concern); they exist
- *  because the vocabulary IS the registrar-name partition (locked decision 6). */
+ *  register-workspace-doc.ts (portable .thws save/open); 'phone-remote' joined when feature
+ *  0026 added register-phone-remote.ts (the phone/web remote server settings surface) — each
+ *  extended through its own tests phase per this file's TEST-741 amendment path. No agent ever
+ *  advertises any of the three (an agent has no remote-of-remote, workspace documents are a
+ *  local File-menu concern, and the phone-remote server is a desktop-local listener); they
+ *  exist because the vocabulary IS the registrar-name partition (locked decision 6). */
 export const CAPABILITY_IDS = [
   'clipboard',
   'cloud',
@@ -34,6 +36,7 @@ export const CAPABILITY_IDS = [
   'notes',
   'orky',
   'orky-action',
+  'phone-remote',
   'preview',
   'pty',
   'recording',

@@ -40,6 +40,10 @@ export function registerPty(
     // REQ-011); write/resize/kill probe remote.owns(id) first. When no remote workspace exists the
     // probe is a Map miss and the local path is byte-identical (REQ-019).
     remote?: import('../remote/remote-workspace-manager').RemoteWorkspaceManager
+    // feature 0026: the phone-remote mirror registry's grid source. Purely observational — never
+    // gates or alters a spawn/resize; absent by default (byte-identical when unused, REQ-015).
+    onSpawn?: (paneId: string, cols: number, rows: number) => void
+    onResize?: (paneId: string, cols: number, rows: number) => void
   }
 ): PtyManager {
   const { shells, recorder, envVault, scriptDir, send } = deps
@@ -100,12 +104,13 @@ export function registerPty(
       // carries the grid of the tile it left — and the pane's ResizeObserver guard is seeded from
       // xterm, so it will never correct the difference. Replay first (the snapshot was serialized
       // at the old grid), then re-sync, so the program repaints itself at the true size.
-      if (needsGridReconcile(pty.sizeOf(a.id), a)) pty.resize(a.id, a.cols, a.rows)
+      if (needsGridReconcile(pty.sizeOf(a.id), a)) { pty.resize(a.id, a.cols, a.rows); deps.onResize?.(a.id, a.cols, a.rows) }
       return true
     }
     const shell = shells.find(s => s.id === a.shellId) ?? shells[0]
     tracker.register(a.id)   // register BEFORE spawn: a failed spawn calls onExit->unregister synchronously, keeping the registry clean
     pty.spawn(a.id, shell, a.cwd, a.cols, a.rows, a.launch, envVault.envFor(a.envId))
+    deps.onSpawn?.(a.id, a.cols, a.rows)
     return false   // fresh spawn (adopted=true above) — the renderer's auto-resume gate needs this distinction
   })
   ipcMain.on(CH.ptyWrite, (_e, a: PtyWriteArgs) => {
@@ -115,6 +120,7 @@ export function registerPty(
   ipcMain.on(CH.ptyResize, (_e, a: PtyResizeArgs) => {
     if (deps.remote?.owns(a.id)) { deps.remote.resize(a.id, a.cols, a.rows); return }
     pty.resize(a.id, a.cols, a.rows); recorder.resize(a.id, a.cols, a.rows)
+    deps.onResize?.(a.id, a.cols, a.rows)
   })
   // ai/tracker unregister here is synchronous; the async pty onExit fires them again but
   // both are idempotent (Map.delete returns false), so the renderer sees a single clear.

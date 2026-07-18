@@ -1,6 +1,7 @@
 import { readFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { EMPTY_QUICK, type QuickStore as QuickData, type Theme } from '@shared/types'
+import { normalizePhoneRemote } from '@shared/phone-remote/settings'
 import { atomicWrite } from './atomic-write'
 
 /** A theme override is kept only if it is a plain object; anything else (absent, primitive, array)
@@ -25,16 +26,20 @@ function normalizeQuick(value: unknown): QuickData {
     autoResumeClaude: typeof v.autoResumeClaude === 'boolean' ? v.autoResumeClaude : true,
     copyOnSelect: typeof v.copyOnSelect === 'boolean' ? v.copyOnSelect : true,
     cleanCopy: typeof v.cleanCopy === 'boolean' ? v.cleanCopy : true,
-    // Additive optional (no SCHEMA_VERSION bump): pass through when present, leave absent on legacy
+    // Additive optional (no versioned-schema bump): pass through when present, leave absent on legacy
     // files so the effective state reads as OFF (toasts render only when strictly true).
     toastsEnabled: typeof v.toastsEnabled === 'boolean' ? v.toastsEnabled : undefined,
-    // Additive optional (no SCHEMA_VERSION bump — quick.json is outside the migration chain): pass
+    // Additive optional (no versioned-schema bump — quick.json is outside the migration chain): pass
     // through only when strictly boolean; a legacy file leaves it absent, which the consumer reads as
     // ENABLED via the `!== false` idiom (feature 0013 / REQ-005).
     orkyNeedsYouNotifications: typeof v.orkyNeedsYouNotifications === 'boolean' ? v.orkyNeedsYouNotifications : undefined,
     keybindings: v.keybindings && typeof v.keybindings === 'object' && !Array.isArray(v.keybindings)
       ? Object.fromEntries(Object.entries(v.keybindings).filter(([, val]) => typeof val === 'string')) as Record<string, string>
       : undefined,
+    // Additive optional (feature 0026, REQ-003): coerced field-wise on both read AND write (an
+    // untrusted renderer payload must not persist an invalid bind/port), quick.json stays outside
+    // the migration chain.
+    phoneRemote: normalizePhoneRemote(v.phoneRemote),
   }
 }
 

@@ -16,7 +16,7 @@ import { OrkyActionAuditLog } from './orky/orky-action-audit'
 import { OrkyActionQueue } from './orky/orky-action-queue'
 import { verifyOrkyContract } from './orky/orky-contract-handshake'
 import { RemoteWorkspaceManager } from './remote/remote-workspace-manager'
-import { MANIFEST_VERSION, resolveAgentArtifactPath, resolvePrebuiltRoot } from './remote/agent-artifact'
+import { MANIFEST_VERSION, resolveAgentArtifactPath, resolvePhoneClientStaticRoot, resolvePrebuiltRoot } from './remote/agent-artifact'
 import { connectWithProvisioning } from '../remote-client/bootstrap'
 import { e2eRemoteOverride } from './e2e-remote'
 import { loadNamedAgents } from '../remote-client/agents-store'
@@ -56,6 +56,9 @@ export interface Services {
   /** The named-agents registry file path (userData — F19 bound no location; F21 wires it here). */
   remoteAgentsPath: string
   disposeRemote(): void
+  /** Where the built phone web client (feature 0026) lives — dev/packaged split, mirroring the
+   *  agent-artifact resolvers (`resolvePhoneClientStaticRoot`). */
+  phoneClientStaticRoot: string
 }
 
 /** Build the privileged service layer ONCE for the whole app (not per window). PTYs and stores
@@ -146,6 +149,11 @@ export function buildServices(): Services {
     remoteManager,
     setRemoteSend: (send) => { remoteSend = send },
     remoteAgentsPath,
-    disposeRemote: () => remoteManager.stop()
+    disposeRemote: () => remoteManager.stop(),
+    phoneClientStaticRoot: resolvePhoneClientStaticRoot({
+      packaged: app.isPackaged,
+      appRoot: devAppRoot,
+      resourcesPath: process.resourcesPath
+    })
   }
 }

@@ -32,13 +32,13 @@ describe('TEST-741 REQ-010 CAPABILITY_IDS = the per-domain registrar names + sta
     const registrarNames = readdirSync(resolve(process.cwd(), 'src/main/ipc'))
       .filter((f) => /^register-.+\.ts$/.test(f))
       .map((f) => f.replace(/^register-/, '').replace(/\.ts$/, ''))
-    // AMENDED by feature 0022 (register-remote.ts, 17→18) and the File-menu workspace-document
-    // feature (register-workspace-doc.ts, 18→19; +'status' = 20) — each exactly the amendment path
-    // this header prescribes.
-    expect(registrarNames.length).toBe(19)
+    // AMENDED by feature 0022 (register-remote.ts, 17→18), the File-menu workspace-document
+    // feature (register-workspace-doc.ts, 18→19) and feature 0026 (register-phone-remote.ts,
+    // 19→20; +'status' = 21) — each exactly the amendment path this header prescribes.
+    expect(registrarNames.length).toBe(20)
     const expected = [...registrarNames, 'status'].sort()
     expect([...CAPABILITY_IDS]).toEqual(expected)
-    expect(CAPABILITY_IDS.length).toBe(20)
+    expect(CAPABILITY_IDS.length).toBe(21)
   })
   it('is sorted ascending and duplicate-free', () => {
     expect([...CAPABILITY_IDS]).toEqual([...CAPABILITY_IDS].sort())

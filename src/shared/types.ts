@@ -258,6 +258,7 @@ export interface QuickStore {
   themeFollowSystem?: boolean    // apply built-in Light/Dark to match the OS (QoL 2026-07-17); default off
   orkyNeedsYouNotifications?: boolean   // app-wide OS notifications when an Orky project needs a decision (feature 0013); default ENABLED — absent ⇒ !== false ⇒ on
   keybindings?: Record<string, string>   // CommandId -> chordKey ("mod+shift+t") | 'none' (unbound)
+  phoneRemote?: import('./phone-remote/settings').PhoneRemoteSettings   // additive optional (feature 0026); no SCHEMA_VERSION bump — tokenHash only, never the plaintext token
 }
 
 export const EMPTY_QUICK: QuickStore = {

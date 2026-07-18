@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Termhalla</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+  <meta name="theme-color" content="#1e1e1e" />
+  <meta name="description" content="Read and type into your Termhalla panes from your phone." />
+
+  <!-- iOS home-screen PWA install (REQ-022) -->
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Termhalla" />
+  <link rel="apple-touch-icon" href="./icons/icon-192.png" />
+  <link rel="manifest" href="./manifest.webmanifest" />
+  <link rel="icon" href="./icons/icon-192.png" />
+
+  <style>
+    :root { color-scheme: dark; }
+    html, body { height: 100%; margin: 0; background: #1e1e1e; color: #ddd; font-family: -apple-system, system-ui, sans-serif; }
+    #app { height: 100%; display: flex; flex-direction: column; }
+    #view-list, #view-terminal { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+    #pane-list { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; padding: env(safe-area-inset-top) 12px 12px; }
+    .pane-list-workspace h2 { font-size: 13px; text-transform: uppercase; letter-spacing: 0.04em; color: #999; margin: 16px 0 6px; }
+    .pane-list-rows { list-style: none; margin: 0; padding: 0; }
+    .pane-list-row {
+      width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 8px;
+      padding: 12px; margin-bottom: 6px; background: #2a2a2a; border: none; border-radius: 8px;
+      color: inherit; font-size: 15px; text-align: left;
+    }
+    .pane-status-chip { font-size: 11px; padding: 2px 8px; border-radius: 999px; background: #444; }
+    .pane-status-chip--busy { background: #7a4a00; color: #ffd280; }
+    .pane-status-chip--idle { background: #2f4f2f; color: #b6f5b6; }
+    .pane-status-chip--needs-input { background: #7a0030; color: #ffb3cf; }
+    .pane-status-chip--exited { background: #333; color: #888; }
+
+    #view-terminal { touch-action: pan-x pan-y pinch-zoom; overflow: auto; }
+    #terminal { flex: 1; min-height: 0; overflow: auto; touch-action: pan-x pan-y pinch-zoom; }
+    #key-bar { display: flex; gap: 6px; padding: 8px; overflow-x: auto; background: #151515; padding-bottom: max(8px, env(safe-area-inset-bottom)); }
+    .key-bar-key { flex: 0 0 auto; min-width: 44px; padding: 10px 12px; background: #2a2a2a; color: #ddd; border: none; border-radius: 6px; font-size: 15px; }
+    .key-bar-key--active { background: #3a6ea5; }
+    #back-button { padding: 10px 12px; background: none; border: none; color: #8ab4f8; font-size: 15px; text-align: left; }
+    #connection-status { font-size: 11px; color: #888; padding: 4px 12px; }
+  </style>
+</head>
+<body>
+  <div id="app">
+    <div id="connection-status"></div>
+    <div id="view-list">
+      <div id="pane-list"></div>
+    </div>
+    <div id="view-terminal" hidden>
+      <button id="back-button" type="button">&larr; Panes</button>
+      <div id="terminal"></div>
+      <div id="key-bar"></div>
+    </div>
+  </div>
+  <script type="module" src="./main.ts"></script>
+</body>
+</html>

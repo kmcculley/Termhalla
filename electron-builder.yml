@@ -16,6 +16,10 @@ directories:
   output: dist
 files:
   - out/**/*
+  # The phone web client bundle (feature 0026, REQ-021) — served by the embedded phone-remote
+  # HTTP server. Already covered by out/**/* above; listed explicitly so the packaged artifact's
+  # inclusion of out/phone-client is self-documenting.
+  - out/phone-client/**/*
   - package.json
 # The remote-agent bundle (feature 0022): the client provisions remote hosts with this artifact
 # (version-locked to package.json — src/agent/version.ts inlines the same manifest version at

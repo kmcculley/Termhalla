@@ -163,6 +163,21 @@ All notable changes to Termhalla are recorded here. The format follows
   FINDING-PROV-002 (the stall-threshold change above).
 
 ### Added
+- **Phone web remote (feature 0026) — read and type into your panes from your phone.** An opt-in
+  HTTP+WS server embedded in main, off by default, binding `127.0.0.1` unless you explicitly flip
+  to LAN mode (a plaintext-transport warning shows only in LAN mode); a single high-entropy pairing
+  token is generated in main and only its sha-256 hash is ever persisted — regenerating it revokes
+  every currently paired session at once. Reachability away from home rides `tailscale serve`
+  against the localhost bind (no cloud relay, no built-in TLS in v1). Every live pane gets a
+  bounded `@xterm/headless` mirror (the F18 `createPaneReplay` reuse, 2000-line scrollback) while
+  the server is enabled; a phone subscribing to a pane gets a snapshot-then-stream attach with
+  exactly-once delivery, and per-client backpressure drops-and-resyncs a saturated client without
+  ever touching the desktop terminal's own byte-identical render path. The phone never resizes a
+  pane and never manages pane lifecycle — it's a mirror + input injector, full stop. The bundled
+  mobile client is an installable Safari PWA (`src/phone-client/`, a third vite build target into
+  `out/phone-client/`) with a workspace-grouped pane list, a full-screen xterm.js terminal view,
+  and an accessory key bar (Ctrl latch, Esc, Tab, arrows). See
+  [`docs/features/phone-web-remote.md`](docs/features/phone-web-remote.md).
 - **QoL batch 2026-07-17 — destructive actions confirm; idle ones don't.** Closing a pane used to
   be the one silent kill (close-workspace and per-tab close both confirmed): `closePane` now
   confirms when the terminal is running a foreground process/AI session, or when an editor pane

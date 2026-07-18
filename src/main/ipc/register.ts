@@ -3,11 +3,13 @@ import type { Services } from '../services'
 import { raisesOsSurfaces } from '../e2e-presentation'
 import type { WindowManager } from '../window-manager'
 import type { PtyManager } from '../pty/pty-manager'
-import type { OrkyPaneStatus, OrkyRegistrySnapshot } from '@shared/types'
+import type { OrkyPaneStatus, OrkyRegistrySnapshot, TerminalStatus } from '@shared/types'
 import { CH } from '@shared/ipc-contract'
 import type { Disposer } from './types'
 import { OrkyStreamStatusBridge } from '../orky/orky-stream-status'
 import { OrkyNeedsYouNotifier } from '../orky/orky-needs-you-notifier'
+import { createPhoneRemoteService, type PhoneRemoteService, type PhoneRemotePaneRecord } from '../phone-remote/service'
+import { registerPhoneRemote } from './register-phone-remote'
 import { registerPty } from './register-pty'
 import { registerFs } from './register-fs'
 import { registerWorkspaces } from './register-workspaces'
@@ -46,10 +48,42 @@ export async function registerHandlers(services: Services, wm: WindowManager): P
     if (paneId && wm.isPaneScoped(channel)) wm.routeToPane(paneId, channel, ...args)
     else wm.broadcast(channel, ...args)
   }
+
+  // Phone web remote (feature 0026): a tap on the pty-shaped data/exit/status/grid traffic — LOCAL
+  // and remote-workspace panes both ride the pty:* channels (the architecture's "remote pty/status
+  // traffic rides the existing pty:* surface" contract), so wrapping `send` HERE, before it is
+  // threaded into both registerPty and the remote manager below, makes the tap source-agnostic
+  // (REQ-008) with zero duplicated wiring. Every call is forwarded to the real `send` completely
+  // unchanged (same channel, same args, same order) — REQ-015's byte-identical renderer path — this
+  // wrapper only ALSO notifies whichever listeners the phone-remote service installs below.
+  interface PhoneRemoteLivePane { cols: number; rows: number; status: string }
+  const phoneRemoteLivePanes = new Map<string, PhoneRemoteLivePane>()
+  const phoneRemoteDataListeners = new Set<(id: string, chunk: string) => void>()
+  const phoneRemoteExitListeners = new Set<(id: string) => void>()
+  const phoneRemoteGridListeners = new Set<(id: string, cols: number, rows: number) => void>()
+  const phoneRemoteStatusListeners = new Set<(id: string, status: string) => void>()
+  const phoneRemoteSend = (channel: string, ...args: unknown[]): void => {
+    if (channel === CH.ptyData) {
+      const [id, chunk] = args as [string, string]
+      if (!phoneRemoteLivePanes.has(id)) phoneRemoteLivePanes.set(id, { cols: 80, rows: 24, status: 'idle' })
+      for (const cb of phoneRemoteDataListeners) cb(id, chunk)
+    } else if (channel === CH.ptyExit) {
+      const [id] = args as [string, number]
+      phoneRemoteLivePanes.delete(id)
+      for (const cb of phoneRemoteExitListeners) cb(id)
+    } else if (channel === CH.ptyStatus) {
+      const [id, status] = args as [string, TerminalStatus]
+      const rec = phoneRemoteLivePanes.get(id)
+      if (rec) rec.status = status.state
+      for (const cb of phoneRemoteStatusListeners) cb(id, status.state)
+    }
+    send(channel, ...args)
+  }
+
   // Remote workspaces (feature 0022): the manager's pushes ride the SAME routed pane-scoped send —
   // remote pty:data/status/cwd/exit inherit window ownership + transit buffering; remote:state is
   // app-global and broadcasts (REQ-010).
-  services.setRemoteSend(send)
+  services.setRemoteSend(phoneRemoteSend)
 
   // Startup invariant: prepare() always yields a main window. An explicit throw here beats the
   // old `!`-assertion crash surfacing later at notify/dialog time.
@@ -77,7 +111,7 @@ export async function registerHandlers(services: Services, wm: WindowManager): P
   }
 
   const pty = registerPty(win, {
-    shells, recorder, envVault, scriptDir, send, indexer,
+    shells, recorder, envVault, scriptDir, send: phoneRemoteSend, indexer,
     claimPane: (id, sender) => wm.claimPane(id, sender),
     replayInto: (id) => wm.replayInto(id),
     beginTransit: (id, sender) => wm.beginSameWindowTransit(id, sender),
@@ -85,8 +119,49 @@ export async function registerHandlers(services: Services, wm: WindowManager): P
     onCommandDone: (id) => git.onCommandDone(id),
     onPaneGone: (id) => { git.removePane(id); orkyBridge.clearPane(id) },
     onOrkyHeartbeat: (id, hb) => orkyBridge.setStreamHeartbeat(id, hb),
-    remote: remoteManager
+    remote: remoteManager,
+    onSpawn: (id, cols, rows) => {
+      phoneRemoteLivePanes.set(id, { cols, rows, status: 'idle' })
+      for (const cb of phoneRemoteGridListeners) cb(id, cols, rows)
+    },
+    onResize: (id, cols, rows) => {
+      const rec = phoneRemoteLivePanes.get(id)
+      if (rec) { rec.cols = cols; rec.rows = rows } else phoneRemoteLivePanes.set(id, { cols, rows, status: 'idle' })
+      for (const cb of phoneRemoteGridListeners) cb(id, cols, rows)
+    }
   })
+
+  // Phone web remote (feature 0026): the opt-in HTTP+WS mirror server. Settings ride quick.json
+  // (additive optional field, no SCHEMA_VERSION bump); `panes` is sourced from the taps wired into
+  // registerPty/the remote manager above — real-time cols/rows/status, but grouped under one
+  // synthetic workspace (main has no renderer-owned workspace/title metadata for a live pane; a
+  // richer inventory needs a renderer-seeded surface, tracked as a documented follow-on, NOT the
+  // spec's explicitly-deferred renderer-serialize MIRROR seeding). `notifyError` re-broadcasts the
+  // fresh status (with the specific failure text) over `phoneRemote:changed` so every window's
+  // Settings UI sees it — errors are never suppressed by the toasts opt-in (CONV-004; enforced
+  // renderer-side by the store slice's pushToast('error', …) call, not here).
+  let phoneRemoteServiceRef: PhoneRemoteService | undefined
+  const phoneRemoteService = createPhoneRemoteService({
+    loadSettings: async () => (await quick.load()).phoneRemote,
+    saveSettings: async (s) => { const cur = await quick.load(); await quick.save({ ...cur, phoneRemote: s }) },
+    panes: {
+      list: (): PhoneRemotePaneRecord[] => [...phoneRemoteLivePanes.entries()].map(([paneId, p]) => ({
+        paneId, workspaceId: 'local', workspaceName: 'Termhalla', title: paneId, kind: 'terminal',
+        cols: p.cols, rows: p.rows, status: p.status
+      })),
+      onData: (cb) => { phoneRemoteDataListeners.add(cb); return () => phoneRemoteDataListeners.delete(cb) },
+      onExit: (cb) => { phoneRemoteExitListeners.add(cb); return () => phoneRemoteExitListeners.delete(cb) },
+      onGrid: (cb) => { phoneRemoteGridListeners.add(cb); return () => phoneRemoteGridListeners.delete(cb) },
+      onStatus: (cb) => { phoneRemoteStatusListeners.add(cb); return () => phoneRemoteStatusListeners.delete(cb) },
+      write: (id, data) => { if (remoteManager.owns(id)) remoteManager.write(id, data); else pty.write(id, data) }
+    },
+    staticRoot: services.phoneClientStaticRoot,
+    notifyError: (message) => send(CH.phoneRemoteChanged, { ...phoneRemoteServiceRef?.status(), error: message })
+  })
+  phoneRemoteServiceRef = phoneRemoteService
+  await phoneRemoteService.init()
+  const disposePhoneRemote = registerPhoneRemote(phoneRemoteService, send)
+
   // Feature 0013 — app-wide needs-you-notifications opt-in mirror. The production `shouldNotify` gate
   // is SYNCHRONOUS, but the preference is written renderer-side via fire-and-forget quickSave; so the
   // composition root holds ONE mutable in-memory mirror, initialized from disk at startup and refreshed
@@ -199,6 +274,10 @@ export async function registerHandlers(services: Services, wm: WindowManager): P
     () => services.disposeRemote(),
     disposeGit,
     disposeSearch,
+    // Phone web remote (feature 0026): drop the IPC handlers, then stop the listener/every WS
+    // client (unref'd sockets already can't block shutdown, but a clean stop is still owed).
+    disposePhoneRemote,
+    () => { void phoneRemoteService.stop() },
     // The shared OrkyRootEngine/OrkyRegistry lifecycle is owned ONCE here — neither registerOrky's nor
     // registerRegistry's own disposer closes it (risk note #3: a double-close of the same watchers).
     () => { orkyRegistry.dispose(); orkyEngine.dispose() },

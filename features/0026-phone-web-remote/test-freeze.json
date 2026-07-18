@@ -94,7 +94,7 @@
     "tests/remote-client-structure.test.ts": "3d05bc6a6d1fcc82e4f3c96005ee03ece3d39ff0cec16699c6fd9d282cdfe4e9",
     "tests/remote-daemon-handshake.test.ts": "434d8889829279a0a8f7e901e9615dcf981c17b45343367df15f026bd550c56d",
     "tests/remote-flow-control.test.ts": "9ab216e71cbbbf319fe2ced026d14b8c961956df69abb419b7b81cba2bcdb4a2",
-    "tests/remote-protocol-capabilities.test.ts": "1c82d3575d8ca7fee602bd2f343b1ee05190aa3afc41641138a23c507fa69bd8",
+    "tests/remote-protocol-capabilities.test.ts": "b07b0407d6b894c1ca456f929b683b88279f302ecfe7e5c10d7b5b7244fd943f",
     "tests/remote-protocol-correlation.test.ts": "38e0ffeb1fda47bd322aaa78f2bff17562e49e0048713330b7e014632b742472",
     "tests/remote-protocol-framing.test.ts": "6c5167011ced45ad958819129c2e9cb7a0ff47adbd8a07426c3a97e26b792373",
     "tests/remote-protocol-guards.test.ts": "c230dfe8082c7861218099d06d4030a8d3d54a5948eb506bc5c73a43f41804be",

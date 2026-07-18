@@ -1,4 +1,5 @@
 import type { ShellInfo, Workspace, AppState, TerminalStatus, DirEntry, ReadResult, StatResult, FsChange, TerminalLaunch, QuickStore, ProcInfo, CloudStatus, AiSession, UsageMetrics, EditorDraft, EnvVaultData, RecState, EnvVaultState, GitStatus, SearchHit, SearchStats, OrkyPaneStatus, OrkyRegistrySnapshot, RegistryMutationResult, OrkyRootDetailResult, OrkyActionResult, ResolveEscalationRequest, SubmitWorkRequest, RecordHumanGateRequest, DriveStatusRequest } from './types'
+import type { PhoneRemoteStatus } from './phone-remote/status'
 
 export const CH = {
   listShells: 'shells:list',
@@ -124,6 +125,15 @@ export const CH = {
   remoteDisconnect: 'remote:disconnect',    // renderer -> main (drop; ALSO cancels an in-flight connect)
   remoteState: 'remote:state',              // main -> renderer event (APP-GLOBAL; one RemoteWorkspaceState)
   remoteCurrent: 'remote:current',          // renderer -> main (pull ALL current states — recovers a missed push)
+  // Phone web remote (feature 0026) — the opt-in HTTP+WS mirror server's desktop control surface.
+  // The wire protocol itself (WS vocabulary) is NOT IPC — it rides the embedded server directly;
+  // these channels only carry settings/status/pairing between the renderer's Settings UI and main.
+  phoneRemoteStatus: 'phoneRemote:status',                   // renderer -> main (pull the current status)
+  phoneRemoteSetEnabled: 'phoneRemote:setEnabled',           // renderer -> main
+  phoneRemoteSetBind: 'phoneRemote:setBind',                 // renderer -> main
+  phoneRemoteSetPort: 'phoneRemote:setPort',                 // renderer -> main
+  phoneRemoteRegenerateToken: 'phoneRemote:regenerateToken', // renderer -> main (returns the plaintext pairing URL)
+  phoneRemoteChanged: 'phoneRemote:changed',                 // main -> renderer event (status changed / an enable error occurred)
 } as const
 
 export interface NotifyArgs { title: string; body: string }
@@ -331,4 +341,13 @@ export interface TermhallaApi {
   remoteCurrent(): Promise<import('./remote-workspace').RemoteWorkspaceState[]>
   /** Per-workspace connection state push (app-global broadcast; key by workspaceId). */
   onRemoteState(cb: (state: import('./remote-workspace').RemoteWorkspaceState) => void): () => void
+  // Phone web remote (feature 0026). The plaintext pairing token exists only in main-process
+  // memory for the current app session — regenerateToken is the ONLY call that ever returns it;
+  // the renderer must render the QR and never persist it (REQ-004/REQ-007).
+  phoneRemoteStatus(): Promise<PhoneRemoteStatus>
+  phoneRemoteSetEnabled(enabled: boolean): Promise<PhoneRemoteStatus>
+  phoneRemoteSetBind(mode: 'localhost' | 'lan'): Promise<PhoneRemoteStatus>
+  phoneRemoteSetPort(port: number): Promise<PhoneRemoteStatus>
+  phoneRemoteRegenerateToken(): Promise<{ pairingUrl: string }>
+  onPhoneRemoteChanged(cb: (status: PhoneRemoteStatus) => void): () => void
 }

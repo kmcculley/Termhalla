@@ -48,3 +48,16 @@ export function resolvePrebuiltRoot(opts: ArtifactPathOpts): string {
   if (opts.packaged) return join(opts.resourcesPath ?? '', 'agent', 'prebuilds')
   return join(opts.appRoot, 'out', 'agent', 'prebuilds')
 }
+
+/**
+ * Where the built phone web client (feature 0026, REQ-021) lives — the SAME dev/packaged split,
+ * but this bundle rides the ordinary `files: out/**\/*` packaging (inside `app.asar`, unlike the
+ * agent artifact's `extraResources`) since it is only ever READ, never spawned as a child process
+ * or hashed for an upload — Electron's asar patch makes `fs.readFile` transparent either way:
+ * - dev: `<appRoot>/out/phone-client` (the `npm run build` output);
+ * - packaged: `<resourcesPath>/app.asar/out/phone-client`.
+ */
+export function resolvePhoneClientStaticRoot(opts: ArtifactPathOpts): string {
+  if (opts.packaged) return join(opts.resourcesPath ?? '', 'app.asar', 'out', 'phone-client')
+  return join(opts.appRoot, 'out', 'phone-client')
+}

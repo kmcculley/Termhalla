@@ -353,6 +353,7 @@ related area:
 | Saved run commands | `src/shared/run-commands.ts`, `src/renderer/store/run-commands-slice.ts` | [run-commands](docs/features/run-commands.md) |
 | Terminal links / image preview | `src/shared/terminal-links.ts`, `src/renderer/terminal/links.ts`, `src/main/ipc/register-preview.ts` | [terminal-links](docs/features/terminal-links.md) |
 | Packaging / auto-update | `electron-builder.yml`, `src/main/updater.ts`, `build/icon.ico` | [packaging](docs/features/packaging.md) |
+| Phone web remote (opt-in HTTP+WS server in main + a packaged mobile-first PWA client; off by default, localhost bind default with an explicit LAN toggle, single hashed pairing token, F18 `createPaneReplay` mirrors while enabled, snapshot-then-stream attach, bounded per-client backpressure with drop-and-resnapshot; the phone never resizes and never manages pane lifecycle) | `src/main/phone-remote/`, `src/shared/phone-remote/`, `src/main/e2e-phone-remote.ts`, `src/phone-client/`, `vite.phone-client.config.ts` | [phone-web-remote](docs/features/phone-web-remote.md) |
 
 ## Process / workflow
 

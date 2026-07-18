@@ -142,6 +142,13 @@ const api: TermhallaApi = {
   remoteDisconnect: (workspaceId, opts) => ipcRenderer.send(CH.remoteDisconnect, workspaceId, opts),
   remoteCurrent: () => ipcRenderer.invoke(CH.remoteCurrent),
   onRemoteState: pushChannel<[import('@shared/remote-workspace').RemoteWorkspaceState]>(CH.remoteState),
+  // Feature 0026: phone web remote desktop control surface.
+  phoneRemoteStatus: () => ipcRenderer.invoke(CH.phoneRemoteStatus),
+  phoneRemoteSetEnabled: (enabled) => ipcRenderer.invoke(CH.phoneRemoteSetEnabled, enabled),
+  phoneRemoteSetBind: (mode) => ipcRenderer.invoke(CH.phoneRemoteSetBind, mode),
+  phoneRemoteSetPort: (port) => ipcRenderer.invoke(CH.phoneRemoteSetPort, port),
+  phoneRemoteRegenerateToken: () => ipcRenderer.invoke(CH.phoneRemoteRegenerateToken),
+  onPhoneRemoteChanged: pushChannel<[import('@shared/phone-remote/status').PhoneRemoteStatus]>(CH.phoneRemoteChanged),
 }
 
 contextBridge.exposeInMainWorld('termhalla', api)
