@@ -1218,6 +1218,28 @@ All notable changes to Termhalla are recorded here. The format follows
   goes busy on real output only" decision are both preserved verbatim (feature
   0025-cursor-home-output-suppression). CHAR-001's pin was amended as the recorded, deliberate change.
 
+## [0.18.1] - 2026-07-18
+
+The quality release: all 35 findings from a whole-project code-quality audit closed in one batch —
+one critical, nine major, twenty-five minor. The critical: the "Orky chrome vanishes for panes deep
+in a monorepo" fix recorded back on 2026-07-09 had never actually shipped (the pane tracker still
+overrode the raised ancestor-walk cap); deep panes now really get their Orky chrome. User-facing
+fixes: overlapping workspace moves can no longer silently drop a pane's scrollback (tab-drag /
+redock / redock-all are serialized through one queue); a stale window assignment can no longer
+delete a just-arrived workspace's state; a cross-workspace move keeps an explorer pane's expanded
+folders and scroll; autosave / quick-save / notes failures finally surface as error toasts, with
+notes retrying until the write lands instead of silently dropping; the env vault writes atomically
+so a crash mid-write can't corrupt it permanently; editor tabs distinguish a genuinely deleted file
+from one that merely couldn't be read (and an unreadable tab no longer risks truncating the file on
+save); an unparseable Orky capture outcome renders honestly as may-or-may-not-have-landed; AWS
+profiles with spaces no longer misreport cloud status; env-var removal reports failures. Under the
+hood the audit's dedup/robustness sweep landed ~15 structural cleanups — one pane-transit stash
+helper, one palette/chord command dispatcher, one indeterminate-kind predicate, a pane-hook registry
+factory, TerminalPane's 313-line mount effect decomposed, the remote daemon's 0600 endpoint
+discipline unified so the frozen seam test pins production code, filesystem write IPC sender-gated —
+with the unit suite growing ~80 tests. The detailed entries stay under [Unreleased] above, per the
+standing convention.
+
 ## [0.18.0] - 2026-07-17
 
 The QoL release: one coordinated polish batch from a five-domain UX audit. Focus finally lands
