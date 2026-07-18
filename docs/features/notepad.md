@@ -27,11 +27,17 @@ NotesPanel (renders notes[notesProjectKey])
        │               ├─ updates notes map (instant UI)
        │               └─ scheduleNotesSave (debounced 500 ms)
        ▼
-api.notesSet(key, text)  →  notes:set IPC (fire-and-forget)
+api.notesSet(key, text)  →  notes:set IPC (invoke — rejects on a failed disk write)
        │
        ▼
-NotesStore.set(key, text)  →  notes.json  (async write; sync flush on close)
+NotesStore.set(key, text)  →  notes.json  (returns write success; sync flush on close)
 ```
+
+Since the 2026-07-17 quality-audit batch (Finding 6), `notes:set` is an **invoke**: the renderer
+un-dirties a key only after its write resolves with the written text still current, so a failed
+(or edit-raced) write keeps the key in the dirty set and the next flush retries it. A failure
+streak surfaces exactly one error toast (the `makeSaveOutcome` gate in
+`src/renderer/store/save-outcome.ts`, shared with the workspace autosave and quick-save writers).
 
 On app init, `api.notesLoad()` is called in the same `Promise.all` as `loadQuick`/`draftsLoad`; the result populates `store.notes`. On `beforeunload`, `flushNotes()` does a synchronous best-effort write.
 
@@ -62,7 +68,7 @@ On app init, `api.notesLoad()` is called in the same `Promise.all` as `loadQuick
 |---|---|
 | File | `notes.json` in Electron `userData`; holds `Record<projectKey, string>` |
 | Load | `readFile` + JSON parse; any error or non-object → returns `{}` (never throws) |
-| Set | Updates the in-memory map and writes async (`writeFile`, best-effort, never throws into editing) |
+| Set | Updates the in-memory map and writes (`atomicWriteSync`); returns whether the write reached disk — the invoke handler rejects on `false` so the renderer retries (never throws into the editing path) |
 | Prune | A key whose text is empty or whitespace-only is **deleted** from the map before writing — cleared notes do not linger |
 | Flush | `writeFileSync`, best-effort, called on `win.on('close')` to cover app-close where renderer cleanups don't run |
 

@@ -347,7 +347,7 @@ related area:
 | IPC contract | `src/shared/ipc-contract.ts` | — |
 | Keybindings | `src/shared/keybindings.ts`, `src/renderer/components/KeybindingsSettings.tsx` | [keybindings](docs/features/keybindings.md) |
 | Native app menu / Settings entry | `src/main/menu.ts` (Edit ▸ Settings… → `menu:open-settings`; File ▸ New/Open/Reopen/Save/Save As → `menu:file-*` pushes, all consumed in `src/renderer/App.tsx`) | — |
-| Workspace documents (File menu — save/close/reopen a workspace as a portable `.thws` file; the document format IS the existing workspace record, no `SCHEMA_VERSION` bump) | `src/shared/workspace-doc.ts`, `src/main/ipc/register-workspace-doc.ts`, `src/main/persistence/workspace-doc-store.ts`, `src/renderer/components/ReopenWorkspaceModal.tsx` (+ File-menu actions in `src/renderer/store.ts`) | [workspace-documents](docs/features/workspace-documents.md) |
+| Workspace documents (File menu — save/close/reopen a workspace as a portable `.thws` file; the document format IS the existing workspace record, no `SCHEMA_VERSION` bump) | `src/shared/workspace-doc.ts`, `src/main/ipc/register-workspace-doc.ts`, `src/main/persistence/workspace-doc-store.ts`, `src/renderer/components/ReopenWorkspaceModal.tsx` (+ File-menu actions in `src/renderer/store/workspace-docs-slice.ts`) | [workspace-documents](docs/features/workspace-documents.md) |
 | Toast notifications | `src/renderer/store/toasts-slice.ts` (single `pushToast` gate; `quick.toastsEnabled` opt-in for success/info, errors always show) | — |
 | Output search history | `src/main/search/` | [search-history](docs/features/search-history.md) |
 | Saved run commands | `src/shared/run-commands.ts`, `src/renderer/store/run-commands-slice.ts` | [run-commands](docs/features/run-commands.md) |

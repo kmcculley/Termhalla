@@ -7,6 +7,46 @@ design specs live in [`superpowers/specs/`](superpowers/); this log captures the
 
 ---
 
+### [2026-07-18] `notes:set` is an invoke — a persistence failure must be observable at the contract level
+
+**Context:** Quality-audit finding 6: the debounced notes save `void`-ed a
+fire-and-forget `ipcRenderer.send`, so a failed disk write was *structurally*
+unobservable — no renderer-side handling could ever surface it, and notes were
+silently lost on quit after e.g. a disk-full.
+**Decision:** `notes:set` moved to invoke/handle; `NotesStore.set` reports write
+success and the handler rejects on failure. The renderer keeps a note key dirty
+until its write *resolves with the written text still current* (failure — or a
+racing edit — keeps it dirty for the next flush), and all three debounced writers
+(workspace autosave / quick-save / notes) surface one error toast per failure
+streak through `store/save-outcome.ts`, re-armed on success.
+**Rationale:** When the contract can't carry failure, honesty can't be added
+downstream; the smallest honest fix is the contract change, not a side-channel.
+The streak gate keeps a persistent failure from toasting per keystroke while
+guaranteeing the *first* failure is seen (errors always show, per toast policy).
+**Consequences:** New persistence channels should be invokes from day one.
+`makeSaveOutcome` is the reusable settle-gate for any debounced writer.
+
+### [2026-07-18] A frozen guard's inventory is extended through its own protocol — never evaded
+
+**Context:** The audit's Finding-7 regression test tripped TEST-645's frozen
+`tests/**` token sweep (the CONV-037 frozen-guard inventory). The first
+implementation dodged the sweep by assembling the module specifier at runtime
+(`['orky-entry-','actions-core'].join('')` + dynamic import) so the file wasn't a
+pattern hit.
+**Decision:** Reverted the evasion. The test imports normally, TEST-645's
+dispositioned list was extended atomically with an inline rationale, and the
+disposition recorded in 0010's `04-tests.md` — the exact amendment path the
+test's own description prescribes ("stop, disposition it, extend this list
+atomically").
+**Rationale:** A structural guard's value is that every hit is consciously
+dispositioned. Evading the sweep leaves the guard green while defeating its
+purpose — strictly worse than amending it. "Never weaken a frozen test" protects
+the test's *intent*; following its documented amendment protocol is compliance,
+not modification.
+**Consequences:** Future pattern hits extend the list the same way. A
+runtime-computed import specifier in a test is a review red flag — it usually
+means a guard is being dodged.
+
 ### [2026-07-17] Programmatic pane focus always tracks `focusedPaneId` (one helper)
 
 **Context:** `focusedPaneId` — the store's "active pane", which the maximize/minimize

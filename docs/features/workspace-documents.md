@@ -70,7 +70,7 @@ relaunches — it is config (a path), never a secret.
 | `src/main/ipc/register-workspace-doc.ts` | `.thws` dialogs + read/write + the doc-path store handlers |
 | `src/main/persistence/workspace-doc-store.ts` | the persisted `workspaceId→path` binding map |
 | `src/main/persistence/store.ts` | `WorkspaceStore.deleteWorkspace` (prune a closed record) |
-| `src/renderer/store.ts` | the File-menu actions (`saveActiveWorkspace(As)`, `openWorkspaceFromFile`, `reopenClosedWorkspace`, `listClosedWorkspaces`, `deleteClosedWorkspace`) + `adoptWorkspace` |
+| `src/renderer/store/workspace-docs-slice.ts` | the File-menu actions (`saveActiveWorkspace(As)`, `openWorkspaceFromFile`, `reopenClosedWorkspace`, `listClosedWorkspaces`, `deleteClosedWorkspace`) + `docPaths`/`reopenOpen` state (`adoptWorkspace` stays a store-root closure, threaded via `SliceDeps`) |
 | `src/renderer/components/ReopenWorkspaceModal.tsx` | the Reopen Closed Workspace dialog |
 | `src/shared/ipc-contract.ts`, `src/preload/index.ts` | `wsdoc:*` + `ws:delete` channels + `menu:file-*` pushes |
 

@@ -7,6 +7,115 @@ All notable changes to Termhalla are recorded here. The format follows
 ## [Unreleased]
 
 ### Fixed
+- **Quality-audit batch 2026-07-17 (main orky/IPC) — the audit's one CRITICAL plus three
+  verified findings closed.** (1 — CRITICAL) The FINDING-DA-006 monorepo-depth fix never
+  actually shipped: the changelog and `docs/features/orky-status.md` record the `.orky/`
+  ancestor-walk cap raised 8→32, but only the *default* was raised — `OrkyTracker.watch`, the
+  sole production caller, still passed `{ maxDepth: 8 }` explicitly, so a pane >8 dirs below its
+  project root still showed no Orky chrome. The override is gone (the documented default of 32
+  now really applies) and the depth regression test now resolves through `OrkyTracker.watch`
+  from 12 levels deep. (14) The action dispatcher's ×4-duplicated validate→checkRoot→
+  resolveFeatureDir→locateCli prologue is one `prepare()` helper and all ten
+  `as OrkyActionResult` casts are gone — result literals are union-checked again, with the
+  documented security-layering order and every error string byte-identical. (15) The broad
+  filesystem write surface (`fs:write`/`fs:mkdir`/`fs:rename`/`fs:trash`) now refuses unknown
+  IPC senders via the same `isKnownWindowSender` gate every write-capable surface since
+  FINDING-SEC-002 uses (`tests/main/register-fs.test.ts`). (16) The two fire-and-forget orky
+  watch chains (`register-orky`'s pane watch, the registry's `addConsumer`) carry `.catch`es so
+  a rejection can no longer become a main-process-killing unhandled rejection.
+- **Quality-audit batch 2026-07-17 (renderer components) — the final four verified findings
+  closed.** (7) The indeterminate-outcome classification was triplicated and had drifted:
+  `OrkyCaptureModal` hand-coded `cli-timeout || ipc-failure` at both its failure surfaces,
+  omitting `cli-unparseable` (which, per FINDING-006, can be a completed child whose write landed
+  but whose report was unreadable) — so such a capture rendered the DEFINITE "rejected" copy and
+  invited exactly the blind duplicate-retry the honesty classification exists to prevent. The core
+  now exports `isIndeterminateKind` (`orky-entry-actions-core.ts`) and both modal sites (the
+  in-modal error region and the detached close-in-flight toast) classify through it
+  (`tests/renderer/orky-capture-indeterminate-kinds.test.ts`). (24) The image lightbox gains its
+  missing rejection path: a rejected `preview:loadImage` invoke now applies the same
+  source-guarded transition to the error state instead of stranding the overlay on
+  "loading" forever plus an unhandled rejection (`tests/renderer/preview-slice.test.ts`); and the
+  cloud recovery pull's own failure is console-warned instead of silently recreating the
+  stuck-chip state it exists to fix. (28) The command→action dispatch duplicated between the
+  palette's `activate` and App.tsx's chord switch (~12 pane-scoped/window-chrome commands kept in
+  agreement only by convention) is now ONE `dispatchCommand` in `store/pane-ops.ts` (api-free,
+  injected registry fns; `tests/renderer/dispatch-command.test.ts`); the single genuine
+  divergence — the chord redraws the focused pane exactly, the palette redraws the chord
+  target — is a `redrawTarget` parameter, and the frozen-pinned call sites (capture-orky-work
+  TEST-495, toggle-orky-queue TEST-329/360, plus toggle-vs-open pairs like
+  search/broadcast) deliberately stay at their original sites. (30) Env-var removal is no longer
+  fire-and-forget: both the global and per-terminal removes route through `runOp` (an error
+  toast on failure, matching the file's create/add actions) and `refresh()` only runs after the
+  remove settled; `refresh` itself swallows-with-warn instead of leaking an unhandled rejection.
+- **Quality-audit batch 2026-07-17 (renderer store cluster) — six verified findings closed.**
+  (4) `applyAssignment` now carries an issue-time monotonic generation (the registry slice's
+  `applyRecoveryPull` pattern): App.tsx wires `onWinAssignment` unserialized, so assignment A's
+  `loadWorkspace` await could settle after assignment B committed and A's stale commit deleted
+  B's newly-added workspace (running `clearPaneRuntime` on its live panes) with no correcting
+  push — a superseded call now abandons its commit and the trailing main-window seed.
+  (5) The pane-transit stash (terminal snapshot / editor draft flush / explorer view-state) was
+  triplicated across minimize/restore/move and had drifted: `movePaneToWorkspace` omitted the
+  explorer branch, silently losing an explorer pane's expanded folders + scroll on a
+  cross-workspace move (`movePaneToNewWorkspace` inherited the gap). One `stashPaneForTransit`
+  helper now serves all three sites; the sanctioned asymmetry survives (`armMainTransit` — only
+  minimize/restore arm `pty:transitBegin`; the one-synchronous-commit move never does).
+  (6) The debounced persistence writers (workspace autosave / quick-save / notes-save) no longer
+  `void` their IPC writes: each settle rides a `makeSaveOutcome` gate
+  (`store/save-outcome.ts`) that pushes ONE error toast per failure streak and re-arms on
+  success; a notes key leaves `dirtyNotes` only after its write RESOLVES with the written text
+  still current (failure — or a racing edit — keeps it dirty for retry), which required
+  `notes:set` to become an invoke (`notesSet(): Promise<void>`, rejecting when
+  `NotesStore.set` reports a failed disk write); the `beforeunload` flush swallows-with-warn.
+  (10a) The workspace-documents block (File-menu `.thws` actions + `docPaths`/`reopenOpen`)
+  extracted from the 899-line store root into `store/workspace-docs-slice.ts` (SliceDeps gains
+  `currentRecord`/`adoptWorkspace`); `newOrkyWorkspace`/`newRemoteWorkspace` stay in store.ts —
+  frozen structural suites (TEST-664/671, TEST-2268) pin their implementations there.
+  (25) The ×4-duplicated (and drifted) view-state map manipulation now lives in api-free
+  `store/view-state.ts`: `removeFromMinimized` (movePaneToWorkspace ≡ closePane) and
+  `deriveViewStateInto` (applyAssignment vs `registerWorkspacePatch`, unified on the safer
+  `Array.isArray` form against corrupt records). (26) The `splitDir → layout` fallback
+  copy-pasted across `addTerminal`/`addEditor`/`addExplorer`/`addOrky` folded into `commitPane`,
+  which now takes an options object (`{ target, dir, splitDir, position, markEditor }`).
+- **Quality-audit 2026-07-17 (finding 27) — editor file-read failures are classified
+  structurally; unknown failures no longer render as "(deleted)".** `fsRead`/`readTextFile` now
+  return a discriminated `ReadResult` (`ok`/`binary`/`not-found`/`error`) classified by
+  `err.code` in main instead of the renderer regexing an IPC-serialized error message; only a
+  real `ENOENT`/`ENOTDIR` marks a tab missing. Unknown failures (permission denied, transient
+  I/O) get a distinct paint-only "(can't read)" tab state plus the underlying message in the
+  pane body, block save (an errored tab's never-loaded empty buffer must not truncate a
+  possibly-fine file), preserve any recovery draft instead of deleting it as stale, and
+  self-heal on a successful watched re-read. Pure mapping in
+  `src/renderer/editor/read-state.ts`; a rejected invoke (handler teardown) also maps to
+  errored, never missing.
+- **Quality-audit batch 2026-07-17 (main core) — five verified findings closed.** (2) Workspace
+  moves (tab drag-end, `win:redock` IPC, redockAll) are now serialized through one queue
+  (`SerialQueue`, `src/main/serial-queue.ts`) — overlapping moves shared the `inflight`
+  snapshot slot, so one move's 500 ms timeout could null another's slot and silently drop its
+  terminal snapshots (scrollback loss); belt: a move's `finish` now clears `inflight` only when
+  it still owns it. (3) The env vault persists via the shared atomic temp+rename writer — a
+  torn plain write truncated the encrypted blob into a permanent GCM failure. (11) Removed the
+  macOS-template `activate` handler in `src/main/index.ts` that would have rebuilt the whole
+  service layer and thrown on duplicate `ipcMain.handle` registration. (12) Cloud probe args are
+  shell-quoted (`cmd-quote.ts`) — under `shell: true` an AWS profile name with spaces split
+  unquoted and misreported as logged-out. (13) The copy-pasted unref'd-timer lifecycle in five
+  services now rides one `src/main/managed-interval.ts` helper.
+- **Quality-audit batch 2026-07-17 (remote trees) — six verified findings closed in
+  `src/agent`/`src/remote-client`.** (9) The frozen 0600-endpoint discipline is now ONE shared
+  implementation: `bindWithRestrictiveUmask` + `writeDaemonMetadata` in `daemon-guard.ts` are run
+  by BOTH the test-pinned `bootstrapDaemonEndpoint` seam and the production bind/announce path
+  (`listenOnce`/`runDaemon`) — the tested unit is the production unit (the FINDING-022
+  unification, extended). (31) The daemon connect leg no longer accumulates bridge stderr
+  unboundedly in the Electron main process: `createBridgeStatusScanner`
+  (`src/remote-client/bridge-status.ts`) latches the one `TERMHALLA_BRIDGE_V1` status line
+  incrementally and retains only a bounded in-flight window. (32) The copy-pasted daemon IO
+  helpers (`isAlive`/`delay`/metadata reader/connect probe) now live once in
+  `src/agent/daemon-io.ts` — the drifted server-side reader regains `proto`. (33) The
+  co-provision bundle walkers are one visitor-based walk, and a sync-fs throw during the payload
+  build surfaces as the module's typed fatal naming the bundle dir instead of a raw rejection.
+  (34) The daemon log sink appends incrementally and compacts only when the 1 MiB cap would be
+  crossed, instead of rewriting the whole capped buffer per line on the serving event loop (and
+  its O(n²) trim re-measure is gone). (35) `resolveLaunchFatal`'s three trailing positionals
+  (adjacent booleans included) folded into a named `LaunchFatalContext`.
 - **QoL batch 2026-07-17 — focus lands where you're about to type.** Clicking maximize (or the
   chord) left keyboard focus on the toolbar button — typing was swallowed until you clicked the
   terminal; `toggleMaximize` now focuses the pane it maximizes/restores. The deeper class:

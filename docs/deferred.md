@@ -10,6 +10,31 @@ Each item: what, why it was deferred, and what "done" looks like.
 
 ## Open
 
+### Quality-audit 2026-07-17 — deliberate remainders from the 35-finding fix batch
+**Added 2026-07-18.** The whole-project quality audit's fixes landed as one batch (see the five
+`Quality-audit batch 2026-07-17` CHANGELOG entries). Four remainders were left deliberately:
+
+- **Finding 10 (b, c) — `newOrkyWorkspace` / `newRemoteWorkspace` stay in `store.ts`.** Frozen
+  structural suites pin their implementations to that file (TEST-664/671 extract
+  `newOrkyWorkspace`'s brace-balanced body *from `src/renderer/store.ts`*; TEST-2268 requires
+  `newRemoteWorkspace` + its literals at positions inside store.ts). **Done when:** a future
+  feature that owns those suites amends them through the tests phase and moves the actions into
+  their slices (`quick-slice` / `remote-slice`), which SliceDeps already supports.
+- **Finding 28 (partial) — palette/chord commands pinned at their call sites.**
+  `capture-orky-work` (TEST-495 pins both call-site shapes), `toggle-orky-queue` (TEST-360/329),
+  and the toggle-vs-open pairs (search/broadcast — genuinely different semantics) stay duplicated
+  between App.tsx and CommandPalette; the other 11 commands ride the shared `dispatchCommand`
+  (`store/pane-ops.ts`). **Done when:** those suites are amended (or the semantics unified) and
+  the stragglers join the shared dispatcher.
+- **Two more local `basenameOf` copies** outside the audit's shared-tree scope:
+  `src/renderer/components/OrkyPane.tsx` (takes `unknown`) and
+  `src/main/orky/orky-needs-you-notifier.ts` — candidates for `@shared/paths`' `basename` (the
+  OrkyPane variant needs a type-guard wrapper). One more copy of the unref'd-timer pattern lives
+  in `src/main/orky/orky-root-engine.ts` (candidate for `src/main/managed-interval.ts`).
+- **Perf observation (audit out-of-scope):** `src/shared/remote/framing.ts`'s decoder re-copies
+  its whole buffered array per `push` — quadratic when a large frame (e.g. an 8 MiB attach
+  snapshot) arrives in small chunks. Belongs to a /review-perf pass.
+
 ### Validate the `hidden` e2e window mode across the full suite
 **Added 2026-07-08.** `playwright.config.ts` now defaults to `TERMHALLA_E2E_WINDOW=hidden`, so
 e2e never presents its Electron windows (see
