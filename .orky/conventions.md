@@ -375,6 +375,36 @@ to it when a review surfaces a lesson general enough to outlive its feature.
   frozen files themselves leaves the phase record describing a suite that no longer exists.
   *(from FINDING-019 in 0025-cursor-home-output-suppression)*
 
+- **CONV-073** — A listener wired onto a third-party library's event emitter MUST be verified
+  against that library's documented event set AND pinned by a test that observes the event actually
+  firing through the real dependency, not a fake — a listener on a never-emitted event name is a
+  silent, permanently-dead no-op that only a real-transport test can catch.
+  *(from FINDING-015/FINDING-030 in 0026-phone-web-remote)*
+- **CONV-074** — A new user-facing surface (settings section, panel, or component) MUST be pinned
+  by a test exercising its REAL mount/navigation path (render or e2e) — never only a source-scan of
+  the isolated component file, which an unmounted component still satisfies.
+  *(from FINDING-024 in 0026-phone-web-remote)*
+- **CONV-075** — A loopback fix for a blocking review finding MUST land at least one regression
+  test traversing the fixed code path in the SAME round (amend, don't hold, the freeze) — a fix
+  arbitrated only by re-review with the frozen suite unchanged is unpinned and can silently regress
+  in the very next round. *(from FINDING-077/092/104/105/118 in 0026-phone-web-remote — this
+  recurred across four consecutive fix rounds in one feature.)*
+- **CONV-076** — Every writer of one persisted file MUST share a single serialized write queue; an
+  unserialized read-modify-write against a file another code path also writes is a finding even
+  when each individual write is atomic — atomicity of one write does not prevent a lost update
+  between concurrent writers. *(from FINDING-116 in 0026-phone-web-remote)*
+- **CONV-077** — An auth design that stores its credential in client-side storage or state readable
+  only by the served app MUST verify the credential is presentable on EVERY entry path (cold start,
+  reload, installed-app/PWA relaunch) — never only on the first navigation.
+  *(from FINDING-025 in 0026-phone-web-remote)*
+- **CONV-078** — A status/error field added specifically so a late subscriber can observe an
+  earlier failure MUST have a pinned consumer that renders it in the exact state the failure
+  produces — a carrier with no reachable renderer is not actually surfacing anything.
+  *(from FINDING-071 in 0026-phone-web-remote)*
+- **CONV-079** — A full-screen detail view reached by selecting one row from a list of similar
+  items MUST display the selected item's identity in its own chrome — never rely on the user's
+  memory of which row was tapped. *(from FINDING-102 in 0026-phone-web-remote)*
+
 ## Principles
 Higher-level stances that inform specs and reviews but are too broad to gate mechanically.
 - Prefer explicit, total functions over ones that depend on ambient state or throw on ordinary input.

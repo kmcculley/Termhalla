@@ -10280,5 +10280,35 @@
     "totalFailures": 7,
     "wallClockMs": 92180,
     "at": "2026-07-18T23:43:49.145Z"
+  },
+  {
+    "action": "gate.check",
+    "feature": "0026-phone-web-remote",
+    "phase": "review",
+    "pass": true,
+    "attempts": 0,
+    "totalFailures": 7,
+    "wallClockMs": 5,
+    "at": "2026-07-18T23:44:11.605Z"
+  },
+  {
+    "action": "gate.check",
+    "feature": "0026-phone-web-remote",
+    "phase": "doc-sync",
+    "pass": true,
+    "attempts": 0,
+    "totalFailures": 7,
+    "wallClockMs": 33,
+    "at": "2026-07-18T23:49:12.505Z"
+  },
+  {
+    "action": "gate.check",
+    "feature": "0026-phone-web-remote",
+    "phase": "doc-sync",
+    "pass": true,
+    "attempts": 0,
+    "totalFailures": 7,
+    "wallClockMs": 32,
+    "at": "2026-07-18T23:49:56.830Z"
   }
 ]

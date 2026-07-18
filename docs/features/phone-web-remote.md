@@ -73,7 +73,8 @@ never readable by page script.
 - **History restarts on app restart.** The server lives in-process (no daemon); an app close/reopen
   (including an auto-update restart) starts a fresh session, so pane mirror history restarts at
   the new session's enable point. A dropped WS (network blip, phone sleep, app restart) needs no
-  re-pairing — the client retries with its stored token and performs a fresh snapshot-then-stream
+  re-pairing — the client retries and authenticates via its HttpOnly session cookie (sent
+  automatically on the same-origin upgrade, see above) and performs a fresh snapshot-then-stream
   attach per subscribed pane on every reconnect; it never assumes stream continuity across
   connections.
 
@@ -97,11 +98,17 @@ never readable by page script.
 ### Backpressure
 
 Per-client buffering is bounded by exported constants: `PHONE_WS_HIGH_WATER` (1 MiB of
-socket-buffered bytes) and `PHONE_WS_LOW_WATER` (256 KiB). Above the high-water mark the server
-stops enqueueing `data` for that client's stale panes; when the buffer drains below the low-water
-mark, each stale pane is resynced with a fresh mirror snapshot that REPLACES the client's buffer —
-driven by the transport's own drain event, never a lazily re-checked future chunk, so a stream that
-goes quiet mid-backpressure can never strand a pane un-resynced.
+socket-buffered bytes) and `PHONE_WS_LOW_WATER` (256 KiB), and the bound covers every message
+class (data, coalesced latest-wins status/grid, snapshot/resync). Above the high-water mark the
+server stops enqueueing `data` for that client's stale panes; when the buffer drains below the
+low-water mark, each stale pane is resynced with a fresh mirror snapshot that REPLACES the client's
+buffer. The `ws` library emits no `'drain'` event, so the real trigger is a pong-gated
+`socketDrained()` call (the WS ping/pong keepalive) plus an armed-only-while-pending transport
+watch that probes `bufferedAmount` on a short interval while any pane is stale — never a listener
+on a nonexistent event — so a stream that goes quiet mid-backpressure can never strand a pane
+un-resynced. A connection that stays saturated past `PHONE_WS_STALL_TIMEOUT_MS`, or stops
+answering pings past `PHONE_WS_PONG_TIMEOUT_MS`, is terminated (lossless — the client reconnects
+and re-attaches fresh).
 
 ### The phone never resizes
 
