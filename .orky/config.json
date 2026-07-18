@@ -2,7 +2,7 @@
   "mode": "thorough",
   "autonomy": "full-auto",
   "escalation_threshold": "HIGH",
-  "iteration_caps": { "implement": 3, "review": 3, "global": 10 },
+  "iteration_caps": { "implement": 5, "review": 3, "global": 14 },
   "lenses": {
     "always_on": ["security", "quality", "devils-advocate"],
     "available": ["networking", "multiplayer", "determinism", "enterprise-arch",

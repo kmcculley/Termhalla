@@ -61,8 +61,8 @@
     },
     "implement": {
       "passed": true,
-      "at": "2026-07-18T22:32:49.723Z",
-      "firstAt": "2026-07-18T22:32:49.723Z",
+      "at": "2026-07-18T22:57:51.059Z",
+      "firstAt": "2026-07-18T22:57:51.059Z",
       "tokens": [
         {
           "token": "spec-freeze",
@@ -90,7 +90,7 @@
   "iterations": {
     "tests": 2,
     "spec": 1,
-    "implement": 3
+    "implement": 5
   },
   "escalations": [
     {
@@ -158,6 +158,28 @@
       "at": "2026-07-18T22:08:28.773Z",
       "decision": "Human (Kevin, 2026-07-18): FINDING-082/083 were already fixed in 50b240c — the re-files were stale (closed with mechanical evidence by the orchestrator). Fix the four genuinely-new blockers now (085 transactional regenerate, 093 exited-pane resize guard, 084 mirror resize write-barrier, 086 transactional settings lifecycle) via a single top-tier Claude implementer under the same audited router-override. This consumes the final implement loopback within the cap; the orchestrator verifies and closes the four with evidence before re-review round 5.",
       "resolvedAt": "2026-07-18T22:21:34.048Z"
+    },
+    {
+      "id": "ESC-007",
+      "phase": "review",
+      "reason": "Quick.json persistence race allows phone-remote config (enabled/bind/port/tokenHash) to be lost on app restart, invalidating all device pairings; decide whether to fix the write coordination or accept as v1 limitation",
+      "kind": "judgment",
+      "finding": "FINDING-095",
+      "status": "resolved",
+      "at": "2026-07-18T22:43:29.778Z",
+      "decision": "Human (Kevin, 2026-07-18): FIX FINDING-095 now — a settings feature erased by an ordinary renderer save or the quit flush is functionally broken, not a v1 limitation. Authorizes exceeding the implement iteration cap for this one round (cap override recorded here). Fix shape: single field owner — the main-side quick:save path preserves main-owned phoneRemote fields over any renderer whole-record payload; no tokenHash sent to the renderer. Single top-tier Claude implementer, same audited router-override.",
+      "resolvedAt": "2026-07-18T22:45:51.211Z"
+    },
+    {
+      "id": "ESC-008",
+      "phase": "implement",
+      "reason": "iteration cap exceeded (implement: 4/3, total: 12/10). ESC-007 resolved: FINDING-095 quick.json two-writer clobber — renderer whole-record saves erase main-owned phoneRemote fields on any settings save or quit flush. Human authorized cap override on ESC-007.",
+      "kind": "iteration-cap",
+      "finding": null,
+      "status": "resolved",
+      "at": "2026-07-18T22:45:51.276Z",
+      "decision": "Human (Kevin, 2026-07-18): cap override AUTHORIZED for exactly one more implement round to fix FINDING-095 (quick.json two-writer clobber). Authorization originally recorded on ESC-007; this resolves the cap escalation itself. After this round: no further implement loopbacks — remaining non-blocking findings route to the followups doc.",
+      "resolvedAt": "2026-07-18T22:46:01.241Z"
     }
   ],
   "concerns": [
@@ -172,7 +194,7 @@
     "plan": 0,
     "tests": 0,
     "implement": 0,
-    "review": 4
+    "review": 5
   },
   "implementer": {
     "mode": "claude",
@@ -180,8 +202,8 @@
       "orky:implementer"
     ],
     "winner": "orky:implementer",
-    "reason": "ESC-006 fix round (final in-cap loopback): single top-tier Claude implementer per audited human-authorized router override. All four blockers fixed persist-first/ordered/guarded; implement gate re-passed; findings closed on mechanical evidence by the orchestrator (cross-check lens has no closing owner — its stale re-files of 082/083 were likewise closed on evidence).",
-    "at": "2026-07-18T22:33:16.062Z"
+    "reason": "ESC-007/008 fix round (human-authorized cap override, caps raised implement 3→5 / global 10→14 in config): single top-tier Claude implementer. FINDING-095 quick.json two-writer clobber fixed via main-side single-field-owner overlay; implement gate re-passed; finding closed on mechanical + behavioral evidence.",
+    "at": "2026-07-18T22:58:11.091Z"
   },
   "loopbacks": [
     {
@@ -219,7 +241,13 @@
       "from": "review",
       "reason": "ESC-006 resolved: four new blocking findings on the round-3/4 code — non-transactional regenerate (085) and settings lifecycle (086), mirror resize without write barrier (084), pty:resize-after-exit pane resurrection (093). All implement-origin; final loopback within cap.",
       "at": "2026-07-18T22:21:34.107Z"
+    },
+    {
+      "to": "implement",
+      "from": "review",
+      "reason": "ESC-007/008: FINDING-095 quick.json two-writer clobber fix — human-authorized cap raise (implement 3→5, global 10→14) recorded on both escalations; final implement round.",
+      "at": "2026-07-18T22:46:43.094Z"
     }
   ],
-  "totalFailures": 4
+  "totalFailures": 5
 }

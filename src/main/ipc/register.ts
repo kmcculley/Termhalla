@@ -247,7 +247,15 @@ export async function registerHandlers(services: Services, wm: WindowManager): P
   registerWorkspaces({
     store, quick, shells,
     onQuickSave: (data) => { needsYouNotificationsMirror = data.orkyNeedsYouNotifications !== false },
-    onWorkspaceSaved: onPhoneRemoteWorkspaceSaved
+    onWorkspaceSaved: onPhoneRemoteWorkspaceSaved,
+    // FINDING-095: main owns quick.json's `phoneRemote` field — every renderer quick:save has its
+    // (possibly stale) phoneRemote replaced by the authoritative state read AT save time. The live
+    // service is the truth source (persist-first: its `settings` always mirrors what it last wrote
+    // to disk). Under the REQ-025 e2e seam the service's live settings are harness-injected and
+    // deliberately never persisted, so the freshly-read DISK record's field is the owner instead —
+    // a renderer save still can't regress it, and seam state never leaks into the real quick.json.
+    phoneRemoteSettings: async () =>
+      phoneRemoteSeam ? (await quick.load()).phoneRemote : phoneRemoteService.currentSettings()
   })
   registerEnv(win, envVault, send)
   registerClipboard()

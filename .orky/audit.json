@@ -9779,5 +9779,216 @@
     "totalFailures": 4,
     "wallClockMs": 92330,
     "at": "2026-07-18T22:32:49.726Z"
+  },
+  {
+    "action": "gate.check",
+    "feature": "0026-phone-web-remote",
+    "phase": "review",
+    "pass": false,
+    "attempts": 5,
+    "totalFailures": 5,
+    "wallClockMs": 4,
+    "failed": [
+      "findings"
+    ],
+    "at": "2026-07-18T22:42:26.589Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0026-phone-web-remote.",
+    "role": "reviewer",
+    "agentType": "orky:reviewer",
+    "transcript": "agent-a156d0d580a6e81d1",
+    "dir": "C--dev-Termhalla/566f81b8-67a3-4f65-a60f-3c1526fc2171/subagents/workflows/wf_17c14940-7e6",
+    "served": [
+      "claude-fable-5"
+    ],
+    "firstModel": "claude-fable-5",
+    "lastModel": "claude-fable-5",
+    "messages": 61,
+    "requested": null,
+    "downgraded": false,
+    "mismatch": null,
+    "servedFraction": 1,
+    "tokens": {
+      "input": 122,
+      "output": 24981,
+      "cacheRead": 6407184,
+      "cacheCreation": 479613
+    },
+    "tokensByModel": {
+      "claude-fable-5": {
+        "input": 122,
+        "output": 24981,
+        "cacheRead": 6407184,
+        "cacheCreation": 479613
+      }
+    },
+    "at": "2026-07-18T22:42:27.901Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0026-phone-web-remote.",
+    "role": "reviewer",
+    "agentType": "orky:reviewer",
+    "transcript": "agent-a6898154370b1f92b",
+    "dir": "C--dev-Termhalla/566f81b8-67a3-4f65-a60f-3c1526fc2171/subagents/workflows/wf_17c14940-7e6",
+    "served": [
+      "claude-fable-5"
+    ],
+    "firstModel": "claude-fable-5",
+    "lastModel": "claude-fable-5",
+    "messages": 41,
+    "requested": null,
+    "downgraded": false,
+    "mismatch": null,
+    "servedFraction": 1,
+    "tokens": {
+      "input": 82,
+      "output": 13423,
+      "cacheRead": 3582170,
+      "cacheCreation": 422147
+    },
+    "tokensByModel": {
+      "claude-fable-5": {
+        "input": 82,
+        "output": 13423,
+        "cacheRead": 3582170,
+        "cacheCreation": 422147
+      }
+    },
+    "at": "2026-07-18T22:42:27.901Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0026-phone-web-remote.",
+    "role": "reviewer",
+    "agentType": "orky:reviewer",
+    "transcript": "agent-ac58951f728dc1f86",
+    "dir": "C--dev-Termhalla/566f81b8-67a3-4f65-a60f-3c1526fc2171/subagents/workflows/wf_17c14940-7e6",
+    "served": [
+      "claude-fable-5"
+    ],
+    "firstModel": "claude-fable-5",
+    "lastModel": "claude-fable-5",
+    "messages": 67,
+    "requested": null,
+    "downgraded": false,
+    "mismatch": null,
+    "servedFraction": 1,
+    "tokens": {
+      "input": 134,
+      "output": 26500,
+      "cacheRead": 7193431,
+      "cacheCreation": 401592
+    },
+    "tokensByModel": {
+      "claude-fable-5": {
+        "input": 134,
+        "output": 26500,
+        "cacheRead": 7193431,
+        "cacheCreation": 401592
+      }
+    },
+    "at": "2026-07-18T22:42:27.901Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0026-phone-web-remote.",
+    "role": "reviewer",
+    "agentType": "orky:reviewer",
+    "transcript": "agent-af8514325b90ab530",
+    "dir": "C--dev-Termhalla/566f81b8-67a3-4f65-a60f-3c1526fc2171/subagents/workflows/wf_17c14940-7e6",
+    "served": [
+      "claude-fable-5"
+    ],
+    "firstModel": "claude-fable-5",
+    "lastModel": "claude-fable-5",
+    "messages": 40,
+    "requested": null,
+    "downgraded": false,
+    "mismatch": null,
+    "servedFraction": 1,
+    "tokens": {
+      "input": 80,
+      "output": 14442,
+      "cacheRead": 3290237,
+      "cacheCreation": 383408
+    },
+    "tokensByModel": {
+      "claude-fable-5": {
+        "input": 80,
+        "output": 14442,
+        "cacheRead": 3290237,
+        "cacheCreation": 383408
+      }
+    },
+    "at": "2026-07-18T22:42:27.901Z"
+  },
+  {
+    "action": "producer.select",
+    "feature": "0026-phone-web-remote",
+    "role": "implementer",
+    "phase": "implement",
+    "tier": "high",
+    "model": "fable",
+    "effort": "xhigh",
+    "trigger": "judgment-loopback",
+    "attempts": 0,
+    "at": "2026-07-18T22:46:43.163Z"
+  },
+  {
+    "action": "tier.ratchet",
+    "feature": "0026-phone-web-remote",
+    "role": "implementer",
+    "phase": "implement",
+    "fromTier": "low",
+    "toTier": "high",
+    "trigger": "judgment-loopback",
+    "attempts": 0,
+    "at": "2026-07-18T22:46:43.181Z"
+  },
+  {
+    "action": "gate.check",
+    "feature": "0026-phone-web-remote",
+    "phase": "implement",
+    "pass": true,
+    "attempts": 0,
+    "totalFailures": 5,
+    "wallClockMs": 91766,
+    "at": "2026-07-18T22:57:51.063Z"
+  },
+  {
+    "action": "dispatch.served",
+    "feature": "0026-phone-web-remote.",
+    "role": "reviewer",
+    "agentType": "orky:reviewer",
+    "transcript": "agent-a64ebedfd06c081ca",
+    "dir": "C--dev-Termhalla/566f81b8-67a3-4f65-a60f-3c1526fc2171/subagents/workflows/wf_17c14940-7e6",
+    "served": [
+      "claude-fable-5"
+    ],
+    "firstModel": "claude-fable-5",
+    "lastModel": "claude-fable-5",
+    "messages": 70,
+    "requested": null,
+    "downgraded": false,
+    "mismatch": null,
+    "servedFraction": 1,
+    "tokens": {
+      "input": 140,
+      "output": 34371,
+      "cacheRead": 7102864,
+      "cacheCreation": 390759
+    },
+    "tokensByModel": {
+      "claude-fable-5": {
+        "input": 140,
+        "output": 34371,
+        "cacheRead": 7102864,
+        "cacheCreation": 390759
+      }
+    },
+    "at": "2026-07-18T22:57:52.309Z"
   }
 ]

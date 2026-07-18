@@ -115,6 +115,12 @@ export interface PhoneRemoteService {
   setPort(port: number): Promise<void>
   setExternalHost(host: string | undefined): Promise<void>
   status(): PhoneRemoteStatus
+  /** The CURRENT live settings — the main-process source of truth for quick.json's `phoneRemote`
+   *  field (FINDING-095). Consumed ONLY by the main-side quick:save overlay so a renderer save
+   *  carrying a stale full-record snapshot can never clobber main-owned phoneRemote state
+   *  (enable/bind/port/externalHost/tokenHash). NEVER exposed over IPC — the renderer must not
+   *  receive `tokenHash` or any other phoneRemote secret material. */
+  currentSettings(): PhoneRemoteSettings
   regenerateToken(): Promise<{ pairingUrl: string }>
   /** Re-fetch the CURRENT session's pairing URL — never regenerates (REQ-007: pairing a second
    *  device an hour later must not force a revoking regenerate of the first). */
@@ -639,6 +645,10 @@ export function createPhoneRemoteService(deps: PhoneRemoteServiceDeps): PhoneRem
         ...(settings.externalHost ? { externalHost: settings.externalHost } : {})
       }
     },
+
+    // FINDING-095: `settings` is reassigned (never mutated in place) by the persist-first ops
+    // above, so a shallow copy hands the caller an immutable-at-rest snapshot of the live truth.
+    currentSettings: () => ({ ...settings }),
 
     regenerateToken: () => enqueue(async () => {
       // REQ-006 atomically, in BOTH directions (v5, FINDING-085): the candidate token is staged
