@@ -23,6 +23,7 @@ export function EditorPane({ paneId, wsId, config }: { paneId: string; wsId: str
       />
       {activeTab?.tooLarge && <div data-testid="editor-toolarge" style={{ color: 'var(--fg-dim, #aaa)', padding: 8 }}>File too large to open.</div>}
       {activeTab?.binary && <div data-testid="editor-binary" style={{ color: 'var(--fg-dim, #aaa)', padding: 8 }}>Binary file — can't display.</div>}
+      {activeTab?.readError && <div data-testid="editor-readerror" style={{ color: 'var(--fg-dim, #aaa)', padding: 8 }}>Couldn't read this file: {activeTab.readError}</div>}
       {activeTab?.externalChanged && (
         <div data-testid="editor-reloadbar" style={{ background: 'var(--warn-bg)', color: 'var(--warn-fg)', padding: '2px 8px', display: 'flex', gap: 8 }}>
           <span>Changed on disk.</span>
@@ -30,7 +31,7 @@ export function EditorPane({ paneId, wsId, config }: { paneId: string; wsId: str
           <button data-testid="editor-keepmine" onClick={dismissExternalChange}>Keep mine</button>
         </div>
       )}
-      <div ref={hostRef} style={{ flex: 1, display: activeTab?.tooLarge || activeTab?.binary ? 'none' : 'block' }} />
+      <div ref={hostRef} style={{ flex: 1, display: activeTab?.tooLarge || activeTab?.binary || activeTab?.readError ? 'none' : 'block' }} />
     </div>
   )
 }

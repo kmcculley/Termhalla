@@ -283,7 +283,16 @@ export interface SliceDeps {
   scheduleAutosave: () => void
   scheduleQuickSave: () => void
   scheduleNotesSave: (key: string) => void
-  commitPane: (wsId: string, cfg: PaneConfig, target: string | null, dir: MosaicDirection, markEditor?: boolean, position?: 'before' | 'after') => string
+  /** Place + commit a new pane. `splitDir` (a compass split) fully determines direction and
+   *  position, overriding `dir`/`position` — the derivation the four add* actions used to
+   *  copy-paste now lives inside commitPane (2026-07-17 audit, Finding 26). */
+  commitPane: (wsId: string, cfg: PaneConfig, opts: {
+    target: string | null
+    dir: MosaicDirection
+    splitDir?: SplitDir4
+    position?: 'before' | 'after'
+    markEditor?: boolean
+  }) => string
   /** The store-root workspace-registration ritual (store.ts / workspace-registration.ts): set the
    *  record + schedule the autosave + report the arrangement into main's authoritative windows[].
    *  Threaded to slices (superseding the raw reportAssignment dep of feature 0011's decision-9
@@ -291,4 +300,10 @@ export interface SliceDeps {
    *  workspace-adding action; kept OFF the public State surface (the FINDING-008 narrow-surface
    *  discipline). */
   registerWorkspace: (ws: Workspace) => void
+  /** The active-record serializer (live cwd / AI-resume / view-state folded in — the exact form
+   *  saveAll writes internally), threaded to the workspace-docs slice for `.thws` writes. */
+  currentRecord: (wsId: string) => Workspace
+  /** Register a fully-formed workspace record and land focus in its first pane (the shared
+   *  openWorkspaceFromFile / reopenClosedWorkspace adoption ritual). */
+  adoptWorkspace: (ws: Workspace) => void
 }

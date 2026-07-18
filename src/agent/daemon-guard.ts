@@ -83,6 +83,53 @@ export const validateDaemonMetadata = (raw: unknown): ValidateDaemonMetadataResu
   }
 }
 
+// ── shared endpoint-bootstrap discipline (REQ-003, FINDING-005) ─────────────────────────────
+// Extracted in the 2026-07-17 whole-project quality audit (finding 9), on the FINDING-022
+// precedent: the pure seam `bootstrapDaemonEndpoint` (pinned by the frozen
+// tests/agent-daemon-guard.test.ts) and the production bind path (`listenOnce` + `runDaemon`'s
+// metadata write) each re-implemented the umask-wrapped-bind and metadata-mode ordering — so the
+// tested unit was NOT the production unit. Both now call the ONE implementation below. Pure in
+// this module's sense: the umask/bind/write seams are injected by the impure callers.
+
+/** The restrictive umask in force during the bind: clears group/other bits so the socket file is
+ *  born 0600 the instant it exists (FINDING-005 — a chmod-after-listen ordering is
+ *  non-compliant; the kernel accepts connections at the creation-time mode the moment listen()
+ *  succeeds). */
+export const DAEMON_BIND_UMASK = 0o077
+
+/** The daemon metadata file mode: owner-only, matching the socket (REQ-003). */
+export const DAEMON_METADATA_MODE = 0o600
+
+/** POSIX order EXACTLY umask(DAEMON_BIND_UMASK) → bind → umask(prior): the prior umask is
+ *  restored as soon as the bind settles (success OR failure), and a bind failure propagates to
+ *  the caller unswallowed. win32 named pipes have no file mode — the exemption lives IN this one
+ *  helper: the bind runs with no umask call at all. */
+export const bindWithRestrictiveUmask = async <T>(
+  platform: NodeJS.Platform,
+  umask: (mask: number) => number,
+  bind: () => Promise<T>
+): Promise<T> => {
+  if (platform === 'win32') return await bind()
+  const prior = umask(DAEMON_BIND_UMASK)
+  try {
+    return await bind()
+  } finally {
+    umask(prior)
+  }
+}
+
+/** The ONE metadata announcement: builds the exact frozen shape (`buildDaemonMetadata`) and
+ *  writes it at `DAEMON_METADATA_MODE` through the injected write seam. Callers uphold the
+ *  strictly-after-listen ordering (metadata existence implies a bound listener — REQ-003) by
+ *  invoking this only once their bind has succeeded. */
+export const writeDaemonMetadata = async (
+  writeFile: (path: string, text: string, mode: number) => void | Promise<void>,
+  metadataPath: string,
+  metadata: DaemonMetadataInput
+): Promise<void> => {
+  await writeFile(metadataPath, JSON.stringify(buildDaemonMetadata(metadata)), DAEMON_METADATA_MODE)
+}
+
 // ── shared over-long-socket-path guard (REQ-003, FINDING-022) ───────────────────────────────
 
 /** The Linux `sockaddr_un.sun_path` size (108 bytes) minus the null terminator — the classic

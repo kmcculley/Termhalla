@@ -1,4 +1,5 @@
 import type { Workspace } from '@shared/types'
+import { deriveViewStateInto } from './view-state'
 
 /** The slice of store state the registration ritual touches (structurally a subset of State,
  *  kept minimal so this module stays importable under vitest's node env — no ../api). */
@@ -18,8 +19,9 @@ export function registerWorkspacePatch(s: WorkspaceRegistrationState, ws: Worksp
   const order = s.order.includes(ws.id) ? s.order : [...s.order, ws.id]
   const minimized = { ...s.minimized }
   const maximized = { ...s.maximized }
-  if (ws.minimized?.length) minimized[ws.id] = ws.minimized; else delete minimized[ws.id]
-  if (typeof ws.maximized === 'string') maximized[ws.id] = ws.maximized; else delete maximized[ws.id]
+  // The ONE shared derive (view-state.ts) — applyAssignment folds newly loaded records through the
+  // same helper, so the two sites can never drift again (2026-07-17 audit, Finding 25).
+  deriveViewStateInto(minimized, maximized, ws)
   return { workspaces: { ...s.workspaces, [ws.id]: ws }, order, activeId: ws.id, minimized, maximized }
 }
 

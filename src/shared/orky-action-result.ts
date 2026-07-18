@@ -1,4 +1,5 @@
 import type { OrkyActionResult } from './types'
+import { isPlainObject } from './guards'
 
 /**
  * The pure, TOTAL exit-code + stdout-JSON -> `OrkyActionResult` core (feature 0007, TASK-006;
@@ -16,10 +17,6 @@ export const DEFAULT_CLI_TIMEOUT_MS = 15_000
 export type DispatchAction = 'resolveEscalation' | 'submitWork' | 'recordHumanGate' | 'driveStatus'
 export type CliKind = 'feedback' | 'gatekeeper'
 export type CliRun = { exitCode: number | null; stdout: string; timedOut: boolean }
-
-function isPlainObject(v: unknown): v is Record<string, unknown> {
-  return typeof v === 'object' && v !== null && !Array.isArray(v)
-}
 
 function parsedErrorMessage(parsed: Record<string, unknown>): string | undefined {
   return typeof parsed.error === 'string' ? parsed.error : undefined

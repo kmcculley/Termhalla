@@ -195,7 +195,7 @@ export async function connectWithProvisioning(opts: BootstrapOptions): Promise<C
   if (first.ok) return first
   if (first.kind === 'aborted') return first
   if (first.kind === 'fatal') {
-    return await resolveLaunchFatal(first, opts, engagement, installedEver, true, connect)
+    return await resolveLaunchFatal(first, opts, { engagement, installedEver, canRecover: true }, connect)
   }
 
   const provision = await provisionAgent(opts)
@@ -217,7 +217,7 @@ export async function connectWithProvisioning(opts: BootstrapOptions): Promise<C
   if (second.kind === 'aborted') return second
   if (second.kind === 'fatal') {
     // The launch cap (two launches) is spent after the F19 upload leg — no recovery cycle here.
-    return await resolveLaunchFatal(second, opts, engagement, installedEver, false, connect)
+    return await resolveLaunchFatal(second, opts, { engagement, installedEver, canRecover: false }, connect)
   }
   return {
     ok: false, kind: 'provision-ineffective',

@@ -6,6 +6,7 @@
 // F9's `normalizeOrkyBindings` coercion — CONV-026). This module builds a `WorkspaceTemplate`
 // VALUE and nothing else: no store reach, no bridge reach, no persistence reach.
 import type { WorkspaceTemplate } from './types'
+import { basename } from './paths'
 
 /** Fixed sentinel id for the ephemeral cockpit blueprint. The blueprint is instantiated
  *  directly and never persisted to `quick.json` — saving a cockpit as a reusable template stays
@@ -17,13 +18,12 @@ export const ORKY_COCKPIT_TEMPLATE_ID = 'orky-cockpit-blueprint'
 const ORKY_LEAF = 'orky-cockpit-pane'
 const TERMINAL_LEAF = 'orky-cockpit-terminal'
 
-/** `'Orky: <last non-empty path segment of root>'`, splitting on BOTH separator styles — never
- *  the `path` module, never a platform read. Total on ANY string input (CONV-002): a
- *  segmentless/separator-only root falls back to the VERBATIM root string. Deterministic; names
+/** `'Orky: <last non-empty path segment of root>'` via the shared pure `basename` (both separator
+ *  styles — never the `path` module, never a platform read). Total on ANY string input (CONV-002):
+ *  a segmentless/separator-only root falls back to the VERBATIM root string. Deterministic; names
  *  are not unique in Termhalla (the `Workspace N` precedent) — duplicates are fine. */
 export function orkyCockpitName(root: string): string {
-  const segments = root.split(/[\\/]+/).filter(s => s.length > 0)
-  return `Orky: ${segments.length > 0 ? segments[segments.length - 1] : root}`
+  return `Orky: ${basename(root)}`
 }
 
 /** The deterministic cockpit blueprint: EXACTLY two panes — an Orky pane bound to `root`

@@ -40,13 +40,18 @@ function FileTab({ path, tab, active, onSelect, onClose, onMenu }: {
   path: string; tab: Tab | undefined; active: boolean
   onSelect: () => void; onClose: () => void; onMenu: (x: number, y: number) => void
 }) {
-  const state = tab?.missing ? ' (deleted)' : tab?.binary ? ' (binary)' : ''
+  // Only a real not-found renders "(deleted)". An unknown read failure (permissions, I/O) gets
+  // a distinct "(can't read)" affordance — paint-only (color/title), never strikethrough, since
+  // the file may well still exist (finding 27, 2026-07 quality audit).
+  const state = tab?.missing ? ' (deleted)' : tab?.binary ? ' (binary)' : tab?.readError ? " (can't read)" : ''
   return (
-    <div data-testid={`tab-${base(path)}`} onClick={onSelect} title={path}
+    <div data-testid={`tab-${base(path)}`} onClick={onSelect}
+      title={tab?.readError ? `${path} — ${tab.readError}` : path}
       onAuxClick={e => { if (e.button === 1) { e.preventDefault(); onClose() } }}
       onContextMenu={e => { e.preventDefault(); onMenu(e.clientX, e.clientY) }}
       style={tabStyle(active)}>
       <span style={{ textDecoration: tab?.missing ? 'line-through' : 'none',
+        color: tab?.readError ? 'var(--warn-fg, #e0a030)' : undefined,
         maxWidth: LABEL_MAX_PX, overflow: 'hidden', textOverflow: 'ellipsis' }}>
         {base(path)}{isDirty(tab) ? ' •' : ''}{state}
       </span>

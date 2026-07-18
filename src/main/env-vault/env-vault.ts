@@ -1,5 +1,6 @@
-import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs'
+import { readFileSync, existsSync } from 'node:fs'
 import { join } from 'node:path'
+import { atomicWriteSync } from '../persistence/atomic-write'
 import { encryptJSON, decryptJSON, type EncryptedBlob } from './crypto'
 
 export interface VaultData { global: Record<string, string>; terminals: Record<string, Record<string, string>> }
@@ -119,7 +120,10 @@ export class EnvVault {
   private persist(): void {
     if (!this.data || this.passphrase === null) return
     const payload = { version: VAULT_VERSION, ...this.data }
-    mkdirSync(this.baseDir, { recursive: true })
-    writeFileSync(this.file(), JSON.stringify(encryptJSON(payload, this.passphrase)))
+    // Temp+rename via the shared atomic writer (which also ensures the parent dir): the vault is
+    // the one store where a truncated file is unrecoverable — a torn encrypted blob fails GCM
+    // authentication forever, there is no partial recovery — so a crash mid-write must leave
+    // either the previous complete blob or the new one, never a truncation.
+    atomicWriteSync(this.file(), JSON.stringify(encryptJSON(payload, this.passphrase)))
   }
 }

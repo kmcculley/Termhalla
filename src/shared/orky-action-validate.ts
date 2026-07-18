@@ -4,6 +4,7 @@ import type {
   RecordHumanGateRequest,
   DriveStatusRequest
 } from './types'
+import { isPlainObject } from './guards'
 
 /**
  * Pure request validation for the four `orkyAction:*` actions (feature 0007, TASK-002). Covers
@@ -53,10 +54,6 @@ function isAbsolutePathLike(slug: string): boolean {
   return /^[a-zA-Z]:/.test(slug)
 }
 
-function isPlainObject(v: unknown): v is Record<string, unknown> {
-  return typeof v === 'object' && v !== null && !Array.isArray(v)
-}
-
 function requireString(input: Record<string, unknown>, field: string): { ok: true; value: string } | { ok: false; error: string } {
   const v = input[field]
   if (v === undefined || v === null) return { ok: false, error: `${field} is required` }
@@ -78,6 +75,19 @@ function optionalString(input: Record<string, unknown>, field: string): { ok: tr
   return { ok: true, value: v }
 }
 
+/** The shared `projectRoot` extraction every validator runs FIRST: presence/type/non-empty via
+ *  `requireNonEmptyString`, then the flag-like guard. projectRoot travels as a RAW `--app <root>`
+ *  argv element in every dispatch path; defend it with the same flag-like guard the other raw argv
+ *  fields use (REQ-013/FINDING-011), fired right after extraction so its field-specific message
+ *  wins over any later field's rejection (CONV-001). */
+function requireProjectRoot(input: Record<string, unknown>): { ok: true; value: string } | { ok: false; error: string } {
+  const projectRoot = requireNonEmptyString(input, 'projectRoot')
+  if (!projectRoot.ok) return projectRoot
+  const flagLike = rejectFlagLike('projectRoot', projectRoot.value)
+  if (flagLike) return flagLike
+  return projectRoot
+}
+
 /** For the three actions where `feature` is REQUIRED (resolveEscalation/recordHumanGate/driveStatus —
  *  unlike submitWork, where it is optional): checks presence FIRST with the same "is required" phrasing
  *  every other required field uses, and only delegates to `validateFeatureSlug` (for its own
@@ -90,13 +100,8 @@ function requireFeatureSlug(input: Record<string, unknown>): { ok: true; slug: s
 export function validateResolveEscalationRequest(input: unknown): ValidationResult<ResolveEscalationRequest> {
   if (!isPlainObject(input)) return { ok: false, error: 'request must be an object' }
 
-  const projectRoot = requireNonEmptyString(input, 'projectRoot')
+  const projectRoot = requireProjectRoot(input)
   if (!projectRoot.ok) return projectRoot
-  // projectRoot travels as a RAW `--app <root>` argv element in every dispatch path; defend it with
-  // the same flag-like guard the other raw argv fields use (REQ-013/FINDING-011), fired right after
-  // extraction so its field-specific message wins over any later field's rejection (CONV-001).
-  const projectRootFlagLike = rejectFlagLike('projectRoot', projectRoot.value)
-  if (projectRootFlagLike) return projectRootFlagLike
 
   const slug = requireFeatureSlug(input)
   if (!slug.ok) return { ok: false, error: slug.error }
@@ -120,13 +125,8 @@ export function validateResolveEscalationRequest(input: unknown): ValidationResu
 export function validateSubmitWorkRequest(input: unknown): ValidationResult<SubmitWorkRequest> {
   if (!isPlainObject(input)) return { ok: false, error: 'request must be an object' }
 
-  const projectRoot = requireNonEmptyString(input, 'projectRoot')
+  const projectRoot = requireProjectRoot(input)
   if (!projectRoot.ok) return projectRoot
-  // projectRoot travels as a RAW `--app <root>` argv element in every dispatch path; defend it with
-  // the same flag-like guard the other raw argv fields use (REQ-013/FINDING-011), fired right after
-  // extraction so its field-specific message wins over any later field's rejection (CONV-001).
-  const projectRootFlagLike = rejectFlagLike('projectRoot', projectRoot.value)
-  if (projectRootFlagLike) return projectRootFlagLike
 
   let feature: string | undefined
   if (input.feature !== undefined) {
@@ -154,13 +154,8 @@ export function validateSubmitWorkRequest(input: unknown): ValidationResult<Subm
 export function validateRecordHumanGateRequest(input: unknown): ValidationResult<RecordHumanGateRequest> {
   if (!isPlainObject(input)) return { ok: false, error: 'request must be an object' }
 
-  const projectRoot = requireNonEmptyString(input, 'projectRoot')
+  const projectRoot = requireProjectRoot(input)
   if (!projectRoot.ok) return projectRoot
-  // projectRoot travels as a RAW `--app <root>` argv element in every dispatch path; defend it with
-  // the same flag-like guard the other raw argv fields use (REQ-013/FINDING-011), fired right after
-  // extraction so its field-specific message wins over any later field's rejection (CONV-001).
-  const projectRootFlagLike = rejectFlagLike('projectRoot', projectRoot.value)
-  if (projectRootFlagLike) return projectRootFlagLike
 
   const slug = requireFeatureSlug(input)
   if (!slug.ok) return { ok: false, error: slug.error }
@@ -194,13 +189,8 @@ export function validateRecordHumanGateRequest(input: unknown): ValidationResult
 export function validateDriveStatusRequest(input: unknown): ValidationResult<DriveStatusRequest> {
   if (!isPlainObject(input)) return { ok: false, error: 'request must be an object' }
 
-  const projectRoot = requireNonEmptyString(input, 'projectRoot')
+  const projectRoot = requireProjectRoot(input)
   if (!projectRoot.ok) return projectRoot
-  // projectRoot travels as a RAW `--app <root>` argv element in every dispatch path; defend it with
-  // the same flag-like guard the other raw argv fields use (REQ-013/FINDING-011), fired right after
-  // extraction so its field-specific message wins over any later field's rejection (CONV-001).
-  const projectRootFlagLike = rejectFlagLike('projectRoot', projectRoot.value)
-  if (projectRootFlagLike) return projectRootFlagLike
 
   const slug = requireFeatureSlug(input)
   if (!slug.ok) return { ok: false, error: slug.error }

@@ -1,4 +1,4 @@
-import { app, BrowserWindow } from 'electron'
+import { app } from 'electron'
 import { buildServices } from './services'
 import { WindowManager } from './window-manager'
 import { registerHandlers } from './ipc/register'
@@ -41,4 +41,6 @@ async function start(): Promise<void> {
 }
 
 app.whenReady().then(start)
-app.on('activate', () => { if (BrowserWindow.getAllWindows().length === 0) void start() })
+// No 'activate' re-launch handler (macOS template boilerplate): the app quits on
+// window-all-closed on every non-mac platform, and re-running start() would rebuild the whole
+// service layer and re-register ipcMain.handle channels — which throws on duplicate registration.

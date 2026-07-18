@@ -10,6 +10,7 @@ import { mkdirSync, mkdtempSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 import { findOrkyRoot, DEFAULT_ORKY_ROOT_MAX_DEPTH } from '../../src/main/orky/find-orky-root'
+import { OrkyTracker } from '../../src/main/orky/orky-tracker'
 
 describe('findOrkyRoot default depth', () => {
   it('resolves a cwd 12 levels below the root (deeper than the old cap of 8)', () => {
@@ -18,6 +19,23 @@ describe('findOrkyRoot default depth', () => {
     const deep = join(proj, ...Array.from({ length: 12 }, (_, i) => `d${i}`))
     mkdirSync(deep, { recursive: true })
     expect(findOrkyRoot(deep)).toBe(resolve(proj))
+  })
+
+  // The DA-006 fix must hold through the ONLY production call site: OrkyTracker.watch. A
+  // `{ maxDepth: 8 }` override there silently reinstates the old cliff no matter what the
+  // default is, so this resolves the SAME >8-deep cwd through the tracker itself (built the
+  // way tests/main/orky-tracker-watch-root.test.ts builds one).
+  it('OrkyTracker.watch resolves a pane cwd 12 levels below the root — the tracker must not override the default bound', async () => {
+    const proj = mkdtempSync(join(tmpdir(), 'orky-depth-trk-'))
+    mkdirSync(join(proj, '.orky'))
+    const deep = join(proj, ...Array.from({ length: 12 }, (_, i) => `d${i}`))
+    mkdirSync(deep, { recursive: true })
+    const tracker = new OrkyTracker(() => {}, { debounceMs: 20 })
+    try {
+      await expect(tracker.watch('p1', deep)).resolves.toBe(resolve(proj))
+    } finally {
+      tracker.dispose()
+    }
   })
 
   it('the default bound is generous but still finite', () => {

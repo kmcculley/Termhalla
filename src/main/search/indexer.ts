@@ -1,6 +1,7 @@
 import { stripAnsi } from '../status/needs-input'
 import { SegmentBuffer, FLUSH_TICK_MS } from './segment-buffer'
 import type { SearchService } from './search-service'
+import { startUnrefedInterval, type ManagedTimer } from '../managed-interval'
 
 /** Owns a per-pane SegmentBuffer + cwd/muted maps; feeds flushed segments to SearchService. One
  *  shared low-frequency timer flushes idle buffers; size-flush is immediate; pane exit flushes the
@@ -9,11 +10,10 @@ export class Indexer {
   private buffers = new Map<string, SegmentBuffer>()
   private cwds = new Map<string, string>()
   private muted = new Set<string>()
-  private timer: ReturnType<typeof setInterval>
+  private timer: ManagedTimer
 
   constructor(private readonly svc: SearchService, private readonly now: () => number = () => Date.now()) {
-    this.timer = setInterval(() => this.tick(), FLUSH_TICK_MS)
-    ;(this.timer as { unref?: () => void }).unref?.()
+    this.timer = startUnrefedInterval(() => this.tick(), FLUSH_TICK_MS)
   }
 
   setCwd(id: string, cwd: string): void { this.cwds.set(id, cwd); this.buffers.get(id)?.setCwd(cwd) }
@@ -37,7 +37,7 @@ export class Indexer {
   }
 
   dispose(): void {
-    clearInterval(this.timer)
+    this.timer.stop()
     for (const [id, b] of this.buffers) { const seg = b.end(); if (seg) this.svc.insertSegments([{ paneId: id, ...seg }]) }
     this.buffers.clear()
   }

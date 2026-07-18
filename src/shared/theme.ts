@@ -44,31 +44,21 @@ export function mergeTheme(partial: Partial<Theme> | undefined): Theme {
   return { ...DEFAULT_THEME, ...(partial ?? {}) }
 }
 
-/** UI design tokens as CSS custom properties (sizes get a px suffix). */
+/** UI design tokens as CSS custom properties (sizes get a px suffix). Driven by the SAME
+ *  exhaustiveness-checked `VAR_OF` map as `themeCssVarsPartial` — the token→var mapping exists
+ *  exactly once — plus the derived readable text colors:
+ *  - `--on-busy` / `--on-needs` for the saturated alert bars (luminance-adaptive);
+ *  - `--fg-on-elevated` for elevated surfaces (menus, modals, Settings), so a light theme's light
+ *    elevated bg gets dark text instead of staying light-on-light. */
 export function themeCssVars(t: Theme): Record<string, string> {
-  return {
-    '--bg': t.windowBg,
-    '--panel': t.panelBg,
-    '--elevated': t.elevatedBg,
-    '--border': t.border,
-    '--fg': t.text,
-    '--fg-dim': t.textDim,
-    '--accent': t.accent,
-    '--status-busy': t.statusBusy,
-    '--status-needs': t.statusNeedsInput,
-    // Derived readable text colors for the saturated alert bars (luminance-adaptive).
-    '--on-busy': readableOn(t.statusBusy),
-    '--on-needs': readableOn(t.statusNeedsInput),
-    // Readable text for elevated surfaces (menus, modals, Settings) — luminance-adaptive so a
-    // light theme's light elevated bg gets dark text instead of staying light-on-light.
-    '--fg-on-elevated': readableOn(t.elevatedBg),
-    '--font': t.fontFamily,
-    '--font-size': `${t.fontSize}px`,
-    '--term-bg': t.termBg,
-    '--term-fg': t.termFg,
-    '--term-font': t.termFontFamily,
-    '--term-font-size': `${t.termFontSize}px`
+  const out: Record<string, string> = {}
+  for (const k of Object.keys(VAR_OF) as (keyof Theme)[]) {
+    out[VAR_OF[k]] = SIZE_KEYS.has(k) ? `${t[k]}px` : String(t[k])
   }
+  out['--on-busy'] = readableOn(t.statusBusy)
+  out['--on-needs'] = readableOn(t.statusNeedsInput)
+  out['--fg-on-elevated'] = readableOn(t.elevatedBg)
+  return out
 }
 
 /** Effective theme for a pane: app < workspace < pane overrides. */

@@ -79,7 +79,7 @@ export function createQuickSlice({ set, get, scheduleQuickSave, commitPane, regi
       commitPane(wsId, {
         kind: 'terminal', shellId, cwd: '', name: conn.name, connectionId: conn.id,
         launch: { command: 'ssh', args: buildSshArgs(conn), title: conn.name }
-      }, firstTarget(ws), 'row')
+      }, { target: firstTarget(ws), dir: 'row' })
       set(s => ({ quick: { ...s.quick, recentConnections: pushRecent(s.quick.recentConnections, conn.id, RECENT_CONN_CAP) } }))
       scheduleQuickSave()
     },
@@ -89,7 +89,7 @@ export function createQuickSlice({ set, get, scheduleQuickSave, commitPane, regi
       if (!wsId || !dir) return
       const ws = get().workspaces[wsId]
       const shellId = defaultShellId(get())
-      commitPane(wsId, { kind: 'terminal', shellId, cwd: dir }, firstTarget(ws), 'row')
+      commitPane(wsId, { kind: 'terminal', shellId, cwd: dir }, { target: firstTarget(ws), dir: 'row' })
     },
 
     setRecordByDefault: (on) => { set(s => ({ quick: { ...s.quick, recordByDefault: on } })); scheduleQuickSave() },

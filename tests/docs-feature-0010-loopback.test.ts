@@ -102,7 +102,12 @@ describe('FINDING-012 — the REQ-009 frozen-guard inventory is mechanical (REQ-
       //    read→decide→act e2e suite REALLY drives orky-entry-actions-core (bind/verify/build/
       //    settle) through F7 against the real CLIs, so the pattern hit is the point, not an
       //    un-dispositioned frozen guard; see tests/integration/README.md)
-      'integration/orky-act-loop.test.ts'
+      'integration/orky-act-loop.test.ts',
+      // ── the 2026-07-17 quality-audit Finding-7 guard (dispositioned per this test's own rule —
+      //    it structurally pins that OrkyCaptureModal's BOTH failure surfaces classify through the
+      //    core module's shared isIndeterminateKind predicate, so the pattern hit IS the guard's
+      //    subject; disposition recorded in 0010's 04-tests.md "Inventory amendment")
+      'renderer/orky-capture-indeterminate-kinds.test.ts'
     ].sort()
 
     expect(hits).toEqual(dispositioned)

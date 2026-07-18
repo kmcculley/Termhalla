@@ -18,11 +18,13 @@ export function useExternalFileWatch(paneId: string, getTab: (path: string) => T
       if (!t) return
       if (change.event === 'unlink') { t.missing = true; rerender(); return }
       if (change.event !== 'change') return
-      const dirty = !t.tooLarge && !t.missing && t.model.getValue() !== t.saved
+      const dirty = !t.tooLarge && !t.missing && !t.readError && t.model.getValue() !== t.saved
       if (dirty) { t.externalChanged = true; rerender(); return }
       void api.fsRead(path).then(r => {
-        if (r.tooLarge) return
-        t.saved = r.content; applyContent(t.model, r.content); t.missing = false; t.externalChanged = false; rerender()
+        if (r.kind !== 'ok' || r.tooLarge) return
+        // A successful reread also heals a readError tab: the file changed on disk and is
+        // readable again, so the tab returns to a normal editable state.
+        t.saved = r.content; applyContent(t.model, r.content); t.missing = false; t.readError = undefined; t.externalChanged = false; rerender()
       }).catch(() => {})
     })
     return off

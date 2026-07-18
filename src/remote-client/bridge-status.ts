@@ -56,3 +56,49 @@ export const parseBridgeStatus = (stderrText: string): BridgeStatus | null => {
   }
   return null
 }
+
+/** The bounded line-aware window (chars) the incremental scanner retains for a line still in
+ *  flight — generous against the ~120-char status line, tiny against the 0023 probe cap (the
+ *  sibling bounded-accumulator posture, FINDING-010). */
+export const BRIDGE_STATUS_WINDOW_CHARS = 8192
+
+export interface BridgeStatusScanner {
+  /** Feed one raw (newline-preserving) stderr chunk. A no-op once a status line has latched. */
+  push(text: string): void
+  /** The FIRST valid status line observed so far, or null. */
+  status(): BridgeStatus | null
+}
+
+/** Incremental, bounded equivalent of re-running `parseBridgeStatus` over an ever-growing raw
+ *  accumulation (2026-07-17 quality audit finding 31 — the daemon connect leg accumulated stderr
+ *  unboundedly in the privileged Electron main process and full-rescanned it per chunk while a
+ *  handshake failure was pending). Same parse semantics, applied streamwise: each completed line
+ *  is scanned once through the same `tryParseOne` and discarded; the trailing partial line is
+ *  itself scan-eligible (the terminating newline may land in a later chunk than the JSON, and
+ *  `parseBridgeStatus` treats the tail as a line too) and is retained bounded at `windowChars`.
+ *  The first VALID status line latches; from then on nothing accumulates. */
+export const createBridgeStatusScanner = (windowChars: number = BRIDGE_STATUS_WINDOW_CHARS): BridgeStatusScanner => {
+  let found: BridgeStatus | null = null
+  let pending = ''
+  const scanLine = (line: string): void => {
+    if (found !== null || !line.startsWith(BRIDGE_STATUS_PREFIX)) return
+    found = tryParseOne(line.slice(BRIDGE_STATUS_PREFIX.length))
+  }
+  return {
+    push(text: string): void {
+      if (found !== null || typeof text !== 'string' || text.length === 0) return
+      pending += text
+      for (let nl = pending.indexOf('\n'); nl !== -1 && found === null; nl = pending.indexOf('\n')) {
+        scanLine(pending.slice(0, nl))
+        pending = pending.slice(nl + 1)
+      }
+      if (found === null) scanLine(pending)
+      if (found !== null) {
+        pending = ''
+        return
+      }
+      if (pending.length > windowChars) pending = pending.slice(pending.length - windowChars)
+    },
+    status: (): BridgeStatus | null => found
+  }
+}

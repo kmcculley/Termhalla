@@ -230,6 +230,12 @@ export function buildDriveStatusRequest(target: OrkyEntryTarget): DriveStatusReq
  *  whose child never ran. None of them proves a non-dispatch. */
 const INDETERMINATE_KINDS = new Set(['cli-timeout', 'cli-unparseable', 'ipc-failure'])
 
+/** The ONE indeterminate-outcome classification, exported so every failure surface (incl.
+ *  OrkyCaptureModal's in-modal error region and detached toast — 2026-07-17 audit Finding 7)
+ *  shares it instead of hand-coding a kind list that drifts (the modal had omitted
+ *  cli-unparseable, rendering the DEFINITE "rejected" copy for an outcome that proves nothing). */
+export const isIndeterminateKind = (kind: string): boolean => INDETERMINATE_KINDS.has(kind)
+
 export function settleAnswer(
   reason: 'escalation' | 'human-review',
   result: OrkyActionSettleInput
@@ -265,7 +271,7 @@ export function settleAnswer(
       indeterminate: false
     }
   }
-  if (INDETERMINATE_KINDS.has(kind)) {
+  if (isIndeterminateKind(kind)) {
     return {
       status: 'failure',
       kind,
@@ -293,7 +299,7 @@ export function settlePreview(result: OrkyActionSettleInput): SettledOutcome {
   }
   const kind = result.errorKind ?? 'cli-error'
   const error = result.error ?? 'the preview read settled without an error message'
-  if (INDETERMINATE_KINDS.has(kind)) {
+  if (isIndeterminateKind(kind)) {
     // the same classifier, but a READ cannot duplicate anything: safe-retry wording only.
     return {
       status: 'failure',

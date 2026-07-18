@@ -3,6 +3,7 @@ import type { GitStatus } from '@shared/types'
 import { safeWatch } from '../safe-watcher'
 import { resolveGitRoot as defaultResolveRoot, runGitStatus as defaultRunStatus } from './probe'
 import { parseStatus } from './parse-status'
+import { startUnrefedTimeout, type ManagedTimer } from '../managed-interval'
 
 export type Watcher = { close(): void | Promise<void> }
 export type WatchFactory = (root: string, onChange: () => void) => Watcher
@@ -24,7 +25,7 @@ function defaultWatchFactory(root: string, onChange: () => void): Watcher {
 }
 
 interface PaneEntry { cwd: string; root: string | null; sig: string }
-interface RootEntry { refs: Set<string>; watcher: Watcher; timer: ReturnType<typeof setTimeout> | null }
+interface RootEntry { refs: Set<string>; watcher: Watcher; timer: ManagedTimer | null }
 
 function sigOf(s: GitStatus | null): string {
   if (!s) return 'null'
@@ -79,7 +80,7 @@ export class GitStatusService {
   stop(): void {
     this.abort.abort()
     this.abort = new AbortController()
-    for (const r of this.roots.values()) { if (r.timer) clearTimeout(r.timer); void r.watcher.close() }
+    for (const r of this.roots.values()) { r.timer?.stop(); void r.watcher.close() }
     this.roots.clear()
     this.panes.clear()
     this.probing.clear()
@@ -99,7 +100,7 @@ export class GitStatusService {
     if (!r) return
     r.refs.delete(paneId)
     if (r.refs.size === 0) {
-      if (r.timer) clearTimeout(r.timer)
+      r.timer?.stop()
       void r.watcher.close()
       this.roots.delete(root)
     }
@@ -108,9 +109,8 @@ export class GitStatusService {
   private scheduleProbe(root: string): void {
     const r = this.roots.get(root)
     if (!r) return
-    if (r.timer) clearTimeout(r.timer)
-    r.timer = setTimeout(() => { r.timer = null; void this.probeRoot(root) }, this.debounceMs)
-    ;(r.timer as { unref?: () => void }).unref?.()
+    r.timer?.stop()
+    r.timer = startUnrefedTimeout(() => { r.timer = null; void this.probeRoot(root) }, this.debounceMs)
   }
 
   // One in-flight probe per root; a burst of watch events + a command-done collapse into at most one

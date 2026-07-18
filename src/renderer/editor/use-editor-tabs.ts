@@ -6,6 +6,7 @@ import { api } from '../api'
 import { useStore } from '../store'
 import type { EditorConfig } from '@shared/types'
 import { applyContent, base, isDirty, type Tab } from './tabs'
+import { toTabReadState } from './read-state'
 import { runOp } from '../op'
 import { useEditorDrafts } from './use-editor-drafts'
 import { useExternalFileWatch } from './use-external-file-watch'
@@ -97,25 +98,25 @@ export function useEditorTabs(paneId: string, wsId: string, config: EditorConfig
     if (loading.current.has(path)) return
     loading.current.add(path)
     try {
-      let saved = '', tooLarge = false, missing = false, binary = false
-      try { const r = await api.fsRead(path); saved = r.content; tooLarge = r.tooLarge }
-      catch (err) {
-        // A binary file EXISTS — it just can't display. Marking it missing rendered it
-        // struck-through "(deleted)", which is a lie (QoL 2026-07-17).
-        if (err instanceof Error && /binary/i.test(err.message)) binary = true
-        else missing = true
-      }
+      // Failures are classified STRUCTURALLY in main (discriminated ReadResult) — never by
+      // regexing an IPC-serialized error message. The .catch covers the invoke itself rejecting
+      // (handler teardown mid-flight): an unknown failure, mapped to readError — only a real
+      // not-found may render "(deleted)" (finding 27, 2026-07 quality audit).
+      const r = await api.fsRead(path).catch(() => null)
+      const { saved, tooLarge, missing, binary, readError } = toTabReadState(r)
       const key = draftKey(paneId, path)
       const draft = useStore.getState().drafts[key]
-      const resolved = tooLarge || binary
+      const resolved = tooLarge || binary || readError
         ? { content: '', dirty: false, externalChanged: false }
         : resolveDraftOnOpen(missing ? null : saved, draft)
       const model = monaco.editor.createModel(resolved.content, languageForPath(path))
       const disp = model.onDidChangeContent(() => { rerender(); scheduleDraftPersist(path) })
       // Only surface the "changed on disk" bar when the restored draft actually differs from
       // disk; a stale draft equal to disk (deleted just below) shouldn't raise it.
-      tabs.current.set(path, { path, model, saved, disp, tooLarge, missing, binary: binary || undefined, externalChanged: (resolved.dirty && resolved.externalChanged) || undefined })
-      if (draft && !resolved.dirty) api.draftsDelete(key)  // stale draft equals disk
+      tabs.current.set(path, { path, model, saved, disp, tooLarge, missing, binary: binary || undefined, readError, externalChanged: (resolved.dirty && resolved.externalChanged) || undefined })
+      // Stale-draft cleanup must NOT fire on an errored read: the failure may be transient and
+      // the draft is the user's only recovery copy of the unsaved edits.
+      if (draft && !resolved.dirty && !readError) api.draftsDelete(key)  // stale draft equals disk
       api.fsWatch(key, path)
       const nextOrder = orderRef.current.includes(path) ? orderRef.current : [...orderRef.current, path]
       setOrder(nextOrder)
@@ -150,7 +151,9 @@ export function useEditorTabs(paneId: string, wsId: string, config: EditorConfig
     if (!active) return
     if (isUntitled(active)) { await saveUntitledAs(); return }
     const t = tabs.current.get(active)
-    if (!t || t.tooLarge || t.binary) return
+    // readError guard: an errored tab's buffer was never loaded (empty) — saving it would
+    // silently truncate a file that may be perfectly fine. `missing` stays savable (re-create).
+    if (!t || t.tooLarge || t.binary || t.readError) return
     const value = t.model.getValue()
     // Mark the buffer clean / drop its draft only on a successful write — a failed save must keep
     // the buffer dirty and its recovery draft intact rather than silently lose the edits.
@@ -169,7 +172,7 @@ export function useEditorTabs(paneId: string, wsId: string, config: EditorConfig
   const saveTabAs = useCallback(async (path: string) => {
     if (isUntitled(path)) { await saveUntitledAs(); return }
     const t = tabs.current.get(path)
-    if (!t || t.tooLarge || t.binary || t.missing) return
+    if (!t || t.tooLarge || t.binary || t.missing || t.readError) return
     const target = await api.saveFileDialog()
     if (!target || target === path) return
     if (!await runOp(() => api.fsWrite(target, t.model.getValue()), useStore.getState().pushToast, 'Save failed')) return
@@ -190,7 +193,7 @@ export function useEditorTabs(paneId: string, wsId: string, config: EditorConfig
   const closeTab = useCallback((path: string) => {
     const t = tabs.current.get(path)
     if (!t) return
-    if (!t.tooLarge && !t.missing && !t.binary && t.model.getValue() !== t.saved) {
+    if (!t.tooLarge && !t.missing && !t.binary && !t.readError && t.model.getValue() !== t.saved) {
       if (!window.confirm(`${base(path)} has unsaved changes. Close anyway?`)) return
     }
     dropTab(path)
@@ -340,7 +343,7 @@ export function useEditorTabs(paneId: string, wsId: string, config: EditorConfig
     const t = tabs.current.get(active)
     if (!t) return
     const r = await api.fsRead(t.path).catch(() => null)
-    if (r && !r.tooLarge) { t.saved = r.content; applyContent(t.model, r.content); t.externalChanged = false; rerender() }
+    if (r?.kind === 'ok' && !r.tooLarge) { t.saved = r.content; applyContent(t.model, r.content); t.externalChanged = false; rerender() }
   }, [active, rerender])
 
   const dismissExternalChange = useCallback(() => {

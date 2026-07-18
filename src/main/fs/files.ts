@@ -16,12 +16,22 @@ export function sortEntries(list: DirEntry[]): DirEntry[] {
     a.isDir !== b.isDir ? (a.isDir ? -1 : 1) : a.name.localeCompare(b.name))
 }
 
+/** Editor read. Never throws — failures come back as a discriminated `ReadResult` so the
+ *  renderer classifies structurally instead of regexing an IPC-serialized error message
+ *  (finding 27, 2026-07 quality audit): only ENOENT/ENOTDIR is 'not-found' ("(deleted)");
+ *  anything else (permissions, EISDIR, transient I/O) is 'error' — the file may exist. */
 export async function readTextFile(path: string, maxBytes = MAX_BYTES): Promise<ReadResult> {
-  const s = await stat(path)
-  if (s.size > maxBytes) return { content: '', tooLarge: true }
-  const buf = await readFile(path)
-  if (isBinary(buf)) throw new Error('Cannot open binary file')
-  return { content: buf.toString('utf8'), tooLarge: false }
+  try {
+    const s = await stat(path)
+    if (s.size > maxBytes) return { kind: 'ok', content: '', tooLarge: true }
+    const buf = await readFile(path)
+    if (isBinary(buf)) return { kind: 'binary' }
+    return { kind: 'ok', content: buf.toString('utf8'), tooLarge: false }
+  } catch (err) {
+    const code = (err as NodeJS.ErrnoException | null)?.code
+    if (code === 'ENOENT' || code === 'ENOTDIR') return { kind: 'not-found' }
+    return { kind: 'error', message: err instanceof Error ? err.message : String(err) }
+  }
 }
 
 /** Editor save. Atomic (temp + rename) like every other durable write in the app: plain writeFile

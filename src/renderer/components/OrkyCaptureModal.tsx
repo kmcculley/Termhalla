@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { Modal, Z } from './Modal'
 import { OrkyRootPicker } from './OrkyRootPicker'
+import { isIndeterminateKind } from './orky-entry-actions-core'
 import { useOpenFocusRestore } from './use-open-focus-restore'
 import { useStore } from '../store'
 import { api } from '../api'
@@ -120,10 +121,12 @@ export function OrkyCaptureModal({ initialRoot }: { initialRoot: string | null }
       // title. (The aliveRef silent drop of rev-1 is retired.)
       //
       // The toast MUST carry the kind's own honesty class (REQ-009 / CONV-015 / FINDING-024): an
-      // indeterminate outcome (a timed-out child or a transport failure whose write may still land)
-      // must NOT read as a definite non-capture, or the user retries and duplicates. Mirror the
-      // in-modal branch's split (see the failure region below).
-      const indeterminate = fail.kind === 'cli-timeout' || fail.kind === 'ipc-failure'
+      // indeterminate outcome (cli-timeout / cli-unparseable / ipc-failure — a write that may
+      // still land, or a completed child whose report was unreadable) must NOT read as a definite
+      // non-capture, or the user retries and duplicates. Mirror the in-modal branch's split (see
+      // the failure region below) through the SHARED core classification — never a hand-coded
+      // kind list, which drifted to omit cli-unparseable (2026-07-17 audit Finding 7).
+      const indeterminate = isIndeterminateKind(fail.kind)
       const msg = indeterminate
         ? `Capture outcome uncertain for "${title}" — ${fail.error}. It may still have been captured; retrying may create a duplicate.`
         : `Capture failed for "${title}" — ${fail.error}`
@@ -252,10 +255,11 @@ function CaptureForm(props: {
                   Enabling it is an audited human decision made outside Termhalla (ADR-027).
                 </div>
               </>
-            ) : failure.kind === 'cli-timeout' || failure.kind === 'ipc-failure' ? (
+            ) : isIndeterminateKind(failure.kind) ? (
               <>
-                {/* INDETERMINATE (CONV-015/REQ-014, FINDING-019): a timed-out child or a transport
-                    failure leaves the write's fate unknown — never the definite non-capture copy. */}
+                {/* INDETERMINATE (CONV-015/REQ-014, FINDING-019): cli-timeout, cli-unparseable and
+                    ipc-failure — the shared core classification (FINDING-006 / audit Finding 7) —
+                    leave the write's fate unknown; never the definite non-capture copy. */}
                 <div style={{ color: 'var(--status-failure, #c62828)', fontWeight: 600 }}>
                   The result is uncertain: the item may or may not have been captured.
                 </div>

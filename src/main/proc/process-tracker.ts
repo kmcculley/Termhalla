@@ -1,6 +1,7 @@
 import type { ProcInfo } from '@shared/types'
 import { buildProcInfo, type CimRow } from './proc-tree'
 import { queryProcesses } from './cim-query'
+import { startUnrefedInterval, type ManagedTimer } from '../managed-interval'
 
 type RunQuery = () => Promise<CimRow[]>
 
@@ -11,7 +12,7 @@ const CLEARED = '∅' // sentinel signature meaning "emitted null"
 export class ProcessTracker {
   private sessions = new Map<string, { busy: boolean }>()
   private lastSig = new Map<string, string>()
-  private timer: ReturnType<typeof setInterval> | null = null
+  private timer: ManagedTimer | null = null
   private querying = false
 
   constructor(
@@ -79,11 +80,10 @@ export class ProcessTracker {
 
   private ensureTimer(): void {
     if (this.timer) return
-    this.timer = setInterval(() => { void this.pollOnce() }, this.intervalMs)
-    ;(this.timer as { unref?: () => void }).unref?.()
+    this.timer = startUnrefedInterval(() => { void this.pollOnce() }, this.intervalMs)
   }
 
   private stopTimer(): void {
-    if (this.timer) { clearInterval(this.timer); this.timer = null }
+    if (this.timer) { this.timer.stop(); this.timer = null }
   }
 }

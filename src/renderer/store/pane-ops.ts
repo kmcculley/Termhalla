@@ -1,4 +1,5 @@
 import type { ShellInfo, Workspace, MosaicDirection, SplitDir4, AiSession, AiTool, TerminalStatus } from '@shared/types'
+import { DEFAULT_THEME } from '@shared/theme'
 
 export type PaneKind = 'terminal' | 'editor' | 'explorer' | 'orky'
 
@@ -92,6 +93,111 @@ export async function dispatchAddPane(
     const root = await openFolder()
     if (root) s.addExplorer(wsId, target, 'row', root)
   }
+}
+
+/** The store surface the shared command dispatcher below reads/drives, narrowed so the helper is
+ *  api-free and unit-testable (the same reason PaneActions above exists). Both call sites pass
+ *  `useStore.getState()`, which satisfies this structurally. */
+export interface CommandActions {
+  activeId: string | null
+  focusedPaneId: string | null
+  workspaces: Record<string, Workspace>
+  minimized: Record<string, string[]>
+  notesOpen: boolean
+  addPaneOfKind: (wsId: string, kind: PaneKind) => unknown
+  closePane: (wsId: string, paneId: string) => unknown
+  toggleMaximize: (wsId: string, paneId: string) => unknown
+  toggleMinimize: (wsId: string, paneId: string) => unknown
+  restorePane: (wsId: string, paneId: string) => unknown
+  setNotesOpen: (open: boolean) => unknown
+  openSettings: (t: { section: 'general' }) => unknown
+  setTheme: (patch: { termFontSize: number }) => unknown
+}
+
+/** The xterm-registry hooks the dispatcher needs, injected because terminal-registry lives beside
+ *  components (keep this module import-clean for the node-env vitest harness). Callers pass
+ *  `{ clearPane, redrawPane, openPaneFind }` from components/terminal-registry. */
+export interface PaneRegistryFns {
+  clearPane: (paneId: string) => unknown
+  redrawPane: (paneId: string) => unknown
+  openPaneFind: (paneId: string) => unknown
+}
+
+/** The ONE command→action dispatch shared by App.tsx's chord handler and CommandPalette's
+ *  activate() (2026-07-17 audit Finding 28 — the two sites had ~12 commands kept in agreement
+ *  only by convention). Returns true when `id` is a command this dispatcher owns (a pane-scoped
+ *  command with no target is still `true`: handled as a deliberate no-op), false for anything
+ *  else so callers can keep their own site-specific commands.
+ *
+ *  Deliberately NOT owned here (each pinned to its original call-site shape by a frozen suite,
+ *  or genuinely site-specific): capture-orky-work (TEST-495 pins both sites), toggle-orky-queue
+ *  (TEST-360 pins the App case, TEST-329 the palette literal), toggle-search vs the palette's
+ *  search-history (toggle vs open — different semantics), toggle-broadcast vs broadcast (same),
+ *  font-zoom-in/out + workspace navigation (chord-only), and the palette's creation/connection
+ *  items.
+ *
+ *  `redrawTarget` carries the single GENUINE divergence between the two sites: the chord redraws
+ *  exactly the focused pane (`focusedPaneId ?? ''`, even a stale cross-workspace id — 'focused'),
+ *  while the palette redraws the chord target ('chord'). Parameterized, never homogenized. */
+export function dispatchCommand(
+  id: string,
+  s: CommandActions,
+  reg: PaneRegistryFns,
+  opts: { redrawTarget: 'focused' | 'chord' }
+): boolean {
+  const activeId = s.activeId
+  const paneTarget = (): string | null =>
+    chordPaneTarget(activeId ? s.workspaces[activeId] : undefined, s.focusedPaneId)
+  switch (id) {
+    case 'new-terminal': {
+      if (activeId) void s.addPaneOfKind(activeId, 'terminal')
+      return true
+    }
+    case 'open-settings': s.openSettings({ section: 'general' }); return true
+    case 'toggle-notes': s.setNotesOpen(!s.notesOpen); return true
+    case 'font-zoom-reset': s.setTheme({ termFontSize: DEFAULT_THEME.termFontSize }); return true
+    case 'toggle-maximize-pane': {
+      const pane = paneTarget()
+      if (pane && activeId) s.toggleMaximize(activeId, pane)
+      return true
+    }
+    case 'toggle-minimize-pane': {
+      const pane = paneTarget()
+      if (pane && activeId) s.toggleMinimize(activeId, pane)
+      return true
+    }
+    case 'close-pane': {
+      const pane = paneTarget()
+      if (pane && activeId) s.closePane(activeId, pane) // closePane owns the busy/dirty confirm
+      return true
+    }
+    case 'restore-last-minimized': {
+      if (!activeId) return true
+      const ids = s.minimized[activeId] ?? []
+      const last = ids[ids.length - 1]
+      if (last) s.restorePane(activeId, last)
+      return true
+    }
+    case 'clear-terminal': {
+      const pane = paneTarget()
+      if (pane) reg.clearPane(pane)
+      return true
+    }
+    case 'find-in-terminal': {
+      const pane = paneTarget()
+      if (pane) reg.openPaneFind(pane)
+      return true
+    }
+    case 'redraw-terminal': {
+      if (opts.redrawTarget === 'focused') reg.redrawPane(s.focusedPaneId ?? '')
+      else {
+        const pane = paneTarget()
+        if (pane) reg.redrawPane(pane)
+      }
+      return true
+    }
+  }
+  return false
 }
 
 /** Fold the live AI-session map into terminal pane configs at save time: a pane currently running

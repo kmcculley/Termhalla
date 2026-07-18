@@ -9,6 +9,11 @@ export function registerNotes(userDataDir: string): () => void {
   const notes = new NotesStore(userDataDir)
   void notes.load()
   ipcMain.handle(CH.notesLoad, () => notes.load())
-  ipcMain.on(CH.notesSet, (_e, key: string, text: string) => notes.set(key, text))
+  // An invoke (not a send) so the renderer OBSERVES a failed disk write: the rejection keeps the
+  // key in the renderer's dirty set for retry + surfaces one error toast (2026-07-17 audit, F6).
+  // A handle-thrown error becomes an invoke rejection — never Electron's modal error dialog.
+  ipcMain.handle(CH.notesSet, (_e, key: string, text: string) => {
+    if (!notes.set(key, text)) throw new Error('notes.json could not be written')
+  })
   return () => notes.flush()
 }

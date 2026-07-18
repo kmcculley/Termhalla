@@ -1,6 +1,6 @@
 import { statSync } from 'node:fs'
 import { join } from 'node:path'
-import type { OrkyActionResult } from '@shared/types'
+import type { OrkyActionErrorKind, OrkyActionPath, OrkyActionResult } from '@shared/types'
 import {
   validateResolveEscalationRequest,
   validateSubmitWorkRequest,
@@ -91,6 +91,28 @@ function summarizeArgs(raw: unknown): Record<string, unknown> {
 
 type FeatureDirResult = { ok: true; featureDir: string } | { ok: false; errorKind: 'feature-not-found'; error: string }
 
+type OrkyCliKind = 'gatekeeper' | 'feedback'
+
+/** The outcome of the shared action prologue (`prepare`): either the resolved context (server-built
+ *  `featureDir` — `undefined` only for a project-level submitWork with no `feature` field — plus the
+ *  located CLI path), or an early-exit `OrkyActionResult` failure for the caller to return verbatim. */
+type PrepareOutcome<F extends string | undefined> =
+  | { ok: true; featureDir: F; cli: string }
+  | { ok: false; result: OrkyActionResult }
+
+/** Typed early-exit failure constructor — builds the uniform `ok:false` shape the four actions share,
+ *  so failure literals are CHECKED against `OrkyActionResult` instead of `as`-cast past it. Optional
+ *  fields appear only when supplied (the wire shape is identical to the previous inline literals). */
+function failure(
+  errorKind: OrkyActionErrorKind,
+  error: string,
+  opts: { path?: OrkyActionPath; exitCode?: number | null } = {}
+): OrkyActionResult {
+  const result: OrkyActionResult = { ok: false, path: opts.path ?? null, dispatched: false, errorKind, error }
+  if (opts.exitCode !== undefined) result.exitCode = opts.exitCode
+  return result
+}
+
 export class OrkyActionDispatcher {
   private readonly registry: { roots(): string[] }
   private readonly auditLog: OrkyActionAuditLog
@@ -144,42 +166,36 @@ export class OrkyActionDispatcher {
   // ── resolveEscalation (REQ-006) ────────────────────────────────────────────────────────────────
   private async doResolveEscalation(req: unknown): Promise<OrkyActionResult> {
     const v = validateResolveEscalationRequest(req)
-    if (!v.ok) return { ok: false, path: null, dispatched: false, errorKind: 'invalid-args', error: v.error }
+    if (!v.ok) return failure('invalid-args', v.error)
     const { projectRoot, feature, escalationId, decision } = v.req
 
-    const rootCheck = this.checkRoot(projectRoot)
-    if (!rootCheck.ok) return { ok: false, path: null, dispatched: false, errorKind: 'root-not-allowed', error: rootCheck.error }
+    const prep = await this.prepare(projectRoot, feature, 'feedback')
+    if (!prep.ok) return prep.result
+    const { featureDir, cli: feedbackCli } = prep
 
-    const fdir = await this.resolveFeatureDir(projectRoot, feature)
-    if (!fdir.ok) return { ok: false, path: null, dispatched: false, errorKind: fdir.errorKind, error: fdir.error }
-    const featureDir = fdir.featureDir
-
-    const feedbackCli = this.locateCli('feedback')
-    if (!feedbackCli) return { ok: false, path: null, dispatched: false, errorKind: 'orky-cli-not-found', error: describeMissingCli('feedback') }
-
-    return this.queue.run(normalizeProjectRoot(featureDir), async () => {
+    return this.queue.run(normalizeProjectRoot(featureDir), async (): Promise<OrkyActionResult> => {
       const emitArgs = ['emit', '--app', projectRoot, '--type', 'decision', '--feature', feature, '--payload', JSON.stringify({ escalationId, decision })]
       const emitRun = await this.runWithAbort(feedbackCli, emitArgs)
       const emitMapped = mapCliRunToResult('resolveEscalation', 'feedback', emitRun)
       if (!emitMapped.ok) {
-        return { ok: false, path: 'feedback', dispatched: false, errorKind: emitMapped.errorKind, error: emitMapped.error, exitCode: emitMapped.exitCode } as OrkyActionResult
+        return { ok: false, path: 'feedback', dispatched: false, errorKind: emitMapped.errorKind, error: emitMapped.error, exitCode: emitMapped.exitCode }
       }
       const emitData = (emitMapped.data ?? {}) as { mode?: string }
       if (emitData.mode !== 'noop') {
-        return { ok: true, path: 'feedback', feedback: 'enabled', dispatched: true, data: emitMapped.data, exitCode: emitMapped.exitCode } as OrkyActionResult
+        return { ok: true, path: 'feedback', feedback: 'enabled', dispatched: true, data: emitMapped.data, exitCode: emitMapped.exitCode }
       }
 
       const gatekeeperCli = this.locateCli('gatekeeper')
       if (!gatekeeperCli) {
-        return { ok: false, path: 'feedback', feedback: 'disabled', dispatched: false, errorKind: 'orky-cli-not-found', error: describeMissingCli('gatekeeper') } as OrkyActionResult
+        return { ok: false, path: 'feedback', feedback: 'disabled', dispatched: false, errorKind: 'orky-cli-not-found', error: describeMissingCli('gatekeeper') }
       }
       const fallbackArgs = ['resolve-escalation', '--feature', featureDir, '--id', escalationId, '--decision', decision]
       const fallbackRun = await this.runWithAbort(gatekeeperCli, fallbackArgs)
       const fallbackMapped = mapCliRunToResult('resolveEscalation', 'gatekeeper', fallbackRun)
       if (!fallbackMapped.ok) {
-        return { ok: false, path: 'gatekeeper', feedback: 'disabled', dispatched: false, errorKind: fallbackMapped.errorKind, error: fallbackMapped.error, exitCode: fallbackMapped.exitCode } as OrkyActionResult
+        return { ok: false, path: 'gatekeeper', feedback: 'disabled', dispatched: false, errorKind: fallbackMapped.errorKind, error: fallbackMapped.error, exitCode: fallbackMapped.exitCode }
       }
-      return { ok: true, path: 'gatekeeper', feedback: 'disabled', dispatched: true, data: fallbackMapped.data, exitCode: fallbackMapped.exitCode } as OrkyActionResult
+      return { ok: true, path: 'gatekeeper', feedback: 'disabled', dispatched: true, data: fallbackMapped.data, exitCode: fallbackMapped.exitCode }
     })
   }
 
@@ -187,24 +203,15 @@ export class OrkyActionDispatcher {
   // (local-inbox injection); disabled is a DISTINCT non-dispatch failure, discriminated HERE ──────
   private async doSubmitWork(req: unknown): Promise<OrkyActionResult> {
     const v = validateSubmitWorkRequest(req)
-    if (!v.ok) return { ok: false, path: null, dispatched: false, errorKind: 'invalid-args', error: v.error }
+    if (!v.ok) return failure('invalid-args', v.error)
     const { projectRoot, feature, title, detail, phase } = v.req
 
-    const rootCheck = this.checkRoot(projectRoot)
-    if (!rootCheck.ok) return { ok: false, path: null, dispatched: false, errorKind: 'root-not-allowed', error: rootCheck.error }
-
-    let featureDir: string | undefined
-    if (feature !== undefined) {
-      const fdir = await this.resolveFeatureDir(projectRoot, feature)
-      if (!fdir.ok) return { ok: false, path: null, dispatched: false, errorKind: fdir.errorKind, error: fdir.error }
-      featureDir = fdir.featureDir
-    }
-
-    const feedbackCli = this.locateCli('feedback')
-    if (!feedbackCli) return { ok: false, path: null, dispatched: false, errorKind: 'orky-cli-not-found', error: describeMissingCli('feedback') }
+    const prep = await this.prepare(projectRoot, feature, 'feedback')
+    if (!prep.ok) return prep.result
+    const { featureDir, cli: feedbackCli } = prep
 
     const queueKey = normalizeProjectRoot(featureDir ?? projectRoot)
-    return this.queue.run(queueKey, async () => {
+    return this.queue.run(queueKey, async (): Promise<OrkyActionResult> => {
       // The item travels as ONE JSON argv element via the plugin's `--json` branch (REQ-013): the
       // free-text title/detail never ride raw argv, so no `--`-prefixed value can be misparsed as a
       // flag (the same safety property the emit `--payload` element carried).
@@ -230,13 +237,13 @@ export class OrkyActionDispatcher {
           errorKind: 'feedback-disabled',
           error: refusal,
           exitCode: run.exitCode
-        } as OrkyActionResult
+        }
       }
       const mapped = mapCliRunToResult('submitWork', 'feedback', run)
       if (!mapped.ok) {
-        return { ok: false, path: 'feedback', dispatched: false, errorKind: mapped.errorKind, error: mapped.error, exitCode: mapped.exitCode } as OrkyActionResult
+        return { ok: false, path: 'feedback', dispatched: false, errorKind: mapped.errorKind, error: mapped.error, exitCode: mapped.exitCode }
       }
-      return { ok: true, path: 'feedback', feedback: 'enabled', dispatched: true, data: mapped.data, exitCode: mapped.exitCode } as OrkyActionResult
+      return { ok: true, path: 'feedback', feedback: 'enabled', dispatched: true, data: mapped.data, exitCode: mapped.exitCode }
     })
   }
 
@@ -262,24 +269,18 @@ export class OrkyActionDispatcher {
   // ── recordHumanGate (REQ-008) — gate restricted server-side, NEVER --force ─────────────────────
   private async doRecordHumanGate(req: unknown): Promise<OrkyActionResult> {
     const v = validateRecordHumanGateRequest(req)
-    if (!v.ok) return { ok: false, path: null, dispatched: false, errorKind: 'invalid-args', error: v.error }
+    if (!v.ok) return failure('invalid-args', v.error)
     const { projectRoot, feature, gate, verdict, evidence } = v.req
 
     if (!HUMAN_GATES.has(gate)) {
-      return { ok: false, path: null, dispatched: false, errorKind: 'gate-not-allowed', error: `gate '${gate}' may not be recorded through this action (allowed: brainstorm, human-review)` }
+      return failure('gate-not-allowed', `gate '${gate}' may not be recorded through this action (allowed: brainstorm, human-review)`)
     }
 
-    const rootCheck = this.checkRoot(projectRoot)
-    if (!rootCheck.ok) return { ok: false, path: null, dispatched: false, errorKind: 'root-not-allowed', error: rootCheck.error }
+    const prep = await this.prepare(projectRoot, feature, 'gatekeeper')
+    if (!prep.ok) return prep.result
+    const { featureDir, cli: gatekeeperCli } = prep
 
-    const fdir = await this.resolveFeatureDir(projectRoot, feature)
-    if (!fdir.ok) return { ok: false, path: null, dispatched: false, errorKind: fdir.errorKind, error: fdir.error }
-    const featureDir = fdir.featureDir
-
-    const gatekeeperCli = this.locateCli('gatekeeper')
-    if (!gatekeeperCli) return { ok: false, path: null, dispatched: false, errorKind: 'orky-cli-not-found', error: describeMissingCli('gatekeeper') }
-
-    return this.queue.run(normalizeProjectRoot(featureDir), async () => {
+    return this.queue.run(normalizeProjectRoot(featureDir), async (): Promise<OrkyActionResult> => {
       const args = [
         'record', '--feature', featureDir, '--gate', gate, '--verdict', verdict,
         ...(evidence !== undefined ? ['--evidence', evidence] : [])
@@ -287,27 +288,21 @@ export class OrkyActionDispatcher {
       const run = await this.runWithAbort(gatekeeperCli, args)
       const mapped = mapCliRunToResult('recordHumanGate', 'gatekeeper', run)
       if (!mapped.ok) {
-        return { ok: false, path: 'gatekeeper', dispatched: false, errorKind: mapped.errorKind, error: mapped.error, exitCode: mapped.exitCode } as OrkyActionResult
+        return { ok: false, path: 'gatekeeper', dispatched: false, errorKind: mapped.errorKind, error: mapped.error, exitCode: mapped.exitCode }
       }
-      return { ok: true, path: 'gatekeeper', dispatched: true, data: mapped.data, exitCode: mapped.exitCode } as OrkyActionResult
+      return { ok: true, path: 'gatekeeper', dispatched: true, data: mapped.data, exitCode: mapped.exitCode }
     })
   }
 
   // ── driveStatus (REQ-009) — read-only, bypasses the queue, dispatched:false always ──────────────
   private async doDriveStatus(req: unknown): Promise<OrkyActionResult> {
     const v = validateDriveStatusRequest(req)
-    if (!v.ok) return { ok: false, path: null, dispatched: false, errorKind: 'invalid-args', error: v.error }
+    if (!v.ok) return failure('invalid-args', v.error)
     const { projectRoot, feature } = v.req
 
-    const rootCheck = this.checkRoot(projectRoot)
-    if (!rootCheck.ok) return { ok: false, path: null, dispatched: false, errorKind: 'root-not-allowed', error: rootCheck.error }
-
-    const fdir = await this.resolveFeatureDir(projectRoot, feature)
-    if (!fdir.ok) return { ok: false, path: null, dispatched: false, errorKind: fdir.errorKind, error: fdir.error }
-    const featureDir = fdir.featureDir
-
-    const gatekeeperCli = this.locateCli('gatekeeper')
-    if (!gatekeeperCli) return { ok: false, path: null, dispatched: false, errorKind: 'orky-cli-not-found', error: describeMissingCli('gatekeeper') }
+    const prep = await this.prepare(projectRoot, feature, 'gatekeeper')
+    if (!prep.ok) return prep.result
+    const { featureDir, cli: gatekeeperCli } = prep
 
     const args = ['drive', '--feature', featureDir]
     const run = await this.runWithAbort(gatekeeperCli, args)
@@ -319,6 +314,30 @@ export class OrkyActionDispatcher {
   }
 
   // ── shared helpers ───────────────────────────────────────────────────────────────────────────
+  /** The shared action prologue every `do*` method runs after its own request validation. The
+   *  security-layering ORDER here is deliberate and pinned (see the class doc): server-side
+   *  project-root allowlist (D3/REQ-004) -> server-side featureDir resolution (REQ-005; skipped only
+   *  for a project-level submitWork with no `feature` field) -> Orky CLI location (REQ-012). Error
+   *  strings and errorKinds are byte-identical to the per-action copies this helper replaced.
+   *  The overloads let a required-`feature` caller receive a non-optional `featureDir`. */
+  private prepare(projectRoot: string, feature: string, cliKind: OrkyCliKind): Promise<PrepareOutcome<string>>
+  private prepare(projectRoot: string, feature: string | undefined, cliKind: OrkyCliKind): Promise<PrepareOutcome<string | undefined>>
+  private async prepare(projectRoot: string, feature: string | undefined, cliKind: OrkyCliKind): Promise<PrepareOutcome<string | undefined>> {
+    const rootCheck = this.checkRoot(projectRoot)
+    if (!rootCheck.ok) return { ok: false, result: failure('root-not-allowed', rootCheck.error) }
+
+    let featureDir: string | undefined
+    if (feature !== undefined) {
+      const fdir = await this.resolveFeatureDir(projectRoot, feature)
+      if (!fdir.ok) return { ok: false, result: failure(fdir.errorKind, fdir.error) }
+      featureDir = fdir.featureDir
+    }
+
+    const cli = this.locateCli(cliKind)
+    if (!cli) return { ok: false, result: failure('orky-cli-not-found', describeMissingCli(cliKind)) }
+    return { ok: true, featureDir, cli }
+  }
+
   /** Membership test against `registry.roots()` (D3/REQ-004) — the SHARED `normalizeProjectRoot`
    *  comparison key (CONV-010), never a raw renderer argument, never pane-only membership. */
   private checkRoot(projectRoot: string): { ok: true } | { ok: false; error: string } {

@@ -28,6 +28,7 @@
 // The tests verify only that the code matches THIS embedded list; upstream drift is a manual data-update
 // follow-up (see docs/features/orky-status.md), never something a test can catch.
 import type { OrkyPhase, OrkyKind, OrkyReason, OrkyFeatureStatus, OrkyPaneStatus, OrkyHeartbeat } from './types'
+import { isPlainObject } from './guards'
 
 export type { OrkyPhase, OrkyKind, OrkyReason, OrkyFeatureStatus, OrkyPaneStatus, OrkyHeartbeat } from './types'
 
@@ -58,9 +59,9 @@ export const STALL_THRESHOLD_MS = 3_600_000
  *  finite and positive, else the canonical default). Total: any absent/malformed shape → the default,
  *  never a throw. */
 export function resolveStallThresholdMs(config: unknown): number {
-  if (!isObject(config)) return STALL_THRESHOLD_MS
+  if (!isPlainObject(config)) return STALL_THRESHOLD_MS
   const watchdog = (config as { watchdog?: unknown }).watchdog
-  if (!isObject(watchdog)) return STALL_THRESHOLD_MS
+  if (!isPlainObject(watchdog)) return STALL_THRESHOLD_MS
   const secs = Number((watchdog as { idle_threshold_seconds?: unknown }).idle_threshold_seconds)
   return Number.isFinite(secs) && secs > 0 ? secs * 1000 : STALL_THRESHOLD_MS
 }
@@ -86,10 +87,6 @@ export interface OrkyActive {
   lastTickAt?: string
 }
 
-function isObject(v: unknown): v is Record<string, unknown> {
-  return typeof v === 'object' && v !== null && !Array.isArray(v)
-}
-
 // ── Timezone-safe timestamp parsing (REQ-028 / FINDING-DET-001) ───────────────────────────────────
 /** Parse an Orky ISO timestamp to epoch ms timezone-safely: a tz-less ISO datetime (no `Z`/offset) is
  *  interpreted as UTC (NOT the machine-local zone that `Date.parse` would assume), so identical bytes
@@ -113,8 +110,8 @@ export function normalizeFindings(raw: unknown): OrkyFinding[] {
 
 /** Normalize a raw feature (state.json) value into a safe shape — never throws (REQ-019). */
 export function normalizeFeatureRaw(raw: unknown): OrkyFeatureRaw {
-  const o = isObject(raw) ? raw : {}
-  const gates = isObject(o.gates) ? (o.gates as Record<string, OrkyGate>) : {}
+  const o = isPlainObject(raw) ? raw : {}
+  const gates = isPlainObject(o.gates) ? (o.gates as Record<string, OrkyGate>) : {}
   const escalations = Array.isArray(o.escalations) ? (o.escalations as OrkyEscalation[]) : []
   return {
     feature: typeof o.feature === 'string' ? o.feature : '',
@@ -127,7 +124,7 @@ export function normalizeFeatureRaw(raw: unknown): OrkyFeatureRaw {
 // ── Gate N/M (REQ-001) ───────────────────────────────────────────────────────────────────────────
 /** Count the canonical phases whose gate has `passed === true`. Unknown keys ignored; total. */
 export function gateN(gates: Record<string, OrkyGate> | undefined | null): number {
-  if (!isObject(gates)) return 0
+  if (!isPlainObject(gates)) return 0
   let n = 0
   for (const p of ORKY_PHASES) if (gates[p]?.passed === true) n++
   return n
@@ -138,7 +135,7 @@ export function gateN(gates: Record<string, OrkyGate> | undefined | null): numbe
  *  highest-index canonical gate with `passed === true`. `{}`/malformed → `'brainstorm'`; all 8 passed →
  *  `null` (complete). Total; never throws (FINDING-DA-002 — the lagging `state.json.phase` is NOT used). */
 export function gateFrontier(gates: unknown): OrkyPhase | null {
-  if (!isObject(gates)) return ORKY_PHASES[0]
+  if (!isPlainObject(gates)) return ORKY_PHASES[0]
   let highest = -1
   for (let i = 0; i < ORKY_PHASES.length; i++) {
     const g = gates[ORKY_PHASES[i]] as OrkyGate | undefined
@@ -160,7 +157,7 @@ const BLOCKING_SEVERITY = new Set(['CRITICAL', 'HIGH'])
  *  mixed-case finding ("Open"/"high") from an older or hand-edited ledger still counts. Total on
  *  junk: a non-object / missing-field entry is simply not blocking, never a throw. */
 export function isBlockingFinding(f: unknown): boolean {
-  if (!isObject(f)) return false
+  if (!isPlainObject(f)) return false
   if (String(f.status).toLowerCase() !== 'open') return false
   return BLOCKING_SEVERITY.has(String(f.severity).toUpperCase()) || f.contract_violation === true
 }
@@ -240,7 +237,7 @@ export function orkyFeatureStatus(
   // needs-human is GATE-BASED (REQ-005): awaiting-human when every autonomous gate through doc-sync
   // passed and human-review is not yet passed; OR an open escalation; OR a stall. Priority
   // escalation > stalled > human-review. A complete feature is done → never needs-human.
-  const openEsc = f.escalations.find(e => isObject(e) && e.status === 'open')
+  const openEsc = f.escalations.find(e => isPlainObject(e) && e.status === 'open')
   const stalled = isStalled(isActive ? f.feature : null, f, activePhase, lastTickAt, now, thresholdMs)
   const autonomousAllPassed = ORKY_AUTONOMOUS_PHASES.every(p => f.gates[p]?.passed === true)
   const awaitingHuman = autonomousAllPassed && f.gates['human-review']?.passed !== true
@@ -350,7 +347,7 @@ function inPopover(f: OrkyFeatureStatus): boolean {
 
 /** Total + pure pane roll-up. The popover `features` exclude clean-done + idle, ranked by the selector. */
 export function orkyPaneStatus(features: OrkyFeatureStatus[] | undefined | null): OrkyPaneStatus {
-  const list = Array.isArray(features) ? features.filter(isObject) as OrkyFeatureStatus[] : []
+  const list = Array.isArray(features) ? features.filter(isPlainObject) as OrkyFeatureStatus[] : []
   // Select the chip from the SAME popover-eligible set the roll-up lists (FINDING-DA-007): ranking over
   // the full list could surface a clean-done feature that `inPopover` excludes, so the chip would name a
   // feature its own popover omits. When the eligible set is empty (e.g. an all-clean-done project sitting

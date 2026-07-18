@@ -7,14 +7,17 @@ import '@xterm/xterm/css/xterm.css'
 import { api } from '../api'
 import { DEFAULT_TERM_SCROLLBACK, type TerminalConfig } from '@shared/types'
 import { resolveTheme } from '@shared/theme'
-import { nextFontSize } from '@shared/font-zoom'
 import { matchShortcut, resolveBindings } from '@shared/keymap'
 import { useStore, paneCwd } from '../store'
 import { domainAllowed } from '../store/remote-gates'
 import { useResolvedPaneTheme } from '../use-resolved-theme'
-import { handleClipboardKey, normalizeCopiedText } from './terminal-clipboard'
+import { normalizeCopiedText } from './terminal-clipboard'
 import { registerSerializer, unregisterSerializer, consumeSnapshot, registerFocuser, unregisterFocuser, registerRedrawer, unregisterRedrawer, registerRespawner, unregisterRespawner, respawnPane, registerClearer, unregisterClearer, registerFindOpener, unregisterFindOpener } from './terminal-registry'
 import { SURFACE } from './Modal'
+import {
+  setupAutoResume, setupClipboard, setupCopyOnSelect, setupMiddleClickPaste, setupDragDrop,
+  setupVisualBell, setupNewOutputPill, setupWheelZoom, setupAltScreenRepaint
+} from './terminal-pane-setup'
 import { redraw } from './redraw'
 import { syncGrid, type GridSyncDeps } from './grid-sync'
 import { shouldAutoResumeClaude } from '../store/pane-ops'
@@ -24,17 +27,8 @@ import { stashReveal } from '../editor/reveal'
 /** Scrollback lines captured when serializing a terminal for a window-handoff replay. */
 const HANDOFF_SCROLLBACK_LINES = 1000
 
-/** How long the visual-bell border flash stays visible. */
-const BELL_FLASH_MS = 450
-
 /** Quiet window after the last resize before we repaint xterm once, so a drag doesn't repaint per frame. */
 const RESIZE_SETTLE_MS = 150
-
-/** Output-quiet window after a restored shell's prompt before auto-typing `claude --resume`. */
-const RESUME_QUIET_MS = 700
-
-/** Output-quiet window after entering the alternate screen (tmux/TUI launch) before a one-shot repaint. */
-const ALT_SCREEN_REFRESH_MS = 200
 
 /** Bind `syncGrid`'s injected side effects to this pane. Module-level (not a hook) so both fit sites
  *  — the ResizeObserver and the font/theme effect — can share it without perturbing either effect's
@@ -90,7 +84,9 @@ export function TerminalPane({ paneId, wsId, config }: { paneId: string; wsId: s
     // (e.g. its workspace is mid-switch), and requestPaneFocus retries until it sticks.
     registerFocuser(paneId, () => { term.focus(); return document.activeElement === term.textarea })
     termRef.current = term; fitRef.current = fit
-    term.open(hostRef.current!)
+    // The one host element every listener-wiring setup below shares (and unwires from on dispose).
+    const host = hostRef.current!
+    term.open(host)
     fit.fit()
     // The spawn below carries this grid, so it is what the PTY knows. (On ADOPTION main reconciles
     // the live pty to it — see needsGridReconcile — because the pty still carries its old tile's grid.)
@@ -131,144 +127,66 @@ export function TerminalPane({ paneId, wsId, config }: { paneId: string; wsId: s
     // command would land as a prompt into the live agent. The gate needs BOTH re-adoption signals:
     // `restored` (the renderer stash) covers same-window moves, but in a multi-window undock the
     // destination renderer has no stash — the snapshot rides main's transit buffer — so only main's
-    // spawn result (`adopted` = pty.has) knows it's a re-adoption there. `wantResume` stays false
-    // until the spawn resolves; data arriving meanwhile just no-ops scheduleResume, and the kick
-    // after resolution (re-armed by each later chunk) starts the quiet timer.
-    let wantResume = false
-    let resumeTimer: ReturnType<typeof setTimeout> | undefined
-    let resumed = false
-    const scheduleResume = () => {
-      if (!wantResume || resumed) return
-      if (resumeTimer) clearTimeout(resumeTimer)
-      resumeTimer = setTimeout(() => { resumed = true; api.ptyWrite({ id: paneId, data: 'claude --resume\r' }) }, RESUME_QUIET_MS)
-    }
+    // spawn result (`adopted` = pty.has) knows it's a re-adoption there. The armed want-resume flag
+    // stays false until the spawn resolves; data arriving meanwhile just no-ops the quiet timer, and
+    // the kick after resolution (re-armed by each later chunk) starts it (mechanics in setupAutoResume).
+    const autoResume = setupAutoResume({ typeResume: () => api.ptyWrite({ id: paneId, data: 'claude --resume\r' }) })
     void spawned.then((adopted) => {
       if (disposed) return
-      wantResume = shouldAutoResumeClaude({
+      autoResume.arm(shouldAutoResumeClaude({
         resumeAi: config.resumeAi,
         autoResumeEnabled: useStore.getState().quick.autoResumeClaude !== false,
         adoptedLivePty: !!adopted,
         consumedSnapshot: !!restored,
-      })
-      scheduleResume()
+      }))
     })
 
     const offData = api.onPtyData((id, data) => {
       if (id !== paneId) return
-      // atBottom/setNewOutput are declared below in this effect — callbacks only run after the
-      // effect body has completed, so the reference is safe. Same-value setState bails out, so
+      // pill (atBottom/setNewOutput) is declared below in this effect — callbacks only run after
+      // the effect body has completed, so the reference is safe. Same-value setState bails out, so
       // this costs nothing per chunk while the user is at the bottom.
-      if (!atBottom()) setNewOutput(true)
-      term.write(data); scheduleResume()
+      if (!pill.atBottom()) setNewOutput(true)
+      term.write(data); autoResume.onData()
     })
     const offExit = api.onPtyExit((id) => { if (id === paneId && !disposed) term.write('\r\n[process exited]\r\n') })
     const inputDisp = term.onData(d => api.ptyWrite({ id: paneId, data: d }))
 
-    // Clipboard: Ctrl(+Shift)+C copies a selection (else ^C falls through), Ctrl(+Shift)+V /
-    // right-click / middle-click paste. Paste goes through term.paste() so it honors bracketed-
-    // paste mode (multi-line pastes into a shell or TUI don't auto-run); when the program has NOT
-    // enabled bracketed paste, a multi-line paste runs line-by-line — confirm it first.
-    const paste = async () => {
-      const text = await api.clipboardRead()
-      if (!text) return
-      const lines = text.split('\n').length
-      if (lines > 1 && !term.modes.bracketedPasteMode
-          && !window.confirm(`Paste ${lines} lines? Bracketed paste is off, so each line will run as it lands.`)) return
-      term.paste(text)
-    }
     // Clean up a terminal selection before it hits the clipboard (reflow TUI-wrapped lines, trim/
-    // collapse blanks) unless the cleanCopy setting is off. Default on.
+    // collapse blanks) unless the cleanCopy setting is off. Default on. Shared by the clipboard
+    // keys and copy-on-select.
     const cleanSel = (s: string) =>
       useStore.getState().quick.cleanCopy === false ? s : normalizeCopiedText(s)
-    term.attachCustomKeyEventHandler(e => {
-      // Let app-global shortcuts (command palette, workspace switch, …) reach App's window-level
-      // keydown handler instead of being consumed by the terminal. xterm otherwise swallows e.g.
-      // Ctrl+K when a terminal is focused — which, now that new panes auto-focus, would be most of
-      // the time. Returning false makes xterm ignore the key without preventing/stopping it, so the
-      // original event still bubbles to window. Only keydown matches; keyup/press fall through.
-      if (e.type === 'keydown' && matchShortcut(e, resolveBindings(useStore.getState().quick.keybindings))) return false
-      // handleClipboardKey calls e.preventDefault() for copy/paste so the browser's native
-      // copy/paste DOM event doesn't ALSO fire xterm's built-in handler (which double-pastes).
-      return handleClipboardKey(e, term.hasSelection(), {
-        copy: () => { api.clipboardWrite(cleanSel(term.getSelection())); term.clearSelection() },
-        paste: () => { void paste() }
-      })
+    // Clipboard keys + right-click paste (rationale + the bracketed-paste confirm in setupClipboard).
+    const clipboard = setupClipboard(term, host, {
+      readClipboard: () => api.clipboardRead(),
+      writeClipboard: (t) => api.clipboardWrite(t),
+      cleanCopy: cleanSel,
+      isAppShortcut: (e) => !!matchShortcut(e, resolveBindings(useStore.getState().quick.keybindings))
     })
-    const onContextMenu = (e: MouseEvent) => { e.preventDefault(); void paste() }
-    hostRef.current!.addEventListener('contextmenu', onContextMenu)
-
-    // Copy-on-select: the instant a selection gesture ends (mouseup after a drag or multi-click),
-    // copy it to the clipboard — BEFORE incoming terminal output can clear the xterm selection out
-    // from under a later Ctrl+C (in a live pane, e.g. Claude printing, that race is what made copy
-    // "sometimes" fail). Ctrl+C stays as a manual copy/interrupt. The selection is left intact (not
-    // cleared) so it stays visible and re-copyable. Gated by the copyOnSelect setting (default on).
-    const onMouseUp = () => {
-      if (useStore.getState().quick.copyOnSelect === false) return
-      const sel = term.getSelection()
-      if (sel) api.clipboardWrite(cleanSel(sel))
-    }
-    hostRef.current!.addEventListener('mouseup', onMouseUp)
-
-    // Middle-click pastes (the X11/terminal-emulator convention; sourced from the clipboard —
-    // Chromium has no primary-selection buffer).
-    const onAuxClick = (e: MouseEvent) => { if (e.button === 1) { e.preventDefault(); void paste() } }
-    hostRef.current!.addEventListener('auxclick', onAuxClick)
-
-    // Dropping files pastes their quoted paths; dropping text pastes the text. preventDefault on
-    // dragover is what makes the drop land here instead of Electron navigating to the file.
-    const onDragOver = (e: DragEvent) => { e.preventDefault() }
-    const onDrop = (e: DragEvent) => {
-      e.preventDefault()
-      const dt = e.dataTransfer
-      if (!dt) return
-      const files = Array.from(dt.files ?? [])
-      if (files.length) {
-        const paths = files.map(f => api.pathForFile(f)).filter(Boolean)
-          .map(p => /\s/.test(p) ? `"${p}"` : p)
-        if (paths.length) { term.paste(paths.join(' ')); term.focus() }
-        return
-      }
-      const text = dt.getData('text/plain')
-      if (text) { term.paste(text); term.focus() }
-    }
-    hostRef.current!.addEventListener('dragover', onDragOver)
-    hostRef.current!.addEventListener('drop', onDrop)
-
-    // Visual bell: BEL used to be silently dropped — flash a paint-only inset border (an overlay,
-    // never a box change — the ConPTY-repaint gotcha).
-    let bellTimer: ReturnType<typeof setTimeout> | undefined
-    const bellDisp = term.onBell(() => {
-      setBell(true)
-      if (bellTimer) clearTimeout(bellTimer)
-      bellTimer = setTimeout(() => setBell(false), BELL_FLASH_MS)
+    const offCopyOnSelect = setupCopyOnSelect(term, host, {
+      enabled: () => useStore.getState().quick.copyOnSelect !== false,
+      writeClipboard: (t) => api.clipboardWrite(t),
+      cleanCopy: cleanSel
     })
+    const offMiddlePaste = setupMiddleClickPaste(host, clipboard.paste)
+    const offDragDrop = setupDragDrop(term, host, { pathForFile: (f) => api.pathForFile(f) })
+
+    const offBell = setupVisualBell(term, { setBell })
 
     // OSC 0/2 window title (e.g. ssh's user@host, vim's filename) → the pane chrome, unless the
     // user set a manual name (PaneTile falls back config.name ?? oscTitle ?? kind).
     const titleDisp = term.onTitleChange(t => useStore.getState().setOscTitle(paneId, t))
 
-    // "New output ▼" pill: when the user has scrolled up to read history and fresh output lands
-    // below, give them a cue + a one-click jump back. DOM scroll position is the ground truth.
-    const viewportEl = hostRef.current!.querySelector('.xterm-viewport') as HTMLElement | null
-    const atBottom = () => !viewportEl || viewportEl.scrollTop + viewportEl.clientHeight >= viewportEl.scrollHeight - 4
-    const onViewportScroll = () => { if (atBottom()) setNewOutput(false) }
-    viewportEl?.addEventListener('scroll', onViewportScroll)
+    const pill = setupNewOutputPill(host, { setNewOutput })
 
     // Registry hooks for the clear-terminal and find-in-terminal commands (palette + chords).
     registerClearer(paneId, () => term.clear())
     registerFindOpener(paneId, () => { setFindOpen(true); findInputRef.current?.focus() })
 
-    // Ctrl/Cmd + wheel zooms the terminal font (like editors/browsers). Capture phase + stop so
-    // xterm doesn't also scroll the buffer; writes the global termFontSize, which the theme effect
-    // below re-applies and re-fits across every terminal. passive:false so preventDefault sticks.
-    const onWheel = (e: WheelEvent) => {
-      if (!(e.ctrlKey || e.metaKey)) return
-      e.preventDefault(); e.stopPropagation()
-      const cur = term.options.fontSize ?? 13
-      const next = nextFontSize(cur, e.deltaY)
-      if (next !== cur) useStore.getState().setTheme({ termFontSize: next })
-    }
-    hostRef.current!.addEventListener('wheel', onWheel, { passive: false, capture: true })
+    const offWheelZoom = setupWheelZoom(term, host, {
+      setTermFontSize: (next) => useStore.getState().setTheme({ termFontSize: next })
+    })
 
     // Repaint xterm from its own buffer — fixes xterm-side render glitches WITHOUT changing the grid,
     // so it can never desync xterm's size from the remote (which would jumble a TUI like tmux).
@@ -323,24 +241,8 @@ export function TerminalPane({ paneId, wsId, config }: { paneId: string; wsId: s
       }
     })
 
-    // tmux/vim/less… switch to the alternate screen when they launch; under xterm's DOM renderer that
-    // first full-screen frame occasionally draws garbled (a known renderer miss that a repaint cures
-    // — the same thing the manual Redraw does; subsequent frames are fine). So when we enter the
-    // alternate buffer, repaint once after the initial draw settles. Over ssh the remote tmux isn't in
-    // the local process tree, but the alt-screen switch IS in the byte stream xterm parses, so this
-    // catches it. Re-arms on each alt entry (detach/reattach, another TUI); harmless no-op otherwise.
-    let altPending = false
-    let altTimer: ReturnType<typeof setTimeout> | undefined
-    const bumpAlt = () => {
-      if (!altPending) return
-      if (altTimer) clearTimeout(altTimer)
-      altTimer = setTimeout(() => { altPending = false; repaint() }, ALT_SCREEN_REFRESH_MS)
-    }
-    const offBufferChange = term.buffer.onBufferChange(b => {
-      if (b.type === 'alternate') { altPending = true; bumpAlt() }
-      else { altPending = false; if (altTimer) clearTimeout(altTimer) }
-    })
-    const offWriteParsed = term.onWriteParsed(() => bumpAlt())  // debounce the one-shot until output quiets
+    // Alt-screen one-shot repaint (rationale + the debounce mechanics in setupAltScreenRepaint).
+    const offAltRepaint = setupAltScreenRepaint(term, { repaint })
 
     let settle: ReturnType<typeof setTimeout> | undefined
     const ro = new ResizeObserver(() => {
@@ -353,17 +255,18 @@ export function TerminalPane({ paneId, wsId, config }: { paneId: string; wsId: s
       if (settle) clearTimeout(settle)
       settle = setTimeout(repaint, RESIZE_SETTLE_MS)
     })
-    ro.observe(hostRef.current!)
+    ro.observe(host)
 
     return () => {
+      // The pre-extraction teardown order, with each concern's lines grouped into its own dispose
+      // (every grouped step is an independent listener/timer removal, so the grouping is inert).
       disposed = true
-      hostRef.current?.removeEventListener('contextmenu', onContextMenu)
-      hostRef.current?.removeEventListener('mouseup', onMouseUp)
-      hostRef.current?.removeEventListener('auxclick', onAuxClick)
-      hostRef.current?.removeEventListener('dragover', onDragOver)
-      hostRef.current?.removeEventListener('drop', onDrop)
-      viewportEl?.removeEventListener('scroll', onViewportScroll)
-      hostRef.current?.removeEventListener('wheel', onWheel, { capture: true } as EventListenerOptions)
+      clipboard.dispose()   // contextmenu
+      offCopyOnSelect()     // mouseup
+      offMiddlePaste()      // auxclick
+      offDragDrop()         // dragover + drop
+      pill.dispose()        // viewport scroll
+      offWheelZoom()        // wheel (capture)
       unregisterSerializer(paneId)
       unregisterFocuser(paneId)
       unregisterRedrawer(paneId)
@@ -371,11 +274,10 @@ export function TerminalPane({ paneId, wsId, config }: { paneId: string; wsId: s
       unregisterClearer(paneId)
       unregisterFindOpener(paneId)
       if (settle) clearTimeout(settle)
-      if (resumeTimer) clearTimeout(resumeTimer)
-      if (altTimer) clearTimeout(altTimer)
-      if (bellTimer) clearTimeout(bellTimer)
-      bellDisp.dispose(); titleDisp.dispose()
-      offBufferChange.dispose(); offWriteParsed.dispose()
+      autoResume.dispose()  // the resume quiet timer
+      offAltRepaint()       // the alt timer + both parser subscriptions
+      offBell()             // the bell flash timer + onBell
+      titleDisp.dispose()
       linksDisposer.dispose()
       ro.disconnect(); inputDisp.dispose(); offData(); offExit(); term.dispose()
       termRef.current = null; fitRef.current = null; searchRef.current = null

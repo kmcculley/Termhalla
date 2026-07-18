@@ -4,6 +4,7 @@ import { StatusTracker } from './status-tracker'
 import { DEFAULT_NEEDS_INPUT_PATTERNS, type NeedsInputConfig } from './needs-input'
 import { CwdParser } from './cwd-parser'
 import { OrkyOscParser, type OrkyHeartbeat } from './orky-osc-parser'
+import { startUnrefedInterval, type ManagedTimer } from '../managed-interval'
 
 interface Session {
   parser: Osc133Parser
@@ -27,7 +28,7 @@ function defaultConfig(): NeedsInputConfig {
 
 export class StatusEngine {
   private sessions = new Map<string, Session>()
-  private timer: ReturnType<typeof setInterval> | null = null
+  private timer: ManagedTimer | null = null
 
   constructor(
     private readonly onStatus: (id: string, status: TerminalStatus) => void,
@@ -92,18 +93,17 @@ export class StatusEngine {
 
   private ensureTimer(): void {
     if (this.timer) return
-    this.timer = setInterval(() => {
+    this.timer = startUnrefedInterval(() => {
       const t = this.now()
       for (const id of this.sessions.keys()) {
         this.sessions.get(id)!.tracker.tick(t)
         this.emit(id)
       }
     }, 500)
-    ;(this.timer as { unref?: () => void }).unref?.()
   }
 
   private stopTimer(): void {
-    if (this.timer) { clearInterval(this.timer); this.timer = null }
+    if (this.timer) { this.timer.stop(); this.timer = null }
   }
 
   private emit(id: string): void {

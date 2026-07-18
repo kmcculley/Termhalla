@@ -21,6 +21,12 @@ export function createPreviewSlice({ set, get }: SliceDeps): PreviewSlice {
         set(s => ({ preview: res.ok
           ? { ...s.preview, status: 'ready', dataUrl: res.dataUrl }
           : { ...s.preview, status: 'error', error: res.error } }))
+      }).catch((err: unknown) => {
+        // A rejected invoke (handler throw, window teardown) must not strand the lightbox on
+        // 'loading' forever or surface as an unhandled rejection (2026-07-17 audit Finding 24a) —
+        // the same source-guarded transition as the .then, to the error state.
+        if (!sameSource(get().preview.source, source) || !get().preview.open) return
+        set(s => ({ preview: { ...s.preview, status: 'error', error: err instanceof Error ? err.message : String(err) } }))
       })
     },
     closeImagePreview: () => set({ preview: CLOSED })

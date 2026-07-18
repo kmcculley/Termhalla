@@ -115,7 +115,11 @@ export class OrkyRegistry {
     if (root !== null) {
       const canonical = this.resolveCanonical(root)
       this.paneRoots.set(paneId, canonical)
-      void this.engine.addConsumer(`pane:${paneId}`, join(canonical, '.orky'))
+      // .catch: fire-and-forget — an unexpected addConsumer rejection must never become an unhandled
+      // rejection that kills the main process (Node 22 --unhandled-rejections=throw).
+      void this.engine.addConsumer(`pane:${paneId}`, join(canonical, '.orky')).catch((err) => {
+        console.warn('[orky-registry] addConsumer failed:', err instanceof Error ? err.message : String(err))
+      })
     }
     // Prune the departed root's cached status AFTER the (possible) re-add above, so a pane merely
     // re-resolving the SAME root keeps its live status; a root that genuinely left both membership

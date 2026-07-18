@@ -3,6 +3,7 @@ import type { CloudProvider } from './providers'
 import { resolveProviders as defaultResolveProviders } from './providers'
 import { classifyProbe, type ProbeResult } from './classify'
 import { runCliProbe } from './probe'
+import { startUnrefedInterval, type ManagedTimer } from '../managed-interval'
 
 type RunProbe = (provider: CloudProvider, signal?: AbortSignal) => Promise<ProbeResult>
 
@@ -12,7 +13,7 @@ type RunProbe = (provider: CloudProvider, signal?: AbortSignal) => Promise<Probe
 export class CloudStatusService {
   private last = new Map<string, CloudStatus>()
   private lastSig = ''
-  private timer: ReturnType<typeof setInterval> | null = null
+  private timer: ManagedTimer | null = null
   private refreshing = false
   private abort = new AbortController()
   private current: CloudProvider[] = []
@@ -28,12 +29,11 @@ export class CloudStatusService {
   start(): void {
     if (this.timer) return
     void this.refresh()
-    this.timer = setInterval(() => { void this.refresh() }, this.intervalMs)
-    ;(this.timer as { unref?: () => void }).unref?.()
+    this.timer = startUnrefedInterval(() => { void this.refresh() }, this.intervalMs)
   }
 
   stop(): void {
-    if (this.timer) { clearInterval(this.timer); this.timer = null }
+    if (this.timer) { this.timer.stop(); this.timer = null }
     // Kill any in-flight probe child so a slow CLI can't keep the main process alive
     // and stall app shutdown; arm a fresh controller for any later restart.
     this.abort.abort()

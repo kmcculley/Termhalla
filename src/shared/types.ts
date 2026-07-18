@@ -379,7 +379,15 @@ export interface WindowState {
 }
 
 export interface DirEntry { name: string; path: string; isDir: boolean }
-export interface ReadResult { content: string; tooLarge: boolean }
+/** Discriminated fsRead result (2026-07 quality audit, finding 27). Failures are classified
+ *  structurally in main (by `err.code`) instead of the renderer regexing an IPC-serialized
+ *  error message: only a real not-found may render a tab as "(deleted)"; every other failure
+ *  (permissions, transient I/O, …) is a distinct 'error' the UI must not misreport. */
+export type ReadResult =
+  | { kind: 'ok'; content: string; tooLarge: boolean }
+  | { kind: 'binary' }                  // exists but has NUL bytes — can't display
+  | { kind: 'not-found' }               // ENOENT/ENOTDIR — the path really isn't there
+  | { kind: 'error'; message: string }  // unknown failure — the file may well exist
 export interface StatResult { size: number; mtimeMs: number; isDir: boolean }
 export type FsEvent = 'add' | 'unlink' | 'change' | 'addDir' | 'unlinkDir'
 export interface FsChange { event: FsEvent; path: string }

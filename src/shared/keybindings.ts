@@ -10,51 +10,30 @@
 export interface Chord { mod: boolean; shift: boolean; key: string; alt?: boolean }
 
 /** The dispatched shortcut. `type` for the rebindable commands equals their CommandId, so the
- *  App.tsx dispatch switch is unchanged. `jump-workspace` is parametric and non-rebindable. */
+ *  App.tsx dispatch switch is unchanged. `jump-workspace` is parametric and non-rebindable.
+ *  The non-parameterized arm is BUILT FROM CommandId (itself derived from the COMMANDS registry
+ *  below), so the shortcut/command/registry vocabularies can never drift. */
 export type Shortcut =
-  | { type: 'toggle-palette' }
-  | { type: 'toggle-broadcast' }
-  | { type: 'new-terminal' }
-  | { type: 'close-workspace' }
-  | { type: 'next-workspace' }
-  | { type: 'prev-workspace' }
+  | { [K in CommandId]: { type: K } }[CommandId]
   | { type: 'jump-workspace'; index: number }
-  | { type: 'open-settings' }
-  | { type: 'toggle-maximize-pane' }
-  | { type: 'toggle-minimize-pane' }
-  | { type: 'toggle-notes' }
-  | { type: 'toggle-search' }
-  | { type: 'redraw-terminal' }
-  | { type: 'toggle-orky-queue' }
-  | { type: 'capture-orky-work' }
-  | { type: 'close-pane' }
-  | { type: 'focus-pane-left' }
-  | { type: 'focus-pane-right' }
-  | { type: 'focus-pane-up' }
-  | { type: 'focus-pane-down' }
-  | { type: 'restore-last-minimized' }
-  | { type: 'font-zoom-in' }
-  | { type: 'font-zoom-out' }
-  | { type: 'font-zoom-reset' }
-  | { type: 'clear-terminal' }
-  | { type: 'find-in-terminal' }
 
-export type CommandId =
-  | 'toggle-palette' | 'toggle-broadcast' | 'new-terminal' | 'close-workspace'
-  | 'next-workspace' | 'prev-workspace' | 'open-settings' | 'toggle-maximize-pane'
-  | 'toggle-minimize-pane' | 'toggle-notes' | 'toggle-search' | 'redraw-terminal'
-  | 'toggle-orky-queue' | 'capture-orky-work'
-  | 'close-pane' | 'focus-pane-left' | 'focus-pane-right' | 'focus-pane-up' | 'focus-pane-down'
-  | 'restore-last-minimized' | 'font-zoom-in' | 'font-zoom-out' | 'font-zoom-reset'
-  | 'clear-terminal' | 'find-in-terminal'
+/** Derived from the COMMANDS registry — the single source of the command vocabulary. */
+export type CommandId = (typeof COMMANDS_TABLE)[number]['id']
 
 export interface Command { id: CommandId; label: string; category: string; defaultChord: Chord; tip?: string }
+
+/** The registry element shape `COMMANDS` is checked against. Structurally identical to `Command`
+ *  but with a wide `id: string` — the `satisfies` target cannot reference `CommandId` (which is
+ *  itself derived from the registry). */
+interface CommandSpec { id: string; label: string; category: string; defaultChord: Chord; tip?: string }
 
 const c = (mod: boolean, shift: boolean, key: string): Chord => ({ mod, shift, key })
 const ca = (key: string): Chord => ({ mod: true, shift: false, alt: true, key })
 
-/** The rebindable commands. `tip` (when present) is the phrase used in status-bar tips. */
-export const COMMANDS: Command[] = [
+/** The registry table. `as const` narrows each `id` to its literal so `CommandId`/`Shortcut`
+ *  derive from it; the exported `COMMANDS` below is its uniformly `Command`-typed view (checked
+ *  assignment, no cast). */
+const COMMANDS_TABLE = [
   { id: 'toggle-palette',       label: 'Command palette',    category: 'General',    defaultChord: c(true, false, 'k'),    tip: 'open the command palette' },
   { id: 'new-terminal',         label: 'New terminal pane',  category: 'Panes',      defaultChord: c(true, true, 't'),     tip: 'open a new pane' },
   { id: 'toggle-maximize-pane', label: 'Maximize pane',      category: 'Panes',      defaultChord: c(true, true, 'm'),     tip: 'maximize the focused pane' },
@@ -87,7 +66,10 @@ export const COMMANDS: Command[] = [
   { id: 'font-zoom-reset',      label: 'Terminal font reset',     category: 'Panes', defaultChord: ca('0') },
   { id: 'clear-terminal',       label: 'Clear terminal scrollback', category: 'Panes', defaultChord: c(true, true, 'k'), tip: 'clear the terminal and its scrollback' },
   { id: 'find-in-terminal',     label: 'Find in terminal',        category: 'Panes', defaultChord: c(true, true, 'g'), tip: 'search within this terminal' },
-]
+] as const satisfies readonly CommandSpec[]
+
+/** The rebindable commands. `tip` (when present) is the phrase used in status-bar tips. */
+export const COMMANDS: readonly Command[] = COMMANDS_TABLE
 
 /** Canonical, JSON-storable, comparable key for a chord, e.g. "mod+shift+t" / "mod+alt+arrowleft". */
 export function chordKey(ch: Chord): string {
@@ -126,6 +108,9 @@ export function formatChord(ch: Chord): string {
   return [ch.mod ? 'Ctrl' : '', ch.alt ? 'Alt' : '', ch.shift ? 'Shift' : '', key].filter(Boolean).join('+')
 }
 
+/** Provably safe by derivation: `CommandId` IS `(typeof COMMANDS_TABLE)[number]['id']`, so every
+ *  CommandId has exactly one registry entry and this fromEntries covers the full record — the
+ *  cast can no longer hide a CommandId with no COMMANDS entry (the pre-refactor drift hazard). */
 export const DEFAULT_BINDINGS: Record<CommandId, Chord> =
   Object.fromEntries(COMMANDS.map(cmd => [cmd.id, cmd.defaultChord])) as Record<CommandId, Chord>
 

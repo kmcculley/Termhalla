@@ -22,10 +22,8 @@
  *    announces ws-keyed metadata (with `proto`), wires `daemon-lifecycle.ts` to real timers +
  *    SIGTERM, and runs the shared, OWNERSHIP-CHECKED cleanup on idle or signal.
  */
-import { createServer, connect as netConnect, type Server, type Socket } from 'node:net'
-import {
-  existsSync, readFileSync, writeFileSync, unlinkSync
-} from 'node:fs'
+import { createServer, type Server, type Socket } from 'node:net'
+import { writeFileSync, appendFileSync, unlinkSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import {
   createFrameDecoder, encodeFrame, createDaemonAgentHandshake, AGENT_V1_CAPABILITIES, WIRE_PROTO
@@ -39,9 +37,10 @@ import {
   socketFileName, metadataFileName, logFileName, DAEMON_LOG_MAX_BYTES
 } from './daemon-constants'
 import {
-  decideDaemonReach, buildDaemonMetadata, validateDaemonMetadata, checkSocketPathLength,
+  decideDaemonReach, checkSocketPathLength, bindWithRestrictiveUmask, writeDaemonMetadata,
   type DaemonMetadataInput
 } from './daemon-guard'
+import { isAlive, delay, readDaemonMetadata, tryConnectOnce } from './daemon-io'
 import { createDaemonLifecycle } from './daemon-lifecycle'
 
 // ─────────────────────────────────────────────────────────────────────────────────────────────
@@ -68,7 +67,12 @@ export type BootstrapDaemonEndpointResult = { ok: true } | { ok: false; message:
 /** POSIX order EXACTLY umask(0o077) → listen → umask(prior) → write(metadata, 0600): the socket
  *  is CREATED owner-only by the restrictive umask in force during the bind, so no wider-mode
  *  window can exist by construction (FINDING-005). Metadata existence therefore implies a bound,
- *  owner-only listener at write time (REQ-003). */
+ *  owner-only listener at write time (REQ-003).
+ *
+ *  Audit 2026-07-17 finding 9: the discipline itself lives in `daemon-guard.ts`
+ *  (`bindWithRestrictiveUmask` + `writeDaemonMetadata`) — the SAME implementations the
+ *  production bind path (`listenOnce` / `runDaemon`) runs, so the frozen seam tests exercise the
+ *  production unit, not a lookalike copy (the FINDING-022 unification, extended). */
 export const bootstrapDaemonEndpoint = async (
   input: BootstrapDaemonEndpointInput
 ): Promise<BootstrapDaemonEndpointResult> => {
@@ -78,18 +82,8 @@ export const bootstrapDaemonEndpoint = async (
   // the production bind path below.
   const pathErr = checkSocketPathLength(socketPath, seams.platform)
   if (pathErr) return { ok: false, message: pathErr.message }
-  if (seams.platform !== 'win32') {
-    const prior = seams.umask(0o077)
-    try {
-      await seams.listen(socketPath)
-    } finally {
-      seams.umask(prior)
-    }
-  } else {
-    await seams.listen(socketPath)
-  }
-  const full = buildDaemonMetadata(metadata)
-  await seams.writeFile(metadataPath, JSON.stringify(full), 0o600)
+  await bindWithRestrictiveUmask(seams.platform, seams.umask, () => seams.listen(socketPath))
+  await writeDaemonMetadata(seams.writeFile, metadataPath, metadata)
   return { ok: true }
 }
 
@@ -101,12 +95,22 @@ export interface DaemonLogSink {
   append(text: string): void
 }
 
-/** Construction truncates the previous generation's log (CONV-003). Each append ring-truncates the
- *  in-memory buffer so the file NEVER exceeds `maxBytes`, while the most recent diagnostics survive
- *  (FINDING-010/015). Best-effort — a broken diagnostics sink never crashes the daemon. NEVER
- *  routes PTY payload bytes (the caller only feeds diagnostics). */
+/** Construction truncates the previous generation's log (CONV-003). Appends never grow the file
+ *  past `maxBytes`, while the most recent diagnostics survive (FINDING-010/015). Best-effort — a
+ *  broken diagnostics sink never crashes the daemon. NEVER routes PTY payload bytes (the caller
+ *  only feeds diagnostics).
+ *
+ *  Audit 2026-07-17 finding 34: appends are INCREMENTAL (`appendFileSync` of just the new line,
+ *  the on-disk size tracked) — the previous sink synchronously rewrote the whole capped buffer
+ *  (up to `maxBytes`) on EVERY line, on the daemon's serving event loop, and its trim loop
+ *  re-measured the whole buffer per dropped line (O(n²)). The retained ring is kept as whole
+ *  lines with a running byte total; the file is compacted (truncate-and-rewrite of the ring)
+ *  ONLY when an append would cross the cap, so the file never exceeds `maxBytes`. */
 export const createDaemonLogSink = (logPath: string, maxBytes: number = DAEMON_LOG_MAX_BYTES): DaemonLogSink => {
-  let buf = ''
+  const lines: string[] = []
+  const sizes: number[] = []
+  let ringBytes = 0
+  let diskBytes = 0
   try {
     writeFileSync(logPath, '')
   } catch {
@@ -114,19 +118,36 @@ export const createDaemonLogSink = (logPath: string, maxBytes: number = DAEMON_L
   }
   return {
     append(text: string): void {
-      buf += `${new Date().toISOString()} ${text}\n`
-      // Ring-truncate: drop whole oldest lines first; a single oversize line keeps its tail.
-      while (Buffer.byteLength(buf, 'utf8') > maxBytes) {
-        const nl = buf.indexOf('\n')
-        if (nl >= 0 && nl < buf.length - 1) {
-          buf = buf.slice(nl + 1)
-        } else {
-          buf = buf.slice(Math.max(0, buf.length - maxBytes))
-          break
+      let line = `${new Date().toISOString()} ${text}\n`
+      let bytes = Buffer.byteLength(line, 'utf8')
+      if (bytes > maxBytes) {
+        // A single oversize line keeps its tail — byte-measured, so the cap invariant holds even
+        // when the cut lands mid-multibyte-sequence (re-encoded replacement chars can regrow it).
+        line = Buffer.from(line, 'utf8').subarray(bytes - maxBytes).toString('utf8')
+        bytes = Buffer.byteLength(line, 'utf8')
+        while (bytes > maxBytes && line.length > 0) {
+          line = line.slice(1)
+          bytes = Buffer.byteLength(line, 'utf8')
         }
       }
+      // Ring-truncate: drop whole oldest lines first (incremental byte bookkeeping — never a
+      // whole-buffer re-measure).
+      while (lines.length > 0 && ringBytes + bytes > maxBytes) {
+        ringBytes -= sizes.shift() ?? 0
+        lines.shift()
+      }
+      lines.push(line)
+      sizes.push(bytes)
+      ringBytes += bytes
       try {
-        writeFileSync(logPath, buf)
+        if (diskBytes + bytes > maxBytes) {
+          // The cap would be crossed: one compaction — rewrite the retained ring (≤ maxBytes).
+          writeFileSync(logPath, lines.join(''))
+          diskBytes = ringBytes
+        } else {
+          appendFileSync(logPath, line)
+          diskBytes += bytes
+        }
       } catch {
         /* best-effort */
       }
@@ -298,28 +319,6 @@ export const createDaemonCore = (init: DaemonCoreInit): DaemonCore => {
 // runDaemon — the real `--daemon` process entry (REQ-004/005/006/007/018)
 // ─────────────────────────────────────────────────────────────────────────────────────────────
 
-const delay = (ms: number): Promise<void> => new Promise((resolve) => setTimeout(resolve, ms))
-
-const isAlive = (pid: number): boolean => {
-  try {
-    process.kill(pid, 0)
-    return true
-  } catch (e) {
-    return (e as NodeJS.ErrnoException).code === 'EPERM'
-  }
-}
-
-const readMetadataSafe = (metadataPath: string): { pid: number; version: string; backend: string } | null => {
-  try {
-    if (!existsSync(metadataPath)) return null
-    const raw: unknown = JSON.parse(readFileSync(metadataPath, 'utf8'))
-    const r = validateDaemonMetadata(raw)
-    return r.ok ? { pid: r.meta.pid, version: r.meta.version, backend: r.meta.backend } : null
-  } catch {
-    return null
-  }
-}
-
 const safeUnlink = (p: string): void => {
   try {
     unlinkSync(p)
@@ -330,49 +329,30 @@ const safeUnlink = (p: string): void => {
 
 /** Bind the socket path under a temporarily restrictive umask so the socket file is created 0600
  *  the instant it exists (FINDING-005 — no chmod-after-listen window). The prior umask is restored
- *  as soon as the bind settles (success or failure), on POSIX only (win32 pipes have no mode). */
-const listenOnce = (socketPath: string): Promise<Server> => new Promise((resolve, reject) => {
-  const server = createServer()
-  const prior = process.platform !== 'win32' ? process.umask(0o077) : null
-  let restored = false
-  const restore = (): void => {
-    if (!restored) {
-      if (prior !== null) process.umask(prior)
-      restored = true
-    }
-  }
-  const onError = (e: unknown): void => { restore(); reject(e) }
-  server.once('error', onError)
-  server.listen(socketPath, () => {
-    server.removeListener('error', onError)
-    restore()
-    resolve(server)
+ *  as soon as the bind settles (success or failure), on POSIX only (win32 pipes have no mode).
+ *  The discipline is the SHARED `bindWithRestrictiveUmask` — the same implementation the frozen
+ *  `bootstrapDaemonEndpoint` seam runs (audit 2026-07-17 finding 9). */
+const listenOnce = (socketPath: string): Promise<Server> => bindWithRestrictiveUmask(
+  process.platform,
+  (mask) => process.umask(mask),
+  () => new Promise<Server>((resolve, reject) => {
+    const server = createServer()
+    const onError = (e: unknown): void => { reject(e) }
+    server.once('error', onError)
+    server.listen(socketPath, () => {
+      server.removeListener('error', onError)
+      resolve(server)
+    })
   })
-})
+)
 
-const probeConnectable = (socketPath: string, timeoutMs = 150): Promise<boolean> => new Promise((resolve) => {
-  let settled = false
-  const sock = netConnect(socketPath)
-  const timer = setTimeout(() => {
-    if (settled) return
-    settled = true
-    sock.destroy()
-    resolve(false)
-  }, timeoutMs)
-  sock.once('connect', () => {
-    if (settled) return
-    settled = true
-    clearTimeout(timer)
-    sock.destroy()
-    resolve(true)
-  })
-  sock.once('error', () => {
-    if (settled) return
-    settled = true
-    clearTimeout(timer)
-    resolve(false)
-  })
-})
+/** Boolean claim-side probe, derived from the shared connect primitive (finding 32). */
+const probeConnectable = async (socketPath: string, timeoutMs = 150): Promise<boolean> => {
+  const sock = await tryConnectOnce(socketPath, timeoutMs)
+  if (sock === null) return false
+  sock.destroy()
+  return true
+}
 
 /** Claim the workspace-scoped socket for THIS process, race-safe against concurrent first-starts
  *  (REQ-005) and crash remnants (REQ-007). ALL reclaim happens INSIDE this serialized critical
@@ -393,7 +373,7 @@ const claimSocket = async (socketPath: string, metadataPath: string): Promise<Se
         if (!connectable) await delay(25)
       }
       if (connectable) return null // a genuine listener won the race — concede, never disturb it
-      const meta = readMetadataSafe(metadataPath)
+      const meta = readDaemonMetadata(metadataPath)
       const pidAlive = meta !== null && isAlive(meta.pid)
       const decision = decideDaemonReach({ connectable: false, metadataPid: meta?.pid ?? null, pidAlive })
       if (decision.kind === 'reclaim') {
@@ -463,15 +443,20 @@ export const runDaemon = (opts: RunDaemonOptions): Promise<void> => new Promise(
     const log = createDaemonLogSink(logPath)
     const appendLog = (text: string): void => log.append(text)
 
-    const metadata = buildDaemonMetadata({
-      pid: process.pid,
-      version: opts.version,
-      proto: WIRE_PROTO,
-      backend: opts.ptyBackendName,
-      startedAt: new Date().toISOString()
-    })
+    // The announcement rides the SHARED `writeDaemonMetadata` (shape + mode 0600 in one place —
+    // the same implementation the frozen `bootstrapDaemonEndpoint` seam runs, finding 9).
     try {
-      writeFileSync(metadataPath, JSON.stringify(metadata), { mode: 0o600 })
+      await writeDaemonMetadata(
+        (p, text, mode) => { writeFileSync(p, text, { mode }) },
+        metadataPath,
+        {
+          pid: process.pid,
+          version: opts.version,
+          proto: WIRE_PROTO,
+          backend: opts.ptyBackendName,
+          startedAt: new Date().toISOString()
+        }
+      )
     } catch (e) {
       appendLog(`writing ${metadataPath} failed: ${String(e)}`)
     }
@@ -483,7 +468,7 @@ export const runDaemon = (opts: RunDaemonOptions): Promise<void> => new Promise(
      *  if THIS daemon's pid is still the one recorded — a superseded daemon must never unlink a
      *  live successor's endpoint. */
     const removeOwnedFiles = (): void => {
-      const meta = readMetadataSafe(metadataPath)
+      const meta = readDaemonMetadata(metadataPath)
       if (meta !== null && meta.pid === process.pid) {
         safeUnlink(socketPath)
         safeUnlink(metadataPath)

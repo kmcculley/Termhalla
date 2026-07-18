@@ -15,14 +15,17 @@
  * (exit 0), or exit `BRIDGE_DAEMON_UNREACHABLE_EXIT` (96) on an unreachable daemon.
  */
 import { spawn as spawnChild } from 'node:child_process'
-import { connect as netConnect, type Socket } from 'node:net'
+import { type Socket } from 'node:net'
 import { dirname, join } from 'node:path'
-import { existsSync, readFileSync, openSync, closeSync } from 'node:fs'
+import { openSync, closeSync } from 'node:fs'
 import {
   socketFileName, metadataFileName, logFileName, DAEMON_SPAWN_WAIT_MS,
   BRIDGE_DAEMON_UNREACHABLE_EXIT, BRIDGE_STATUS_PREFIX
 } from './daemon-constants'
-import { decideDaemonReach, validateDaemonMetadata } from './daemon-guard'
+import { decideDaemonReach } from './daemon-guard'
+// The endpoint IO primitives are the SHARED daemon-io module — the same isAlive/metadata-reader/
+// connect-probe the daemon's claim path runs (audit 2026-07-17 finding 32).
+import { isAlive, delay, readDaemonMetadata, tryConnectOnce, type DaemonMetadataOnDisk } from './daemon-io'
 import { buildDaemonSpawnSpec } from './spawn-daemon'
 
 export interface BridgeArgs {
@@ -31,53 +34,6 @@ export interface BridgeArgs {
   socketPath?: string
   idleTimeoutMs?: number
 }
-
-interface BridgeMetadata { pid: number; version: string; proto: number; backend: string }
-
-const isAlive = (pid: number): boolean => {
-  try {
-    process.kill(pid, 0)
-    return true
-  } catch (e) {
-    return (e as NodeJS.ErrnoException).code === 'EPERM'
-  }
-}
-
-const readMetadata = (metadataPath: string): BridgeMetadata | null => {
-  try {
-    if (!existsSync(metadataPath)) return null
-    const raw: unknown = JSON.parse(readFileSync(metadataPath, 'utf8'))
-    const r = validateDaemonMetadata(raw)
-    return r.ok ? { pid: r.meta.pid, version: r.meta.version, proto: r.meta.proto, backend: r.meta.backend } : null
-  } catch {
-    return null
-  }
-}
-
-const delay = (ms: number): Promise<void> => new Promise((resolve) => setTimeout(resolve, ms))
-
-const tryConnectOnce = (socketPath: string, timeoutMs: number): Promise<Socket | null> => new Promise((resolve) => {
-  let settled = false
-  const sock = netConnect(socketPath)
-  const timer = setTimeout(() => {
-    if (settled) return
-    settled = true
-    sock.destroy()
-    resolve(null)
-  }, timeoutMs)
-  sock.once('connect', () => {
-    if (settled) return
-    settled = true
-    clearTimeout(timer)
-    resolve(sock)
-  })
-  sock.once('error', () => {
-    if (settled) return
-    settled = true
-    clearTimeout(timer)
-    resolve(null)
-  })
-})
 
 /** Poll-connect bounded by an overall deadline — synchronized on observed connect success, never
  *  a fixed sleep (CONV-062). */
@@ -97,10 +53,10 @@ const pollConnect = async (socketPath: string, deadlineMs: number): Promise<Sock
  *  strictly AFTER listen (REQ-003), so a just-accepted connect can briefly precede the metadata
  *  write. Returns null (never a throw) if metadata genuinely never appears — the Definitions
  *  contract for "unreadable". */
-const waitForMetadata = async (metadataPath: string, deadlineMs: number): Promise<BridgeMetadata | null> => {
+const waitForMetadata = async (metadataPath: string, deadlineMs: number): Promise<DaemonMetadataOnDisk | null> => {
   const deadline = Date.now() + deadlineMs
   for (;;) {
-    const meta = readMetadata(metadataPath)
+    const meta = readDaemonMetadata(metadataPath)
     if (meta !== null) return meta
     if (Date.now() >= deadline) return null
     await delay(20)
@@ -126,7 +82,7 @@ export const runBridge = async (args: BridgeArgs): Promise<void> => {
   let spawned = false
 
   if (!sock) {
-    const meta = readMetadata(metadataPath)
+    const meta = readDaemonMetadata(metadataPath)
     const pidAlive = meta !== null && isAlive(meta.pid)
     const decision = decideDaemonReach({ connectable: false, metadataPid: meta?.pid ?? null, pidAlive })
 

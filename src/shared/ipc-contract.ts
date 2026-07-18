@@ -257,7 +257,9 @@ export interface TermhallaApi {
   draftsSet(key: string, draft: EditorDraft): void
   draftsDelete(key: string): void
   notesLoad(): Promise<Record<string, string>>
-  notesSet(key: string, text: string): void
+  /** Rejects when the disk write fails, so the renderer can keep the key dirty and retry
+   *  (2026-07-17 audit, Finding 6 — a send-shaped write made failures unobservable). */
+  notesSet(key: string, text: string): Promise<void>
   recStart(id: string): void
   recStop(id: string): void
   onRecState(cb: (id: string, state: RecState) => void): () => void

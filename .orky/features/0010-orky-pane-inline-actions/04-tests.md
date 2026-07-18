@@ -226,6 +226,17 @@ pattern-hit files (`orky-pane-actions-loopback.test.ts`, `orky-entry-actions-mod
 non-hit. FINDING-012's "18" (14+4) was correct pre-loopback; the count is now pinned as the exact
 file SET by TEST-645, so it can never silently drift again.
 
+### Inventory amendment (2026-07-17 quality-audit batch)
+
+**+1 file.** `renderer/orky-capture-indeterminate-kinds.test.ts` — the whole-project quality
+audit's Finding-7 guard: `OrkyCaptureModal`'s two failure surfaces (in-modal error region +
+detached close-in-flight toast) must classify through the core module's shared
+`isIndeterminateKind` predicate — the modal's hand-coded pair check omitted `cli-unparseable`
+and rendered definite "rejected" copy for an outcome the FINDING-006 rationale marks
+indeterminate. The pattern hit is the guard's subject (it greps the modal for the predicate
+import from the core module), not an un-dispositioned frozen guard. TEST-645's list extended
+atomically per its own rule.
+
 ### RED/GREEN verification (loopback evidence, 2026-07-02)
 
 Full `npm test` (202 files): **3 failed | 199 passed; 6 tests failed | 1410 passed** — the

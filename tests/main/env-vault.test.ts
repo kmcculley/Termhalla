@@ -1,7 +1,17 @@
 import { describe, it, expect, afterEach, vi } from 'vitest'
-import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from 'node:fs'
+import { mkdtempSync, mkdirSync, rmSync, writeFileSync, readdirSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
+
+// Pass-through spy: all writes stay real, but the routing through the shared atomic writer is
+// observable — the vault is the one store where a truncated file is unrecoverable (torn encrypted
+// blob -> permanent GCM failure), so persist MUST go temp+rename, never a plain writeFileSync.
+vi.mock('../../src/main/persistence/atomic-write', async (importOriginal) => {
+  const real = await importOriginal<typeof import('../../src/main/persistence/atomic-write')>()
+  return { ...real, atomicWriteSync: vi.fn(real.atomicWriteSync) }
+})
+
+import { atomicWriteSync } from '../../src/main/persistence/atomic-write'
 import { EnvVault, parseVaultData, UNLOCK_BACKOFF_BASE_MS } from '../../src/main/env-vault/env-vault'
 
 const dirs: string[] = []
@@ -30,6 +40,14 @@ describe('EnvVault', () => {
   it('envFor is empty while locked', () => {
     const v = new EnvVault(tmp())
     expect(v.envFor()).toEqual({})
+  })
+  it('persists through the shared atomic writer and leaves no temp file behind', () => {
+    const dir = tmp()
+    const v = new EnvVault(dir)
+    v.create('pw')
+    v.setGlobal('FOO', 'bar')
+    expect(vi.mocked(atomicWriteSync)).toHaveBeenCalledWith(join(dir, 'env-vault.json'), expect.any(String))
+    expect(readdirSync(dir)).toEqual(['env-vault.json'])   // temp+rename cleaned up
   })
   it('propagates a write failure instead of silently swallowing it', () => {
     // Point the vault at a path that is a file, not a directory, so the persist mkdir/write throws.

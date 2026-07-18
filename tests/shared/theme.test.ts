@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest'
 import { DEFAULT_THEME, mergeTheme, themeCssVars } from '../../src/shared/theme'
 import { resolveTheme, themeCssVarsPartial } from '../../src/shared/theme'
 import { readableOn } from '../../src/shared/contrast'
+import type { Theme } from '../../src/shared/types'
 
 describe('mergeTheme', () => {
   it('returns defaults for undefined', () => {
@@ -27,6 +28,29 @@ describe('themeCssVars', () => {
   it('derives --fg-on-elevated from the elevated background luminance', () => {
     const v = themeCssVars(DEFAULT_THEME)
     expect(v['--fg-on-elevated']).toBe(readableOn(DEFAULT_THEME.elevatedBg))
+  })
+  it('covers every Theme token with its established var name plus exactly the three derived vars', () => {
+    // Record<keyof Theme, string> makes this table compile-time exhaustive: a new Theme token
+    // without a var mapping (or a renamed var) fails here.
+    const VAR_NAME: Record<keyof Theme, string> = {
+      windowBg: '--bg', panelBg: '--panel', elevatedBg: '--elevated', border: '--border',
+      text: '--fg', textDim: '--fg-dim', accent: '--accent', statusBusy: '--status-busy',
+      statusNeedsInput: '--status-needs', fontFamily: '--font', fontSize: '--font-size',
+      termBg: '--term-bg', termFg: '--term-fg', termFontFamily: '--term-font', termFontSize: '--term-font-size'
+    }
+    const SIZES: readonly (keyof Theme)[] = ['fontSize', 'termFontSize']
+    for (const theme of [DEFAULT_THEME, mergeTheme({ windowBg: '#123456', fontSize: 17, statusBusy: '#ff0000' })]) {
+      const v = themeCssVars(theme)
+      for (const key of Object.keys(VAR_NAME) as (keyof Theme)[]) {
+        const expected = SIZES.includes(key) ? `${theme[key]}px` : String(theme[key])
+        expect(v[VAR_NAME[key]], `${key} -> ${VAR_NAME[key]}`).toBe(expected)
+      }
+      expect(Object.keys(v).sort()).toEqual(
+        [...Object.values(VAR_NAME), '--on-busy', '--on-needs', '--fg-on-elevated'].sort()
+      )
+      expect(v['--on-busy']).toBe(readableOn(theme.statusBusy))
+      expect(v['--on-needs']).toBe(readableOn(theme.statusNeedsInput))
+    }
   })
 })
 

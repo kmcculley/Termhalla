@@ -10,6 +10,8 @@
 // aggregate in → identical group/item order out.
 import type { OrkyFeatureStatus, OrkyRegistrySnapshot } from './types'
 import { compareOrkyFeatures } from './orky-status'
+import { isPlainObject } from './guards'
+import { basename } from './paths'
 
 /** One needs-a-human-now entry: the stable `(projectRoot, featureSlug)` identity F8 attaches
  *  actions to, plus the carried upstream status VERBATIM (no re-projection — REQ-015/D2). */
@@ -24,10 +26,6 @@ export interface DecisionQueueGroup {
   projectRoot: string            // verbatim root (full path — the hover/title text)
   projectName: string            // display name = basename of root
   items: DecisionQueueItem[]     // ≥1
-}
-
-function isRecord(v: unknown): v is Record<string, unknown> {
-  return typeof v === 'object' && v !== null
 }
 
 // The upstream OrkyReason values (Verified contract: 'escalation' | 'stalled' | 'human-review' | null).
@@ -54,12 +52,6 @@ function hasConsumableFields(f: Record<string, unknown>): boolean {
   )
 }
 
-/** Basename of a root path, tolerant of both separators and trailing separators. */
-function basenameOf(root: string): string {
-  const parts = root.split(/[\\/]/).filter(Boolean)
-  return parts.length ? parts[parts.length - 1] : root
-}
-
 /** Build the grouped decision queue from a registry snapshot. Membership is EXACTLY the upstream
  *  needs-a-human-now signal (REQ-004): a feature carried in `status.features` with
  *  `needsHuman === true` — never re-derived from gates/escalations/stalls. Within a group the
@@ -72,16 +64,16 @@ export function buildDecisionQueue(snapshot: OrkyRegistrySnapshot | null): Decis
   if (!Array.isArray(snapshot)) return []
   const byRoot = new Map<string, DecisionQueueGroup>()
   for (const entry of snapshot) {
-    if (!isRecord(entry)) continue
+    if (!isPlainObject(entry)) continue
     const root = entry.root
     if (typeof root !== 'string' || root.length === 0) continue
     const status = entry.status
-    if (!isRecord(status)) continue                        // null / mistyped status → no items
+    if (!isPlainObject(status)) continue                        // null / mistyped status → no items
     const features = status.features
     if (!Array.isArray(features)) continue
     const items: DecisionQueueItem[] = []
     for (const f of features) {
-      if (!isRecord(f)) continue
+      if (!isPlainObject(f)) continue
       // Membership: ONLY the carried needsHuman flag (busy/idle/done/malformed features → no item) —
       // then the FULL consumed-field validation (REQ-013 / FINDING-021): an admitted-shape record
       // mistyping any consumed field contributes no item, so no object ever reaches a React child
@@ -93,7 +85,7 @@ export function buildDecisionQueue(snapshot: OrkyRegistrySnapshot | null): Decis
     if (items.length === 0) continue
     const existing = byRoot.get(root)
     if (existing) existing.items.push(...items)
-    else byRoot.set(root, { projectRoot: root, projectName: basenameOf(root), items })
+    else byRoot.set(root, { projectRoot: root, projectName: basename(root), items })
   }
   const groups = [...byRoot.values()]
   groups.sort((a, b) => {
@@ -112,7 +104,7 @@ export function buildDecisionQueue(snapshot: OrkyRegistrySnapshot | null): Decis
 export function decisionQueueCount(groups: DecisionQueueGroup[]): number {
   if (!Array.isArray(groups)) return 0
   let n = 0
-  for (const g of groups) if (isRecord(g) && Array.isArray(g.items)) n += g.items.length
+  for (const g of groups) if (isPlainObject(g) && Array.isArray(g.items)) n += g.items.length
   return n
 }
 
@@ -218,7 +210,7 @@ export interface PaneCandidateSignals {
  *  - `[]` when no signal at all (the pane can never match; REQ-010's fallback applies).
  *  Total (CONV-002): a mistyped signal is treated as absent, never a throw. */
 export function selectPaneCandidates(signals: PaneCandidateSignals): string[] {
-  if (!isRecord(signals)) return []
+  if (!isPlainObject(signals)) return []
   const { liveCwd, configCwd, gitRoot } = signals
   if (typeof liveCwd === 'string' && liveCwd.length > 0) return [liveCwd]
   if (typeof configCwd === 'string' && configCwd.length > 0) return [configCwd]
@@ -250,7 +242,7 @@ export function selectMruPane(
 ): MruPaneRef | null {
   if (!Array.isArray(panes)) return null
   const seqOf = (p: MruPaneRef): number => {
-    const v = isRecord(focusSeq) ? focusSeq[p.paneId] : undefined
+    const v = isPlainObject(focusSeq) ? focusSeq[p.paneId] : undefined
     return typeof v === 'number' ? v : Number.NEGATIVE_INFINITY
   }
   let best: MruPaneRef | null = null

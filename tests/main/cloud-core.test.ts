@@ -2,6 +2,7 @@ import { describe, it, expect, vi } from 'vitest'
 import { parseAwsIdentity, parseAzureIdentity, awsProbeForProfile, azureProvider } from '../../src/main/cloud/providers'
 import { resolveBin } from '../../src/main/resolve-bin'
 import { classifyProbe } from '../../src/main/cloud/classify'
+import { quoteCmdArg } from '../../src/main/cloud/cmd-quote'
 
 describe('parseAwsIdentity', () => {
   it('extracts account + detail, defaulting the profile when env is unset', () => {
@@ -82,5 +83,32 @@ describe('classifyProbe', () => {
   })
   it('maps a non-ENOENT spawn error / timeout to error', () => {
     expect(classifyProbe(awsProbeForProfile('default'), { errorCode: 'ETIMEDOUT', code: null, stdout: '' }, now).state).toBe('error')
+  })
+})
+
+describe('quoteCmdArg', () => {
+  it('passes plain args through untouched (every existing probe command line stays byte-identical)', () => {
+    for (const p of [awsProbeForProfile('default'), azureProvider]) {
+      for (const a of p.probeArgs) expect(quoteCmdArg(a)).toBe(a)
+    }
+  })
+  it('quotes an arg containing whitespace (a profile name with spaces is legal in ~/.aws/config)', () => {
+    expect(quoteCmdArg('my profile')).toBe('"my profile"')
+    expect(quoteCmdArg('tab\there')).toBe('"tab\there"')
+  })
+  it('quotes cmd.exe metacharacters so the shell:true layer cannot interpret them', () => {
+    expect(quoteCmdArg('a&b')).toBe('"a&b"')
+    expect(quoteCmdArg('a|b')).toBe('"a|b"')
+    expect(quoteCmdArg('a>b')).toBe('"a>b"')
+    expect(quoteCmdArg('a<b')).toBe('"a<b"')
+    expect(quoteCmdArg('a^b')).toBe('"a^b"')
+    expect(quoteCmdArg('%PATH%')).toBe('"%PATH%"')
+    expect(quoteCmdArg('a(b)')).toBe('"a(b)"')
+  })
+  it('doubles embedded double quotes (the quoted-string escape cmd.exe and the MSVCRT argv parser agree on)', () => {
+    expect(quoteCmdArg('he said "hi"')).toBe('"he said ""hi"""')
+  })
+  it('quotes the empty string (it would otherwise vanish from the joined command line)', () => {
+    expect(quoteCmdArg('')).toBe('""')
   })
 })

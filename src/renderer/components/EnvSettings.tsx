@@ -39,7 +39,12 @@ export function EnvSettings({ wsId, paneId }: { wsId?: string; paneId?: string }
   const [tName, setTName] = useState('')
   const [tValue, setTValue] = useState('')
 
-  const refresh = async (): Promise<void> => setData(await api.envGet())
+  const refresh = async (): Promise<void> => {
+    // A rejected read must not become an unhandled rejection (2026-07-17 audit Finding 30);
+    // the previous values simply stay on screen.
+    try { setData(await api.envGet()) }
+    catch (e) { console.warn('[env] refresh failed:', e) }
+  }
 
   // Load values whenever the vault becomes unlocked.
   useEffect(() => { if (env.unlocked) void refresh() }, [env.unlocked])
@@ -104,9 +109,14 @@ export function EnvSettings({ wsId, paneId }: { wsId?: string; paneId?: string }
           <>
             <div style={{ fontWeight: 600, borderTop: '1px solid var(--border, #444)', paddingTop: 8 }}>Global variables</div>
             {data === null && <div data-testid="env-loading" style={{ color: 'var(--fg-dim, #aaa)' }}>Loading…</div>}
+            {/* Removes route through runOp like every other action here (2026-07-17 audit
+                Finding 30): a failed remove toasts instead of silently leaving the row, and
+                refresh() only runs AFTER the remove settled (no race against the delete). */}
             {Object.entries(data?.global ?? {}).map(([name, value]) => (
               <EnvRow key={name} testid="env" name={name} value={value}
-                onRemove={() => { api.envRemoveGlobal(name); void refresh() }} />
+                onRemove={async () => {
+                  if (await runOp(() => api.envRemoveGlobal(name), pushToast, "Couldn't remove variable")) void refresh()
+                }} />
             ))}
             <div style={row}>
               <input data-testid="env-name" placeholder="NAME" value={newName}
@@ -121,7 +131,10 @@ export function EnvSettings({ wsId, paneId }: { wsId?: string; paneId?: string }
                 <div data-testid="env-term-section" style={{ fontWeight: 600, borderTop: '1px solid var(--border, #444)', paddingTop: 8 }}>This terminal</div>
                 {Object.entries((envId && data?.terminals[envId]) ? data!.terminals[envId] : {}).map(([name, value]) => (
                   <EnvRow key={name} testid="env-term" name={name} value={value}
-                    onRemove={() => { if (envId) { api.envRemoveTerminal(envId, name); void refresh() } }} />
+                    onRemove={async () => {
+                      if (!envId) return
+                      if (await runOp(() => api.envRemoveTerminal(envId, name), pushToast, "Couldn't remove variable")) void refresh()
+                    }} />
                 ))}
                 <div style={row}>
                   <input data-testid="env-term-name" placeholder="NAME" value={tName}

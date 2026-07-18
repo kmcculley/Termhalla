@@ -60,6 +60,17 @@ describe('workspace-model', () => {
     expect(() => deserializeWorkspace('not json at all')).toThrow('Invalid workspace file: not valid JSON')
   })
 
+  it('rejects panes: null and panes: [] with the actionable bad-shape error (never a raw TypeError downstream)', () => {
+    // `typeof null === 'object'` and `typeof [] === 'object'` — a corrupt/hostile .thws with a
+    // null/array panes map must hit the shape guard, not surface later as an unexplained TypeError.
+    const withPanes = (panes: unknown) => JSON.stringify({
+      schemaVersion: SCHEMA_VERSION,
+      workspace: { id: 'x', name: 'n', layout: null, panes }
+    })
+    expect(() => deserializeWorkspace(withPanes(null))).toThrow('Invalid workspace file: bad shape')
+    expect(() => deserializeWorkspace(withPanes([]))).toThrow('Invalid workspace file: bad shape')
+  })
+
   it('splits a non-root leaf deep in a nested tree', () => {
     let ws = addFirstPane(createWorkspace('W', () => 'ws-1'), term(), () => 'p1').workspace
     ws = splitPane(ws, 'p1', 'row', term(), () => 'p2').workspace      // layout: {row, p1, p2}

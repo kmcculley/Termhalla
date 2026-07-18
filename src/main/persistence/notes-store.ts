@@ -30,17 +30,23 @@ export class NotesStore {
     return this.map
   }
 
-  /** Set (or, when text is empty/whitespace-only, delete) a project's note. */
-  set(key: string, text: string): void {
-    if (text.trim() === '') { if (!(key in this.map)) return; delete this.map[key] }
+  /** Set (or, when text is empty/whitespace-only, delete) a project's note. Returns whether the
+   *  change reached disk — the renderer keeps a failed key dirty and retries on the next flush
+   *  instead of silently losing the note (2026-07-17 audit, Finding 6). */
+  set(key: string, text: string): boolean {
+    if (text.trim() === '') { if (!(key in this.map)) return true; delete this.map[key] }
     else this.map[key] = text
-    this.flush()
+    return this.write()
   }
 
   /** Synchronous write for shutdown (win 'close'); best-effort. */
   flush(): void {
-    try { atomicWriteSync(this.file(), JSON.stringify(this.map)) }
-    catch { /* best-effort on teardown */ }
+    this.write()
+  }
+
+  private write(): boolean {
+    try { atomicWriteSync(this.file(), JSON.stringify(this.map)); return true }
+    catch { return false }
   }
 
 }

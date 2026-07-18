@@ -44,7 +44,6 @@ export const createRequestTracker = (): RequestTracker => {
   let nextId = 1
   let closed = false
   const pending = new Map<number, string>() // id -> method
-  const settled = new Set<number>()
 
   return {
     open(method: string, params: unknown): OpenedRequest {
@@ -67,10 +66,15 @@ export const createRequestTracker = (): RequestTracker => {
       const method = pending.get(id)
       if (method !== undefined) {
         pending.delete(id)
-        settled.add(id)
         return { kind: 'settled', id, method, response }
       }
-      if (settled.has(id)) return { kind: 'duplicate', id }
+      // Settled-ness is derivable, not stored: ids are allocated monotonically from 1 and every
+      // allocated id is either still pending or already settled (the only other removal path,
+      // failAllPending, closes the tracker — handled above). So an integer id in [1, nextId) that
+      // is not pending was necessarily settled. This replaces an unbounded per-completed-request
+      // `settled` set (one entry per keystroke on remote panes) that existed only to tell
+      // `duplicate` from `unknown-id`.
+      if (Number.isInteger(id) && id >= 1 && id < nextId) return { kind: 'duplicate', id }
       return { kind: 'unknown-id', id }
     },
 

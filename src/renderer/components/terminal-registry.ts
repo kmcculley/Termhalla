@@ -4,10 +4,28 @@
  * routing imperative DOM through serializable zustand state. Kept out of the store deliberately:
  * xterm/Monaco instances are imperative DOM, not serializable.
  */
-const serializers = new Map<string, () => string>()
 
-export function registerSerializer(paneId: string, fn: () => string): void { serializers.set(paneId, fn) }
-export function unregisterSerializer(paneId: string): void { serializers.delete(paneId) }
+/** One per-pane hook registry: paneId → imperative callback. The seven hook kinds below
+ *  (serializers, focusers, dirty checks, redrawers, clearers, find openers, respawners) all share
+ *  this map + register/unregister shape — only their invoke wrappers differ (a fallback value vs a
+ *  ran/not-ran boolean), so those stay bespoke per kind. Exported for its unit test. */
+export function createPaneHookRegistry<T>(): {
+  register: (paneId: string, fn: T) => void
+  unregister: (paneId: string) => void
+  get: (paneId: string) => T | undefined
+} {
+  const hooks = new Map<string, T>()
+  return {
+    register: (paneId, fn) => { hooks.set(paneId, fn) },
+    unregister: (paneId) => { hooks.delete(paneId) },
+    get: (paneId) => hooks.get(paneId)
+  }
+}
+
+const serializers = createPaneHookRegistry<() => string>()
+
+export function registerSerializer(paneId: string, fn: () => string): void { serializers.register(paneId, fn) }
+export function unregisterSerializer(paneId: string): void { serializers.unregister(paneId) }
 
 /** The pane's current snapshot, or '' if it has no live terminal (not yet mounted / not a terminal). */
 export function readPaneSnapshot(paneId: string): string { return serializers.get(paneId)?.() ?? '' }
@@ -34,9 +52,9 @@ export function consumeSnapshot(paneId: string): string {
 // (e.g. document.activeElement === term.textarea). Reporting failure — not just absence — lets
 // requestPaneFocus retry through a transient where the pane exists but can't take focus yet, such as
 // a workspace mid-switch whose host is still `visibility: hidden` until React commits the change.
-const focusers = new Map<string, () => boolean>()
-export function registerFocuser(paneId: string, fn: () => boolean): void { focusers.set(paneId, fn) }
-export function unregisterFocuser(paneId: string): void { focusers.delete(paneId) }
+const focusers = createPaneHookRegistry<() => boolean>()
+export function registerFocuser(paneId: string, fn: () => boolean): void { focusers.register(paneId, fn) }
+export function unregisterFocuser(paneId: string): void { focusers.unregister(paneId) }
 
 /** Focus a pane now. Returns false if it has no live focuser (not mounted) or focus didn't land
  *  (e.g. the pane is still hidden) — either way the caller should retry. */
@@ -103,9 +121,9 @@ export function requestPaneFocus(
  * PANE used to bypass the per-tab dirty confirm entirely — and delete the hot-exit drafts too).
  * Panes with nothing to lose (terminals, explorers) register none; 0 means "nothing at risk".
  */
-const dirtyChecks = new Map<string, () => number>()
-export function registerDirtyCheck(paneId: string, fn: () => number): void { dirtyChecks.set(paneId, fn) }
-export function unregisterDirtyCheck(paneId: string): void { dirtyChecks.delete(paneId) }
+const dirtyChecks = createPaneHookRegistry<() => number>()
+export function registerDirtyCheck(paneId: string, fn: () => number): void { dirtyChecks.register(paneId, fn) }
+export function unregisterDirtyCheck(paneId: string): void { dirtyChecks.unregister(paneId) }
 
 /** How many unsaved buffers the pane would discard if closed now (0 when none / not mounted). */
 export function paneDirtyCount(paneId: string): number { return dirtyChecks.get(paneId)?.() ?? 0 }
@@ -115,9 +133,9 @@ export function paneDirtyCount(paneId: string): number { return dirtyChecks.get(
  * terminal (and any running TUI like Claude) to repaint — used by the "Redraw terminal" command to
  * fix a display garbled by a resize. Kept here with the other per-pane imperative hooks.
  */
-const redrawers = new Map<string, () => void>()
-export function registerRedrawer(paneId: string, fn: () => void): void { redrawers.set(paneId, fn) }
-export function unregisterRedrawer(paneId: string): void { redrawers.delete(paneId) }
+const redrawers = createPaneHookRegistry<() => void>()
+export function registerRedrawer(paneId: string, fn: () => void): void { redrawers.register(paneId, fn) }
+export function unregisterRedrawer(paneId: string): void { redrawers.unregister(paneId) }
 
 /** Redraw a pane now. Returns false if it has no live redrawer (not mounted / not a terminal). */
 export function redrawPane(paneId: string): boolean {
@@ -132,9 +150,9 @@ export function redrawPane(paneId: string): boolean {
  * so the "Clear terminal" command/menu item can wipe the buffer + scrollback app-side (the shell's
  * own `clear` only scrolls the prompt to the top).
  */
-const clearers = new Map<string, () => void>()
-export function registerClearer(paneId: string, fn: () => void): void { clearers.set(paneId, fn) }
-export function unregisterClearer(paneId: string): void { clearers.delete(paneId) }
+const clearers = createPaneHookRegistry<() => void>()
+export function registerClearer(paneId: string, fn: () => void): void { clearers.register(paneId, fn) }
+export function unregisterClearer(paneId: string): void { clearers.unregister(paneId) }
 
 /** Clear a pane's buffer + scrollback now. False if it has no live clearer (not a terminal). */
 export function clearPane(paneId: string): boolean {
@@ -148,9 +166,9 @@ export function clearPane(paneId: string): boolean {
  * Per-pane find hooks (QoL batch 2026-07-17): a mounted TerminalPane registers an opener for its
  * in-pane find bar, so the "Find in terminal" command can raise it on the focused pane.
  */
-const findOpeners = new Map<string, () => void>()
-export function registerFindOpener(paneId: string, fn: () => void): void { findOpeners.set(paneId, fn) }
-export function unregisterFindOpener(paneId: string): void { findOpeners.delete(paneId) }
+const findOpeners = createPaneHookRegistry<() => void>()
+export function registerFindOpener(paneId: string, fn: () => void): void { findOpeners.register(paneId, fn) }
+export function unregisterFindOpener(paneId: string): void { findOpeners.unregister(paneId) }
 
 /** Open a pane's find bar now. False if it has no live opener (not a terminal). */
 export function openPaneFind(paneId: string): boolean {
@@ -166,9 +184,9 @@ export function openPaneFind(paneId: string): boolean {
  * the same terminal, so a mounted TerminalPane registers a callback that re-issues its own
  * pty:spawn with the live grid. Kept here with the other imperative hooks.
  */
-const respawners = new Map<string, () => void>()
-export function registerRespawner(paneId: string, fn: () => void): void { respawners.set(paneId, fn) }
-export function unregisterRespawner(paneId: string): void { respawners.delete(paneId) }
+const respawners = createPaneHookRegistry<() => void>()
+export function registerRespawner(paneId: string, fn: () => void): void { respawners.register(paneId, fn) }
+export function unregisterRespawner(paneId: string): void { respawners.unregister(paneId) }
 
 /** Respawn a dead pane's shell now. Returns false if it has no live respawner (not mounted /
  *  not a terminal). */

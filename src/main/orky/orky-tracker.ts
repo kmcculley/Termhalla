@@ -54,7 +54,10 @@ export class OrkyTracker {
     this.detach(id) // remove any prior watch for this id (silent — no emit)
     const sess: PaneSession = { token: {} }
     this.sessions.set(id, sess) // claim the slot BEFORE awaiting so a concurrent watch/unwatch can supersede
-    const root = await findOrkyRoot(cwd, { maxDepth: 8 })
+    // No maxDepth override: the default bound (DEFAULT_ORKY_ROOT_MAX_DEPTH, FINDING-DA-006) applies.
+    // An explicit `{ maxDepth: 8 }` here once silently reinstated the old >8-deep chrome cliff at the
+    // ONLY production call site — pinned by tests/main/find-orky-root-depth.test.ts.
+    const root = await findOrkyRoot(cwd)
     if (this.sessions.get(id) !== sess) return null // superseded during discovery
     if (!root) { this.sessions.delete(id); this.emit(id, null); return null } // no .orky ancestor → cleared
     const orkyDir = join(root, '.orky')

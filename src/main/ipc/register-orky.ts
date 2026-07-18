@@ -34,7 +34,12 @@ export function registerOrky(
   const onWatch = (e: IpcMainEvent, id: unknown, cwd: unknown): void => {
     if (!isKnownWindowSender(e.sender)) return
     if (typeof id !== 'string' || typeof cwd !== 'string') return
-    void orky.watch(id, cwd).then((root) => onPaneRoot(id, root))
+    // .catch: an unexpected rejection anywhere in watch()/onPaneRoot must never become an unhandled
+    // rejection that kills the main process (Node 22 --unhandled-rejections=throw; FINDING-SEC-001's
+    // hardening class — see find-orky-root.ts).
+    void orky.watch(id, cwd).then((root) => onPaneRoot(id, root)).catch((err) => {
+      console.warn('[orky] pane watch failed:', err instanceof Error ? err.message : String(err))
+    })
   }
   const onUnwatch = (e: IpcMainEvent, id: unknown): void => {
     if (!isKnownWindowSender(e.sender)) return

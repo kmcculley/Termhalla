@@ -1,10 +1,26 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useStore, paneCwd } from '../store'
 import { buildPaletteItems, buildCommandItems, filterPaletteItems, type PaletteItem } from '@shared/quick'
-import { chordPaneTarget } from '../store/pane-ops'
+import { dispatchCommand } from '../store/pane-ops'
 import { clearPane, openPaneFind, redrawPane } from './terminal-registry'
-import { DEFAULT_THEME } from '@shared/theme'
 import { Modal, Z } from './Modal'
+
+// Palette action → shared command id (2026-07-17 audit Finding 28): the behavior of these
+// commands lives ONCE in store/pane-ops.ts dispatchCommand, shared with App.tsx's chord handler;
+// only the names differ between the palette items ('maximize-pane') and the chord commands
+// ('toggle-maximize-pane'). All of these need an active workspace, so they are consulted below
+// the activeId guard.
+const SHARED_COMMANDS: Record<string, string> = {
+  'new-terminal': 'new-terminal',
+  settings: 'open-settings',
+  'close-pane': 'close-pane',
+  'maximize-pane': 'toggle-maximize-pane',
+  'minimize-pane': 'toggle-minimize-pane',
+  'clear-terminal': 'clear-terminal',
+  'find-in-terminal': 'find-in-terminal',
+  'redraw-terminal': 'redraw-terminal',
+  'restore-last-minimized': 'restore-last-minimized'
+}
 
 export function CommandPalette() {
   const open = useStore(s => s.paletteOpen)
@@ -27,7 +43,6 @@ export function CommandPalette() {
   const saveAll = useStore(s => s.saveAll)
   const refreshCloud = useStore(s => s.refreshCloud)
   const pushToast = useStore(s => s.pushToast)
-  const openSettings = useStore(s => s.openSettings)
   const order = useStore(s => s.order)
   const queueOpen = useStore(s => s.queueOpen)
   const setQueueOpen = useStore(s => s.setQueueOpen)
@@ -66,44 +81,39 @@ export function CommandPalette() {
 
   const close = () => setOpen(false)
 
+  // The shared command→action dispatch (2026-07-17 audit Finding 28): ONE implementation with
+  // App.tsx's chord handler. The palette side redraws the chord target ('chord' — the shipped
+  // divergence from the chord handler, which redraws the focused pane exactly).
+  const runShared = (id: string) =>
+    dispatchCommand(id, useStore.getState(), { clearPane, redrawPane, openPaneFind }, { redrawTarget: 'chord' })
+
   const activate = (item: PaletteItem) => {
     if (item.kind === 'connection') { launchConnection(item.id); close(); return }
     if (item.kind === 'dir') { launchDir(item.path); close(); return }
     if (item.action === 'new-connection') { setConnectionForm('new'); setOpen(false); return }
     if (item.action === 'pin-cwd') { pinDir(currentCwd); return /* keep open to show the new ★ */ }
     // The decision-queue drawer is window chrome, not a pane — it must toggle even with no
-    // active workspace (feature 0006, REQ-002), so it is handled before the guard below.
+    // active workspace (feature 0006, REQ-002), so it is handled before the guard below. (This
+    // and capture-orky-work keep their literal call-site shapes here — frozen TEST-329/TEST-495
+    // pin them — rather than riding the shared dispatcher.)
     if (item.action === 'toggle-orky-queue') { setQueueOpen(!queueOpen); close(); return }
     // The global quick-capture modal is window chrome too (feature 0012, REQ-001) — it opens with
     // NO active workspace, so it is handled before the guard below (the toggle-orky-queue
     // precedent). No argument: the picker-first flow.
     if (item.action === 'capture-orky-work') { openOrkyCapture(); close(); return }
-    // Window-chrome commands (QoL 2026-07-17) — no active workspace needed, same precedent.
-    if (item.action === 'toggle-notes') { const st = useStore.getState(); st.setNotesOpen(!st.notesOpen); close(); return }
+    // Window-chrome commands (QoL 2026-07-17) — no active workspace needed, same precedent; the
+    // behavior itself is shared with the chord handler (audit Finding 28).
+    if (item.action === 'toggle-notes' || item.action === 'font-zoom-reset') { runShared(item.action); close(); return }
     if (item.action === 'search-history') { useStore.getState().setSearchOpen(true); close(); return }
-    if (item.action === 'font-zoom-reset') { useStore.getState().setTheme({ termFontSize: DEFAULT_THEME.termFontSize }); close(); return }
     // Commands below need an active workspace.
     if (!activeId) return
     // Pane-scoped commands target the focused pane (else the workspace's first pane), exactly
-    // like their chords in App.tsx.
+    // like their chords in App.tsx — the same dispatchCommand implementation.
     {
-      const st = useStore.getState()
-      const pane = chordPaneTarget(st.workspaces[activeId], st.focusedPaneId)
-      if (item.action === 'close-pane') { if (pane) st.closePane(activeId, pane); close(); return }
-      if (item.action === 'maximize-pane') { if (pane) st.toggleMaximize(activeId, pane); close(); return }
-      if (item.action === 'minimize-pane') { if (pane) st.toggleMinimize(activeId, pane); close(); return }
-      if (item.action === 'clear-terminal') { if (pane) clearPane(pane); close(); return }
-      if (item.action === 'find-in-terminal') { if (pane) openPaneFind(pane); close(); return }
-      if (item.action === 'redraw-terminal') { if (pane) redrawPane(pane); close(); return }
-      if (item.action === 'restore-last-minimized') {
-        const ids = st.minimized[activeId] ?? []
-        const last = ids[ids.length - 1]
-        if (last) st.restorePane(activeId, last)
-        close(); return
-      }
+      const shared = SHARED_COMMANDS[item.action]
+      if (shared) { runShared(shared); close(); return }
     }
-    if (item.action === 'new-terminal') void addPaneOfKind(activeId, 'terminal')
-    else if (item.action === 'new-editor') void addPaneOfKind(activeId, 'editor')
+    if (item.action === 'new-editor') void addPaneOfKind(activeId, 'editor')
     else if (item.action === 'new-explorer') void addPaneOfKind(activeId, 'explorer')
     else if (item.action === 'new-orky') void addPaneOfKind(activeId, 'orky')
     else if (item.action === 'new-workspace') newWorkspace(`Workspace ${order.length + 1}`)
@@ -115,7 +125,6 @@ export function CommandPalette() {
     else if (item.action === 'broadcast') setBroadcastOpen(true)
     else if (item.action === 'save-all') { void saveAll(); pushToast('Workspaces saved') }
     else if (item.action === 'refresh-cloud') refreshCloud()
-    else if (item.action === 'settings') openSettings({ section: 'general' })
     close()
   }
 

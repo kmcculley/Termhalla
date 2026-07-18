@@ -16,16 +16,28 @@ describe('files', () => {
   it('writes and reads back text', async () => {
     const f = join(dir, 'a.txt')
     await writeTextFile(f, 'hello')
-    expect((await readTextFile(f)).content).toBe('hello')
+    expect(await readTextFile(f)).toEqual({ kind: 'ok', content: 'hello', tooLarge: false })
   })
   it('flags files over the size cap as tooLarge without reading content', async () => {
     const f = join(dir, 'big.txt'); writeFileSync(f, 'abcdefghij') // 10 bytes
     const r = await readTextFile(f, 5) // cap 5
-    expect(r).toEqual({ content: '', tooLarge: true })
+    expect(r).toEqual({ kind: 'ok', content: '', tooLarge: true })
   })
-  it('rejects binary files', async () => {
+  // Finding 27 (2026-07 quality audit): read failures are classified STRUCTURALLY here (by
+  // err.code / content), never by the renderer regexing an IPC-serialized error message.
+  it('classifies binary files as a structured non-error result (the file exists)', async () => {
     const f = join(dir, 'bin'); writeFileSync(f, Buffer.from([0x41, 0x00, 0x42]))
-    await expect(readTextFile(f)).rejects.toThrow()
+    await expect(readTextFile(f)).resolves.toEqual({ kind: 'binary' })
+  })
+  it('classifies a missing path as not-found (ENOENT) — the only state that may render "(deleted)"', async () => {
+    await expect(readTextFile(join(dir, 'nope.txt'))).resolves.toEqual({ kind: 'not-found' })
+  })
+  it('classifies any other failure as a structured error with the message, never not-found', async () => {
+    // Reading a directory as a file: stat succeeds, readFile throws EISDIR — the "unknown
+    // failure" class that used to be folded into missing and struck through as "(deleted)".
+    const r = await readTextFile(dir)
+    expect(r.kind).toBe('error')
+    if (r.kind === 'error') expect(r.message).toBeTruthy()
   })
   it('lists a directory dirs-first, alphabetical', async () => {
     writeFileSync(join(dir, 'b.txt'), '')
@@ -51,7 +63,7 @@ describe('files', () => {
       rename: async () => { throw new Error('injected rename failure') }
     }
     await expect(writeTextFile(f, 'replacement', failing)).rejects.toThrow('injected rename failure')
-    expect((await readTextFile(f)).content).toBe('original')
+    expect(await readTextFile(f)).toEqual({ kind: 'ok', content: 'original', tooLarge: false })
     // and no temp litter survives the failure
     expect((await readDirectory(dir)).map(e => e.name)).toEqual(['a.txt'])
   })

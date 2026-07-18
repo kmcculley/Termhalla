@@ -174,7 +174,9 @@ export async function registerHandlers(services: Services, wm: WindowManager): P
   const unsubscribeNeedsYou = orkyRegistry.onSnapshot((snapshot: OrkyRegistrySnapshot) => needsYouNotifier.onSnapshot(snapshot))
 
   const disposers: Disposer[] = [
-    registerFs(win, send),
+    // The write-capable fs:* handlers serve only tracked app windows (the FINDING-SEC-002
+    // write-capable-surface precedent — wired exactly like registerRegistry below).
+    registerFs(win, send, (sender) => wm.isKnownWindowSender(sender)),
     registerPreview(),
     registerCloud(win, send),
     registerUsage(send),

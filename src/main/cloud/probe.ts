@@ -2,6 +2,7 @@ import { execFile } from 'node:child_process'
 import type { CloudProvider } from './providers'
 import { resolveBin } from '../resolve-bin'
 import type { ProbeResult } from './classify'
+import { quoteCmdArg } from './cmd-quote'
 
 /** Run a provider's identity command. Resolves to a ProbeResult; never rejects.
  *  - resolveBin reports not-installed (ENOENT) without spawning.
@@ -17,8 +18,10 @@ export function runCliProbe(provider: CloudProvider, signal?: AbortSignal, timeo
       resolve({ errorCode: signal?.aborted ? 'ABORT_ERR' : 'ENOENT', code: null, stdout: '' })
       return
     }
+    // shell:true joins args with spaces UNQUOTED, so each arg is shell-quoted here — an AWS
+    // profile name with spaces/metacharacters comes verbatim from ~/.aws/config (see cmd-quote.ts).
     const child = execFile(
-      provider.bin, provider.probeArgs,
+      provider.bin, provider.probeArgs.map(quoteCmdArg),
       { timeout: timeoutMs, windowsHide: true, maxBuffer: 4 * 1024 * 1024, shell: true, killSignal: 'SIGKILL', signal },
       (err, stdout) => {
         if (!err) { resolve({ code: 0, stdout: stdout ?? '' }); return }

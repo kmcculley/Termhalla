@@ -15,6 +15,7 @@ import {
 import { DragGhost } from './drag-ghost'
 import { presentationMode, presentsWindows } from './e2e-presentation'
 import { coordinateFlush } from './quit-flush'
+import { SerialQueue } from './serial-queue'
 
 /** Height (px) of the main window's tab strip — the drop zone for re-docking a torn-off tab. */
 const STRIP_HEIGHT = 36
@@ -41,8 +42,9 @@ const PANE_SCOPED = new Set<string>([
   CH.aiSession, CH.usageMetrics, CH.orkyStatus, CH.recState, CH.termSerialize
 ])
 
-/** A move currently in flight (moves are serialized): the workspace being moved, its destination
- *  window, the pane ids whose snapshots have arrived, and the resolver for the await. */
+/** A move currently in flight (moves are serialized through `moveQueue`): the workspace being
+ *  moved, its destination window, the pane ids whose snapshots have arrived, and the resolver for
+ *  the await. */
 interface Inflight { workspaceId: string; destWindowId: string; paneIds: string[]; resolve: () => void }
 
 /** A pane-scoped push event buffered while its pane is mid-move (channel + original args). */
@@ -69,6 +71,7 @@ export class WindowManager {
   private transitTimers = new Map<string, ReturnType<typeof setTimeout>>() // paneId -> GC timer
   private snapshots = new Map<string, string>()        // paneId -> captured ANSI snapshot
   private inflight: Inflight | null = null
+  private moveQueue = new SerialQueue()                 // ALL moves run one at a time (see move())
   private ghost = new DragGhost()                       // OS-level tear-off drag ghost (cosmetic)
   private persistTimer: ReturnType<typeof setTimeout> | null = null
   private quitting = false
@@ -385,10 +388,24 @@ export class WindowManager {
 
   /**
    * Move `workspaceId` to `destWindowId` (an existing window) or, when `destWindowId` is null, into
-   * a brand-new window positioned at `cursor`. Captures the source xterms' snapshots first, updates
-   * the ownership model, creates/loads the destination window if new, then re-assigns both ends.
+   * a brand-new window positioned at `cursor`.
+   *
+   * ALL moves are serialized through `moveQueue`: three un-serialized entry points call move()
+   * (tab drag-end, the `win:redock` IPC handler, redockAll — the last serialized only internally),
+   * and a move claims the shared `inflight` slot + the per-pane transit handoff. Overlapping moves
+   * would let one move's `finish` (500 ms capture timeout or a late sentinel) null another move's
+   * slot, dropping its `term:snapshot` replies at the `!this.inflight` guard in `onSnapshot` —
+   * silent scrollback loss. The queued `doMove` must never call move() (self-deadlock); a rejection
+   * propagates to this caller only and can never wedge the queue.
    */
-  private async move(workspaceId: string, destWindowId: string | null, cursor?: { x: number; y: number }): Promise<void> {
+  private move(workspaceId: string, destWindowId: string | null, cursor?: { x: number; y: number }): Promise<void> {
+    return this.moveQueue.run(() => this.doMove(workspaceId, destWindowId, cursor))
+  }
+
+  /** The real move implementation — runs only via the `moveQueue` (see move() above). Captures the
+   *  source xterms' snapshots first, updates the ownership model, creates/loads the destination
+   *  window if new, then re-assigns both ends. */
+  private async doMove(workspaceId: string, destWindowId: string | null, cursor?: { x: number; y: number }): Promise<void> {
     const sourceWinId = windowOf(this.core, workspaceId)
     if (!sourceWinId) return
     const newWindowId = destWindowId ?? uuid()
@@ -422,9 +439,20 @@ export class WindowManager {
     if (!win) return Promise.resolve()
     return new Promise<void>(res => {
       let settled = false
-      const finish = () => { if (settled) return; settled = true; clearTimeout(timer); this.inflight = null; res() }
+      let rec: Inflight
+      // Belt to the moveQueue serialization: clear `inflight` only while it still points at THIS
+      // move's record, so a stale finish (e.g. the timeout of a move whose sentinel never arrived)
+      // can never null a successor move's slot and drop its snapshot replies.
+      const finish = () => {
+        if (settled) return
+        settled = true
+        clearTimeout(timer)
+        if (this.inflight === rec) this.inflight = null
+        res()
+      }
       const timer = setTimeout(finish, 500)
-      this.inflight = { workspaceId, destWindowId, paneIds: [], resolve: finish }
+      rec = { workspaceId, destWindowId, paneIds: [], resolve: finish }
+      this.inflight = rec
       this.safeSend(win, CH.termSerialize, workspaceId)
     })
   }

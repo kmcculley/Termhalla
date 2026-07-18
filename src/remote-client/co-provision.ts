@@ -28,34 +28,33 @@ import type { BootstrapOptions } from './bootstrap'
  *  `chooseConnect` routing), never imported, so co-provision stays cycle-free. */
 export type ConnectFn = (opts: BootstrapOptions) => Promise<ConnectResult>
 
-/** Every file under a staged target bundle dir, as forward-slash-relative `{ path, bytes }`
- *  pairs — a DYNAMIC recursive walk (REQ-022/TEST-2004: this tree never hard-codes any bundle
- *  file's name, including node-pty's own manifest filename). */
-function walkBundleDir(dir: string): Array<{ path: string; bytes: Buffer }> {
-  const out: Array<{ path: string; bytes: Buffer }> = []
+/** The ONE recursive bundle-dir walk (2026-07-17 quality audit finding 33: the two walkers below
+ *  were the same recursion copy-pasted): visits every file as its forward-slash-relative path —
+ *  a DYNAMIC walk (REQ-022/TEST-2004: this tree never hard-codes any bundle file's name,
+ *  including node-pty's own manifest filename). */
+function walkBundleFiles(dir: string, visit: (relPath: string, fullPath: string) => void): void {
   const walk = (d: string, prefix: string): void => {
     for (const name of readdirSync(d)) {
       const full = join(d, name)
       if (statSync(full).isDirectory()) walk(full, `${prefix}${name}/`)
-      else out.push({ path: `${prefix}${name}`, bytes: readFileSync(full) })
+      else visit(`${prefix}${name}`, full)
     }
   }
   walk(dir, '')
+}
+
+/** Every file under a staged target bundle dir, as `{ path, bytes }` pairs. */
+function walkBundleDir(dir: string): Array<{ path: string; bytes: Buffer }> {
+  const out: Array<{ path: string; bytes: Buffer }> = []
+  walkBundleFiles(dir, (relPath, fullPath) => out.push({ path: relPath, bytes: readFileSync(fullPath) }))
   return out
 }
 
 /** Every relative path under a bundle dir, no bytes read (REQ-019/ESC-004's files-map parity
- *  check needs only the path set — the payload build below still reads bytes once). */
+ *  check needs only the path set — the payload build still reads bytes once). */
 function walkBundleDirPaths(dir: string): string[] {
   const out: string[] = []
-  const walk = (d: string, prefix: string): void => {
-    for (const name of readdirSync(d)) {
-      const full = join(d, name)
-      if (statSync(full).isDirectory()) walk(full, `${prefix}${name}/`)
-      else out.push(`${prefix}${name}`)
-    }
-  }
-  walk(dir, '')
+  walkBundleFiles(dir, (relPath) => out.push(relPath))
   return out
 }
 
@@ -326,14 +325,27 @@ export async function runCoProvisionPass(opts: BootstrapOptions): Promise<CoProv
   // file's sha-256 sourced EXCLUSIVELY from the local manifest's `files` map — no self-compute
   // fallback (readLocalManifest already proved 1:1 parity with the bundle dir, so every non-marker
   // path is guaranteed present there). The marker file's own entry (excluded from that map by
-  // design) is the one exception, computed from its bytes here.
-  const files = walkBundleDir(bundleDir).map((f) => ({
-    path: f.path,
-    bytes: f.bytes,
-    sha256: f.path === NODE_PTY_MARKER_FILE
-      ? createHash('sha256').update(f.bytes).digest('hex')
-      : local.manifest.files[f.path]
-  }))
+  // design) is the one exception, computed from its bytes here. The walk is guarded (audit
+  // 2026-07-17 finding 33): a sync-fs throw mid-walk (e.g. the bundle dir racing a removal) must
+  // surface as this module's typed fatal, never a raw rejection out of connectWithProvisioning.
+  let files: Array<{ path: string; bytes: Buffer; sha256: string }>
+  try {
+    files = walkBundleDir(bundleDir).map((f) => ({
+      path: f.path,
+      bytes: f.bytes,
+      sha256: f.path === NODE_PTY_MARKER_FILE
+        ? createHash('sha256').update(f.bytes).digest('hex')
+        : local.manifest.files[f.path]
+    }))
+  } catch (e) {
+    return {
+      kind: 'final',
+      result: {
+        ok: false, kind: 'fatal',
+        diagnostic: `reading the local node-pty prebuilt bundle at ${bundleDir} failed while building the install payload: ${errText(e)} — nothing was uploaded; verify the bundle dir and retry the connect`
+      }
+    }
+  }
   const payload = encodeNodePtyPayload(files, local.manifest.ptyNodeSha256)
   const installResult = await runNodePtyInstall(opts, remoteAgentDir, payload)
   if (installResult.kind === 'ok') return proceed(true, true)
@@ -397,6 +409,19 @@ async function runRecoveryCycle(
   return terminalNodePtyFatal(installedNow, remoteAgentDir, diag)
 }
 
+/** What the caller's connect sequence has established when a launch fatal lands (2026-07-17
+ *  quality audit finding 35: formerly three positional params with adjacent booleans). */
+export interface LaunchFatalContext {
+  /** The co-provision pass's engagement, when one ran this connect (undefined ⇒ no gate ran). */
+  engagement: CoProvisionEngagement | undefined
+  /** Whether ANY pass of this connect actually applied an install (honest terminal wording,
+   *  FINDING-021 — never claim an install on a skip path). */
+  installedEver: boolean
+  /** Whether the single recovery cycle is still available (true on the first launch only — the
+   *  two-launch cap is spent after the F19 upload leg). */
+  canRecover: boolean
+}
+
 /** Resolve a `fatal` agent-launch outcome under node-pty co-provisioning (REQ-016/REQ-021):
  *  - GLIBC-class stderr ⇒ decorate with the floor hint, NEVER recover (reinstalling the same
  *    binary cannot help an old glibc);
@@ -406,11 +431,10 @@ async function runRecoveryCycle(
 export async function resolveLaunchFatal(
   fatal: { diagnostic: string },
   opts: BootstrapOptions,
-  engagement: CoProvisionEngagement | undefined,
-  installedEver: boolean,
-  canRecover: boolean,
+  context: LaunchFatalContext,
   connect: ConnectFn
 ): Promise<ConnectResult> {
+  const { engagement, installedEver, canRecover } = context
   const diagnostic = fatal.diagnostic
   if (glibcFloorHint(diagnostic).length > 0) {
     return { ok: false, kind: 'fatal', diagnostic: withGlibcHint(diagnostic) }

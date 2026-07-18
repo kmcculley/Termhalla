@@ -18,7 +18,7 @@ import {
 import { deriveWsToken } from './ws-token'
 import { errText } from './exec-channel'
 import { runConnectPump, connectFailureResult } from './connect-pump'
-import { parseBridgeStatus, BRIDGE_STATUS_PREFIX } from './bridge-status'
+import { createBridgeStatusScanner, BRIDGE_STATUS_PREFIX } from './bridge-status'
 import { classifyDaemonConnectOutcome } from './classify'
 import type { BootstrapOptions, ConnectResult } from './bootstrap'
 
@@ -43,13 +43,15 @@ export async function connectDaemonAgent(opts: BootstrapOptions): Promise<Connec
     return { ok: false, kind: 'fatal', diagnostic: errText(e) }
   }
 
-  // FINDING-017: the bridge status line is parsed from a RAW, newline-preserving accumulation —
+  // FINDING-017: the bridge status line is parsed from the RAW, newline-preserving stream —
   // never the pump's sanitized stderr tail (whose control-char stripping collapses newlines,
   // which would merge the status line with a preceding diagnostic and blank the parse). The pump
   // feeds it only until the connect settles (2026-07-06 quality-audit Group B #7 — the
   // probe-stdout FINDING-010 posture: the stream is remote-controlled and an established
-  // connection lives for days).
-  let stderrRaw = ''
+  // connection lives for days). The scan is INCREMENTAL and bounded (2026-07-17 audit finding
+  // 31): the status line is emitted once, before piping begins — the scanner latches the first
+  // valid line and stops accumulating, retaining only a bounded window for a line in flight.
+  const bridgeStatus = createBridgeStatusScanner()
 
   return await runConnectPump({
     argv, ssh: opts.ssh, signal: opts.signal, version: opts.version, onDiagnostic: opts.onDiagnostic,
@@ -57,11 +59,11 @@ export async function connectDaemonAgent(opts: BootstrapOptions): Promise<Connec
     // app version advisory (D4′) — a routine auto-update reattaches, and only a genuine
     // proto-mismatch surfaces (routed to the daemon-protocol-drift classification).
     handshake: createDaemonClientHandshake({ version: opts.version }),
-    onStderrText: (text) => { stderrRaw += text },
+    onStderrText: (text) => { bridgeStatus.push(text) },
     // A HANDSHAKE failure waits (bounded) for the status line so proto-drift is classified from
     // the REAL daemon proto/version, not the "unknown" fallback. Exit-code failures classify
     // immediately (there is no status line to wait for).
-    deferHandshakeFailure: () => parseBridgeStatus(stderrRaw) === null,
+    deferHandshakeFailure: () => bridgeStatus.status() === null,
     deferMs: BRIDGE_STATUS_WAIT_MS,
     // The status line is protocol plumbing, not a diagnostic for the consumer.
     diagLineFilter: (trimmed) => !trimmed.startsWith(BRIDGE_STATUS_PREFIX.trim()),
@@ -70,7 +72,7 @@ export async function connectDaemonAgent(opts: BootstrapOptions): Promise<Connec
         sawAnyFrame: obs.sawAnyFrame,
         exitCode: extra.exitCode ?? null,
         stderrExcerpt: obs.stderrTail,
-        bridgeStatus: parseBridgeStatus(stderrRaw),
+        bridgeStatus: bridgeStatus.status(),
         expectedVersion: opts.version,
         expectedProto: WIRE_PROTO,
         wsToken,

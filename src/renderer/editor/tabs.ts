@@ -10,6 +10,8 @@ export interface Tab {
   tooLarge: boolean
   missing: boolean
   binary?: boolean              // binary file — exists but can't display (was misreported "(deleted)")
+  readError?: string            // read failed for an UNKNOWN reason (permissions, I/O) — existence
+                                // unknown, so it renders "(can't read)", never "(deleted)"
   externalChanged?: boolean     // disk changed under unsaved edits — show the reload bar
 }
 
@@ -20,5 +22,5 @@ export function applyContent(model: monaco.editor.ITextModel, content: string): 
 
 /** Is the tab dirty (editable, present, and diverged from its saved text)? */
 export function isDirty(t: Tab | undefined): boolean {
-  return !!t && !t.tooLarge && !t.missing && !t.binary && t.model.getValue() !== t.saved
+  return !!t && !t.tooLarge && !t.missing && !t.binary && !t.readError && t.model.getValue() !== t.saved
 }

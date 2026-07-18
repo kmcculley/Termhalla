@@ -24,11 +24,11 @@ import { RemoteAgentPicker } from './components/RemoteAgentPicker'
 import { ReopenWorkspaceModal } from './components/ReopenWorkspaceModal'
 import { SearchHistory } from './components/SearchHistory'
 import { matchShortcut, resolveBindings } from '@shared/keymap'
-import { chordPaneTarget, busyPaneCount } from './store/pane-ops'
+import { chordPaneTarget, busyPaneCount, dispatchCommand } from './store/pane-ops'
 import { closeWorkspaceConfirmText } from '@shared/remote-home'
 import { redrawPane, clearPane, openPaneFind, requestPaneFocus } from './components/terminal-registry'
 import { directionalPaneTarget, type NavDir } from './components/pane-nav'
-import { DEFAULT_THEME, mergeTheme } from '@shared/theme'
+import { mergeTheme } from '@shared/theme'
 import { nextFontSize } from '@shared/font-zoom'
 import { focusProjectPane, revealQueueGroup } from './components/pane-reveal'
 import { api } from './api'
@@ -64,7 +64,14 @@ export default function App() {
     document.title = activeWsName ? `${activeWsName} — Termhalla` : 'Termhalla'
   }, [activeWsName])
   useEffect(() => {
-    const flush = () => { const s = useStore.getState(); void s.saveAll(); s.flushQuick(); s.flushNotes() }
+    const flush = () => {
+      const s = useStore.getState()
+      // A toast can't render during unload — swallow the rejection with a console.warn so a
+      // failed flush is at least visible in devtools and never an unhandled rejection.
+      s.saveAll().catch(e => console.warn('beforeunload workspace flush failed', e))
+      s.flushQuick()
+      s.flushNotes()
+    }
     window.addEventListener('beforeunload', flush)
     return () => window.removeEventListener('beforeunload', flush)
   }, [])
@@ -130,7 +137,9 @@ export default function App() {
     // Same hazard for cloud:status (fire-and-forget, no re-send): if its push fired before the
     // onCloudStatus listener above was attached, it's lost and dedup blocks a re-send, leaving the
     // chip stuck on "cloud status…". Pull the current status now to recover it.
-    void api.cloudCurrent().then(statuses => s().setCloud(statuses)).catch(() => {})
+    // A failed recovery pull silently recreated the stuck-chip state it exists to fix (2026-07-17
+    // audit Finding 24b) — surface it in devtools; a toast would be noise, a retry loop overkill.
+    void api.cloudCurrent().then(statuses => s().setCloud(statuses)).catch(e => console.warn('[cloud] recovery pull failed:', e))
     // Same missed-push recovery for the registry aggregate (feature 0006, REQ-003/REQ-011) — ONE
     // pull, generation-guarded: the generation is captured at ISSUE time, so a stale late-settling
     // result is discarded if any snapshot (push or pull) was applied after the pull was issued.
@@ -156,10 +165,6 @@ export default function App() {
       switch (sc.type) {
         case 'toggle-palette': s.setPaletteOpen(!s.paletteOpen); break
         case 'toggle-broadcast': s.setBroadcastOpen(!s.broadcastOpen); break
-        case 'new-terminal': {
-          if (activeId) void s.addPaneOfKind(activeId, 'terminal')
-          break
-        }
         case 'close-workspace': {
           if (!activeId) break
           const ws = s.workspaces[activeId]
@@ -170,35 +175,19 @@ export default function App() {
         case 'next-workspace': if (order.length) s.setActive(order[(idx + 1 + order.length) % order.length]); break
         case 'prev-workspace': if (order.length) s.setActive(order[(idx - 1 + order.length) % order.length]); break
         case 'jump-workspace': if (order[sc.index]) s.setActive(order[sc.index]); break
-        case 'open-settings': s.openSettings({ section: 'general' }); break
-        // chordPaneTarget: the focused pane when it's in THIS workspace, else the first pane —
-        // focusedPaneId is only seeded on mouse-down, so the chord must not be a silent no-op
-        // in a workspace the user hasn't clicked into yet (or after a tab switch).
-        case 'toggle-maximize-pane': {
-          const pane = chordPaneTarget(activeId ? s.workspaces[activeId] : undefined, s.focusedPaneId)
-          if (pane && activeId) s.toggleMaximize(activeId, pane)
-          break
-        }
-        case 'toggle-minimize-pane': {
-          const pane = chordPaneTarget(activeId ? s.workspaces[activeId] : undefined, s.focusedPaneId)
-          if (pane && activeId) s.toggleMinimize(activeId, pane)
-          break
-        }
-        case 'toggle-notes': s.setNotesOpen(!s.notesOpen); break
         case 'toggle-search': s.setSearchOpen(!s.searchOpen); break
         case 'toggle-orky-queue': s.setQueueOpen(!s.queueOpen); break
         // Global capture chrome (feature 0012, REQ-001): reads NO active-workspace state — the
-        // chord works with zero workspaces (the toggle-orky-queue precedent above).
+        // chord works with zero workspaces (the toggle-orky-queue precedent above). This case and
+        // toggle-orky-queue stay at this site verbatim (frozen TEST-495/TEST-360 pin their shapes)
+        // rather than riding the shared dispatcher below.
         case 'capture-orky-work': s.openOrkyCapture(); break
-        case 'redraw-terminal': redrawPane(s.focusedPaneId ?? ''); break
-        case 'close-pane': {
-          const pane = chordPaneTarget(activeId ? s.workspaces[activeId] : undefined, s.focusedPaneId)
-          if (pane && activeId) s.closePane(activeId, pane) // closePane owns the busy/dirty confirm
-          break
-        }
         case 'focus-pane-left': case 'focus-pane-right': case 'focus-pane-up': case 'focus-pane-down': {
           if (!activeId || s.maximized[activeId]) break // siblings are hidden under maximize
           const ws = s.workspaces[activeId]
+          // chordPaneTarget: the focused pane when it's in THIS workspace, else the first pane —
+          // focusedPaneId is only seeded on mouse-down, so the chord must not be a silent no-op
+          // in a workspace the user hasn't clicked into yet (or after a tab switch).
           const from = chordPaneTarget(ws, s.focusedPaneId)
           if (!ws || !from) break
           // Measure the visible tiles; the geometry pick itself is pure (pane-nav.ts).
@@ -214,30 +203,19 @@ export default function App() {
           if (target) { s.setFocusedPane(target); requestPaneFocus(target) }
           break
         }
-        case 'restore-last-minimized': {
-          if (!activeId) break
-          const ids = s.minimized[activeId] ?? []
-          const last = ids[ids.length - 1]
-          if (last) s.restorePane(activeId, last)
-          break
-        }
         case 'font-zoom-in': case 'font-zoom-out': {
           const cur = mergeTheme(s.quick.theme).termFontSize
           const next = nextFontSize(cur, sc.type === 'font-zoom-in' ? -1 : 1)
           if (next !== cur) s.setTheme({ termFontSize: next })
           break
         }
-        case 'font-zoom-reset': s.setTheme({ termFontSize: DEFAULT_THEME.termFontSize }); break
-        case 'clear-terminal': {
-          const pane = chordPaneTarget(activeId ? s.workspaces[activeId] : undefined, s.focusedPaneId)
-          if (pane) clearPane(pane)
-          break
-        }
-        case 'find-in-terminal': {
-          const pane = chordPaneTarget(activeId ? s.workspaces[activeId] : undefined, s.focusedPaneId)
-          if (pane) openPaneFind(pane)
-          break
-        }
+        default:
+          // Every remaining pane-scoped / window-chrome command (new-terminal, open-settings,
+          // maximize/minimize/close pane, notes, font-zoom-reset, clear/find/redraw terminal,
+          // restore-last-minimized) is shared with the palette's activate() through the ONE
+          // dispatcher in store/pane-ops.ts (2026-07-17 audit Finding 28). The chord side redraws
+          // the focused pane exactly ('focused' — the shipped divergence from the palette).
+          dispatchCommand(sc.type, s, { clearPane, redrawPane, openPaneFind }, { redrawTarget: 'focused' })
       }
     }
     window.addEventListener('keydown', onKey)

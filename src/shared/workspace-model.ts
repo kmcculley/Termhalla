@@ -176,7 +176,9 @@ export function deserializeWorkspace(json: string): Workspace {
     throw new Error('Invalid workspace file: missing schemaVersion/workspace')
   }
   const ws = migrate(data.workspace, data.schemaVersion)
-  if (typeof ws.id !== 'string' || typeof ws.panes !== 'object') {
+  // `typeof` alone admits null and arrays (both 'object') — reject them here so a corrupt/hostile
+  // file gets the actionable bad-shape error instead of a raw TypeError downstream.
+  if (typeof ws.id !== 'string' || ws.panes === null || typeof ws.panes !== 'object' || Array.isArray(ws.panes)) {
     throw new Error('Invalid workspace file: bad shape')
   }
   return normalizeHome(normalizeViewState(normalizeOrkyBindings(ws)))
