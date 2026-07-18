@@ -37,6 +37,11 @@ export interface BackpressurePolicy {
   /** unsubscribe / paneExit / fresh-subscribe hook: a pane's stale flag (and any held pushes for
    *  it) cannot outlive its subscription. A no-op on a never-stale/never-held pane. */
   clearStale(paneId: string): void
+  /** Directly mark a pane stale (v3 — FINDING-058/060): the pre-transport burst queue's
+   *  saturation discard must record staleness even while the pane is inside an attach/resync
+   *  hold window, where the ordinary `onData` gate is never consulted (the session queues the
+   *  chunk before the policy ever sees it). Idempotent. */
+  markStale(paneId: string): void
   /** Continuous-saturation sample (a real transport signal feeds this on a cadence). */
   onBuffered(nowMs: number, bufferedAmount: number): void
   /** `true` iff `bufferedAmount` has been continuously above `highWater` for >= `timeoutMs`. */
@@ -89,6 +94,9 @@ export function createBackpressurePolicy(opts?: { highWater?: number; lowWater?:
     clearStale(paneId) {
       stale.delete(paneId)
       for (const [key, entry] of [...held]) if (entry.paneId === paneId) held.delete(key)
+    },
+    markStale(paneId) {
+      stale.add(paneId)
     },
     onBuffered(nowMs, bufferedAmount) {
       if (bufferedAmount > highWater) {

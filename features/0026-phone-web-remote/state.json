@@ -61,8 +61,8 @@
     },
     "implement": {
       "passed": true,
-      "at": "2026-07-18T20:20:14.855Z",
-      "firstAt": "2026-07-18T20:20:14.855Z",
+      "at": "2026-07-18T21:15:35.288Z",
+      "firstAt": "2026-07-18T21:15:35.288Z",
       "tokens": [
         {
           "token": "spec-freeze",
@@ -89,7 +89,8 @@
   },
   "iterations": {
     "tests": 2,
-    "spec": 1
+    "spec": 1,
+    "implement": 1
   },
   "escalations": [
     {
@@ -113,6 +114,17 @@
       "at": "2026-07-18T16:28:16.458Z",
       "decision": "Duplicate of ESC-001 (identical 15 findings and questions). The human decision recorded on ESC-001 (Kevin, 2026-07-18T16:26Z) stands and is being executed now: shift-left loopback to spec, fix all 15 blocking findings, none accepted as gaps — HttpOnly session cookie auth amendment, real workspace-grouped inventory, e2e coverage added through the tests phase, plus the mechanical fixes enumerated on ESC-001.",
       "resolvedAt": "2026-07-18T16:29:00.708Z"
+    },
+    {
+      "id": "ESC-003",
+      "phase": "review",
+      "reason": "Should we fix the burst queue to hold-window-aware ordering (syncing mirror barrier with session hold-windows, marking stale for lost bytes in attach/resync) to restore exactly-once per REQ-009/REQ-017, or defer this to v2?",
+      "kind": "judgment",
+      "finding": "FINDING-058",
+      "status": "resolved",
+      "at": "2026-07-18T20:38:08.776Z",
+      "decision": "Human (Kevin, 2026-07-18): fix all 5 now (FINDING-058/060/063/070/071), none deferred. Implement mode: human-authorized single Claude implementer at the router-computed producer tier, overriding a potential A/B mandate for this focused fix round (budget-conscious; frozen suite + re-review still arbitrate) — to be recorded via record-implementer as an audited deviation.",
+      "resolvedAt": "2026-07-18T21:00:46.124Z"
     }
   ],
   "concerns": [
@@ -127,17 +139,16 @@
     "plan": 0,
     "tests": 0,
     "implement": 0,
-    "review": 1
+    "review": 2
   },
   "implementer": {
-    "mode": "ab",
+    "mode": "claude",
     "agents": [
-      "orky:implementer",
-      "codex:codex-rescue"
+      "orky:implementer"
     ],
     "winner": "orky:implementer",
-    "reason": "Round 2 gate arbitration, all measurements orchestrator-run: A=352/353 vitest + build green + e2e 5/5; B=352/353 vitest + build green + e2e 0/5 (inherited replay-engine ESM/CJS launch crash, unfixed). A wins on end-to-end evidence. B's genuine contribution — passing TEST-2714's continuous-stall sub-test A had misdiagnosed as a Windows IOCP limitation — was welded into A's architecture (pre-transport burst queue + pong-gated drain + resetAndDestroy terminate), after which A reached 353/353 with e2e 5/5. Neither candidate touched tests/.",
-    "at": "2026-07-18T20:20:39.640Z"
+    "reason": "ESC-003 fix round: router computed ab (networking/determinism), overridden to a single Claude implementer at the router's top producer tier (fable/xhigh, judgment-loopback trigger) by explicit human authorization recorded on ESC-003 (budget-conscious targeted fixes; frozen suite + re-review arbitrate). All 5 findings fixed; implement gate re-passed on build + full-suite ground truth.",
+    "at": "2026-07-18T21:15:53.626Z"
   },
   "loopbacks": [
     {
@@ -157,7 +168,13 @@
       "from": "implement",
       "reason": "Frozen-test authoring defect (corroborated independently by BOTH A/B candidates): tests/main/phone-remote-service.test.ts's mkPaneSourceV2 ends its panes object with 'as never' (line 498), stripping contextual typing from the four un-annotated (cb) arrow params at 492-495 — npm run typecheck fails TS7006 on a file no implementation choice can affect. Behavior-neutral amendment: annotate the four params to match their callback arrays. npm test unaffected.",
       "at": "2026-07-18T20:16:45.364Z"
+    },
+    {
+      "to": "implement",
+      "from": "review",
+      "reason": "ESC-003 resolved: 5 new HIGH findings on round-2 code, all implement-origin — burst-queue macrotask defer breaks snapshot-stream exactly-once (058/060), startup failure invisible pre-window (063), Set-Cookie dead after desktop restart (070), failed start destroys enabled intent (071).",
+      "at": "2026-07-18T21:00:46.181Z"
     }
   ],
-  "totalFailures": 1
+  "totalFailures": 2
 }

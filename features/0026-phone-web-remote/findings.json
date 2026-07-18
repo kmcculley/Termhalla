@@ -10,7 +10,10 @@
     "verified_by": "performance",
     "contract_violation": true,
     "id": "FINDING-001",
-    "status": "open"
+    "status": "resolved",
+    "resolution": "Verified in code + tests: the ws.on('drain') listener is gone from the entire src tree (grep zero matches). socketDrained() is now driven by an actually-firing transport signal — ws.on('pong') (service.ts:297-305), fed by an armed-only-while-pending 50ms transport watch (armTransportWatch, service.ts:281-295) that sends a fresh drain-probe ping each tick, plus the always-running keepalive pingTimer. TEST-2713 (tests/main/phone-remote-service.test.ts:676-699) saturates a REAL live ws connection past PHONE_WS_HIGH_WATER (raw socket pause + ~4MiB flood), resumes, and observes a buffer-replacing resync arrive followed by live data — with NO test code invoking the drain seam. Spec REQ-017 amended v2 to mandate a real trigger (02-spec.md:394-398).",
+    "resolvedBy": "performance",
+    "resolvedAt": "2026-07-18T20:28:31.785Z"
   },
   {
     "lens": "performance",
@@ -22,7 +25,10 @@
     "phase_of_origin": "spec",
     "verified_by": "performance",
     "id": "FINDING-002",
-    "status": "open"
+    "status": "resolved",
+    "resolution": "Verified in code + spec + tests: status/grid pushes now route through the backpressure policy — onPush holds them coalesced latest-wins per (kind,paneId) while bufferedAmount > PHONE_WS_HIGH_WATER (backpressure.ts:77-91), flushed via takeHeldPushes on the drain trigger (ws-session.ts:205-217, 246-253). TEST-2708 proves a saturated session accumulates ZERO sends across 26 status flips + 2 grid pushes and drains to exactly one latest status + one latest grid. The hard ceiling exists: a connection continuously above high water past PHONE_WS_STALL_TIMEOUT_MS is terminated (stallPolicy.stalledPast + pendingTooLong, service.ts:284-295), and a real ws ping/pong keepalive (PHONE_WS_PING_INTERVAL_MS/PHONE_WS_PONG_TIMEOUT_MS) terminates a half-open sleeping phone (service.ts:255-269; TEST-2714 pins both). Spec REQ-017 amended v2: 'the bound MUST cover every message class' + ceiling/keepalive bullets (02-spec.md:385-426) — the per-client memory bound now genuinely holds (remaining unconditional sends — snapshot/resync/paneExit — are event-bounded and capped in time by the keepalive termination).",
+    "resolvedBy": "performance",
+    "resolvedAt": "2026-07-18T20:28:42.097Z"
   },
   {
     "lens": "performance",
@@ -34,7 +40,10 @@
     "phase_of_origin": "implement",
     "verified_by": "performance",
     "id": "FINDING-003",
-    "status": "open"
+    "status": "resolved",
+    "resolution": "Verified in code: the client now maintains subscription hygiene. paneSwitchPlan (src/phone-client/ws-client.ts:101-106) emits unsubscribe for the departing pane before subscribing the next; the pane-select handler executes it (main.ts:76-90), and the back-to-list button sends unsubscribe for the active pane (main.ts:93-97) — so at most ONE pane is ever subscribed. Reconnect re-attaches only the active pane (main.ts:187-190), not a grown set. The server clears backpressure/attach state on unsubscribe (ws-session.ts doUnsubscribe), so no background pane keeps streaming discarded output.",
+    "resolvedBy": "performance",
+    "resolvedAt": "2026-07-18T20:28:49.798Z"
   },
   {
     "lens": "performance",
@@ -70,7 +79,10 @@
     "phase_of_origin": "implement",
     "verified_by": "determinism",
     "id": "FINDING-006",
-    "status": "open"
+    "status": "resolved",
+    "resolution": "Verified fixed in src/main/phone-remote/network-urls.ts (new pure module): rankReachableUrls enumerates ALL non-internal IPv4 addresses and orders them by a stated deterministic ranking (192.168/16 then 10/8 then 172.16/12 then other, name+address tiebreak within a rank) — never raw OS enumeration order. service.ts computeUrls() returns the FULL ranked list in status().urls and pairingHost() derives the QR host from the top-ranked candidate with an externalHost override (REQ-031, added to the spec in the ESC-001 loopback). TEST-2694 (tests/main/phone-remote-network-urls.test.ts) pins the ranking, the RFC1918 boundaries, and invariance under three permuted enumeration orders of a 6-adapter table. Residual nit (within-rank localeCompare is host-locale-dependent) filed separately as a LOW.",
+    "resolvedBy": "determinism",
+    "resolvedAt": "2026-07-18T20:28:34.698Z"
   },
   {
     "lens": "performance",
@@ -94,7 +106,10 @@
     "phase_of_origin": "implement",
     "verified_by": "determinism",
     "id": "FINDING-008",
-    "status": "open"
+    "status": "resolved",
+    "resolution": "Verified fixed in src/main/phone-remote/ws-session.ts: doSubscribe installs a FRESH pending-array reference per attach (attaching.set(paneId, pending)) and finishAttach now identity-guards (attaching.get(paneId) !== pending -> return, line 126) — a superseded snapshot resolution completes nothing; only the latest subscribe's snapshot+queue pair completes the attach. Spec REQ-009 was amended in the ESC-001 loopback to mandate the identity guard. TEST-2705 (tests/main/phone-remote-session.test.ts) pins the exact adversarial vector from this finding: subscribe, feed C, re-subscribe, feed D, resolve the SUPERSEDED snapshot first — asserts exactly one snapshot (the second, containing C), D rides only the stream, C never rides the stream, and the reference-terminal reconstruction contains B, C, D exactly once.",
+    "resolvedBy": "determinism",
+    "resolvedAt": "2026-07-18T20:28:44.099Z"
   },
   {
     "lens": "determinism",
@@ -106,7 +121,10 @@
     "phase_of_origin": "spec",
     "verified_by": "determinism",
     "id": "FINDING-009",
-    "status": "open"
+    "status": "resolved",
+    "resolution": "Verified fixed at the session seam in src/main/phone-remote/ws-session.ts: socketDrained() now opens an identity-guarded resyncing hold-window per stale pane (resyncing.set BEFORE the async snapshot read, lines 239-245); paneData arriving during the window is queued (line 199-200), and finishResync (lines 167-172) sends the resync then flushes the queue as data — post-trigger bytes are never sent ahead of the buffer-replacing resync, so a delivered byte can no longer be erased. The window is superseded by unsubscribe/paneExit/fresh-subscribe (resyncing.delete + identity check). Spec REQ-017 was amended in the ESC-001 loopback ('Resync exactly-once' bullet), and the drain trigger is now real (pong-gated socketDrained in service.ts — FINDING-001's fix — so this path is live, not masked). TEST-2706 pins the interleaved vector this finding demanded: data fed between the drain trigger and the snapshot resolution is asserted queued BEHIND the resync, with the reference-terminal reconstruction proving no erased bytes. NOTE: a NEW service-level defect (the round-2 welded pre-transport burst queue desyncing the mirror barrier from the session hold-windows) reintroduces an exactly-once hole at a DIFFERENT seam — filed separately as a new HIGH finding; the defect claimed here at ws-session.ts:174 is fixed as specified.",
+    "resolvedBy": "determinism",
+    "resolvedAt": "2026-07-18T20:28:54.103Z"
   },
   {
     "lens": "quality",
@@ -119,7 +137,10 @@
     "verified_by": "quality",
     "contract_violation": true,
     "id": "FINDING-010",
-    "status": "open"
+    "status": "resolved",
+    "resolution": "Verified fixed: SettingsPanel.tsx imports PhoneRemoteSettings and renders it for section==='phoneRemote' (line 58); SettingsSection type (src/renderer/store/types.ts:22) now includes 'phoneRemote'; SECTIONS array includes the entry. Component is reachable from real Settings navigation.",
+    "resolvedBy": "quality",
+    "resolvedAt": "2026-07-18T20:26:46.944Z"
   },
   {
     "lens": "quality",
@@ -132,7 +153,10 @@
     "verified_by": "quality",
     "contract_violation": true,
     "id": "FINDING-011",
-    "status": "open"
+    "status": "resolved",
+    "resolution": "Verified fixed: register.ts now threads REAL workspace id/name (phoneRemoteWorkspaceNames, fed by registerWorkspaces' onWorkspaceSaved callback wired at line 237) and per-pane title/kind (phoneRemotePaneMeta, keyed by paneId, pruned on workspace membership change) into phoneRemotePaneRecord (lines 97-106), replacing the prior hardcoded workspaceId:'local'/workspaceName:'Termhalla'/title:paneId stub. onSpawn also seeds the spawning pane's real workspaceId immediately (register-pty.ts). buildInventory (inventory.ts) is now reachable in production. Confirmed exercised end-to-end by new e2e TEST-2729.",
+    "resolvedBy": "quality",
+    "resolvedAt": "2026-07-18T20:26:50.377Z"
   },
   {
     "lens": "quality",
@@ -144,7 +168,10 @@
     "phase_of_origin": "implement",
     "verified_by": "quality",
     "id": "FINDING-012",
-    "status": "open"
+    "status": "resolved",
+    "resolution": "Verified fixed: register.ts line 190 now calls e2ePhoneRemoteOverride() and threads it into createPhoneRemoteService's loadSettings/saveSettings/initialSessionToken/timing (lines 191-223), matching the sibling e2e-remote.ts pattern. Two new e2e specs now exist and exercise the seam: tests/e2e/phone-remote.spec.ts (TEST-2727/2728/2729/2730) and tests/e2e/phone-remote-client-dom.spec.ts (TEST-2731) — no longer decorative dead code.",
+    "resolvedBy": "quality",
+    "resolvedAt": "2026-07-18T20:26:53.290Z"
   },
   {
     "lens": "quality",
@@ -156,7 +183,10 @@
     "phase_of_origin": "tests",
     "verified_by": "quality",
     "id": "FINDING-013",
-    "status": "open"
+    "status": "resolved",
+    "resolution": "Verified fixed: 04-tests.md's v2 loopback amendment section (line 250, 'Residual obligations (CONV-052) — now IN the suite') explicitly records that the three v1 residual obligations are discharged by TEST-2727/2728/2731 under tests/e2e/, replacing the prior only-in-working-doc gap. The specs exist and match (phone-remote.spec.ts, phone-remote-client-dom.spec.ts).",
+    "resolvedBy": "quality",
+    "resolvedAt": "2026-07-18T20:26:55.341Z"
   },
   {
     "lens": "quality",
@@ -168,7 +198,10 @@
     "phase_of_origin": "implement",
     "verified_by": "quality",
     "id": "FINDING-014",
-    "status": "open"
+    "status": "resolved",
+    "resolution": "Verified fixed: service.ts now has a shared restart() helper (lines 470-476: stop transport, clear listening/boundPort, startIfEnabled) called from both setBind (line 507) and setPort (line 513); the prior verbatim 4-line duplication is gone.",
+    "resolvedBy": "quality",
+    "resolvedAt": "2026-07-18T20:26:57.263Z"
   },
   {
     "lens": "networking",
@@ -181,7 +214,10 @@
     "verified_by": "networking",
     "contract_violation": true,
     "id": "FINDING-015",
-    "status": "open"
+    "status": "resolved",
+    "resolution": "Verified in src/main/phone-remote/service.ts: no ws.on('drain') listener exists anywhere; the drain trigger is now a pong-gated session.socketDrained() (ws.on('pong') handler, service.ts:297-305) plus an armed-only-while-pending transport watch (armTransportWatch, service.ts:281-295) that pings each 50ms tick while session.hasPending() — an actually-occurring transport signal per CONV-036. TEST-2713 (tests/main/phone-remote-service.test.ts:676-699) saturates a REAL ws connection via raw-socket pause, resumes, and observes a resync arrive with NO test code invoking the drain seam; implement gate ran it green.",
+    "resolvedBy": "networking",
+    "resolvedAt": "2026-07-18T20:29:24.530Z"
   },
   {
     "lens": "networking",
@@ -194,7 +230,10 @@
     "verified_by": "networking",
     "contract_violation": true,
     "id": "FINDING-016",
-    "status": "open"
+    "status": "resolved",
+    "resolution": "Verified: openPanePlan (src/phone-client/ws-client.ts:114-119) emits size-then-subscribe; TerminalView.open (terminal-view.ts:76-84) applies it (setGrid before the subscribe send); main.ts:76-90 passes paneList.getPane(paneId) (real inventory cols/rows, pane-list.ts:50-56) on tap, and the ws 'open' handler re-opens the active pane the same way on reconnect (main.ts:187-190). phone-client-core.test.ts pins a 120x30 pane sized before subscribe.",
+    "resolvedBy": "networking",
+    "resolvedAt": "2026-07-18T20:29:24.696Z"
   },
   {
     "lens": "networking",
@@ -207,7 +246,10 @@
     "verified_by": "networking",
     "contract_violation": true,
     "id": "FINDING-017",
-    "status": "open"
+    "status": "resolved",
+    "resolution": "Verified in src/main/ipc/register.ts:73-106: the synthetic-workspace stub is gone — real workspace id/name are threaded from every ws:save (onPhoneRemoteWorkspaceSaved feeds phoneRemoteWorkspaceNames + per-pane title/kind meta), and the spawning pane's workspaceId rides PtySpawnArgs into phoneRemoteLivePanes at spawn (register.ts:167-171) so the first push is already grouped. e2e TEST-2729 (tests/e2e/phone-remote.spec.ts:138-177) asserts through the REAL production composition: true workspace name matching the visible tab, human-readable title (not a uuid/paneId), true grid — and explicitly asserts the 'Termhalla' stub name is gone. Implement gate ran e2e 5/5 green.",
+    "resolvedBy": "networking",
+    "resolvedAt": "2026-07-18T20:29:38.625Z"
   },
   {
     "lens": "networking",
@@ -219,7 +261,10 @@
     "phase_of_origin": "implement",
     "verified_by": "networking",
     "id": "FINDING-018",
-    "status": "open"
+    "status": "resolved",
+    "resolution": "Verified: every lifecycle mutation is serialized through the single promise-chain opQueue (service.ts:453-458, enqueue used by setEnabled/setBind/setPort/setExternalHost/regenerateToken/pairingUrl/stop/init); doSetEnabled is idempotent (service.ts:479-481); and transport.start on an already-running server returns the existing bound port instead of rejecting (server.ts:35-42) so a redundant enable can never be misclassified as a bind failure or strand a zombie listener. TEST-2709 (phone-remote-service.test.ts:556-589) pins both vectors: redundant setEnabled(true) leaves one healthy listener with no error, and a stop/start race converges with the superseded listener provably closed (connection refused probe).",
+    "resolvedBy": "networking",
+    "resolvedAt": "2026-07-18T20:29:38.713Z"
   },
   {
     "lens": "networking",
@@ -231,7 +276,10 @@
     "phase_of_origin": "spec",
     "verified_by": "networking",
     "id": "FINDING-019",
-    "status": "open"
+    "status": "resolved",
+    "resolution": "Verified: status/grid pushes now route through policy.onPush (ws-session.ts:205-217) — held latest-wins per (kind,paneId) while saturated (backpressure.ts:77-91), flushed on the drain trigger; and dead peers are reaped by a real server-side ping/pong keepalive (sendPing + pongDeadline forceTerminate, service.ts:255-269) plus the continuous-saturation stall ceiling (stallPolicy.stalledPast + wall-clock pendingSince, service.ts:281-295) — forceTerminate uses resetAndDestroy so a paused peer is cut at the TCP level. TEST-2714 pins both terminations (never-pongs peer, continuously-saturated peer); TEST-2708 pins the latest-wins coalescing. Bounded zombie lifetime <= pingInterval+pongTimeout.",
+    "resolvedBy": "networking",
+    "resolvedAt": "2026-07-18T20:29:50.954Z"
   },
   {
     "lens": "networking",
@@ -243,7 +291,10 @@
     "phase_of_origin": "implement",
     "verified_by": "networking",
     "id": "FINDING-020",
-    "status": "open"
+    "status": "resolved",
+    "resolution": "Verified in ws-session.ts: doSubscribe clears the pane's stale flag AND any in-flight resync window before opening the fresh attach (lines 133-146, 'the snapshot IS the resync'); doUnsubscribe (148-153) and paneExit (219-226) both clear attaching/resyncing/live and call policy.clearStale (which also drops held pushes for the pane, backpressure.ts:89-92); onDrain can therefore never resync a pane whose subscription ended, and a resubscribed pane's subsequent chunks pass policy.onData (stale cleared). finishResync is identity-guarded so a superseded resync completes nothing (167-172). TEST-2707 pins both mandated vectors: stale-unsubscribe-drain emits NO resync; stale-resubscribe delivers post-snapshot chunks as data.",
+    "resolvedBy": "networking",
+    "resolvedAt": "2026-07-18T20:29:51.013Z"
   },
   {
     "lens": "networking",
@@ -255,7 +306,10 @@
     "phase_of_origin": "spec",
     "verified_by": "networking",
     "id": "FINDING-021",
-    "status": "open"
+    "status": "resolved",
+    "resolution": "Verified: the client half now exists — createMessageGate (src/phone-client/ws-client.ts:57-69) compares every hello's proto against the bundled PHONE_REMOTE_PROTO_VERSION; a mismatch is terminal (every later message returns 'drop'). main.ts wires the gate into the ws message listener (170-206): 'reload-required' surfaces 'a new version is available — reloading…' and calls window.location.reload(); the gate is recreated per connection attempt. phone-client-core.test.ts:147-161 pins mismatch => reload-required + suppression of ALL later messages, plus a structural check that main.ts attempts the reload.",
+    "resolvedBy": "networking",
+    "resolvedAt": "2026-07-18T20:30:02.221Z"
   },
   {
     "lens": "networking",
@@ -267,7 +321,10 @@
     "phase_of_origin": "spec",
     "verified_by": "networking",
     "id": "FINDING-022",
-    "status": "open"
+    "status": "resolved",
+    "resolution": "Verified: deps.panes.onSpawn is now part of the service surface (service.ts:69-72) and wired to pushInventoryToAll (service.ts:442-445); pane exit also re-pushes (service.ts:429-434). The production composition fires the membership signal on real spawns (register.ts:167-171 via registerPty's onSpawn) AND on every ws:save so late-arriving titles/grouping propagate (register.ts:83-96). TEST-2711 pins spawn-appears-via-push and exit-leaves-the-list without reconnecting; e2e TEST-2729/TEST-2731 observe the push through the real app (client connects BEFORE the pane is created).",
+    "resolvedBy": "networking",
+    "resolvedAt": "2026-07-18T20:30:02.278Z"
   },
   {
     "lens": "networking",
@@ -279,7 +336,10 @@
     "phase_of_origin": "implement",
     "verified_by": "networking",
     "id": "FINDING-023",
-    "status": "open"
+    "status": "resolved",
+    "resolution": "Verified delivered: tests/e2e/phone-remote.spec.ts now exists with TEST-2727 (REQ-015 byte-identical desktop render, server+client vs server-off baseline), TEST-2728 (REQ-019 app.close completes <15s with a live subscribed WS client), TEST-2729 (REQ-011 real inventory), TEST-2730 (REQ-029 settings mount); tests/e2e/phone-remote-client-dom.spec.ts TEST-2731 covers the served-client DOM half (list->terminal navigation, typed input round-trip, Ctrl latch \\x03, exit notice, cookie relaunch). All ride the TERMHALLA_E2E_PHONE_REMOTE seam. state.json implementer arbitration records e2e 5/5 green on the winning candidate.",
+    "resolvedBy": "networking",
+    "resolvedAt": "2026-07-18T20:30:20.648Z"
   },
   {
     "lens": "ux",
@@ -292,7 +352,10 @@
     "verified_by": "ux",
     "contract_violation": true,
     "id": "FINDING-024",
-    "status": "open"
+    "status": "resolved",
+    "resolution": "Verified: SettingsPanel.tsx SECTIONS now contains { id: 'phoneRemote', label: 'Phone' } and the render switch mounts <PhoneRemoteSettings/> (lines 20/58); pinned by TEST-2716 (real mount wiring) and e2e TEST-2730 (open Settings, click Phone, surface visible, LAN warning mode-gated) which ran green per the implementer arbitration (e2e 5/5).",
+    "resolvedBy": "ux",
+    "resolvedAt": "2026-07-18T20:30:56.929Z"
   },
   {
     "lens": "devils-advocate",
@@ -305,7 +368,10 @@
     "verified_by": "devils-advocate",
     "contract_violation": true,
     "id": "FINDING-025",
-    "status": "open"
+    "status": "resolved",
+    "resolution": "Verified fixed: spec v2 encodes the HttpOnly session-cookie model (REQ-028) and the implementation delivers it — cookie.ts issues HttpOnly/SameSite=Lax/Path=//Max-Age cookie whose value is the plaintext token verified as a pure function of the persisted tokenHash (auth.ts accepts token OR cookie on GET / and the WS upgrade); the client strips the token from the URL and persists nothing script-readable (token-storage.ts). Pinned by TEST-2691/2692/2693 (wire vectors incl. simulated restart + regenerate revocation) and the served-DOM e2e TEST-2731 token-less cookie reload. A narrower residual (cookie issuance gated on in-memory sessionToken, dead after restart) is re-filed separately.",
+    "resolvedBy": "devils-advocate",
+    "resolvedAt": "2026-07-18T20:34:10.464Z"
   },
   {
     "lens": "networking",
@@ -317,7 +383,10 @@
     "phase_of_origin": "implement",
     "verified_by": "networking",
     "id": "FINDING-026",
-    "status": "open"
+    "status": "resolved",
+    "resolution": "Verified: reconnect now uses capped exponential backoff (reconnectDelayMs, ws-client.ts:80-83 — 500ms doubling to a 120s cap) and a terminal revoked state: handleClose (main.ts:145-168) probes a cheap authenticated fetch after a quick close (no hello within 1500ms), counts consecutive 401s, and reconnectOutcome (>=3) transitions to 'pairing revoked — scan the new QR code' with no further retries (connect() early-returns on revoked). Transient failures (fetch throws / non-401) reset the streak and keep retrying with backoff. phone-client-core.test.ts:167-186 pins the cap, the bounded threshold, and revoked-stays-revoked.",
+    "resolvedBy": "networking",
+    "resolvedAt": "2026-07-18T20:30:20.705Z"
   },
   {
     "lens": "ux",
@@ -330,7 +399,10 @@
     "verified_by": "ux",
     "contract_violation": true,
     "id": "FINDING-027",
-    "status": "open"
+    "status": "resolved",
+    "resolution": "Verified: register.ts no longer hardcodes 'local'/'Termhalla' — real workspace id/name + per-pane title/kind are threaded from every ws:save (phoneRemoteWorkspaceNames/phoneRemotePaneMeta) plus the spawn-time workspaceId, built via buildInventory (inventory.ts, humanTitle never shows a raw pane id). e2e TEST-2729 asserts the wire inventory carries the desktop's real tab name (explicitly !== 'Termhalla'), a non-uuid human title, and a real grid, through the production composition.",
+    "resolvedBy": "ux",
+    "resolvedAt": "2026-07-18T20:30:56.988Z"
   },
   {
     "lens": "networking",
@@ -342,7 +414,10 @@
     "phase_of_origin": "implement",
     "verified_by": "networking",
     "id": "FINDING-028",
-    "status": "open"
+    "status": "resolved",
+    "resolution": "Verified: the client now unsubscribes the departing pane — paneSwitchPlan (ws-client.ts:101-106) emits unsubscribe{from} on pane switch (wired in main.ts:76-80) and the back button sends unsubscribe for the active pane before returning to the list (main.ts:93-97); reconnect re-attaches at most the active pane (main.ts:187-190, no subscribed-set accumulation — activePaneId is the only re-attach source). phone-client-core.test.ts:198-204 pins switch/back/self-switch plans; e2e TEST-2731's contract includes the departing-pane unsubscribe.",
+    "resolvedBy": "networking",
+    "resolvedAt": "2026-07-18T20:30:20.764Z"
   },
   {
     "lens": "ux",
@@ -355,7 +430,10 @@
     "verified_by": "ux",
     "contract_violation": true,
     "id": "FINDING-029",
-    "status": "open"
+    "status": "resolved",
+    "resolution": "Verified: service.ts has no ws.on('drain') — the resync trigger is now a pong-gated real transport signal (ws.on('pong') -> session.socketDrained()) plus an armed-only-while-pending transport watch, a pre-transport burst bound, and the stall/keepalive ceiling. TEST-2713 saturates a REAL live ws (socket paused, ~4MiB fed) and observes a resync arrive with no test-invoked drain seam; TEST-2714 covers keepalive/stall termination.",
+    "resolvedBy": "ux",
+    "resolvedAt": "2026-07-18T20:30:57.048Z"
   },
   {
     "lens": "devils-advocate",
@@ -368,7 +446,10 @@
     "verified_by": "devils-advocate",
     "contract_violation": true,
     "id": "FINDING-030",
-    "status": "open"
+    "status": "resolved",
+    "resolution": "Verified fixed: service.ts no longer subscribes any ws drain event. The resync trigger is real and actually scheduled — session.socketDrained() fires on a received PONG (proof the peer reads), pings ride a 50ms transport watch armed ONLY while session.hasPending() (CONV-036), a pre-transport burst queue bounds synchronous floods, and the same watch drives the PHONE_WS_STALL_TIMEOUT_MS ceiling + keepalive termination via resetAndDestroy. Pinned by TEST-2713, a REAL-transport test that saturates a live ws (socket pause), resumes, and observes the resync arrive with NO test code invoking the drain seam, plus TEST-2714 stall/keepalive termination. Residual doc drift (feature doc still says the mechanism rides the transport drain event) re-filed separately as LOW.",
+    "resolvedBy": "devils-advocate",
+    "resolvedAt": "2026-07-18T20:34:22.995Z"
   },
   {
     "lens": "ux",
@@ -381,7 +462,10 @@
     "verified_by": "ux",
     "contract_violation": true,
     "id": "FINDING-031",
-    "status": "open"
+    "status": "resolved",
+    "resolution": "Verified: TerminalView.open() executes openPanePlan (ws-client.ts) — a 'size' step from the inventory row's cols/rows BEFORE the 'subscribe' step — and main.ts passes paneList.getPane(paneId) on select and on reconnect re-open; grid pushes still apply via setGrid. Pinned by TEST-2723 (size-before-subscribe) and exercised in the served-client DOM e2e TEST-2731.",
+    "resolvedBy": "ux",
+    "resolvedAt": "2026-07-18T20:30:57.106Z"
   },
   {
     "lens": "networking",
@@ -393,7 +477,10 @@
     "phase_of_origin": "implement",
     "verified_by": "networking",
     "id": "FINDING-032",
-    "status": "open"
+    "status": "resolved",
+    "resolution": "Verified: register-phone-remote.ts:26-27,69-74 — setPort now coerces any non-integer/out-of-range argument to PHONE_REMOTE_PORT_DEFAULT via isValidPort (integer 1-65535); port 0 is unreachable from a production IPC call and remains reserved to the TERMHALLA_E2E_PHONE_REMOTE seam (which bypasses IPC entirely via loadSettings, register.ts:193-199). REQ-003's amended acceptance (NaN/float/out-of-range => default, never 0) is encoded in the spec v2 and the registrar matches it.",
+    "resolvedBy": "networking",
+    "resolvedAt": "2026-07-18T20:30:20.824Z"
   },
   {
     "lens": "ux",
@@ -406,7 +493,10 @@
     "verified_by": "ux",
     "contract_violation": true,
     "id": "FINDING-033",
-    "status": "open"
+    "status": "resolved",
+    "resolution": "Verified: term.onData now routes through keyBar.transformTyped (terminal-view.ts:65) — with the latch armed a single typed letter becomes its control byte and the latch clears, with a guard so xterm's own focus-report escape sequences can't consume the latch. e2e TEST-2731 interrupts a live ping with tap-Ctrl-then-type-c on the SERVED client (Control-C observed on the desktop pane); unit-pinned in phone-client-key-bar tests.",
+    "resolvedBy": "ux",
+    "resolvedAt": "2026-07-18T20:30:57.166Z"
   },
   {
     "lens": "ux",
@@ -419,7 +509,10 @@
     "verified_by": "ux",
     "contract_violation": true,
     "id": "FINDING-034",
-    "status": "open"
+    "status": "resolved",
+    "resolution": "Verified: register.ts notifyError now ALSO sends the dedicated app-wide CH.phoneRemoteError push, consumed at the App.tsx root (line 111: api.onPhoneRemoteError -> pushToast(message,'error') — the chokepoint whose error severity bypasses the toasts opt-in), independent of the Settings mount. Pinned by TEST-2718. (Residual: a failure BEFORE any renderer loads still surfaces nowhere — filed as a new, narrower finding.)",
+    "resolvedBy": "ux",
+    "resolvedAt": "2026-07-18T20:30:57.222Z"
   },
   {
     "lens": "ux",
@@ -431,7 +524,10 @@
     "phase_of_origin": "spec",
     "verified_by": "ux",
     "id": "FINDING-035",
-    "status": "open"
+    "status": "resolved",
+    "resolution": "Verified: main.ts handleMessage now has an 'error' case rendering msg.message into the visible #error-banner strip (showError, REQ-030); pinned by TEST-2724 (client renders errors) and the served-client DOM e2e TEST-2731.",
+    "resolvedBy": "ux",
+    "resolvedAt": "2026-07-18T20:31:16.483Z"
   },
   {
     "lens": "ux",
@@ -443,7 +539,10 @@
     "phase_of_origin": "spec",
     "verified_by": "ux",
     "id": "FINDING-036",
-    "status": "open"
+    "status": "resolved",
+    "resolution": "Verified: handleClose() distinguishes auth-refusal from transient failure (quick-close + cheap authenticated fetch probe; 401 increments a streak, anything else resets it); reconnectOutcome() transitions to a terminal 'pairing revoked — scan the new QR code in Termhalla Settings to re-pair' state after 3 consecutive refusals, and retries use capped exponential backoff (reconnectDelayMs, 500ms..120s). Pinned by TEST-2721.",
+    "resolvedBy": "ux",
+    "resolvedAt": "2026-07-18T20:31:16.559Z"
   },
   {
     "lens": "ux",
@@ -455,7 +554,10 @@
     "phase_of_origin": "spec",
     "verified_by": "ux",
     "id": "FINDING-037",
-    "status": "open"
+    "status": "resolved",
+    "resolution": "Verified: createMessageGate (ws-client.ts) compares every hello's proto against the bundled PHONE_REMOTE_PROTO_VERSION; a mismatch yields 'reload-required' (main.ts surfaces 'a new version is available — reloading…' and reloads the served bundle) and every later message is dropped. Pinned by TEST-2720.",
+    "resolvedBy": "ux",
+    "resolvedAt": "2026-07-18T20:31:16.624Z"
   },
   {
     "lens": "ux",
@@ -467,7 +569,10 @@
     "phase_of_origin": "spec",
     "verified_by": "ux",
     "id": "FINDING-038",
-    "status": "open"
+    "status": "resolved",
+    "resolution": "Verified: membership is no longer frozen per connection — service.ts re-pushes the full inventory to every connected client on pane spawn (deps.panes.onSpawn), pane exit, and every ws:save metadata refresh (register.ts membership listeners); the client treats a fresh 'panes' message as a list replace. Pinned by TEST-2711 and e2e TEST-2729/TEST-2731 (a pane spawned while the phone is connected appears via a push).",
+    "resolvedBy": "ux",
+    "resolvedAt": "2026-07-18T20:31:16.687Z"
   },
   {
     "lens": "ux",
@@ -479,7 +584,10 @@
     "phase_of_origin": "spec",
     "verified_by": "ux",
     "id": "FINDING-039",
-    "status": "open"
+    "status": "resolved",
+    "resolution": "Verified (REQ-031): pairing is now reachable under every documented story — the settings surface renders the pairing URL as selectable/copyable text alongside the QR, accepts an externalHost override (the tailscale serve hostname) that rehosts the QR/pairing URL without touching the bind, ranks LAN URLs deterministically, and discloses in localhost bind that the QR is only phone-reachable via LAN mode or an external host. Pinned by TEST-2695/TEST-2719; the feature doc's tailscale recipe documents the explicit pairing step.",
+    "resolvedBy": "ux",
+    "resolvedAt": "2026-07-18T20:31:16.747Z"
   },
   {
     "lens": "devils-advocate",
@@ -492,7 +600,10 @@
     "verified_by": "devils-advocate",
     "contract_violation": true,
     "id": "FINDING-040",
-    "status": "open"
+    "status": "resolved",
+    "resolution": "Verified fixed in register-pty.ts: all three remote branches now invoke the observational seam — ptySpawn remote-adoptable calls deps.onResize(a.id, a.cols, a.rows) after remote.resize (line 99), fresh remote spawn calls deps.onSpawn with the spawn-args grid (line 107), and the remote-owns ptyResize branch calls deps.onResize (line 139) — so remote-workspace mirrors are built at the real grid and desktop resizes of remote panes produce mirror resize + grid push, parity with local panes. Pinned by TEST-2699/TEST-2700 in tests/main/phone-remote-remote-grid.test.ts, which drive the REAL registerPty routing (not an injected seam). REQ-008/REQ-013 v2 amendments encode the requirement.",
+    "resolvedBy": "devils-advocate",
+    "resolvedAt": "2026-07-18T20:34:26.273Z"
   },
   {
     "lens": "ux",
@@ -504,7 +615,10 @@
     "phase_of_origin": "tests",
     "verified_by": "ux",
     "id": "FINDING-041",
-    "status": "open"
+    "status": "resolved",
+    "resolution": "Verified: the CONV-052 residual obligations are discharged — tests/e2e/phone-remote.spec.ts (TEST-2727 desktop-byte-identical REQ-015, TEST-2728 app-close liveness REQ-019, TEST-2729 real inventory, TEST-2730 settings mount) and tests/e2e/phone-remote-client-dom.spec.ts (TEST-2731 served-client DOM) exist and consume the REQ-025 seam; real-transport backpressure saturation + resync arrival is TEST-2713 (live ws, no seam invocation). state.json's implementer arbitration records the 5 e2e specs run GREEN against the built app (e2e 5/5), satisfying CONV-052's witnessed-passing requirement.",
+    "resolvedBy": "ux",
+    "resolvedAt": "2026-07-18T20:31:16.806Z"
   },
   {
     "lens": "ux",
@@ -516,7 +630,10 @@
     "phase_of_origin": "implement",
     "verified_by": "ux",
     "id": "FINDING-042",
-    "status": "open"
+    "status": "resolved",
+    "resolution": "Verified: index.html's viewport meta is now 'width=device-width, initial-scale=1, viewport-fit=cover' — no user-scalable=no and no maximum-scale — with an in-file comment pinning pinch-zoom as the spec's only fit mechanism (REQ-013/REQ-022); #terminal/#view-terminal carry touch-action: pan-x pan-y pinch-zoom.",
+    "resolvedBy": "ux",
+    "resolvedAt": "2026-07-18T20:31:29.249Z"
   },
   {
     "lens": "ux",
@@ -540,7 +657,10 @@
     "phase_of_origin": "spec",
     "verified_by": "devils-advocate",
     "id": "FINDING-044",
-    "status": "open"
+    "status": "resolved",
+    "resolution": "Verified fixed via REQ-031 (v2): PhoneRemoteSettings renders the pairing URL as selectable/copyable text with a Copy button whenever the QR renders; an externalHost override (persisted, non-secret) makes buildPairingUrl use the phone-reachable host while the bind is unaffected (service.ts pairingHost); status().urls is the deterministically ranked non-internal IPv4 list (network-urls.ts, RFC1918-class-first then name/address sort — enumeration-order independent); on localhost bind with no override the UI discloses that 127.0.0.1 is not phone-reachable; the feature doc tailscale recipe now contains the explicit pairing step (set external host to the tailnet hostname BEFORE scanning). Pinned by TEST-2695 and tests/main/phone-remote-network-urls.test.ts.",
+    "resolvedBy": "devils-advocate",
+    "resolvedAt": "2026-07-18T20:34:36.282Z"
   },
   {
     "lens": "devils-advocate",
@@ -552,7 +672,10 @@
     "phase_of_origin": "spec",
     "verified_by": "devils-advocate",
     "id": "FINDING-045",
-    "status": "open"
+    "status": "resolved",
+    "resolution": "Verified fixed: a phoneRemote:pairingUrl invoke now exists (ipc-contract + register-phone-remote.ts, sender-gated) backed by service.pairingUrl(), which rebuilds the pairing URL from the retained in-memory sessionToken and NEVER regenerates; PhoneRemoteSettings calls refreshPhoneRemotePairingUrl() on mount so closing and reopening Settings in the same session re-renders the QR without revoking already-paired devices; after a restart it returns { unavailable: true } and the UI degrades to offering Regenerate with the disclosed consequence. Encoded as REQ-007 v2 acceptance and pinned by TEST-2712 (pairing a second device never revokes the first) and TEST-2655.",
+    "resolvedBy": "devils-advocate",
+    "resolvedAt": "2026-07-18T20:34:39.873Z"
   },
   {
     "lens": "ux",
@@ -564,7 +687,10 @@
     "phase_of_origin": "implement",
     "verified_by": "ux",
     "id": "FINDING-046",
-    "status": "open"
+    "status": "resolved",
+    "resolution": "Verified (REQ-029/CONV-001): applyPort now surfaces 'Enter a valid port between 1 and 65535.' as a role=alert message on invalid entry and reverts the field to the active port (portDraft cleared, value falls back to status.port); pinned by TEST-2717.",
+    "resolvedBy": "ux",
+    "resolvedAt": "2026-07-18T20:31:29.334Z"
   },
   {
     "lens": "security",
@@ -575,7 +701,10 @@
     "phase_of_origin": "implement",
     "verified_by": "security",
     "id": "FINDING-047",
-    "status": "open"
+    "status": "resolved",
+    "resolution": "Verified fixed in code: src/main/ipc/register-phone-remote.ts now wraps every handler (status/setEnabled/setBind/setPort/setExternalHost/regenerateToken/pairingUrl) in a gated() helper that checks isKnownWindowSender(e.sender) BEFORE touching the service, returning a static REJECTED_STATUS placeholder for status/mutators (never calling svc.status() for a foreign sender, per the finding's own acceptance bar) and { pairingUrl: '' }/{ unavailable: true } for the secret-returning calls. register.ts wires the real wm.isKnownWindowSender in at the composition root (line 226), matching the register-orky-action.ts/register-registry.ts precedent exactly. Dedicated regression coverage exists at tests/main/phone-remote-ipc-gating.test.ts (TEST-2696/2697/2698): a foreign sender is rejected on every channel with the service never touched, and a known-window sender passes through.",
+    "resolvedBy": "security",
+    "resolvedAt": "2026-07-18T20:31:00.093Z"
   },
   {
     "lens": "ux",
@@ -587,7 +716,10 @@
     "phase_of_origin": "implement",
     "verified_by": "ux",
     "id": "FINDING-048",
-    "status": "open"
+    "status": "resolved",
+    "resolution": "Verified (REQ-030/REQ-005): an empty inventory renders 'Open a terminal in Termhalla to see it here.' (pane-list.ts render, .pane-list-empty) instead of a blank screen; the 401 body is the actionable 'missing or invalid pairing token — open this page from the pairing QR in Termhalla Settings'; server error frames render in the #error-banner strip. Pinned by TEST-2724 and exercised in DOM e2e TEST-2731 (guidance visible before the first pane spawns).",
+    "resolvedBy": "ux",
+    "resolvedAt": "2026-07-18T20:31:29.417Z"
   },
   {
     "lens": "devils-advocate",
@@ -599,7 +731,10 @@
     "phase_of_origin": "spec",
     "verified_by": "devils-advocate",
     "id": "FINDING-049",
-    "status": "open"
+    "status": "resolved",
+    "resolution": "The mechanism this finding proposed is implemented and verified: status() now carries the last startup failure (service.ts lastError, cleared on successful start; TEST-2710), an app-wide phoneRemote:error push is consumed at the App.tsx root into the error-severity toast chokepoint, and the Settings section has a not-running/error cue. HOWEVER the current composition still fails to render that carried error in the startup-failure vector (startIfEnabled flips enabled=false so the cue condition enabled&&!running never holds, and the root push fires before any renderer subscribes) — that sharper, current-code defect is re-filed as a successor devils-advocate finding in this round rather than left on this stale claim (whose factual premise, status() does not carry the error, is no longer true).",
+    "resolvedBy": "devils-advocate",
+    "resolvedAt": "2026-07-18T20:34:51.768Z"
   },
   {
     "lens": "devils-advocate",
@@ -611,7 +746,10 @@
     "phase_of_origin": "spec",
     "verified_by": "devils-advocate",
     "id": "FINDING-050",
-    "status": "open"
+    "status": "resolved",
+    "resolution": "Verified fixed: the client now has an error case in handleMessage (src/phone-client/main.ts) that renders server error frames into the always-present #error-banner strip via showError (cleared on reconnect), encoded as REQ-030 v2; the actively viewed pane exit additionally renders the in-view process-exited overlay and disables input (TerminalView.setExited). Pinned by the served-DOM e2e TEST-2731 (exit notice) and the REQ-030 client-core coverage; the input-to-exited-pane server error (no-such-pane) is emitted by ws-session doInput and now surfaces in the banner.",
+    "resolvedBy": "devils-advocate",
+    "resolvedAt": "2026-07-18T20:34:47.765Z"
   },
   {
     "lens": "ux",
@@ -623,6 +761,289 @@
     "phase_of_origin": "implement",
     "verified_by": "ux",
     "id": "FINDING-051",
+    "status": "resolved",
+    "resolution": "Verified (REQ-023 subscription hygiene): paneSwitchPlan unsubscribes the departing pane on every pane switch (main.ts PaneList onSelect) and the back button sends unsubscribe for the active pane before returning to the list; reconnect re-attaches at most the active pane. Pinned by TEST-2722.",
+    "resolvedBy": "ux",
+    "resolvedAt": "2026-07-18T20:31:29.503Z"
+  },
+  {
+    "lens": "quality",
+    "claim": "service.ts's wss.on('connection', ...) handler (lines ~208-375, ~170 lines) is an undecomposed stateful closure crammed inside createPhoneRemoteService, mixing FOUR distinct concerns inline: (1) a ping/pong keepalive state machine, (2) RST-based forceTerminate fallback logic, (3) a pre-transport burst-queue backpressure bound with its own ad hoc threshold checks against PHONE_WS_HIGH_WATER (lines 342/350/352) that duplicate — rather than delegate to — the ALREADY-EXTRACTED pure BackpressurePolicy from backpressure.ts (which this same connection handler also instantiates separately as stallPolicy for a different purpose), and (4) the armTransportWatch wall-clock pending/stall timer sequencing. None of this per-connection decision logic is unit-testable in isolation; it is exercised only through full real-socket integration tests (TEST-2713/2714), unlike every sibling module this feature built (backpressure.ts, mirror-manager.ts, network-urls.ts, inventory.ts), each a small, cohesive, directly-unit-tested module. This is a clear outlier against both this feature's own established local convention and the project's documented architecture principle (CLAUDE.md: pure logic factored into small pure modules beside each main service so it is unit-testable without Electron; the impure shell kept thin).",
+    "severity": "MEDIUM",
+    "gate": "review",
+    "fix": "Extract the per-connection burst/keepalive/stall state machine into its own factory (e.g. phone-remote/connection-guard.ts) taking {ping, forceTerminate, bufferedAmount, timing} and returning {queueData, dispose}; route the burst-threshold decision through the existing BackpressurePolicy interface (or a documented second instance of it) instead of comparing to PHONE_WS_HIGH_WATER directly in three separate places.",
+    "location": "src/main/phone-remote/service.ts:208-375",
+    "phase_of_origin": "implement",
+    "verified_by": "quality",
+    "id": "FINDING-052",
+    "status": "open"
+  },
+  {
+    "lens": "quality",
+    "claim": "register.ts, the shared IPC composition root for the ENTIRE app (every domain's registrar is composed here), absorbed ~150 lines of phone-remote-specific bridging state and logic in the round-2 loopback: three Maps (phoneRemoteLivePanes, phoneRemoteWorkspaceNames, phoneRemotePaneMeta), five listener Sets, the onPhoneRemoteWorkspaceSaved handler (workspace-save-driven pane-metadata pruning/re-indexing), and the phoneRemotePaneRecord mapping function — growing the file from 213 lines (pre-feature, commit d689673) to 356 (+67%). None of this bridging logic has ANY unit test; grep of tests/ for phoneRemotePaneRecord/phoneRemoteLivePanes/onPhoneRemoteWorkspaceSaved returns zero hits — it is reachable ONLY through the full e2e suite (TEST-2729). This breaks the pattern this exact file already establishes for comparable cross-cutting concerns: OrkyStreamStatusBridge (git status bridging) is its own class, constructed and injected into register.ts, not inlined into it. The phone-remote bridging is the one piece of this feature with zero fast-test coverage, living in the single highest-blast-radius file in the whole IPC layer.",
+    "severity": "MEDIUM",
+    "gate": "review",
+    "fix": "Extract the phone-remote pane/workspace bridging (the three Maps + onWorkspaceSaved handler + phoneRemotePaneRecord mapping) into its own small module (e.g. src/main/phone-remote/pane-bridge.ts) exposing a constructor that returns {onWorkspaceSaved, onSpawn, onResize, wrapSend, panesList}, unit-testable with fake Workspace records the same way backpressure.ts/inventory.ts are — then inject that into register.ts the same way OrkyStreamStatusBridge already is.",
+    "location": "src/main/ipc/register.ts:54-237",
+    "phase_of_origin": "implement",
+    "verified_by": "quality",
+    "id": "FINDING-053",
+    "status": "open"
+  },
+  {
+    "lens": "quality",
+    "claim": "Three-plus near-duplicate pane-record type definitions exist across the phone-remote module with no shared canonical type: PhoneRemotePaneRecord (service.ts), RawPaneInfo (inventory.ts), and PhoneRemoteLivePane/PhoneRemotePaneMeta (register.ts) all describe overlapping subsets of the same {paneId, workspaceId, workspaceName, title, kind, cols, rows, status} shape. This forces a no-op identity 'conversion' function in service.ts (toRawPaneInfo: (list: PhoneRemotePaneRecord[]) => RawPaneInfo[] => list, line 148) that exists purely to satisfy TypeScript's structural boundary between two nominally-different-but-identical interfaces. A future field addition to one representation must be manually mirrored across three-plus separate struct definitions with no compiler-enforced link between them.",
+    "severity": "LOW",
+    "gate": "review",
+    "fix": "Hoist one canonical pane-info shape (e.g. into @shared/phone-remote/) and have RawPaneInfo/PhoneRemotePaneRecord both alias or extend it; drop the toRawPaneInfo identity function.",
+    "location": "src/main/phone-remote/service.ts:148; src/main/phone-remote/inventory.ts:8-17; src/main/ipc/register.ts:61,81",
+    "phase_of_origin": "implement",
+    "verified_by": "quality",
+    "id": "FINDING-054",
+    "status": "open"
+  },
+  {
+    "lens": "quality",
+    "claim": "PhoneRemoteSettings.tsx's doc comment claims its architecture — a component-local createPhoneRemoteSlice instance instead of the app-wide zustand store every other Settings section uses (compare GeneralSettings.tsx, which reads exclusively via useStore(s => s.quick.X)) — is 'a deliberate, documented scope boundary, see the feature's implementation notes' (lines 18-20). This is false: grep of docs/features/phone-web-remote.md and docs/deferred.md for any mention of a component-local slice, zustand, app-wide store, or this scope decision returns zero hits; the 'Deferred follow-ons' section lists five unrelated items and says nothing about this. This is the SAME false-documentation-claim pattern already found and fixed once in this feature (the original FINDING-011: a register.ts comment claiming 'tracked as a documented follow-on' with neither doc mentioning it) — recurring here, in a different file, after the very loopback that was supposed to fix this feature's documentation discipline.",
+    "severity": "LOW",
+    "gate": "review",
+    "fix": "Either add the component-local-slice scope-boundary note to docs/features/phone-web-remote.md (a natural fit for the existing 'Deferred follow-ons' section or a new architecture note), or remove the false 'documented' claim from the comment.",
+    "location": "src/renderer/components/PhoneRemoteSettings.tsx:18-20",
+    "phase_of_origin": "implement",
+    "verified_by": "quality",
+    "id": "FINDING-055",
+    "status": "open"
+  },
+  {
+    "lens": "performance",
+    "claim": "The v2 pre-transport burst queue does per-chunk work for panes a session is not even tracking: service.ts:427 fans EVERY pane's every data chunk into EVERY connected session's queueData, which allocates a {paneId,chunk} entry, retains the chunk string until the next tick, and runs an O(chunk-length) Buffer.byteLength scan — even for a session sitting on the pane list with zero subscriptions, whose flushBurst then hands each chunk to session.paneData only to drop it at the live/attaching/resyncing check (a guaranteed no-op round trip; the v1 direct path dropped these O(1) with no scan/alloc). Worse, untracked panes' bytes count toward burstBytes, so a synchronous >1MiB flood from a pane NOBODY subscribes to trips burstSaturated and discards the whole queue, marking any subscribed pane that co-emitted in that tick stale — forcing a full snapshot serialize + resync cycle the real transport never required (the socket may be idle). Correctness is preserved (the resync is exact), but this is unnecessary hot-path work and spurious resync churn caused by irrelevant traffic.",
+    "severity": "LOW",
+    "gate": "review",
+    "fix": "Expose an isTracking(paneId) (live || attaching || resyncing) on WsSession and have queueData skip chunks for untracked panes entirely — their delivery decision is already a guaranteed drop — so burst-byte accounting reflects only send-eligible bytes and an unrelated pane's flood can neither saturate the burst nor stale a watched pane.",
+    "location": "src/main/phone-remote/service.ts:339-358,427",
+    "phase_of_origin": "implement",
+    "verified_by": "performance",
+    "id": "FINDING-056",
+    "status": "open"
+  },
+  {
+    "lens": "performance",
+    "claim": "The v2 inventory re-push path (REQ-011 currency) does redundant N+1 work with no change detection: pushInventoryToAll delegates to each session's sendInventory, which independently calls deps.panes.inventory() — a full list() materialization + buildInventory grouping + JSON stringify PER SESSION per push, where one build fanned to all sessions would do. And onPhoneRemoteWorkspaceSaved (register.ts:83-96) fires the membership listeners unconditionally on EVERY workspace save — including metadata-neutral saves (a maximize/minimize toggle or layout drag rides the workspace record per the persisted view-state design), so each such desktop gesture re-runs ensureTap over the full pane list (service.ts:443), rebuilds the inventory S times, sends a full inventory frame to every connected phone (cellular bandwidth for a no-op), and triggers PaneList.setInventory's full DOM teardown/rebuild client-side.",
+    "severity": "LOW",
+    "gate": "review",
+    "fix": "Build the inventory ONCE per push and fan the identical payload to every session; fingerprint the built inventory (e.g. JSON string equality against the last pushed value) and skip the push + client re-render when unchanged, so only genuine membership/metadata changes reach the wire.",
+    "location": "src/main/phone-remote/service.ts:411-413,442-445 + src/main/ipc/register.ts:83-96",
+    "phase_of_origin": "implement",
+    "verified_by": "performance",
+    "id": "FINDING-057",
+    "status": "open"
+  },
+  {
+    "lens": "determinism",
+    "claim": "REQ-009/REQ-017 exactly-once broken by the round-2 welded pre-transport burst queue: service.ts queueData/flushBurst defers EVERY session.paneData delivery by one setTimeout(0) macrotask while the shared mirror is fed synchronously at onData time (wireDataSources: tap(chunk) then entry.queueData, lines 424-427), desynchronizing the mirror write barrier from the session hold-windows. (a) DUPLICATION: a chunk already fed to the mirror but still parked in the burst queue when a subscribe (ws message -> doSubscribe) or a pong-driven socketDrained captures its snapshot barrier is included in the snapshot AND then flushed into the attach/resync pending queue and re-delivered as data — the client renders it twice, violating REQ-009 (no byte is delivered both in the snapshot and again as live data ... never duplicated) and the REQ-017 replace-then-append reconstruction. The race window is per-chunk (one macrotask) and recurs continuously on a busy pane, so subscribing to a streaming pane hits it with real probability; both snapshot-resolution orders duplicate. (b) LOSS: when a burst crosses PHONE_WS_HIGH_WATER, real chunks are discarded and each affected pane is marked stale via the session.paneData(id, EMPTY-STRING) hack (lines 341-346 and 351-357) — but ws-session.paneData checks attaching/resyncing BEFORE live (lines 196-201), so for a pane inside an attach/resync hold-window the empty chunk is queued into the window and policy.onData is never consulted: no staleness is recorded, the dropped bytes are post-barrier (excluded from the already-captured snapshot), and no resync ever repairs them — permanent client divergence, violating REQ-009 (never dropped) and REQ-017 (marks its subscribed panes stale). No frozen test can see either direction: TEST-2625/2705/2706 drive createWsSession directly, bypassing the burst queue (the harness comment even models the pre-weld synchronous feed order), and the service-level TEST-2648 vectors never interleave output within the one-macrotask burst window.",
+    "severity": "HIGH",
+    "gate": "review",
+    "fix": "Make barrier capture and hold-window entry share one ordering domain with the burst queue: (1) synchronously flush the connection burst queue BEFORE any snapshot barrier is captured — thread a flushNow() dep into the session, invoked at the top of doSubscribe and socketDrained (or route barrier capture through the same queue); (2) replace the paneData(id, EMPTY-STRING) hack with an explicit session.markStale(paneId) that records staleness in the policy even while the pane is attaching/resyncing (applied when the window completes); (3) add service-level interleaved vectors: output fed and subscribe sent within the same tick asserting exactly-once reconstruction, and a saturation burst during an in-flight attach/resync asserting the dropped bytes are eventually resynced. CONV-060 class — the amended REQ-009/REQ-017 interleaving acceptance must be exercised through the REAL service seam, not only the session harness.",
+    "location": "src/main/phone-remote/service.ts:319-358 (queueData/flushBurst) vs ws-session.ts:145/196-201/244 (snapshot barrier capture + hold-window entry)",
+    "phase_of_origin": "implement",
+    "verified_by": "determinism",
+    "contract_violation": true,
+    "id": "FINDING-058",
+    "status": "open"
+  },
+  {
+    "lens": "determinism",
+    "claim": "Residual host-locale dependence inside the FINDING-006 fix: rankReachableUrls tiebreaks within a rank via a.name.localeCompare(b.name) || a.address.localeCompare(b.address). localeCompare with no locale argument uses the runtime default locale/ICU data, so the within-rank order (and therefore which address becomes the top-ranked QR pairing host when two adapters share an RFC1918 class) can differ across machines with different OS display languages or Node ICU builds, and can change on the SAME machine after a locale change — a smaller instance of the nondeterministic-selection class REQ-031 was written to close. TEST-2694 cannot catch this: permutation invariance holds under ANY fixed comparator, and its ASCII fixture names order identically in common locales.",
+    "severity": "LOW",
+    "gate": "review",
+    "fix": "Use locale-independent code-unit comparison for both tiebreaks (a.name < b.name ? -1 : a.name > b.name ? 1 : 0, same for address — or localeCompare with an explicit fixed locale such as en and numeric options) so the ranking is a pure function of the interface table on every host.",
+    "location": "src/main/phone-remote/network-urls.ts:48",
+    "phase_of_origin": "implement",
+    "verified_by": "determinism",
+    "id": "FINDING-059",
+    "status": "open"
+  },
+  {
+    "lens": "networking",
+    "claim": "The v2 pre-transport burst queue breaks REQ-009/REQ-017 exactly-once in two interleavings, because it defers session fan-in by a macrotask (setTimeout(flushBurst, 0)) while the mirror is fed synchronously (register.ts onData: tap(chunk) BEFORE entry.queueData). (1) DUPLICATION: a chunk fed just before a subscribe sits in burstQueue while the subscribe frame is processed (doSubscribe opens the attach window and requests mirrors.snapshot(), whose write-flush barrier INCLUDES that chunk — replay-engine.ts: 'reflecting every byte fed BEFORE this call'); when flushBurst then runs, session.paneData finds the pane attaching and pushes the same chunk into the attach pending queue, so finishAttach delivers it AGAIN as data after the snapshot that already contains it. REQ-009 MUST: 'no byte is delivered both in the snapshot and again as live data', explicitly 'repeated with output racing the subscribe call'. The same gap applies to a resync window (finishResync). (2) SILENT LOSS: when burstSaturated trips while a pane is in an attaching/resyncing hold window, the queued real chunks are discarded but the stale-marking substitute session.paneData(id, '') short-circuits into the pending array (ws-session.ts:196-200) WITHOUT ever reaching deliverData/policy.onData — so the pane is never marked stale, no resync ever repairs it, and bytes fed after the snapshot call are permanently missing from the client (REQ-009 'never dropped' / REQ-017 'no delivered byte is erased'). The session-level tests (TEST-2625/2705/2706) all drive session.paneData directly and never traverse the burst layer, so neither vector is pinned.",
+    "severity": "HIGH",
+    "gate": "review",
+    "fix": "Make the burst layer hold-window-aware: flush (or hand off) a connection's queued chunks for a pane synchronously BEFORE the session processes a subscribe for that pane (e.g. route inbound frames through a wrapper that drains burstQueue entries for msg.paneId first), or timestamp/sequence chunks so finishAttach/finishResync drop pending entries already covered by the snapshot barrier. For the loss half: when burstSaturated discards a queue, mark affected panes stale through the policy even when they are mid-attach/mid-resync (e.g. add a session.forceStale(paneId) that finishAttach/finishResync consult to trigger an immediate follow-up resync). Add service-level tests through the REAL connection path: subscribe racing a same-tick burst chunk reconstructs exactly-once, and a >HIGH_WATER synchronous flood during an in-flight attach ends with a resync that restores the flooded bytes.",
+    "location": "src/main/phone-remote/service.ts:319-358 (queueData/flushBurst) x src/main/phone-remote/ws-session.ts:196-203 (paneData hold windows)",
+    "phase_of_origin": "implement",
+    "verified_by": "networking",
+    "contract_violation": true,
+    "id": "FINDING-060",
+    "status": "open"
+  },
+  {
+    "lens": "security",
+    "claim": "No Origin header validation exists on either the WS upgrade (service.ts handleUpgrade) or the authenticated HTTP routes (handleRequest), and REQ-028's new HttpOnly session cookie is exactly the kind of ambient credential Cross-Site WebSocket Hijacking (CSWSH) targets: a malicious page loaded in the same phone browser (e.g. reachable on the same LAN/tailnet, or via a link) can open new WebSocket('ws://<host>:<port>/ws') and, if any current or future browser fails to withhold a SameSite=Lax cookie on that cross-site WS handshake (the sole mitigation in place -- iOS Safari in particular has a history of inconsistent SameSite enforcement, and the WS-handshake-is-subject-to-SameSite behavior is a browser implementation detail nowhere pinned by a spec REQ or test in this feature), the attacker's page rides the victim's already-authenticated session to read every pane's live output and type into any pane. Token-based auth (query/header) is unaffected since the token is never ambient, but the cookie path added in v2 has no second layer of defense -- no Origin/Host allowlist check anywhere in auth.ts or service.ts, and no test exercises a cross-origin Origin header.",
+    "severity": "MEDIUM",
+    "gate": "review",
+    "fix": "In handleUpgrade (and optionally handleRequest for cookie-authenticated requests), when the request carries an Origin header, reject the upgrade/request unless Origin's host:port matches the server's own bind host:port (or the configured externalHost) -- mirroring the defense-in-depth pattern already used for IPC sender gating (REQ-032) applied to this feature's other ambient-credential surface. Absent-Origin requests (non-browser WS clients using the token) are unaffected. Add a unit test asserting a cookie-authenticated WS upgrade/HTTP request with a foreign Origin header is refused.",
+    "phase_of_origin": "implement",
+    "verified_by": "security",
+    "id": "FINDING-061",
+    "status": "open"
+  },
+  {
+    "lens": "networking",
+    "claim": "A connected client's knowledge of an UNSUBSCRIBED pane's grid goes stale with no refresh path, so a later tap renders the snapshot mis-wrapped — the exact outcome REQ-013 exists to prevent. paneGrid drops the push unless the pane is live/attaching (ws-session.ts:214), a desktop grid change re-pushes no inventory (only spawn/exit/ws:save do, and a window resize changes no persisted layout so no ws:save fires), and the attach sequence sends no grid message (finishAttach emits snapshot only). Vector: phone connects, desktop window is resized (every pane's cols/rows change; mirrors ARE resized via mirrors.resizePane, service.ts:435-438), user taps a pane — openPanePlan sizes the terminal from the STALE inventory row, then the snapshot (serialized at the NEW grid) renders re-wrapped, and no grid push ever follows because the resize already happened before the pane became attaching. Unrepaired until the next desktop resize or a reconnect. Spec origin: REQ-011's currency list covers status and membership but not grid changes, and REQ-013 scopes grid pushes to 'attached clients' — no requirement keeps an unattached pane's advertised grid fresh, so no frozen test demanded it (the REQ-013 acceptance taps a pane whose inventory was fresh at connect time).",
+    "severity": "MEDIUM",
+    "gate": "review",
+    "fix": "Have the server emit a grid{paneId,cols,rows} message as the first step of the attach sequence, ahead of the snapshot (finishAttach knows nothing of grids today — thread the pane's current cols/rows through WsSessionDeps.panes, e.g. an info(paneId) accessor, and send grid before snapshot; the client's setGrid-on-grid-push path already handles it before data renders). This closes the staleness class for ALL causes (resize while unsubscribed, missed pushes, reconnect) in one place. Alternatively re-push the inventory on grid change, coalesced. Amend REQ-013/REQ-011 acceptance with the vector: resize a pane on the desktop while a client is connected but NOT subscribed to it, then tap it — the client terminal must be at the new grid before the snapshot applies.",
+    "location": "src/main/phone-remote/ws-session.ts:213-217 (paneGrid gate), src/main/phone-remote/ws-session.ts:123-131 (finishAttach sends no grid); REQ-011/REQ-013",
+    "phase_of_origin": "spec",
+    "verified_by": "networking",
+    "id": "FINDING-062",
+    "status": "open"
+  },
+  {
+    "lens": "ux",
+    "severity": "HIGH",
+    "gate": "review",
+    "location": "src/main/phone-remote/service.ts:460-467 (startIfEnabled enabled-coercion) + src/renderer/App.tsx:111 (push-only consumer) + src/renderer/components/PhoneRemoteSettings.tsx:77,114-118",
+    "claim": "REQ-020 violation: a startup failure occurring before any window has loaded still surfaces NOWHERE user-visible. phoneRemoteService.init() runs inside registerHandlers, which src/main/index.ts explicitly orders BEFORE wm.start() loads any renderer — so notifyError's phoneRemote:error/phoneRemote:changed pushes fire into not-yet-loaded webContents and are lost; no root consumer ever pulls status() at window load (App.tsx only subscribes the push), and the ONE surface that reads status().error — PhoneRemoteSettings — renders it only under notRunning = enabled && !running, a state the service makes unreachable in any settled state: startIfEnabled coerces enabled=false on every failed start. Net effect: with persisted enabled:true and the port occupied at startup, the amended acceptance's 'the first loaded window still surfaces the error' is unmet — the user sees an unchecked toggle with zero explanation (opening Settings > Phone shows nothing: seedPhoneRemoteStatus deliberately does not toast, and the notRunning gate is false), and the same dead gate makes REQ-029's 'not-running cue plus error text whenever enabled is true but running is false' render path vacuous (TEST-2710 pins only the status()-carries half; TEST-2717 is a source-grep that cannot see reachability). This is the unfixed renderer half of open FINDING-049 and the reason FINDING-043 remains functionally true in production.",
+    "fix": "(a) At renderer root load (App.tsx mount effects), pull phoneRemoteStatus() once and route a present status().error through pushToast(..., 'error') — the late-subscribing-window report REQ-020 demands; (b) render the panel's error line whenever status().error is present (key the cue on error/running, not on enabled), or stop coercing enabled=false on failure so the REQ-029 state is reachable; add a composition-level test: occupied port + persisted enabled:true at startup yields a visible toast/panel indication in the first loaded window.",
+    "phase_of_origin": "tests",
+    "verified_by": "ux",
+    "contract_violation": true,
+    "id": "FINDING-063",
+    "status": "open"
+  },
+  {
+    "lens": "ux",
+    "severity": "MEDIUM",
+    "gate": "review",
+    "location": "src/renderer/store/phone-remote-slice.ts:56-62 + src/main/ipc/register-phone-remote.ts:34-37 + src/renderer/App.tsx:111",
+    "claim": "CONV-038 violation: one failed enable click raises FOUR identical error toasts, none of which auto-dismiss (error-kind toasts persist until hand-dismissed; MAX_TOASTS=4, so the entire toast stack fills with copies). The uncoordinated paths for the single failure moment: (1) service notifyError -> phoneRemote:error -> App.tsx root pushToast; (2) notifyError's phoneRemote:changed carrying error -> the mounted panel's ingestPhoneRemoteStatus -> applyStatus toast; (3) the registrar's broadcast() re-sends phoneRemote:changed whose status() still carries lastError -> a second ingest toast; (4) the invoke's returned status -> the slice's own applyStatus toast. Compounding it, applyStatus toasts on ANY status carrying error (not on an error transition) and lastError is cleared only by a successful start — so a later unrelated op (setExternalHost, setBind) re-raises the stale failure as a fresh error toast. The slice comment acknowledges only a two-path belt-and-suspenders echo; no dedupe/coexistence policy exists for the four actual paths.",
+    "fix": "Pick one owner for the failure toast (the App-root phoneRemote:error push) and make the slice's applyStatus stop toasting, or toast only on an error TRANSITION (track the previous status.error); do not re-broadcast an error-carrying status from the registrar when notifyError already pushed the same message.",
+    "phase_of_origin": "implement",
+    "verified_by": "ux",
+    "id": "FINDING-064",
+    "status": "open"
+  },
+  {
+    "lens": "ux",
+    "severity": "MEDIUM",
+    "gate": "review",
+    "location": "src/main/phone-remote/ws-session.ts:123-131,213-217 (no grid on attach; grid gated on live/attaching) + src/main/ipc/register.ts:172-176 (onResize fires no membership push)",
+    "claim": "REQ-013's stated goal ('a non-80x24 pane never renders mis-wrapped') fails in the most common interleaving: a desktop resize while the phone is NOT attached to that pane (any desktop window resize refits EVERY pane via the FitAddon). Grid pushes are subscription-gated (ws-session.paneGrid returns unless live/attaching), a resize triggers no inventory re-push (register.ts onResize fires only grid listeners; REQ-011's currency set enumerates status and membership only), and attach sends no grid with the snapshot (finishAttach emits snapshot+queued data only) — so the client's freshest KNOWN grid (its last-pushed inventory row) is stale, the tap sizes xterm at the old cols/rows, the snapshot (serialized from the mirror, which IS resized at the true grid) renders mis-wrapped, and nothing ever corrects it until the desktop next resizes that specific pane. The reconnect re-open path has the same defect: main.ts re-opens the active pane in the ws open handler from the PRE-disconnect inventory, before the fresh panes message arrives. Each individual REQ is met to the letter; the composite defeats the normative intent — a gap in the spec's REQ-011 currency enumeration that no acceptance vector exercises (all grid vectors resize while a client is attached).",
+    "fix": "Send a grid message (from the server-side inventory's/mirror's current cols/rows) immediately BEFORE the snapshot in finishAttach — one change covering both select and reconnect — and/or add grid changes to the REQ-011 currency push set; add a vector: resize a pane while the client is on the list view, tap the pane, assert the client terminal's grid equals the NEW size before snapshot application.",
+    "phase_of_origin": "spec",
+    "verified_by": "ux",
+    "id": "FINDING-065",
+    "status": "open"
+  },
+  {
+    "lens": "ux",
+    "severity": "LOW",
+    "gate": "review",
+    "location": "src/phone-client/main.ts:55-65 (showError/clearError) + :180-191 (clearError only on ws open)",
+    "claim": "The phone client's #error-banner is sticky: clearError is called ONLY in the WS open handler, so a one-off server error frame (input to a pane that just exited, an unknown-message notice) stays rendered for the remainder of the session — across pane switches, back navigation, and successful later input — with no dismiss affordance and no timeout. A stale red banner describing a long-gone condition reads as a live problem and desensitizes the user to the banner that also carries genuinely important states.",
+    "fix": "Clear the banner on pane switch/back navigation and on the next successful interaction (or add tap-to-dismiss / a timeout for transient error frames), keeping terminal states persistent.",
+    "phase_of_origin": "implement",
+    "verified_by": "ux",
+    "id": "FINDING-066",
+    "status": "open"
+  },
+  {
+    "lens": "ux",
+    "severity": "LOW",
+    "gate": "review",
+    "location": "src/phone-client/terminal-view.ts:110-127 (renderKeyBar) + src/phone-client/index.html:56 (.key-bar-key--active)",
+    "claim": "The Ctrl latch's armed state is conveyed by background color alone (.key-bar-key--active swaps #2a2a2a for #3a6ea5) with no aria-pressed on the toggle button and no non-color cue — the Ctrl key IS a stateful toggle (arm, then the next letter becomes a control byte) but is announced identically to the stateless keys, so a screen-reader user cannot tell whether the latch is armed and a color-blind user must distinguish two mid-luminance fills to know whether the next keystroke will be transformed.",
+    "fix": "Set aria-pressed to the latch state on the Ctrl button (both toggle sites already read keyBar.isCtrlLatched()) and add a non-color cue (border/underline/dot) to the --active style.",
+    "phase_of_origin": "implement",
+    "verified_by": "ux",
+    "id": "FINDING-067",
+    "status": "open"
+  },
+  {
+    "lens": "ux",
+    "severity": "LOW",
+    "gate": "review",
+    "location": "src/renderer/components/PhoneRemoteSettings.tsx:91-93 (applyExternalHost) + src/main/phone-remote/service.ts:516-520 (setExternalHost trims only)",
+    "claim": "CONV-001/CONV-002 class: the external-host field accepts any string silently — a value carrying a scheme, slash, port, or embedded space (e.g. https://my.ts.net or host:8080, both plausible paste mistakes for exactly this field's tailscale use case) is trimmed, persisted as-is, and interpolated into buildPairingUrl as http://<value>:<port>/?token=..., yielding a syntactically broken pairing URL and a QR that scans to garbage, with no validation message or error anywhere on the desktop; the only symptom is a phone that cannot connect, with nothing pointing back at the malformed host.",
+    "fix": "Validate the entry as a bare hostname on apply (reject scheme/slash/colon/whitespace with a specific role=alert message mirroring the port field's pattern), or normalize by URL-parsing and extracting the hostname; add malformed-input vectors for setExternalHost.",
+    "phase_of_origin": "implement",
+    "verified_by": "ux",
+    "id": "FINDING-068",
+    "status": "open"
+  },
+  {
+    "lens": "ux",
+    "severity": "LOW",
+    "gate": "review",
+    "location": "docs/features/phone-web-remote.md:68",
+    "claim": "CONV-008 class doc contradiction: the History-limits section states a dropped WS needs no re-pairing because 'the client retries with its stored token' — contradicting the v2 model the SAME document explains above it (the HttpOnly session cookie is the durable client credential; REQ-023 forbids persisting the plaintext token in script-readable storage, pinned by TEST-2672 and by main.ts, which stores no token). A user or maintainer reading the reconnection section is told the phone stores the pairing token — exactly the property the ESC-001 amendment removed.",
+    "fix": "Reword to: the client retries and authenticates via its HttpOnly session cookie (sent automatically on the same-origin upgrade); per CONV-008, grep the whole docs tree (plus CLAUDE.md) for other stored-token phrasings of the pre-amendment model.",
+    "phase_of_origin": "implement",
+    "verified_by": "ux",
+    "id": "FINDING-069",
+    "status": "open"
+  },
+  {
+    "lens": "devils-advocate",
+    "severity": "HIGH",
+    "gate": "review",
+    "location": "src/main/phone-remote/service.ts:190-191 (handleRequest cookie issuance); REQ-028",
+    "claim": "REQ-028 MUST is conditional in the implementation: the Set-Cookie is issued only when `auth.viaToken && sessionToken !== undefined`, but sessionToken is in-memory-only and dies with the app session — so after ANY desktop restart, a token-authenticated `GET /?token=<still-valid>` (the persisted tokenHash validates it) returns 200 with NO cookie. The spec mandates unconditionally that 'the first token-authenticated HTTP response MUST set a persistent session cookie'. Consequence: a pairing URL captured through the REQ-031 copyable-URL channel (iMessage/notes) or lingering in Safari history and first opened AFTER a desktop restart loads the shell, strips the token from the URL (REQ-023), then the cookie-less token-less WS upgrade is 401-refused; after 3 quick refusals the client shows the terminal 'pairing revoked — scan the new QR code' state — while the token is actually VALID and Settings says '(paired)' and 'already-paired phones keep working'. TEST-2692 covers cookie ACCEPTANCE after restart but no test covers cookie ISSUANCE after restart, so the gap is invisible to the suite. The condition is also needless: the presented token was just verified against tokenHash — it IS the plaintext the cookie needs.",
+    "fix": "Issue the cookie from the PRESENTED, just-verified token instead of (or falling back to) sessionToken: have authorizeRequest return the verified plaintext credential and pass that to issueSetCookie; add a TEST-2692-style vector asserting a fresh service instance loading only persisted state sets the cookie on a token-authenticated GET, and that the subsequent token-less WS upgrade with only that cookie succeeds.",
+    "phase_of_origin": "implement",
+    "verified_by": "devils-advocate",
+    "contract_violation": true,
+    "id": "FINDING-070",
+    "status": "open"
+  },
+  {
+    "lens": "devils-advocate",
+    "severity": "HIGH",
+    "gate": "review",
+    "location": "src/main/phone-remote/service.ts:460-468 (startIfEnabled enabled flip) + src/renderer/components/PhoneRemoteSettings.tsx:77 (notRunning gate); REQ-020/REQ-029",
+    "claim": "The REQ-020 startup-failure vector is still dead in production despite the v2 amendment: on any failed start, startIfEnabled flips settings.enabled to false, so status() can NEVER report the { enabled: true, running: false } shape — which is the ONLY condition under which PhoneRemoteSettings renders its not-running cue and the status().error text (notRunning = enabled && !running). For a startup failure (persisted enabled:true, port occupied), the app-wide phoneRemote:error push fires inside registerHandlers before any renderer has loaded/subscribed (webContents.send to an unloaded window is dropped), and seedPhoneRemoteStatus deliberately does not toast — so the carried status().error is rendered NOWHERE: the user relaunches into a silently-off feature with the Settings checkbox unchecked (while quick.json still says enabled:true), '(paired)' shown, and no explanation anywhere. This violates the REQ-020 acceptance ('with persisted enabled:true and the port occupied at app startup, the first loaded window still surfaces the error') and makes the REQ-029 errored-state acceptance ('with enabled:true and a stopped/errored server the section shows the not-running cue and the error text') satisfiable only with a status shape the real service can never produce — and its pin, TEST-2717, is a SOURCE-SCAN of the component file (the exact reachability anti-pattern REQ-029 itself bans), so the suite cannot see it. Recovery exists only by accident: re-toggling Enable re-fails and toasts. This is the third round of exactly this defect class (FINDING-034/049 lineage).",
+    "fix": "Keep the user intent and the failure state distinguishable: do not flip enabled on a failed start (report enabled:true, running:false, error) or derive the Settings cue from status.error presence rather than enabled&&!running; AND replay the last error to late subscribers — e.g. the root App.tsx consumer pulls status() once on mount and pushes status.error through the error-severity toast chokepoint (or main re-broadcasts phoneRemote:error on each window did-finish-load). Pin with a test that drives the REAL service to a startup failure and asserts the rendered surface (not a source scan). propose CONV: A status field added so late subscribers can report an earlier failure MUST have a pinned consumer that renders it in the exact state the failure produces — a carrier with no reachable renderer is not surfacing.",
+    "phase_of_origin": "implement",
+    "verified_by": "devils-advocate",
+    "contract_violation": true,
+    "id": "FINDING-071",
+    "status": "open"
+  },
+  {
+    "lens": "devils-advocate",
+    "severity": "MEDIUM",
+    "gate": "review",
+    "location": "02-spec.md REQ-022/REQ-028 (standalone relaunch via cookie); src/phone-client/manifest.webmanifest start_url",
+    "claim": "The flagship install story rests on an unanalyzed platform assumption: REQ-022 promises 'a standalone relaunch from the home screen authenticates via the REQ-028 session cookie', but iOS home-screen web apps have historically run in their OWN storage container, separate from Safari — a cookie set during the Safari pairing visit is not necessarily present in the standalone container, so the FIRST launch of the installed PWA (start_url ./, token-free by design) may receive the plaintext 401 with no recovery path inside the app (standalone mode has no address bar to re-enter a tokened URL, and the QR opens Safari, not the PWA). The spec never analyzes this container-isolation behavior, and no CI test can: every acceptance vector for REQ-022/REQ-028 runs server-side or in Chromium, where cookies are trivially shared — the one environment that matters (iOS Safari -> Add to Home Screen -> standalone launch) is exactly the one the suite cannot reach. If isolation holds on current iOS, the iPhone-Safari-PWA story degrades to Safari-tab-only while every test stays green and the docs keep claiming home-screen relaunch works.",
+    "fix": "Verify on-device (current iOS: pair in Safari, install, cold-launch standalone) and encode the result: if the cookie does not carry over, either document the limitation (use from a Safari tab / re-pair flow) in docs/features/phone-web-remote.md and the pairing UI, or add an in-app recovery path reachable from the 401 (e.g. the 401 page offers a token-entry form posting to a cookie-setting endpoint — secret-free until a valid token is presented). Record the on-device verification (or the accepted risk) in the feature review-followups doc so the claim is not silently untested.",
+    "phase_of_origin": "spec",
+    "verified_by": "devils-advocate",
+    "id": "FINDING-072",
+    "status": "open"
+  },
+  {
+    "lens": "devils-advocate",
+    "severity": "MEDIUM",
+    "gate": "review",
+    "location": "src/main/phone-remote/ws-session.ts:213-217 (paneGrid subscription gate) + src/phone-client/main.ts:81-89 (open from inventory row); REQ-013 interleaving",
+    "claim": "REQ-013 is met to the letter but its stated purpose ('a non-80x24 pane never renders mis-wrapped') fails in a plausible interleaving the spec and tests ignore: session.paneGrid drops grid pushes for panes the client is not subscribed to/attaching, and the inventory rows' cols/rows refresh only on membership pushes (spawn/exit/ws:save) — so a desktop grid change that produces NO workspace autosave (window resize, font zoom, sidebar toggle: layout percentages unchanged, every pane refit) while the phone sits on the LIST view leaves every row's grid stale. Tapping a pane then sizes the terminal from the stale row (openPanePlan), the snapshot arrives serialized at the NEW grid, and the pane renders permanently garbled — no later grid push ever arrives (the next one fires only on the NEXT desktop resize while subscribed), and back-and-retap reads the same stale row. The mitigation that exists (splitter-drag resizes ride the autosave -> membership re-push) is incidental coupling, not design: the attach path itself never delivers the authoritative grid the server holds. Every REQ-013 acceptance vector seeds a FRESH inventory, so the stale-row interleaving is untested.",
+    "fix": "Make attach authoritative: on subscribe, send the pane's current grid (a grid message emitted in finishAttach before the snapshot, or a cols/rows field on the snapshot message) so the client always re-sizes from the server's truth immediately before applying the snapshot; alternatively ungate paneGrid (status pushes already flow unsubscribed and grid is the same size class). Add an interleaving test: connect, receive inventory, resize the pane server-side WITHOUT a membership push, tap, assert the rendered grid matches the mirror grid.",
+    "phase_of_origin": "spec",
+    "verified_by": "devils-advocate",
+    "id": "FINDING-073",
+    "status": "open"
+  },
+  {
+    "lens": "devils-advocate",
+    "severity": "LOW",
+    "gate": "review",
+    "location": "docs/features/phone-web-remote.md:68 and :95; REQ-027",
+    "claim": "The shipped feature doc contradicts the shipped v2 design in two places: (1) the Backpressure section still says the resync is 'driven by the transport's own drain event' — the ws library's WebSocket emits no drain event (the exact FINDING-030 defect the v2 rework removed); the real mechanism is the pong-gated socketDrained plus the armed-while-pending transport watch. (2) the History-limits section says a reconnecting client 'retries with its stored token' — directly contradicting the cookie model documented two sections earlier and REQ-023's MUST that the plaintext token is never in script-readable storage (the client stores NO token; the HttpOnly cookie is the durable credential). Both are leftover v1 sentences; REQ-027 requires the doc to document the actual security/pairing model, and a future maintainer reading either sentence would re-derive the wrong design.",
+    "fix": "Amend docs/features/phone-web-remote.md: describe the pong-gated drain trigger + armed transport watch (and the burst-queue bound) in the Backpressure section, and replace 'retries with its stored token' with the cookie-credential reconnect description.",
+    "phase_of_origin": "implement",
+    "verified_by": "devils-advocate",
+    "id": "FINDING-074",
     "status": "open"
   }
 ]

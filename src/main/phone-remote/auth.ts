@@ -27,10 +27,17 @@ const requestCookieHeader = (req: IncomingMessage): string | undefined => {
 
 /** `true` when the request presents EITHER a valid pairing token (query/header) OR a valid
  *  REQ-028 session cookie. `viaToken` distinguishes the two so the caller can decide whether to
- *  issue a fresh `Set-Cookie` (only the first token-authenticated response does — REQ-028). */
-export function authorizeRequest(req: IncomingMessage, tokenHash: string | undefined): { authorized: boolean; viaToken: boolean } {
+ *  issue a fresh `Set-Cookie` (only a token-authenticated response does — REQ-028), and `token`
+ *  carries the PRESENTED, just-verified plaintext on the token path (v3, FINDING-070): the
+ *  cookie must be derivable from it, never from the in-memory session token — which dies with
+ *  the app, while a captured pairing URL stays valid against the persisted `tokenHash` across a
+ *  desktop restart. */
+export function authorizeRequest(
+  req: IncomingMessage,
+  tokenHash: string | undefined
+): { authorized: boolean; viaToken: boolean; token?: string } {
   const token = extractTokenFromRequest(req)
-  if (token !== undefined && verifyToken(token, tokenHash)) return { authorized: true, viaToken: true }
+  if (token !== undefined && verifyToken(token, tokenHash)) return { authorized: true, viaToken: true, token }
   const cookieValue = cookieValueFromHeader(requestCookieHeader(req))
   if (cookieValue !== undefined && verifyCookieValue(cookieValue, tokenHash)) return { authorized: true, viaToken: false }
   return { authorized: false, viaToken: false }

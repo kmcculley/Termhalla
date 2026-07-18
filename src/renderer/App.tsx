@@ -156,6 +156,16 @@ export default function App() {
     void api.registryCurrent()
       .then(snapshot => s().applyRecoveryPull(snapshot, issuedAtGeneration))
       .catch(() => s().recoveryPullFailed())
+    // Phone web remote (feature 0026 v3, REQ-020 — FINDING-063/071): the phoneRemote:error push
+    // fires from registerHandlers during startup, BEFORE any window has loaded — webContents.send
+    // into an unloaded window is dropped, so a startup failure (persisted enabled:true, port
+    // occupied) reached no listener and surfaced nowhere. Same missed-push recovery as the
+    // cloud/registry pulls above: pull status() once at root load and route a carried error
+    // through the store toast chokepoint exactly once (the error severity bypasses the
+    // quick.toastsEnabled opt-in, CONV-004).
+    void api.phoneRemoteStatus()
+      .then(st => { if (st.error) s().pushToast(st.error, 'error') })
+      .catch(e => console.warn('[phone-remote] startup status recovery pull failed:', e))
     return () => offs.forEach(off => off())
   }, [])
 

@@ -12,7 +12,16 @@
  *  - REQ-019 (FINDING-018): every lifecycle mutation is serialized through a single promise-chain
  *    op-queue, so two racing calls never interleave and a redundant `setEnabled(true)` is a no-op.
  *  - REQ-020 (FINDING-034/049): `status().error` persists the last startup failure for a
- *    late-subscribing window.
+ *    late-subscribing window. v3 (FINDING-063/071): a failed start KEEPS `enabled: true` —
+ *    `{ enabled: true, running: false, error }` is the reachable settled shape the REQ-029
+ *    settings surface renders, and `App.tsx` pulls `status()` at root load to recover the
+ *    pre-window error push.
+ *  - REQ-028 v3 (FINDING-070): the session cookie is derived from the PRESENTED, verified
+ *    pairing token at request time (`auth.token`), so token-authenticated requests keep issuing
+ *    the cookie after a desktop restart, when `sessionToken` no longer exists.
+ *  - REQ-009/REQ-017 v3 (FINDING-058/060): the per-connection burst queue shares one ordering
+ *    domain with the session's snapshot barriers (`flushNow` before every frame/pong) and its
+ *    saturation discard marks panes stale hold-window-safely (`session.markStale`).
  *  - REQ-011 (FINDING-022/038): `deps.panes.onSpawn` (membership-changed signal) re-pushes the
  *    inventory to every connected client; pane exit does too.
  *  - REQ-017 (FINDING-001/015/029/030, real transport): a per-connection poll samples
@@ -132,6 +141,10 @@ export function createPhoneRemoteService(deps: PhoneRemoteServiceDeps): PhoneRem
     /** Per-connection pre-transport burst queue for pane data (REQ-017 v2 — see the connection
      *  handler below for the full rationale). */
     queueData: (paneId: string, chunk: string) => void
+    /** Synchronously drains this connection's burst queue into the session (v3, FINDING-058/060)
+     *  — invoked before every snapshot-barrier-capturing entry point so the mirror write barrier
+     *  and the session hold-windows share one ordering domain. */
+    flushNow: () => void
   }
   const sessions = new Set<SessionEntry>()
   const wss = new WebSocketServer({ noServer: true, maxPayload: PHONE_WS_MAX_FRAME })
@@ -187,8 +200,14 @@ export function createPhoneRemoteService(deps: PhoneRemoteServiceDeps): PhoneRem
     }
     // REQ-028: the FIRST token-authenticated response sets the durable session cookie so every
     // later token-less entry path (PWA relaunch, reload, restore) authenticates via the cookie.
-    if (auth.viaToken && sessionToken !== undefined) {
-      try { res.setHeader('Set-Cookie', issueSetCookie(sessionToken)) } catch { /* headers already sent */ }
+    // The cookie is derived from the PRESENTED, just-verified token — NEVER the in-memory
+    // `sessionToken`, which dies with the app (v3, FINDING-070): a valid pairing URL first
+    // opened after a desktop restart must still yield the cookie, or the phone's later
+    // token-less WS upgrade is refused while Settings claims the pairing works. Validity stays
+    // a pure function of the persisted `tokenHash`, so regenerate still revokes every
+    // outstanding cookie (REQ-006) and no new secret is persisted (REQ-004).
+    if (auth.viaToken && auth.token !== undefined) {
+      try { res.setHeader('Set-Cookie', issueSetCookie(auth.token)) } catch { /* headers already sent */ }
     }
     if (pathname === '/') { void serveStaticFile(deps.staticRoot ?? '', '/', res); return }
     res.writeHead(404); res.end()
@@ -211,10 +230,11 @@ export function createPhoneRemoteService(deps: PhoneRemoteServiceDeps): PhoneRem
     // `ws.terminate()` OR data written while paused — verified empirically (a paused Node
     // Readable defers ALL further event delivery, including a subsequent RST, until it is
     // resumed AND has drained whatever was already buffered). Two changes follow from that:
-    //  (1) `bufferedAmount` reported to the session is `max(ws.bufferedAmount, logicalPressure)`
-    //      — a synchronous producer burst is bounded BEFORE it ever reaches `ws.send()` (the
-    //      queueData/flushBurst pair below), so a paused peer's kernel receive buffer never
-    //      accumulates the multi-megabyte backlog that would strand a later `resetAndDestroy()`.
+    //  (1) a synchronous producer burst is bounded BEFORE it ever reaches `ws.send()` (the
+    //      queueData/flushBurst pair below, whose saturation discard marks the affected panes
+    //      stale via `session.markStale` — hold-window-safe, FINDING-058/060), so a paused
+    //      peer's kernel receive buffer never accumulates the multi-megabyte backlog that would
+    //      strand a later `resetAndDestroy()`.
     //  (2) the drain-driven resync (`session.socketDrained()`) fires ONLY in response to a PONG
     //      (proof the peer is actually reading) rather than a blind timer sampling the transport
     //      buffer — a truly-paused peer never pongs, so `stale`/`held` state never spuriously
@@ -222,7 +242,6 @@ export function createPhoneRemoteService(deps: PhoneRemoteServiceDeps): PhoneRem
     //      of whatever `ws.bufferedAmount` reads at any instant, since the burst bound above can
     //      keep it near zero even while genuinely stuck) is what ultimately trips `forceTerminate`
     //      for a peer that never proves it is alive.
-    let logicalPressure = 0
     const session = createWsSession({
       send: (msg) => {
         if (ws.readyState !== ws.OPEN) return
@@ -231,7 +250,7 @@ export function createPhoneRemoteService(deps: PhoneRemoteServiceDeps): PhoneRem
           armTransportWatch()
         })
       },
-      bufferedAmount: () => Math.max(ws.bufferedAmount, logicalPressure),
+      bufferedAmount: () => ws.bufferedAmount,
       mirrors: { snapshot: (paneId) => mirrors.snapshot(paneId) },
       panes: {
         inventory: () => buildInventory(toRawPaneInfo(deps.panes.list())),
@@ -297,6 +316,10 @@ export function createPhoneRemoteService(deps: PhoneRemoteServiceDeps): PhoneRem
     ws.on('pong', () => {
       awaitingPong = false
       if (pongDeadline) clearTimeout(pongDeadline)
+      // Consistent boundary (v3, FINDING-058/060): parked chunks enter the session BEFORE
+      // socketDrained() captures any resync snapshot barrier — a byte already in the mirror can
+      // never be both inside the resync snapshot AND flushed into its hold window afterwards.
+      flushNow()
       if (session.hasPending()) {
         session.socketDrained()
         if (!session.hasPending()) pendingSince = undefined
@@ -310,12 +333,22 @@ export function createPhoneRemoteService(deps: PhoneRemoteServiceDeps): PhoneRem
     // libuv actually flushes the first one. Queuing chunks and checking the QUEUE's own byte
     // total closes that window: once a burst crosses `PHONE_WS_HIGH_WATER` before even one
     // chunk reached the real transport, the WHOLE queue is discarded (never handed to
-    // `ws.send()`) and every affected pane is marked stale via the real backpressure policy (an
-    // instantaneous `logicalPressure` spike sampled through `bufferedAmount()` above, cleared
-    // immediately after) — the mirror already has the full content (fed unconditionally, REQ-015
-    // purity), so the pane's eventual resync is exactly as correct as if the bytes had been sent
-    // and dropped by the ordinary per-chunk gate. A burst that stays under the threshold flushes
-    // normally on the next tick.
+    // `ws.send()`) and every affected pane is marked stale via `session.markStale` — which
+    // records staleness in the backpressure policy even for a pane inside an attach/resync
+    // hold-window (v3, FINDING-058/060: the old `paneData(id, '')` substitute was swallowed by
+    // the window's pending queue, so the dropped bytes were never repaired). The mirror already
+    // has the full content (fed unconditionally, REQ-015 purity), so the pane's eventual resync
+    // is exactly as correct as if the bytes had been sent and dropped by the ordinary per-chunk
+    // gate. A burst that stays under the threshold flushes normally on the next tick.
+    //
+    // Consistent boundary with the session's snapshot barriers (v3, FINDING-058/060): the shared
+    // mirror is fed synchronously at onData time while this queue defers session delivery by one
+    // macrotask — so a chunk could be INSIDE a subscribe/drain snapshot barrier yet still parked
+    // here, and a later flush would push it into the very hold window that snapshot opened
+    // (delivered twice). `flushNow()` drains the queue synchronously and is invoked BEFORE any
+    // barrier-capturing entry point runs: every inbound frame (`doSubscribe`) and every
+    // pong-driven `socketDrained()`. Neither can interleave with a synchronous producer flood
+    // (single-threaded JS), so the burst bound above is untouched.
     let burstTimer: ReturnType<typeof setTimeout> | undefined
     let burstBytes = 0
     let burstQueue: Array<{ paneId: string; chunk: string }> = []
@@ -336,12 +369,16 @@ export function createPhoneRemoteService(deps: PhoneRemoteServiceDeps): PhoneRem
       armTransportWatch()
     }
 
+    const flushNow = (): void => {
+      if (!burstTimer) return // queue empty and no saturation state pending (the timer is armed with both)
+      clearTimeout(burstTimer)
+      flushBurst()
+    }
+
     const queueData = (paneId: string, chunk: string): void => {
       if (!burstTimer) { burstTimer = setTimeout(flushBurst, 0); burstTimer.unref?.() }
       if (burstSaturated) {
-        logicalPressure = PHONE_WS_HIGH_WATER + 1
-        session.paneData(paneId, '')
-        logicalPressure = 0
+        session.markStale(paneId)
         armTransportWatch()
         return
       }
@@ -349,9 +386,7 @@ export function createPhoneRemoteService(deps: PhoneRemoteServiceDeps): PhoneRem
       burstBytes += Buffer.byteLength(chunk)
       if (burstBytes <= PHONE_WS_HIGH_WATER) return
       burstSaturated = true
-      logicalPressure = PHONE_WS_HIGH_WATER + 1
-      for (const id of new Set(burstQueue.map((item) => item.paneId))) session.paneData(id, '')
-      logicalPressure = 0
+      for (const id of new Set(burstQueue.map((item) => item.paneId))) session.markStale(id)
       burstQueue = []
       burstBytes = 0
       armTransportWatch()
@@ -364,9 +399,14 @@ export function createPhoneRemoteService(deps: PhoneRemoteServiceDeps): PhoneRem
       if (burstTimer) clearTimeout(burstTimer)
     }
 
-    const entry: SessionEntry = { ws, session, dispose, queueData }
+    const entry: SessionEntry = { ws, session, dispose, queueData, flushNow }
     sessions.add(entry)
     ws.on('message', (data, isBinary) => {
+      // Consistent boundary (v3, FINDING-058/060): any chunk already fed to the shared mirror but
+      // still parked in this connection's burst queue is flushed into the session BEFORE the frame
+      // is processed — a subscribe's snapshot barrier can therefore never cover a byte that a
+      // later flush would ALSO push into the attach hold window it opens (delivered twice).
+      flushNow()
       session.handleFrame(isBinary ? (data as Buffer) : Buffer.isBuffer(data) ? data.toString('utf8') : String(data))
     })
     ws.on('close', () => { dispose(); sessions.delete(entry); session.close() })
@@ -429,7 +469,10 @@ export function createPhoneRemoteService(deps: PhoneRemoteServiceDeps): PhoneRem
     unsubExit = deps.panes.onExit((paneId) => {
       taps.delete(paneId)
       mirrors.paneExited(paneId)
-      for (const { session } of sessions) session.paneExit(paneId)
+      // Flush parked chunks BEFORE the exit clears each session's subscription state (v3,
+      // FINDING-058/060 class): paneExit drops the pane from live/hold-window maps, so a
+      // still-parked final chunk (e.g. the shell's exit message) would otherwise be discarded.
+      for (const entry of sessions) { entry.flushNow(); entry.session.paneExit(paneId) }
       pushInventoryToAll()
     })
     unsubGrid = deps.panes.onGrid((paneId, cols, rows) => {
@@ -462,16 +505,27 @@ export function createPhoneRemoteService(deps: PhoneRemoteServiceDeps): PhoneRem
     if (listening) {
       for (const p of deps.panes.list()) ensureTap(p)
       mirrors.setEnabled(true)
-    } else {
-      settings = { ...settings, enabled: false }
     }
+    // A failed start KEEPS `settings.enabled` (v3, FINDING-063/071): enabled is the user's
+    // persistent INTENT, the failure is runtime state — `status()` reports it as
+    // `{ enabled: true, running: false, error }`, the exact shape the REQ-029 settings surface
+    // keys its not-running cue on. Coercing enabled to false made that state unreachable
+    // (the cue and `status().error` could never render) and left a relaunch silently off while
+    // quick.json still claimed enabled.
   }
 
   const restart = async (): Promise<void> => {
-    if (!listening) return
-    await transport.stop()
-    listening = false
-    boundPort = undefined
+    if (listening) {
+      await transport.stop()
+      listening = false
+      boundPort = undefined
+    } else if (!settings.enabled) {
+      // Disabled: a bind/port change persists but starts nothing (REQ-002).
+      return
+    }
+    // Enabled-but-errored falls through (v3, FINDING-063/071): the startup error's corrective
+    // hint says "change it in Settings" — changing the port/bind while the intent is still
+    // enabled must actually RETRY the start, not silently keep the server down.
     await startIfEnabled()
   }
 

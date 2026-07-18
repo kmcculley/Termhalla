@@ -60,6 +60,14 @@ export interface WsSession {
    *  for flushing coalesced status/grid pushes. Cheap to call speculatively (a no-op when nothing
    *  is stale/held). */
   socketDrained(): void
+  /** Marks a pane stale in the backpressure policy DIRECTLY (v3 — FINDING-058/060): the service's
+   *  pre-transport burst queue calls this when a saturation discard drops real chunks, and it MUST
+   *  record staleness even while the pane sits inside an attach/resync hold window — routing a
+   *  substitute chunk through `paneData` would be swallowed by the window's pending queue and the
+   *  dropped bytes would never be repaired by a resync. A no-op for a pane this session is not
+   *  delivering (not live and in no hold window) — staleness can never outlive/precede a
+   *  subscription (REQ-017 stale-state lifecycle). */
+  markStale(paneId: string): void
   /** `true` iff any pane currently has outstanding backpressure state (stale or a held push) —
    *  the transport layer uses this to arm a "pending" watch only while there is something a
    *  drain could resolve, and to gate `socketDrained()` on proof-of-life (a pong) rather than a
@@ -233,10 +241,22 @@ export function createWsSession(deps: WsSessionDeps): WsSession {
       return policy.hasPending()
     },
 
+    markStale(paneId) {
+      if (!live.has(paneId) && !attaching.has(paneId) && !resyncing.has(paneId)) return
+      policy.markStale(paneId)
+    },
+
     socketDrained() {
       const buffered = bufferedAmount()
       const staleIds = policy.onDrain(buffered)
       for (const paneId of staleIds) {
+        // A stale pane whose ATTACH is still in flight must NOT get a concurrent resync window
+        // (v3, FINDING-058/060 — reachable since markStale can act mid-attach): paneData routes
+        // to the attach queue FIRST, so a chunk fed after the resync barrier would be delivered
+        // right after the attach completes and then ERASED by the resync's buffer replace. Keep
+        // the pane stale instead — the attach completes with the policy dropping its pending
+        // chunks, and the NEXT drain resyncs it with a barrier that covers everything.
+        if (attaching.has(paneId)) { policy.markStale(paneId); continue }
         // Hold-window for the resync itself (v2, FINDING-009): data arriving between NOW and the
         // snapshot's resolution is queued behind the resync, never sent ahead of it.
         const pending: string[] = []
