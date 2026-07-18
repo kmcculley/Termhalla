@@ -108,8 +108,13 @@ export async function registerHandlers(services: Services, wm: WindowManager): P
   const phoneRemoteSend = (channel: string, ...args: unknown[]): void => {
     if (channel === CH.ptyData) {
       const [id, chunk] = args as [string, string]
-      if (!phoneRemoteLivePanes.has(id)) phoneRemoteLivePanes.set(id, { cols: 80, rows: 24, status: 'idle' })
-      for (const cb of phoneRemoteDataListeners) cb(id, chunk)
+      // Known-live panes only (FINDING-093 sibling audit): data for an id absent from
+      // phoneRemoteLivePanes is a trailing byte for an already-exited pane (spawn/adopt always
+      // seed the entry before any data can be dispatched) — never upsert here, and don't fan it
+      // into the phone-remote listeners either (the service's onData path would mint a ghost
+      // mirror tap for a pane the inventory no longer lists). The renderer forward below stays
+      // unconditional (REQ-015 byte-identical).
+      if (phoneRemoteLivePanes.has(id)) for (const cb of phoneRemoteDataListeners) cb(id, chunk)
     } else if (channel === CH.ptyExit) {
       const [id] = args as [string, number]
       phoneRemoteLivePanes.delete(id)
@@ -170,8 +175,16 @@ export async function registerHandlers(services: Services, wm: WindowManager): P
       for (const cb of phoneRemoteMembershipListeners) cb(undefined)
     },
     onResize: (id, cols, rows) => {
+      // NEVER upsert on resize (FINDING-093): the renderer keeps an EXITED pane mounted under
+      // the dead-pane overlay and its ResizeObserver/grid-sync has no exited guard (the
+      // fit-must-pair-with-ptyResize rule is load-bearing — don't fix this renderer-side), so
+      // the next window resize fires pty:resize for a pane pty:exit already removed from
+      // phoneRemoteLivePanes. Re-creating the entry here resurrected it as a permanent ghost in
+      // the phone inventory (listed, unattachable, never removed — no second pty:exit ever
+      // fires). Only update panes that currently exist; the spawn/adopt paths seed real entries.
       const rec = phoneRemoteLivePanes.get(id)
-      if (rec) { rec.cols = cols; rec.rows = rows } else phoneRemoteLivePanes.set(id, { cols, rows, status: 'idle' })
+      if (!rec) return
+      rec.cols = cols; rec.rows = rows
       for (const cb of phoneRemoteGridListeners) cb(id, cols, rows)
     }
   })

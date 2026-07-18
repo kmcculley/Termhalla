@@ -61,8 +61,8 @@
     },
     "implement": {
       "passed": true,
-      "at": "2026-07-18T21:54:43.161Z",
-      "firstAt": "2026-07-18T21:54:43.161Z",
+      "at": "2026-07-18T22:32:49.723Z",
+      "firstAt": "2026-07-18T22:32:49.723Z",
       "tokens": [
         {
           "token": "spec-freeze",
@@ -90,7 +90,7 @@
   "iterations": {
     "tests": 2,
     "spec": 1,
-    "implement": 2
+    "implement": 3
   },
   "escalations": [
     {
@@ -147,6 +147,17 @@
       "at": "2026-07-18T21:30:31.997Z",
       "decision": "Human (Kevin, 2026-07-18): fix now. Preserve final pane output at exit for stale/saturated clients — final barrier snapshot before mirror disposal (or equivalent reorder) so REQ-017/REQ-026 exactly-once holds at pane exit. Single top-tier Claude implementer, same audited router-override as ESC-003.",
       "resolvedAt": "2026-07-18T21:38:32.226Z"
+    },
+    {
+      "id": "ESC-006",
+      "phase": "review",
+      "reason": "Accept external ORIGIN model (scheme/port distinct from backend) for Tailscale pairing support; accept final-output preservation via buffer-replacing resync for exiting stale panes (FINDING-083); accept ordered replay operations preventing resize from overtaking output (FINDING-084); accept staged/transactional token regeneration with persistence-first (FINDING-085); accept staged/transactional settings mutations with persistence-first (FINDING-086); accept removing resurrection fallback for exited panes on late resize (FINDING-093)",
+      "kind": "judgment",
+      "finding": "FINDING-082",
+      "status": "resolved",
+      "at": "2026-07-18T22:08:28.773Z",
+      "decision": "Human (Kevin, 2026-07-18): FINDING-082/083 were already fixed in 50b240c — the re-files were stale (closed with mechanical evidence by the orchestrator). Fix the four genuinely-new blockers now (085 transactional regenerate, 093 exited-pane resize guard, 084 mirror resize write-barrier, 086 transactional settings lifecycle) via a single top-tier Claude implementer under the same audited router-override. This consumes the final implement loopback within the cap; the orchestrator verifies and closes the four with evidence before re-review round 5.",
+      "resolvedAt": "2026-07-18T22:21:34.048Z"
     }
   ],
   "concerns": [
@@ -161,7 +172,7 @@
     "plan": 0,
     "tests": 0,
     "implement": 0,
-    "review": 3
+    "review": 4
   },
   "implementer": {
     "mode": "claude",
@@ -169,8 +180,8 @@
       "orky:implementer"
     ],
     "winner": "orky:implementer",
-    "reason": "ESC-004/005 fix round: router computed ab, overridden to a single Claude implementer at top tier (fable/xhigh) by explicit human authorization recorded on both escalations. Tailscale external-origin pairing (bare-hostname pin preserved) + final-output-at-exit exactly-once (terminal snapshot before deferred mirror disposal). Implement gate re-passed on ground truth.",
-    "at": "2026-07-18T21:55:02.529Z"
+    "reason": "ESC-006 fix round (final in-cap loopback): single top-tier Claude implementer per audited human-authorized router override. All four blockers fixed persist-first/ordered/guarded; implement gate re-passed; findings closed on mechanical evidence by the orchestrator (cross-check lens has no closing owner — its stale re-files of 082/083 were likewise closed on evidence).",
+    "at": "2026-07-18T22:33:16.062Z"
   },
   "loopbacks": [
     {
@@ -202,7 +213,13 @@
       "from": "review",
       "reason": "ESC-004/005 resolved: FINDING-082 (pairing URL bypasses tailscale-serve HTTPS proxy — externalHost must accept a full origin) and FINDING-083 (final pane output lost at exit under stale/saturation — mirror disposed before exit fan-out). Both implement-origin.",
       "at": "2026-07-18T21:38:32.289Z"
+    },
+    {
+      "to": "implement",
+      "from": "review",
+      "reason": "ESC-006 resolved: four new blocking findings on the round-3/4 code — non-transactional regenerate (085) and settings lifecycle (086), mirror resize without write barrier (084), pty:resize-after-exit pane resurrection (093). All implement-origin; final loopback within cap.",
+      "at": "2026-07-18T22:21:34.107Z"
     }
   ],
-  "totalFailures": 3
+  "totalFailures": 4
 }

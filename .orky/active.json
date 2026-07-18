@@ -2,8 +2,8 @@
   "feature": "features/0026-phone-web-remote",
   "projectRoot": "C:/dev/Termhalla",
   "phase": "implement",
-  "lastTickAt": "2026-07-18T21:53:12.523Z",
-  "lastAction": "re-deriving implement gate after ESC-004/005 fix round",
+  "lastTickAt": "2026-07-18T22:31:17.332Z",
+  "lastAction": "re-deriving implement gate after ESC-006 fix round",
   "runs": {
     ".orky/features/0017-agent-runtime-skeleton": {
       "phase": "human-review",
@@ -37,8 +37,8 @@
     },
     "features/0026-phone-web-remote": {
       "phase": "implement",
-      "lastTickAt": "2026-07-18T21:53:12.523Z",
-      "lastAction": "re-deriving implement gate after ESC-004/005 fix round"
+      "lastTickAt": "2026-07-18T22:31:17.332Z",
+      "lastAction": "re-deriving implement gate after ESC-006 fix round"
     }
   }
 }

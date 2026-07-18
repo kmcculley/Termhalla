@@ -12,6 +12,9 @@
  * within `src/agent`. Neither guard may be edited (ADR-009), and satisfying REQ-008's mirror
  * requirement genuinely needs this exact write-flush-barrier engine main-side — so it lives here
  * too, independently. Keep the two files in sync by hand if the barrier's contract ever changes.
+ * ONE deliberate divergence (FINDING-084): here `resize()` rides the same write-ordering barrier
+ * as `snapshot()` (see below) — the agent copy keeps its original synchronous resize, pinned by
+ * its own frozen suites.
  *
  * Write-flush barrier: xterm parses `write()` input asynchronously, chunk by chunk, invoking each
  * chunk's callback synchronously inside its parse loop after that chunk is processed and BEFORE
@@ -57,10 +60,13 @@ export interface PaneReplay {
 
 export type ReplayFactory = (opts: PaneReplayOpts) => PaneReplay
 
-interface SnapshotWaiter {
-  target: number
-  resolve: (snapshot: string) => void
-}
+/** One ordering domain for BOTH barrier-riding operations (FINDING-084): a snapshot waiter and a
+ *  deferred resize share a single FIFO whose entries carry the write sequence they must trail.
+ *  Targets are non-decreasing (issuedSeq only grows), so draining strictly from the front inside
+ *  each write's callback applies every mirror operation in OBSERVATION order. */
+type PendingOp =
+  | { kind: 'snapshot'; target: number; resolve: (snapshot: string) => void }
+  | { kind: 'resize'; target: number; cols: number; rows: number }
 
 export const createPaneReplay = (opts: PaneReplayOpts): PaneReplay => {
   const term = new Terminal({
@@ -76,7 +82,7 @@ export const createPaneReplay = (opts: PaneReplayOpts): PaneReplay => {
   let disposed = false
   let issuedSeq = 0
   let parsedSeq = 0
-  let waiters: SnapshotWaiter[] = []
+  let ops: PendingOp[] = []
 
   const addonSafeSerialize = (where?: string): string => {
     try {
@@ -91,12 +97,20 @@ export const createPaneReplay = (opts: PaneReplayOpts): PaneReplay => {
   }
 
   const drain = (): void => {
-    if (waiters.length === 0) return
-    const ready = waiters.filter((w) => w.target <= parsedSeq)
-    if (ready.length === 0) return
-    waiters = waiters.filter((w) => w.target > parsedSeq)
-    const snapshot = addonSafeSerialize('inside the write barrier')
-    for (const w of ready) w.resolve(snapshot)
+    if (ops.length === 0 || ops[0].target > parsedSeq) return
+    // One serialize is shared by CONSECUTIVE ready snapshot waiters, but an interleaved resize
+    // invalidates the cache: the grid changed, so a waiter queued after it must re-serialize.
+    let cached: string | undefined
+    while (ops.length > 0 && ops[0].target <= parsedSeq) {
+      const op = ops.shift() as PendingOp
+      if (op.kind === 'resize') {
+        term.resize(op.cols, op.rows)
+        cached = undefined
+      } else {
+        if (cached === undefined) cached = addonSafeSerialize('inside the write barrier')
+        op.resolve(cached)
+      }
+    }
   }
 
   return {
@@ -111,26 +125,43 @@ export const createPaneReplay = (opts: PaneReplayOpts): PaneReplay => {
 
     resize(cols: number, rows: number): void {
       if (disposed) return
-      term.resize(cols, rows)
+      // Ordered WITH the feeds (FINDING-084, REQ-009/REQ-013): xterm parses write() input
+      // asynchronously, so a synchronous term.resize() here could apply BEFORE bytes that were
+      // observed (fed) earlier — a later attach/resync snapshot would then parse pre-resize
+      // bytes at the new grid (verified against @xterm/headless: feed('ABCDE12345') at 5x2 then
+      // resize(10,2) before the write callback serializes one unwrapped line; after it, the
+      // proper reflow). With writes pending, the resize therefore rides the SAME barrier queue
+      // as snapshot(): it runs inside the callback of the last write issued before it — after
+      // every previously observed byte, before any byte fed after it (xterm fires each chunk's
+      // callback before parsing later chunks). With nothing pending it stays synchronous.
+      if (parsedSeq >= issuedSeq) {
+        term.resize(cols, rows)
+        return
+      }
+      ops.push({ kind: 'resize', target: issuedSeq, cols, rows })
     },
 
     snapshot(): Promise<string> {
       if (disposed) return Promise.resolve(addonSafeSerialize())
       const target = issuedSeq
+      // Fast path: nothing pending ⇒ the op queue is empty too (every queued op targets a seq
+      // ≤ issuedSeq and drains inside that write's callback), so serializing now is in order.
       if (parsedSeq >= target) return Promise.resolve(addon.serialize())
       return new Promise<string>((resolve) => {
-        waiters.push({ target, resolve })
+        ops.push({ kind: 'snapshot', target, resolve })
       })
     },
 
     dispose(): void {
       if (disposed) return
       disposed = true
-      if (waiters.length > 0) {
+      const pendingSnapshots = ops.filter((op): op is PendingOp & { kind: 'snapshot' } => op.kind === 'snapshot')
+      ops = []
+      if (pendingSnapshots.length > 0) {
+        // Pending resizes are dropped (the terminal is going away); waiters settle with the
+        // degraded at-dispose snapshot exactly as before.
         const snapshot = addonSafeSerialize('at dispose')
-        const pending = waiters
-        waiters = []
-        for (const w of pending) w.resolve(snapshot)
+        for (const w of pendingSnapshots) w.resolve(snapshot)
       }
       term.dispose()
     }

@@ -35,6 +35,12 @@
  *    pairing URL from that origin verbatim — scheme preserved, no backend port appended; a bare
  *    hostname keeps the http + backend-port semantics.
  *  - REQ-007: `pairingUrl()` re-fetches the current session's pairing URL WITHOUT regenerating.
+ *  - v5 (FINDING-085/086) persist-first transactions: every settings mutation (setEnabled/
+ *    setBind/setPort/setExternalHost/regenerateToken) stages a candidate, awaits
+ *    `deps.saveSettings(candidate)`, and only on success publishes it to live state / touches the
+ *    transport / revokes sockets. A rejected save leaves live state byte-identical (REQ-019/
+ *    REQ-006). Distinct from a failed START after a successful save (FINDING-063/071), which
+ *    keeps `enabled: true` + `status().error` — runtime failure, not persistence failure.
  */
 import { networkInterfaces } from 'node:os'
 import type { IncomingMessage, ServerResponse } from 'node:http'
@@ -565,7 +571,15 @@ export function createPhoneRemoteService(deps: PhoneRemoteServiceDeps): PhoneRem
     // Idempotent: already in the target running state — a no-op, never a misclassified bind
     // failure (server.ts's own idempotent start() is the second line of defense).
     if (enabled === listening && enabled === settings.enabled) return
-    settings = { ...settings, enabled }
+    // Persist-first (v5, FINDING-086): stage the candidate and await persistence BEFORE touching
+    // live settings or the transport. A rejected quick.json save must leave live state
+    // byte-identical (REQ-019: reported state and actual listening state never diverge; a failed
+    // IPC call must not have half-committed enable/disable that a restart then reverses). A
+    // failed START after a successful save is the OTHER, deliberate path (FINDING-063/071):
+    // enabled is persisted user INTENT, the bind failure is runtime state in `status().error`.
+    const candidate = { ...settings, enabled }
+    await deps.saveSettings(candidate)
+    settings = candidate
     if (enabled) {
       await startIfEnabled()
     } else {
@@ -576,7 +590,6 @@ export function createPhoneRemoteService(deps: PhoneRemoteServiceDeps): PhoneRem
       taps.clear()
       closeAllSessions()
     }
-    await deps.saveSettings(settings)
   }
 
   return {
@@ -587,22 +600,30 @@ export function createPhoneRemoteService(deps: PhoneRemoteServiceDeps): PhoneRem
 
     setEnabled: (enabled) => enqueue(() => doSetEnabled(enabled)),
 
+    // Persist-first for EVERY settings mutation (v5, FINDING-086): stage the candidate, await
+    // persistence, and only then publish it to live state / restart the transport. A rejected
+    // save leaves settings, status(), and the live listener exactly as before the call — e.g. a
+    // failed setBind('lan') must not leave status().bind reporting LAN (computeUrls advertising
+    // unreachable LAN URLs) while the listener is still bound to localhost (REQ-019).
     setBind: (mode) => enqueue(async () => {
-      settings = { ...settings, bind: mode }
-      await deps.saveSettings(settings)
+      const candidate = { ...settings, bind: mode }
+      await deps.saveSettings(candidate)
+      settings = candidate
       await restart()
     }),
 
     setPort: (port) => enqueue(async () => {
-      settings = { ...settings, port }
-      await deps.saveSettings(settings)
+      const candidate = { ...settings, port }
+      await deps.saveSettings(candidate)
+      settings = candidate
       await restart()
     }),
 
     setExternalHost: (host) => enqueue(async () => {
       const trimmed = typeof host === 'string' ? host.trim() : ''
-      settings = trimmed ? { ...settings, externalHost: trimmed } : { ...settings, externalHost: undefined }
-      await deps.saveSettings(settings)
+      const candidate = trimmed ? { ...settings, externalHost: trimmed } : { ...settings, externalHost: undefined }
+      await deps.saveSettings(candidate)
+      settings = candidate
     }),
 
     status() {
@@ -620,14 +641,20 @@ export function createPhoneRemoteService(deps: PhoneRemoteServiceDeps): PhoneRem
     },
 
     regenerateToken: () => enqueue(async () => {
+      // REQ-006 atomically, in BOTH directions (v5, FINDING-085): the candidate token is staged
+      // and PERSISTED FIRST; only a successful save publishes it. If quick.json rejects, live
+      // state stays byte-identical — the old token/hash keep authenticating, connected clients
+      // stay open, and pairingUrl() can never later expose a token the UI was told failed (the
+      // old flow silently switched live auth to an undisclosed token whose hash was not on disk,
+      // so a restart resurrected the old credential the UI believed revoked).
       const token = generateToken()
-      const hash = hashToken(token)
-      settings = { ...settings, tokenHash: hash }
+      const candidate = { ...settings, tokenHash: hashToken(token) }
+      await deps.saveSettings(candidate)
+      // Save landed — publish the swap, then drop every currently connected client so the old
+      // token/cookie (both pure functions of the now-replaced persisted hash, REQ-028) can never
+      // be used again on an already-open socket.
+      settings = candidate
       sessionToken = token
-      // REQ-006: atomically revoke — persist the new hash (which also invalidates every
-      // outstanding REQ-028 cookie, a pure function of tokenHash), then drop every currently
-      // connected client so the old token/cookie can never be used again on an already-open socket.
-      await deps.saveSettings(settings)
       closeAllSessions()
       return { pairingUrl: buildPairingUrl(token) }
     }),

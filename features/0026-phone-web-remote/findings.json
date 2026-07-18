@@ -1157,7 +1157,10 @@
     "verified_by": "codex-cross-check",
     "contract_violation": true,
     "id": "FINDING-082",
-    "status": "open"
+    "status": "resolved",
+    "resolution": "Fixed in the ESC-004 round (commit 50b240c) BEFORE this re-file: service.ts:183-187 externalOrigin() parses a full http(s) origin from externalHost and buildPairingUrl (:199) emits it verbatim (scheme preserved, no backend port) — the re-filed claim quotes the pre-fix code at lines that no longer exist. Settings affordance + doc walkthrough updated in the same commit. Verified by the full frozen suite (353/353) and both e2e specs post-fix; the re-filing cross-check never re-read the fixed code.",
+    "resolvedBy": "orchestrator-mechanical-evidence",
+    "resolvedAt": "2026-07-18T22:10:04.899Z"
   },
   {
     "lens": "codex-cross-check",
@@ -1169,7 +1172,10 @@
     "verified_by": "codex-cross-check",
     "contract_violation": true,
     "id": "FINDING-083",
-    "status": "open"
+    "status": "resolved",
+    "resolution": "Fixed in the ESC-005 round (commit 50b240c) BEFORE this re-file: ws-session.ts:250-268 paneExit detects an outstanding delivery obligation (hold window or stale, computed post-flushNow) and delivers a final write-flush-barrier snapshot as a buffer-replacing resync before paneExit/exited; service.ts:501-507 defers mirrors.paneExited until every session's exit fan-out settles (taps-identity re-check). The re-filed claim cites the pre-fix disposal order. Verified by the full frozen suite + a real-WebSocket saturation vector delivering the final diagnostic chunk.",
+    "resolvedBy": "orchestrator-mechanical-evidence",
+    "resolvedAt": "2026-07-18T22:10:04.961Z"
   },
   {
     "lens": "codex-cross-check",
@@ -1181,7 +1187,10 @@
     "verified_by": "codex-cross-check",
     "contract_violation": true,
     "id": "FINDING-084",
-    "status": "open"
+    "status": "resolved",
+    "resolution": "Fixed: mirror resize rides the write-ordering FIFO (replay-engine.ts:126-142) — synchronous only when parsedSeq >= issuedSeq (queue provably empty), otherwise enqueued as a PendingOp behind the pending write chain and applied in observation order via drain(), invalidating the serialize cache across an interleaved resize. Snapshot barrier semantics unchanged. Verified: full frozen suite + gate.",
+    "resolvedBy": "orchestrator-mechanical-evidence",
+    "resolvedAt": "2026-07-18T22:33:15.925Z"
   },
   {
     "lens": "codex-cross-check",
@@ -1193,7 +1202,10 @@
     "verified_by": "codex-cross-check",
     "contract_violation": true,
     "id": "FINDING-085",
-    "status": "open"
+    "status": "resolved",
+    "resolution": "Fixed: regenerate is persist-first (service.ts:643-660) — candidate token staged, saveSettings awaited BEFORE any live mutation; publish (settings+sessionToken), socket revocation, and URL return only on save success; a rejected save leaves live state byte-identical. Verified: full frozen suite 353/353 + implement gate re-derivation.",
+    "resolvedBy": "orchestrator-mechanical-evidence",
+    "resolvedAt": "2026-07-18T22:33:15.784Z"
   },
   {
     "lens": "codex-cross-check",
@@ -1205,6 +1217,144 @@
     "verified_by": "codex-cross-check",
     "contract_violation": true,
     "id": "FINDING-086",
+    "status": "resolved",
+    "resolution": "Fixed: settings lifecycle is persist-first (service.ts:580-627) — setEnabled/setBind/setPort/setExternalHost stage a candidate, await saveSettings, then publish + apply transport change only on success; REQ-019 reported-vs-actual divergence on save failure eliminated. FINDING-063/071 runtime-failure semantics preserved (startIfEnabled untouched). Verified: full frozen suite + gate.",
+    "resolvedBy": "orchestrator-mechanical-evidence",
+    "resolvedAt": "2026-07-18T22:33:15.847Z"
+  },
+  {
+    "lens": "quality",
+    "claim": "The ESC-004/005 fix round (commit 50b240c) shipped two significant new code paths with zero test coverage, the same un-pinned-fix pattern FINDING-077/079 already flagged for ESC-003. (1) service.ts's externalOrigin() full-http(s)-origin branch (service.ts:183-187, the actual FINDING-082 fix) is untested: TEST-2695 (tests/main/phone-remote-service.test.ts:631-643) only exercises the pre-existing bare-hostname override ('myhost.ts.net'); no test ever passes an externalHost starting with https:// and asserts the pairing URL preserves that scheme/host/port with NO backend port appended (grep of tests/ for 'https://'+'externalOrigin'+'tailscale' returns zero hits in any phone-remote test file). Reverting buildPairingUrl to always use pairingHost()+backend-port would pass the whole suite green. (2) ws-session.ts paneExit's owesFinal branch (lines 250-268, the actual FINDING-083 fix) has NO test anywhere: every existing paneExit test (TEST-2631, and the 'a subscribed pane exit pushes paneExit and the terminal exited status' test) only exercises a LIVE, non-stale pane, hitting the synchronous !owesFinal path. No test marks a pane stale (or leaves it mid-attach/resync) and then calls paneExit to assert a final resync is delivered, in wire order, before paneExit/status:exited. Deleting the entire owesFinal block and its final-snapshot delivery would pass the whole suite green, silently regressing the exact REQ-017/REQ-026 exactly-once guarantee ESC-005 was raised to fix.",
+    "severity": "MEDIUM",
+    "gate": "review",
+    "fix": "Tests-phase amendment adding: (a) a case asserting a https://host:port externalHost yields a pairing URL with that exact scheme/host/port and no backend port appended, alongside the existing bare-hostname case, so a scheme-stripping regression fails fast; (b) a ws-session test that saturates/holds a pane (flood past high-water, or leave it mid-attach) then calls paneExit(), asserting the returned promise resolves after a resync containing the dropped/held bytes is sent BEFORE the paneExit/status:exited pushes.",
+    "phase_of_origin": "implement",
+    "verified_by": "quality",
+    "id": "FINDING-087",
+    "status": "open"
+  },
+  {
+    "lens": "ux",
+    "claim": "Accessibility: the phone client's dynamically-shown message surfaces are silent to assistive tech — #error-banner (REQ-030's mandated error surface) and #connection-status (which carries the TERMINAL 'pairing revoked — scan the new QR code' state, REQ-024) are plain divs toggled via hidden/textContent with no role/aria-live, so a server error frame or the revoked-pairing terminal state renders visually but is never announced to a screen-reader user; the revoked state additionally rides an 11px #888 strip (the lowest-salience text on the page) despite being the one state that halts the whole client and requires user action. The desktop half of this same feature already uses role=alert for its warning/validation surfaces (PhoneRemoteSettings.tsx), so the client is inconsistent with the feature's own established pattern. Distinct from FINDING-067 (the Ctrl button's aria-pressed) — different elements, different defect.",
+    "severity": "LOW",
+    "gate": "review",
+    "fix": "Add role=alert (implicit aria-live assertive) to #error-banner and role=status (aria-live polite) to #connection-status in index.html; give the terminal revoked state higher visual salience than the routine connected/reconnecting strip (e.g. route it through the error banner instead of the status strip).",
+    "location": "src/phone-client/index.html:58-59,64-65 + src/phone-client/main.ts:57-65,160",
+    "phase_of_origin": "implement",
+    "verified_by": "ux",
+    "id": "FINDING-088",
+    "status": "open"
+  },
+  {
+    "lens": "ux",
+    "claim": "The pane-exit overlay defeats the final-output guarantee the feature just paid for: .terminal-exit-overlay is a full-cover layer (position:absolute; inset:0; z-index:5) at rgba(20,0,0,0.72) shown permanently when the actively-viewed pane exits, with no dismiss affordance — it visually obscures (72% opaque dark red over the whole grid) and touch-intercepts exactly the command-ending output that ESC-005/FINDING-083's final-barrier-snapshot machinery guarantees is delivered. The last lines of output are precisely what a user checks when a process exits (exit status, error text, build result), and once the REQ-011 membership push removes the exited pane's list row there is no way back to that content at all — the only escapes are Back (losing the view) or another pane. REQ-030 is met to the letter (in-view notice + input disabled) but the presentation buries the content the notice is about.",
+    "severity": "LOW",
+    "gate": "review",
+    "fix": "Render the exit notice as a non-covering strip (e.g. a banner above the key bar or under the back button) instead of a full-cover overlay, or make the overlay tap-to-dismiss / pointer-events:none with the notice docked to one edge — keep input disabled either way (the 'exited' state, not the overlay, should gate input).",
+    "location": "src/phone-client/index.html:49-53 + src/phone-client/terminal-view.ts:55-59,104-108",
+    "phase_of_origin": "implement",
+    "verified_by": "ux",
+    "id": "FINDING-089",
+    "status": "open"
+  },
+  {
+    "lens": "security",
+    "claim": "The phone-remote HTTP server (service.ts handleRequest / static-assets.ts serveStaticFile) sends no hardening response headers on any served content -- no X-Content-Type-Options: nosniff, no Content-Security-Policy, no X-Frame-Options/frame-ancestors. The served index.html is DOM-safe today (pane-list.ts/main.ts insert every server-derived string via .textContent, never innerHTML, and no addon-web-links is loaded), but nothing at the transport layer backstops that invariant against a future change, and nothing prevents the authenticated page from being framed by a third-party site for clickjacking -- SameSite=Lax on the REQ-028 session cookie is the only defense against a cross-site iframe carrying it, and FINDING-061 already documents that SameSite enforcement is an unpinned browser implementation detail (e.g. inconsistent on iOS Safari). No test in the suite asserts any response header beyond content-type/content-length.",
+    "severity": "LOW",
+    "gate": "review",
+    "fix": "Add X-Content-Type-Options: nosniff to every response in handleRequest/serveStaticFile, and either X-Frame-Options: DENY or Content-Security-Policy: frame-ancestors 'none' (optionally default-src 'self'; script-src 'self', consistent with REQ-021's self-contained-bundle invariant) on the '/' response. Add a unit test asserting these headers on a served route.",
+    "phase_of_origin": "implement",
+    "verified_by": "security",
+    "id": "FINDING-090",
+    "status": "open"
+  },
+  {
+    "lens": "devils-advocate",
+    "claim": "CONV-018 violation: the ESC-004 and ESC-005 human decisions changed REQ-required behavior but were never propagated into 02-spec.md (spec-freeze token still reports 'spec unchanged since the spec gate' as a PASS while the spec is now stale). (1) REQ-031(b)'s normative text ('an optional external host override (externalHost ... a hostname, not a secret)') and acceptance ('with externalHost set, the decoded QR/pairing URL uses that host and the configured port') contradict the shipped v4 behavior, where a full http(s) origin builds the pairing URL VERBATIM — https scheme preserved, the origin's own port (default 443), the configured backend port never appended — so the spec's own acceptance vector now FAILS against the sanctioned implementation. (2) REQ-017's stale-state lifecycle ('a drain never resyncs a pane no longer subscribed/live', resync 'hold-window-ordered') and REQ-026 ('final output already delivered flows through the normal stream'; the mirror 'is disposed on pane exit') omit the v4 exit-time final buffer-replacing resync delivered for a no-longer-live pane and the deferred, settle-gated mirror disposal. The v2 loopback itself established the discipline (the spec's Amendment history exists per CONV-018); the ESC-004/005 round encoded the decisions in code + feature doc only, so a future maintainer or re-reviewer reading REQ-031/REQ-017/REQ-026 re-derives the pre-decision design and would flag the shipped behavior as a violation.",
+    "severity": "MEDIUM",
+    "gate": "review",
+    "fix": "Run the sanctioned spec-amendment path (a v3 Amendment history entry citing ESC-004/ESC-005): amend REQ-031(b) to the hostname-OR-full-origin override with origin-verbatim pairing-URL semantics (scheme preserved, no backend port), and amend REQ-017/REQ-026 acceptance to include the exit-time final-snapshot resync for an owed pane + mirror disposal deferred until every session's exit fan-out settles. No code change required — the implementation is the human-settled truth; the spec must catch up.",
+    "location": "02-spec.md REQ-031(b)/REQ-017/REQ-026 (frozen v2) vs src/main/phone-remote/service.ts:177-205,487-508 + ws-session.ts:237-269 (shipped v4)",
+    "phase_of_origin": "implement",
+    "verified_by": "devils-advocate",
+    "id": "FINDING-091",
+    "status": "open"
+  },
+  {
+    "lens": "networking",
+    "claim": "The ESC-004/005 round fixes (commit 50b240c) shipped with zero regression pins, extending the FINDING-077/079 unpinned-fix class to two NEW human-mandated exactly-once/reachability surfaces: (1) WsSession.paneExit's owesFinal branch (the FINDING-083 final-output-at-exit guarantee, REQ-017/REQ-026) appears in no test — 'owesFinal' matches nothing under tests/, the only paneExit backpressure references are comments in phone-remote-backpressure.test.ts, and the service-level exit fan-out's deferred mirror disposal (Promise.all settle + taps re-check, service.ts:501-508) is untraversed; deleting the whole owesFinal branch or reverting to dispose-before-fan-out regresses the ESC-005 HIGH fix with the suite green. (2) The FINDING-082 external-ORIGIN pairing path (externalOrigin(), buildPairingUrl origin-verbatim branch) is untested — TEST-2695 presents only a bare hostname ('myhost.ts.net'); no test presents an https:// origin, so deleting externalOrigin() regresses the ESC-004 HIGH fix (Tailscale pairing unreachable again) with the suite green. The fix round held test-freeze, so the gate's test-freeze token structurally cannot catch this recurrence.",
+    "severity": "MEDIUM",
+    "gate": "review",
+    "fix": "Tests-phase amendment pinning both round-4 fixes: (a) a ws-session/service vector — subscribe, saturate (markStale or an unresolved attach window), then paneExit — asserting the client receives resync (containing the discarded bytes) BEFORE paneExit/status-exited, and that mirror disposal is deferred until the settle promise resolves; and the no-obligation path stays synchronous. (b) a service vector with settings.externalHost = 'https://machine.tailXXXX.ts.net' asserting the pairing URL is the origin verbatim (https scheme preserved, no backend port appended) and that a bare hostname keeps http + backend port. propose CONV: a loop-back fix round for a blocking finding MUST land at least one regression test traversing the fixed path in the same round (test-freeze is amended, not held) — an unpinned fix is an unfinished fix.",
+    "location": "src/main/phone-remote/ws-session.ts:250-268 (owesFinal final-delivery branch), src/main/phone-remote/service.ts:183-205 (externalOrigin) vs tests/ (no coverage)",
+    "phase_of_origin": "tests",
+    "verified_by": "networking",
+    "id": "FINDING-092",
+    "status": "open"
+  },
+  {
+    "lens": "determinism",
+    "severity": "HIGH",
+    "gate": "review",
+    "location": "src/main/ipc/register.ts:174 (onResize else-branch; sibling hazard at :111) + src/main/ipc/register-pty.ts:139/143 (unconditional onResize fan-out)",
+    "claim": "REQ-011 inventory currency is broken by an event-order hole: a pty:resize arriving AFTER pty:exit resurrects the exited pane as a permanent ghost. The exit handler deletes the pane from phoneRemoteLivePanes (register.ts:115), but the renderer keeps an exited pane MOUNTED under the dead-pane overlay (TerminalPane.tsx:351, the M-3 restart affordance) and its ResizeObserver/grid-sync path has no exited guard — the load-bearing fit-must-pair-with-ptyResize rule guarantees a pty:resize fires for the exited pane on the next window resize / layout change. register-pty.ts invokes deps.onResize unconditionally (lines 139/143; PtyManager.resize deliberately swallows the dead-pty throw), and the register.ts onResize fallback re-adds the unknown id: phoneRemoteLivePanes.set(id, {cols, rows, status: idle}) at line 174. Because paneMeta was deleted at exit, the ghost lands in a phantom group (workspaceId unassigned, name Workspace, fallback title). The next membership push (any workspace autosave fires pushInventoryToAll) then lists a nonexistent pane as an idle terminal on every connected phone: tapping it attaches to an empty snapshot (mirror disposed at exit, so readSnapshot yields an empty string) with dead input; ensureTap on the next membership event builds a leaked 2000-line headless mirror for it; and NOTHING ever removes the entry — user-closing the exited pane emits no second pty:exit, and disable/enable does not clear the map; only an app restart does. Ordinary reproduction: exit a shell, leave the exited overlay up, resize the window. This contradicts the amended REQ-011 MUST (the inventory MUST stay current; a removed pane leaves — here it RE-ENTERS) and silently undoes the exit-leaves-the-list behavior TEST-2711 pins (the pin never interleaves a post-exit resize).",
+    "fix": "Drop the resurrection fallback: on an unknown paneId, onResize must NOT create a phoneRemoteLivePanes entry (replace the else-branch with a return; the spawn/adopt paths already seed real entries with real workspaceId). Audit the sibling ptyData fallback at register.ts:111 the same way (guard on a known pane or re-verify liveness) since it has the identical resurrection shape if any data ever trails an exit. Add a regression vector: spawn, exit, then fire a resize for the exited id and assert the next inventory push does not re-list it.",
+    "phase_of_origin": "implement",
+    "verified_by": "determinism",
+    "contract_violation": true,
+    "id": "FINDING-093",
+    "status": "resolved",
+    "resolution": "Fixed: onResize no longer upserts (register.ts:185-188) — unknown/exited pane ids return without creating an inventory entry or fanning out grid events; sibling ptyData guard (:117) stops trailing data minting a ghost mirror tap. Desktop renderer + register-pty.ts untouched (fit/ptyResize pairing preserved). Verified: full frozen suite + gate.",
+    "resolvedBy": "orchestrator-mechanical-evidence",
+    "resolvedAt": "2026-07-18T22:33:15.997Z"
+  },
+  {
+    "lens": "determinism",
+    "severity": "LOW",
+    "gate": "review",
+    "location": "src/main/phone-remote/mirror-manager.ts:51-53 (registerPane replaces without disposing) + src/main/phone-remote/service.ts:506 (presence-based disposeExited re-check)",
+    "claim": "Residual resource leak inside the FINDING-083 deferred-dispose fix, on the exact race its own re-check defends: mirror-manager registerPane does panes.set(info.paneId, rec) unconditionally, so re-registering a paneId whose record still exists REPLACES the record without disposing the previous mirror. During the exit-settle window (mirror disposal deferred until every session paneExit promise settles), a tap re-registration for the same paneId — the very case the disposeExited comment contemplates — orphans the old record: disposeExited then sees taps.has(paneId) true and skips mirrors.paneExited, and that call would anyway have targeted the successor record, so the superseded @xterm/headless Terminal (up to 2000 lines of scrollback plus its serialize addon) is never disposed for the life of the process. The guard is presence-based (taps.has) rather than identity-based (the repo session-identity pattern re-checks that the claimed slot IS the captured one), which is why the superseded resource escapes both dispose paths. Reachability is narrow (requires same-paneId re-registration within the milliseconds-scale settle window, which normal pty data-before-exit ordering prevents), so this is a hygiene/leak defect, not a correctness one — the in-flight final snapshot is captured synchronously before any replacement can occur, so exactly-once delivery is unaffected.",
+    "fix": "Make registerPane dispose (or refuse and reuse) an existing record for the same paneId before replacing it, or capture the Registered record reference at exit fan-out time and have disposeExited dispose exactly that captured record (identity, not presence) — either closes the orphan on every interleaving.",
+    "phase_of_origin": "implement",
+    "verified_by": "determinism",
+    "id": "FINDING-094",
+    "status": "open"
+  },
+  {
+    "lens": "codex-cross-check",
+    "claim": "REQ-003 persistence is defeated by two unsynchronized whole-record quick.json writers. The renderer loads quick once at startup (src/renderer/store.ts:293-297), while PhoneRemoteSettings deliberately keeps its state outside that store (src/renderer/components/PhoneRemoteSettings.tsx:18-26) and the service independently merges phoneRemote into the current disk record (src/main/ipc/register.ts:201-205). Every later renderer save sends its stale full QuickStore (store.ts:71-73), and the mandatory quit flush always does so (App.tsx:132-137); register-workspaces.ts:37-41 passes that stale payload to QuickStore.save, which replaces the whole normalized file (quick-store.ts:59-62). Thus enable, bind, port, externalHost, or a freshly regenerated tokenHash can be erased by an ordinary renderer settings save or app shutdown; the next launch reverts the feature and a persisted cookie/token generation is lost. This is distinct from FINDING-085/086: those cover rejection inside one service operation, while this succeeds on disk and is later clobbered by a separate owner.",
+    "severity": "HIGH",
+    "gate": "review",
+    "fix": "Give phoneRemote one coherent field owner: make renderer quick saves merge only renderer-owned fields with the latest main-side record while preserving phoneRemote, or update a serialized main-side quick-store API that performs field-scoped atomic mutations for both writers. Do not send tokenHash to the renderer merely to refresh its snapshot. Add an integration test: load a renderer snapshot, enable/regenerate through Phone Remote, then issue saveQuick with the stale snapshot and perform the quit flush; reload quick.json and assert enabled/bind/port/externalHost/tokenHash all survive.",
+    "location": "src/renderer/store.ts:71-73; src/renderer/App.tsx:132-137; src/main/ipc/register-workspaces.ts:37-41; src/main/ipc/register.ts:201-205; src/main/persistence/quick-store.ts:59-62",
+    "phase_of_origin": "plan",
+    "verified_by": "codex-cross-check",
+    "contract_violation": true,
+    "id": "FINDING-095",
+    "status": "open"
+  },
+  {
+    "lens": "codex-cross-check",
+    "claim": "The shipped PWA icons are placeholder pixels, not the dimensions advertised by the manifest. Direct PNG IHDR inspection shows src/phone-client/icons/icon-192.png and icon-512.png are each only 68 bytes and 1x1 pixels, while manifest.webmanifest:11-13 declares them as 192x192 and 512x512 and index.html:16 uses the 1x1 file as the iOS apple-touch-icon. User agents may ignore a manifest image whose intrinsic dimensions contradict sizes, and an installed iPhone shortcut receives an effectively blank one-pixel icon. TEST-2677 only checks that the directory is nonempty (tests/phone-client-build.test.ts:78-86), so these placeholders pass the claimed PWA-install-assets test.",
+    "severity": "LOW",
+    "gate": "review",
+    "fix": "Replace the placeholders with real non-secret 192x192 and 512x512 PNG assets (and preferably a dedicated Apple touch icon). Extend TEST-2677 to parse PNG IHDR dimensions and assert they match every manifest sizes declaration and the intended touch-icon size.",
+    "location": "src/phone-client/icons/icon-192.png; src/phone-client/icons/icon-512.png; src/phone-client/manifest.webmanifest:11-13; tests/phone-client-build.test.ts:78-86",
+    "phase_of_origin": "implement",
+    "verified_by": "codex-cross-check",
+    "id": "FINDING-096",
+    "status": "open"
+  },
+  {
+    "lens": "codex-cross-check",
+    "claim": "The phone client leaks one status entry per pane ID for the lifetime of a connected page. PaneList.setStatus always inserts into its private statuses Map (src/phone-client/pane-list.ts:31-45), including the mandatory exited update from main.ts:124-129, but setInventory only adds current pane IDs and never deletes IDs absent from the new authoritative inventory. Because exited panes leave inventory and pane IDs are not reused, a long-running phone session that observes repeated pane creation/exit grows this Map without bound; the retained entries are invisible after their rows disappear but never become collectible.",
+    "severity": "LOW",
+    "gate": "review",
+    "fix": "Treat each panes inventory as authoritative for membership: rebuild statuses from the incoming workspaces (or delete all keys not present) before rendering. Add a unit test that sets a status for pane A, replaces inventory with pane B, and verifies A is no longer retained, using a behavior-facing accessor or a bounded-size invariant rather than exposing mutable internals.",
+    "location": "src/phone-client/pane-list.ts:31-45; src/phone-client/main.ts:124-129",
+    "phase_of_origin": "implement",
+    "verified_by": "codex-cross-check",
+    "id": "FINDING-097",
     "status": "open"
   }
 ]
