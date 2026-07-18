@@ -1,0 +1,77 @@
+{
+  "feature": "0026-phone-web-remote",
+  "phase": "tests",
+  "gates": {
+    "brainstorm": {
+      "passed": true,
+      "at": "2026-07-18T13:47:35.702Z",
+      "evidence": "human confirmed concept (4 structured forks answered + explicit confirm, 2026-07-18); no blocking open questions",
+      "external": true
+    },
+    "spec": {
+      "passed": true,
+      "at": "2026-07-18T13:55:18.690Z",
+      "firstAt": "2026-07-18T13:55:18.690Z",
+      "tokens": [
+        {
+          "token": "findings",
+          "pass": true,
+          "evidence": "no open blocking findings (CRITICAL/HIGH or contract-violation) at or before this gate"
+        }
+      ]
+    },
+    "plan": {
+      "passed": true,
+      "at": "2026-07-18T13:59:36.507Z",
+      "firstAt": "2026-07-18T13:59:36.507Z",
+      "tokens": [
+        {
+          "token": "spec-freeze",
+          "pass": true,
+          "evidence": "spec unchanged since the spec gate"
+        },
+        {
+          "token": "traceability-plan",
+          "pass": true,
+          "evidence": "all 27 REQ(s) trace to TASK"
+        },
+        {
+          "token": "findings",
+          "pass": true,
+          "evidence": "no open blocking findings (CRITICAL/HIGH or contract-violation) at or before this gate"
+        }
+      ]
+    },
+    "tests": {
+      "passed": true,
+      "at": "2026-07-18T14:25:01.527Z",
+      "firstAt": "2026-07-18T14:25:01.527Z",
+      "tokens": [
+        {
+          "token": "spec-freeze",
+          "pass": true,
+          "evidence": "spec unchanged since the spec gate"
+        },
+        {
+          "token": "tests-red",
+          "pass": true,
+          "evidence": "tests are RED (exit 1) — freeze snapshot captured"
+        }
+      ]
+    }
+  },
+  "iterations": {},
+  "escalations": [],
+  "concerns": [
+    "security",
+    "networking",
+    "performance",
+    "determinism",
+    "ux"
+  ],
+  "attempts": {
+    "spec": 0,
+    "plan": 0,
+    "tests": 0
+  }
+}
