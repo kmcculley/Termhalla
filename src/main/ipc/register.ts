@@ -106,27 +106,34 @@ export async function registerHandlers(services: Services, wm: WindowManager): P
   }
 
   const phoneRemoteSend = (channel: string, ...args: unknown[]): void => {
-    if (channel === CH.ptyData) {
-      const [id, chunk] = args as [string, string]
-      // Known-live panes only (FINDING-093 sibling audit): data for an id absent from
-      // phoneRemoteLivePanes is a trailing byte for an already-exited pane (spawn/adopt always
-      // seed the entry before any data can be dispatched) — never upsert here, and don't fan it
-      // into the phone-remote listeners either (the service's onData path would mint a ghost
-      // mirror tap for a pane the inventory no longer lists). The renderer forward below stays
-      // unconditional (REQ-015 byte-identical).
-      if (phoneRemoteLivePanes.has(id)) for (const cb of phoneRemoteDataListeners) cb(id, chunk)
-    } else if (channel === CH.ptyExit) {
-      const [id] = args as [string, number]
-      phoneRemoteLivePanes.delete(id)
-      phoneRemotePaneMeta.delete(id)
-      for (const cb of phoneRemoteExitListeners) cb(id)
-    } else if (channel === CH.ptyStatus) {
-      const [id, status] = args as [string, TerminalStatus]
-      const rec = phoneRemoteLivePanes.get(id)
-      if (rec) rec.status = status.state
-      for (const cb of phoneRemoteStatusListeners) cb(id, status.state)
-    }
+    // The renderer forward runs FIRST (REQ-015, FINDING-109): the phone-remote fan-out below is
+    // strictly observational — the production listeners do synchronous mirror-feed + per-session
+    // burst work, and running them ahead of `send` put all of that CPU in front of desktop IPC
+    // delivery. The tap must never delay OR break the renderer path, so listener failures are
+    // contained here too.
     send(channel, ...args)
+    try {
+      if (channel === CH.ptyData) {
+        const [id, chunk] = args as [string, string]
+        // Known-live panes only (FINDING-093 sibling audit): data for an id absent from
+        // phoneRemoteLivePanes is a trailing byte for an already-exited pane (spawn/adopt always
+        // seed the entry before any data can be dispatched) — never upsert here, and don't fan it
+        // into the phone-remote listeners either (the service's onData path would mint a ghost
+        // mirror tap for a pane the inventory no longer lists). The renderer forward above stays
+        // unconditional (REQ-015 byte-identical).
+        if (phoneRemoteLivePanes.has(id)) for (const cb of phoneRemoteDataListeners) cb(id, chunk)
+      } else if (channel === CH.ptyExit) {
+        const [id] = args as [string, number]
+        phoneRemoteLivePanes.delete(id)
+        phoneRemotePaneMeta.delete(id)
+        for (const cb of phoneRemoteExitListeners) cb(id)
+      } else if (channel === CH.ptyStatus) {
+        const [id, status] = args as [string, TerminalStatus]
+        const rec = phoneRemoteLivePanes.get(id)
+        if (rec) rec.status = status.state
+        for (const cb of phoneRemoteStatusListeners) cb(id, status.state)
+      }
+    } catch { /* observational tap only — a phone-remote failure never reaches the pty dispatch path */ }
   }
 
   // Remote workspaces (feature 0022): the manager's pushes ride the SAME routed pane-scoped send —

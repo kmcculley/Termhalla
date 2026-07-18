@@ -61,8 +61,8 @@
     },
     "implement": {
       "passed": true,
-      "at": "2026-07-18T22:57:51.059Z",
-      "firstAt": "2026-07-18T22:57:51.059Z",
+      "at": "2026-07-18T23:28:47.388Z",
+      "firstAt": "2026-07-18T23:28:47.388Z",
       "tokens": [
         {
           "token": "spec-freeze",
@@ -90,7 +90,7 @@
   "iterations": {
     "tests": 2,
     "spec": 1,
-    "implement": 5
+    "implement": 6
   },
   "escalations": [
     {
@@ -180,6 +180,17 @@
       "at": "2026-07-18T22:45:51.276Z",
       "decision": "Human (Kevin, 2026-07-18): cap override AUTHORIZED for exactly one more implement round to fix FINDING-095 (quick.json two-writer clobber). Authorization originally recorded on ESC-007; this resolves the cap escalation itself. After this round: no further implement loopbacks — remaining non-blocking findings route to the followups doc.",
       "resolvedAt": "2026-07-18T22:46:01.241Z"
+    },
+    {
+      "id": "ESC-009",
+      "phase": "review",
+      "reason": "Should UI refresh the pairing URL after bind/port changes to reflect the current reachable endpoint? Should we broadcast token regeneration URL updates to all windows to prevent stale QRs? Should phoneRemoteSend prioritize renderer IPC over phone-remote listeners to preserve timing semantics? Should Tailscale CLI documentation be updated to use current syntax?",
+      "kind": "judgment",
+      "finding": "FINDING-108",
+      "status": "resolved",
+      "at": "2026-07-18T23:07:53.409Z",
+      "decision": "Human (Kevin, 2026-07-18): fix all four (108 pairing-URL re-fetch on bind/port change, 109 renderer-send-before-phone-listeners timing, 110 cross-window regenerate URL refresh, 113 Tailscale CLI syntax), single top-tier implementer under the standing audited override, with a final cap raise (implement 7, global 18). REVIEW CLOSE-OUT: after these are fixed, gated, and closed on evidence, the review gate derives from the findings ledger WITHOUT a seventh reviewer fan-out — six rounds have run against a configured review cap of 3; remaining non-blocking findings route to the per-feature followups doc; human-review remains the final veto.",
+      "resolvedAt": "2026-07-18T23:15:13.323Z"
     }
   ],
   "concerns": [
@@ -194,7 +205,7 @@
     "plan": 0,
     "tests": 0,
     "implement": 0,
-    "review": 5
+    "review": 6
   },
   "implementer": {
     "mode": "claude",
@@ -202,8 +213,8 @@
       "orky:implementer"
     ],
     "winner": "orky:implementer",
-    "reason": "ESC-007/008 fix round (human-authorized cap override, caps raised implement 3→5 / global 10→14 in config): single top-tier Claude implementer. FINDING-095 quick.json two-writer clobber fixed via main-side single-field-owner overlay; implement gate re-passed; finding closed on mechanical + behavioral evidence.",
-    "at": "2026-07-18T22:58:11.091Z"
+    "reason": "ESC-009 fix round (human-authorized cap raise implement 7/global 18): single top-tier Claude implementer fixed all four round-6 findings; implement gate re-passed; findings closed on mechanical evidence per the ESC-009-recorded close-out plan.",
+    "at": "2026-07-18T23:29:12.094Z"
   },
   "loopbacks": [
     {
@@ -247,7 +258,13 @@
       "from": "review",
       "reason": "ESC-007/008: FINDING-095 quick.json two-writer clobber fix — human-authorized cap raise (implement 3→5, global 10→14) recorded on both escalations; final implement round.",
       "at": "2026-07-18T22:46:43.094Z"
+    },
+    {
+      "to": "implement",
+      "from": "review",
+      "reason": "ESC-009: four small blockers from review round 6 (pairing-URL staleness x2, REQ-015 timing inversion, doc syntax). Final round under the ESC-009-recorded cap raise and close-out plan.",
+      "at": "2026-07-18T23:15:13.384Z"
     }
   ],
-  "totalFailures": 5
+  "totalFailures": 6
 }

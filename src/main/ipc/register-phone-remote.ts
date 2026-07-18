@@ -81,7 +81,11 @@ export function registerPhoneRemote(
 
   ipcMain.handle(CH.phoneRemoteRegenerateToken, gated(async () => {
     const result = await service.regenerateToken()
-    broadcast()
+    // FINDING-110: only the invoking window gets the new pairing URL (this return value); a
+    // second window's mounted Settings would keep rendering the now-revoked QR. The broadcast
+    // stays secret-free — it carries a `pairingUrlChanged` signal (never the token/URL), and
+    // each window's slice re-PULLS `phoneRemote:pairingUrl` (sender-gated) on seeing it.
+    send(CH.phoneRemoteChanged, { ...service.status(), pairingUrlChanged: true })
     return result
   }, { pairingUrl: '' }))
 

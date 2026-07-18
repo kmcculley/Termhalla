@@ -62,7 +62,17 @@ export function createPhoneRemoteSlice(deps: PhoneRemoteSliceDeps): PhoneRemoteS
   }
 
   return {
-    ingestPhoneRemoteStatus: (status) => { applyStatus(status) },
+    ingestPhoneRemoteStatus: (status) => {
+      applyStatus(status)
+      // FINDING-110: another window regenerated the token — the broadcast carries only a
+      // secret-free `pairingUrlChanged` signal (never the URL/token itself), so re-PULL the
+      // pairing URL; the cached one would keep rendering a revoked QR. `unavailable` clears it.
+      if (status.pairingUrlChanged) {
+        void deps.phoneRemotePairingUrl()
+          .then((out) => set({ phoneRemotePairingUrl: 'pairingUrl' in out ? out.pairingUrl : null }))
+          .catch(() => { /* a transport failure here degrades exactly like refreshPhoneRemotePairingUrl */ })
+      }
+    },
 
     seedPhoneRemoteStatus: async () => {
       try {
@@ -86,6 +96,10 @@ export function createPhoneRemoteSlice(deps: PhoneRemoteSliceDeps): PhoneRemoteS
       try {
         const status = await deps.phoneRemoteSetBind(mode)
         applyStatus(status)
+        // FINDING-108: the advertised pairing-URL host just changed with the bind mode —
+        // re-derive it exactly as setPhoneRemoteExternalHost does (never a regenerate).
+        const out = await deps.phoneRemotePairingUrl()
+        if ('pairingUrl' in out) set({ phoneRemotePairingUrl: out.pairingUrl })
       } catch (e) {
         deps.pushToast(`Phone remote bind mode could not be changed: ${msg(e)}`, 'error')
       }
@@ -95,6 +109,10 @@ export function createPhoneRemoteSlice(deps: PhoneRemoteSliceDeps): PhoneRemoteS
       try {
         const status = await deps.phoneRemoteSetPort(port)
         applyStatus(status)
+        // FINDING-108: the advertised pairing-URL port just changed — re-derive it exactly as
+        // setPhoneRemoteExternalHost does (never a regenerate).
+        const out = await deps.phoneRemotePairingUrl()
+        if ('pairingUrl' in out) set({ phoneRemotePairingUrl: out.pairingUrl })
       } catch (e) {
         deps.pushToast(`Phone remote port could not be changed: ${msg(e)}`, 'error')
       }

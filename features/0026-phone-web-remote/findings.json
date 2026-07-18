@@ -1487,7 +1487,10 @@
     "verified_by": "codex-cross-check",
     "contract_violation": true,
     "id": "FINDING-108",
-    "status": "open"
+    "status": "resolved",
+    "resolution": "Fixed: setPhoneRemoteBind/setPhoneRemotePort re-fetch the pairing URL after applying status (phone-remote-slice.ts:94-121), byte-identical to the existing setExternalHost injected-dep pattern. Verified: targeted + full frozen suite (353/353) + gate.",
+    "resolvedBy": "orchestrator-mechanical-evidence",
+    "resolvedAt": "2026-07-18T23:29:11.812Z"
   },
   {
     "lens": "codex-cross-check",
@@ -1499,7 +1502,10 @@
     "verified_by": "codex-cross-check",
     "contract_violation": true,
     "id": "FINDING-109",
-    "status": "open"
+    "status": "resolved",
+    "resolution": "Fixed: phoneRemoteSend reordered (register.ts:108-136) — the original renderer send runs FIRST, then the phone-remote listener fan-out inside a containment try/catch; REQ-015 desktop-forward timing restored; FINDING-093 known-pane guard preserved verbatim. No frozen test pinned the old order (checked mirrors/e2e-seam/service pins first). Verified: full frozen suite + both e2e specs + gate.",
+    "resolvedBy": "orchestrator-mechanical-evidence",
+    "resolvedAt": "2026-07-18T23:29:11.871Z"
   },
   {
     "lens": "codex-cross-check",
@@ -1511,7 +1517,10 @@
     "verified_by": "codex-cross-check",
     "contract_violation": true,
     "id": "FINDING-110",
-    "status": "open"
+    "status": "resolved",
+    "resolution": "Fixed: regenerate's broadcast now carries a secret-free pairingUrlChanged:true bump (register-phone-remote.ts:88, status.ts:21) and ingestPhoneRemoteStatus re-pulls the URL on it (phone-remote-slice.ts:66-73) — a second mounted Settings panel refreshes its QR without any token/URL riding the push. Verified: full frozen suite + gate.",
+    "resolvedBy": "orchestrator-mechanical-evidence",
+    "resolvedAt": "2026-07-18T23:29:11.938Z"
   },
   {
     "lens": "codex-cross-check",
@@ -1545,6 +1554,108 @@
     "verified_by": "codex-cross-check",
     "contract_violation": true,
     "id": "FINDING-113",
+    "status": "resolved",
+    "resolution": "Fixed: docs/features/phone-web-remote.md walkthrough updated to current Tailscale Serve syntax (tailscale serve localhost:8199, --bg note, v1.52 migration note); FINDING-082's explicit-origin pairing guidance intact; docs-feature-0026 pin still satisfied. Verified: docs test green in targeted run + full suite.",
+    "resolvedBy": "orchestrator-mechanical-evidence",
+    "resolvedAt": "2026-07-18T23:29:12.018Z"
+  },
+  {
+    "lens": "performance",
+    "claim": "CONV-011 class: phoneRemoteWorkspaceNames (the workspace-id -> name map added by the round-2 REQ-011 fix, register.ts:80-84) grows monotonically for the life of the app — onPhoneRemoteWorkspaceSaved only ever .set()s it, the deleteWorkspace IPC handler (register-workspaces.ts:43) has no phone-remote hook, and no dispose-clear exists — so every workspace ever saved keeps its (uuid, name) entry after deletion. The sibling phoneRemotePaneMeta map IS pruned (on pty:exit and on each ws:save of the owning workspace), which makes the omission look like an oversight rather than a decision. Impact is small (one string pair per deleted workspace per session; uuid keys can't re-enter, so no stale-serving) but it is a per-key cache mirroring a live membership set with no pruning for keys that leave the set — exactly the CONV-011 rule.",
+    "severity": "LOW",
+    "gate": "review",
+    "fix": "Thread a workspace-deleted signal into the phone-remote wiring (add an onWorkspaceDeleted callback beside onWorkspaceSaved in registerWorkspaces deps, call it from the CH.deleteWorkspace handler) and have it delete the phoneRemoteWorkspaceNames entry plus any phoneRemotePaneMeta entries still keyed to that workspaceId; alternatively prune inside onPhoneRemoteWorkspaceSaved by sweeping names against store.listWorkspaceIds().",
+    "location": "src/main/ipc/register.ts:80-84 + src/main/ipc/register-workspaces.ts:43",
+    "phase_of_origin": "implement",
+    "verified_by": "performance",
+    "id": "FINDING-114",
+    "status": "open"
+  },
+  {
+    "lens": "ux",
+    "claim": "The ESC-004 round's new settings copy renders markdown-style backticks as literal characters in the UI: the external-host help paragraph shows `tailscale serve` and `https://my-machine.tailXXXX.ts.net` with raw backtick glyphs (JSX renders them as text), and the localhost-reachability disclosure shows a `tailscale serve` hostname the same way — while the SAME component's LAN warning correctly uses <code>tailscale serve</code> markup, so the panel is inconsistent with itself and the pairing-critical copy looks like an unrendered template.",
+    "severity": "LOW",
+    "gate": "review",
+    "fix": "Replace the literal backticks in the two paragraphs with <code>...</code> elements matching the LAN warning's existing pattern.",
+    "location": "src/renderer/components/PhoneRemoteSettings.tsx:160-166,187-191",
+    "phase_of_origin": "implement",
+    "verified_by": "ux",
+    "id": "FINDING-115",
+    "status": "open"
+  },
+  {
+    "lens": "determinism",
+    "claim": "Residual nondeterministic two-writer race on quick.json survives the FINDING-095 overlay fix: the writers are now field-coherent but still unserialized, so any overlapped save's on-disk outcome is a function of fs rename completion order. (a) Stale-overlay direction: the quick:save handler reads currentSettings() synchronously at IPC arrival, but every service persist-first op publishes settings = candidate only AFTER its own saveSettings resolves — a renderer save (debounced settings save or the App.tsx quit flush) arriving while a service op's write is in flight overlays the PRE-op settings and races its atomicWrite against the service's; the later-starting (renderer) rename typically lands last, and atomic-write.ts's Windows transient-EPERM retry loop (up to 10 retries, 10-100ms backoff, provoked by exactly this concurrent same-file access) shuffles the order further. When the stale write wins: regenerateToken leaves the REVOKED token's hash on disk while live auth uses the new token — a restart resurrects the revoked credential and orphans the just-paired device (the exact REQ-006 both-directions atomicity FINDING-085 fixed for the sequential case) — or a successful Enable persists as disabled (REQ-003), e.g. toggle-then-quit where the quit flush races the in-flight setEnabled persist. (b) Reverse direction (never protected by the overlay): the service's saveSettings is an unserialized whole-record read-modify-write (quick.load() then quick.save({...cur, phoneRemote: s}), register.ts:218) — a renderer save landing in that load-to-save window has its renderer-owned fields (a just-added SSH favorite, theme, keybindings) silently reverted by the service's write built from the pre-save snapshot. FINDING-095's resolution self-check drove a SEQUENTIAL stale save; no test exercises either concurrent interleaving.",
+    "severity": "MEDIUM",
+    "gate": "review",
+    "fix": "Serialize every quick.json write through one owner: give QuickStore (or the composition root) a single per-file write queue and route BOTH the quick:save handler's persist and the service's saveSettings through it as queued load-merge-save steps; have the overlay read currentSettings() INSIDE its queued step (after any in-flight service op has published) so the overlaid value can never be pre-publish stale. Add a concurrent vector: begin setEnabled/regenerateToken against a slow-resolving save, fire quick:save mid-flight, and assert the final on-disk record carries both the new phoneRemote AND the renderer's field change. propose CONV: Every writer of one persisted file MUST share a single serialized write queue; an unserialized read-modify-write against a file another path also writes is a finding even when each individual write is atomic.",
+    "location": "src/main/ipc/register.ts:216-218 (saveSettings load-merge-save) + src/main/ipc/register-workspaces.ts:49-53 (overlay read at handler entry) + src/main/persistence/atomic-write.ts (last-rename-wins)",
+    "phase_of_origin": "implement",
+    "verified_by": "determinism",
+    "id": "FINDING-116",
+    "status": "open"
+  },
+  {
+    "lens": "devils-advocate",
+    "severity": "MEDIUM",
+    "gate": "review",
+    "location": "src/main/ipc/register-workspaces.ts:47 (CH.quickLoad handler) + src/renderer/store.ts:296 vs the ESC-007 decision's second clause",
+    "claim": "The ESC-007 human decision's fix shape had two clauses: 'single field owner - the main-side quick:save path preserves main-owned phoneRemote fields over any renderer whole-record payload; no tokenHash sent to the renderer.' Only the first was implemented. CH.quickLoad still returns quick.load() unfiltered, so every renderer receives the full phoneRemote object INCLUDING tokenHash into zustand state at startup (store.ts init: api.loadQuick() -> set({quick})) and on every loadQuick refresh. Meanwhile the shipped record asserts the opposite: currentSettings()'s doc comment says 'NEVER exposed over IPC - the renderer must not receive tokenHash or any other phoneRemote secret material', and commit 191ba69's message says 'nothing phoneRemote-related is sent to the renderer'. Direct security impact is small (the hash is preimage-resistant and the REQ-028 cookie value is the plaintext token, not derivable from the hash), but a settled human decision's explicit clause was not applied while the code and commit claim compliance a future reader will trust - and the three-layer model keeps secret material in main precisely because renderer state is the least-trusted surface.",
+    "fix": "Strip phoneRemote from the quickLoad response in register-workspaces.ts (the renderer has no consumer of it - PhoneRemoteSettings rides phoneRemote:status, and the FINDING-095 overlay already makes the renderer's phoneRemote copy irrelevant on save); or, if exposure is consciously accepted, correct the currentSettings()/commit claims and record the deviation against ESC-007 in the followups doc (per ESC-008 routing).",
+    "phase_of_origin": "implement",
+    "verified_by": "devils-advocate",
+    "id": "FINDING-117",
+    "status": "open"
+  },
+  {
+    "lens": "devils-advocate",
+    "severity": "MEDIUM",
+    "gate": "review",
+    "location": "commit 191ba69 (ESC-007/008 round) - src/main/ipc/register-workspaces.ts:48-57 overlay + register.ts phoneRemoteSettings accessor; tests/ unchanged since freeze",
+    "claim": "The ESC-007/008 fix round (commit 191ba69) is the FOURTH consecutive fix round shipped with zero test changes (the implement gate's own token: 'test files unchanged since freeze'), and its vector is not covered by the existing unpinned-round findings (FINDING-077 scopes ESC-003, FINDING-087/092 scope 50b240c, FINDING-104/105 scope f71553b): no repository test drives a renderer whole-record quick:save (or the quit flush) through the real CH.quickSave handler with a phoneRemoteSettings accessor wired and asserts the persisted record keeps main's phoneRemote - deleting the FINDING-095 overlay from register-workspaces.ts/register.ts passes the entire frozen suite, so the exact clobber the human called 'functionally broken, not a v1 limitation' (a settings save or quit flush erasing enable/bind/port/tokenHash, invalidating every device pairing) can silently regress forever. The commit message's 'behavioral self-check driving the real handler+store+service chain' was a one-off, not a checked-in test. FINDING-116's concurrent interleavings are additionally untested, but even the SEQUENTIAL fixed vector has no pin.",
+    "fix": "Extend the tests-phase amendment FINDING-077/104 already demand with an overlay vector: register the real quickSave handler with a phoneRemoteSettings accessor, drive a stale whole-record renderer payload through it, and assert the persisted record preserves main's phoneRemote (enable/bind/port/tokenHash) while renderer-owned fields take the payload's values; add FINDING-116's concurrent interleavings alongside. Same CONV proposal as FINDING-077 (a loopback fix MUST land with a test pinning the finding's vector in the same round).",
+    "phase_of_origin": "implement",
+    "verified_by": "devils-advocate",
+    "id": "FINDING-118",
+    "status": "open"
+  },
+  {
+    "lens": "codex-cross-check",
+    "claim": "REQ-017 status/grid latest-wins ordering breaks when the socket buffer falls below high water before the drain probe runs. createBackpressurePolicy.onPush stores an old saturated push, but a newer push observed with bufferedAmount at or below highWater returns true and is sent immediately without replacing or clearing that held entry. WsSession.socketDrained later emits the older held entry after the newer wire message. Concrete vector: hold status busy at 101 bytes, observe status idle at 0 bytes (idle sends), then drain/take emits busy, reverting the phone to stale state; grid can similarly revert dimensions. TEST-2702/2708 keep every replacement above high water and miss the threshold-crossing interleaving.",
+    "severity": "MEDIUM",
+    "gate": "review",
+    "fix": "When a held kind+paneId entry already exists, onPush must replace it with the new payload and continue returning false until takeHeldPushes delivers it, regardless of the current bufferedAmount; alternatively delete the prior held entry before allowing the newer push through. Add policy and session tests for hold-old-above-high, push-new-below-high-before-drain, drain, asserting only the new payload is emitted and wire order never regresses.",
+    "location": "src/main/phone-remote/backpressure.ts:82-92; src/main/phone-remote/ws-session.ts:284-308",
+    "phase_of_origin": "implement",
+    "verified_by": "codex-cross-check",
+    "contract_violation": true,
+    "id": "FINDING-119",
+    "status": "open"
+  },
+  {
+    "lens": "codex-cross-check",
+    "claim": "REQ-030's stopped-input exit state is undone by reconnect. main.ts handles paneExit by TerminalView.setExited(), but leaves activePaneId set; the next WebSocket open unconditionally calls terminalView.open(info ?? fallback). TerminalView.open resets exited=false, hides the overlay, and sends subscribe. Because the subsequent REQ-011 inventory push has removed the exited pane, info is normally absent and the 80x24 fallback specifically reopens the dead id. The server rejects the subscribe/input, but the phone has already hidden 'process exited' and resumed accepting/sending keystrokes. The same path mishandles a pane that exits while the socket is disconnected. Existing tests only inspect setExited statically and never interleave paneExit/disconnect/reconnect.",
+    "severity": "MEDIUM",
+    "gate": "review",
+    "fix": "Preserve an explicit active-pane-exited state across reconnect, and do not call TerminalView.open for it. More generally, wait for the reconnect attempt's fresh panes inventory before re-attaching the active pane: if the active id is present, open using its authoritative grid; if absent, keep/set the exited overlay and do not subscribe or accept input. Add a DOM-level paneExit -> close/open and disconnected-exit -> reconnect inventory test asserting the overlay remains, no subscribe/input for the dead id is sent, and selecting a different live pane clears the state.",
+    "location": "src/phone-client/main.ts:124-130,170-203; src/phone-client/terminal-view.ts:76-83,104-108",
+    "phase_of_origin": "implement",
+    "verified_by": "codex-cross-check",
+    "contract_violation": true,
+    "id": "FINDING-120",
+    "status": "open"
+  },
+  {
+    "lens": "codex-cross-check",
+    "claim": "REQ-011/REQ-026 are violated on a synchronous local PTY launch failure: PtyManager.spawn catches node-pty.spawn errors, emits onData and onExit synchronously, then returns. registerPty calls pty.spawn first and unconditionally invokes deps.onSpawn afterward. Thus phoneRemoteSend sees the failure data/exit while phoneRemoteLivePanes has no entry (drops phone data, deletes nothing), then the late onSpawn inserts the already-exited id as idle and broadcasts membership. The failed pane is now a permanent live-inventory ghost: phone subscribe passes isLive and receives an empty mirror, input silently reaches PtyManager.write's missing-session no-op, and no second exit will remove it. This is a distinct current resurrection path from the fixed post-exit resize upsert in FINDING-093.",
+    "severity": "HIGH",
+    "gate": "review",
+    "fix": "Establish the observational phone-remote spawn record before calling PtyManager.spawn, matching tracker.register's existing failure-order discipline, so the synchronous failure data is mirrored and the synchronous exit deletes the entry and fan-outs paneExit/inventory removal; or make spawn report failure and explicitly avoid/roll back onSpawn while preserving the exit/error sequence. Add a composition test with node-pty.spawn throwing that asserts no live pane/mirror remains, inventory excludes the id, and subsequent input gets the specific exited/no-such-pane error.",
+    "location": "src/main/pty/pty-manager.ts:19-45; src/main/ipc/register-pty.ts:124-128; src/main/ipc/register.ts:108-129,172-175",
+    "phase_of_origin": "implement",
+    "verified_by": "codex-cross-check",
+    "contract_violation": true,
+    "id": "FINDING-121",
     "status": "open"
   }
 ]

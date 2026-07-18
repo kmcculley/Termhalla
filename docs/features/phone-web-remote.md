@@ -15,9 +15,12 @@ manages pane lifecycle, and never perturbs the desktop renderer path (REQ-015).
   unencrypted-transport warning whenever LAN mode is selected (there is no built-in TLS in v1); LAN
   mode means anyone on the local network can observe pane contents and keystrokes in flight.
 - **Anywhere access without LAN/TLS: `tailscale serve`.** The documented recipe for reaching your
-  panes from off-network is to run `tailscale serve https / http://127.0.0.1:8199` (or your
-  configured port) against the LOCALHOST bind — Tailscale terminates TLS and tunnels over your
-  private tailnet. There is intentionally **no cloud relay** and no built-in TLS in v1; all traffic
+  panes from off-network is to run `tailscale serve localhost:8199` (substitute your configured
+  port; add `--bg` to keep the proxy running in the background) against the LOCALHOST bind —
+  Tailscale terminates TLS and tunnels over your private tailnet. (This is the current CLI form:
+  Tailscale v1.52 changed Serve to `tailscale serve [flags] <target>`; the pre-1.52 two-argument
+  `serve https / http://127.0.0.1:8199` form is no longer accepted.) There is intentionally **no
+  cloud relay** and no built-in TLS in v1; all traffic
   either stays on localhost, stays on your LAN (with the plaintext warning), or rides your own
   Tailscale/VPN tunnel.
   - **The explicit pairing step:** because the phone reaches your desktop at the TAILSCALE
