@@ -1233,6 +1233,29 @@ All notable changes to Termhalla are recorded here. The format follows
   goes busy on real output only" decision are both preserved verbatim (feature
   0025-cursor-home-output-suppression). CHAR-001's pin was amended as the recorded, deliberate change.
 
+## [0.19.0] - 2026-07-18
+
+The phone release: Termhalla panes on your phone. A new opt-in remote-access server in the main
+process (HTTP + WebSocket, off by default, localhost bind by default) serves a mobile-friendly
+static web client — an installable home-screen PWA — that shows every workspace's panes with live
+status chips and opens any of them as a full-screen read/type terminal with a Ctrl/Esc/Tab/arrows
+key bar. The phone is a passive mirror plus input injector: it renders at the pane's real grid
+with pinch-zoom and can never resize a PTY or touch pane lifecycle. Scrollback-on-attach rides
+always-on bounded headless mirrors with an exactly-once snapshot-then-stream guarantee; a slow or
+sleeping phone is handled by bounded per-client backpressure with drop-and-resnapshot, ping/pong
+keepalive, and a stall ceiling; a pane's final output survives exit even for a saturated client.
+Pairing is one QR code: a single high-entropy token stored hashed-only, presented once and then
+carried by an HttpOnly session cookie that survives desktop restarts; Regenerate revokes every
+paired device at once. Exposure is deliberate: localhost by default (pairs with `tailscale serve`
+for encrypted anywhere-access — the pairing URL accepts a full HTTPS origin), with LAN mode behind
+its own explicit toggle. Settings (enable, bind mode, port, external origin, QR, regenerate) live
+in a new Settings ▸ Phone section; main owns the persisted phone-remote fields so a renderer
+settings save can never clobber them. Ships as a third vite build target packaged into the
+installer; two new Playwright specs drive the real server and served client end-to-end. Built via
+the gated Orky pipeline (feature 0026: two A/B implement rounds, six review fan-outs, 121 findings
+all closed or routed to the followups ledger). The detailed entries stay under [Unreleased] above,
+per the standing convention.
+
 ## [0.18.1] - 2026-07-18
 
 The quality release: all 35 findings from a whole-project code-quality audit closed in one batch —
