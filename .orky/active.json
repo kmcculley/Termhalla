@@ -1,9 +1,9 @@
 {
-  "feature": "features/0026-phone-web-remote",
+  "feature": ".orky/features/0022-client-routing-remote-workspace-ux",
   "projectRoot": "C:/dev/Termhalla",
   "phase": "driving",
-  "lastTickAt": "2026-07-18T23:50:16.798Z",
-  "lastAction": "workflow tick",
+  "lastTickAt": "2026-07-19T01:16:01.109Z",
+  "lastAction": "feature done",
   "runs": {
     ".orky/features/0017-agent-runtime-skeleton": {
       "phase": "human-review",
@@ -33,11 +33,6 @@
     ".orky/features/0022-client-routing-remote-workspace-ux": {
       "phase": "driving",
       "lastTickAt": "2026-07-05T00:44:32.287Z",
-      "lastAction": "workflow tick"
-    },
-    "features/0026-phone-web-remote": {
-      "phase": "driving",
-      "lastTickAt": "2026-07-18T23:50:16.798Z",
       "lastAction": "workflow tick"
     }
   }
